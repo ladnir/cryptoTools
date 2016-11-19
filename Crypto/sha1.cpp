@@ -25,12 +25,12 @@
 #include <stdint.h>
 #include <string>
 
-#define INTEL_ASM_SHA1
+//#define NO_INTEL_ASM_SHA1
 extern "C" void sha1_update_intel(int *hash, const char* input);
 void sha1_compress(uint32_t state[5], const uint8_t block[64]) 
 {
 
-#ifdef INTEL_ASM_SHA1
+#ifdef NO_INTEL_ASM_SHA1
 
     // disable this if you dont want the assembly version.
 
