@@ -69,7 +69,7 @@ namespace osuCrypto {
 
     Channel & BtEndpoint::addChannel(std::string localName, std::string remoteName)
     {
-
+        if (remoteName == "") remoteName = localName;
         BtChannel* chlPtr;
 
         // first, add the channel to the endpoint.

@@ -49,6 +49,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -60,6 +61,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -108,7 +110,13 @@
     <ClCompile Include="Network\Channel.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Crypto\asm\sha_win64.asm" />
+    <CustomBuild Include="Crypto\asm\sha_win64.asm">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe $(SolutionDir)\$(MSBuildProjectName)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

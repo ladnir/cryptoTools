@@ -64,6 +64,11 @@ namespace osuCrypto {
             return *mCur; 
         }
 
+        T* operator->()
+        {
+            return mCur;
+        }
+
         T& operator[](i64 i) {
             if (mCur + i >= mEnd || mCur + i < mBegin)throw std::runtime_error("idx went past begin or end. " LOCATION);
             return mCur[i];
