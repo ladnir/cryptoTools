@@ -1,32 +1,30 @@
 
 
-project(cryptoTools C CXX)
+project(cryptoTools)
 
 
 if($ENV{nasm} MATCHES "")
-	message(WARNING "nasm environment variable NOT defined!!!!")
+	message(WARNING "\nnasm environment variable NOT defined!!!! This means the fast SHA1 function will not be used.")
 
 	# define this so that the asm is disabled.
 	add_definitions(-DNO_INTEL_ASM_SHA1=1)
 	set(shaNasmOutput )
-
+	add_custom_target(sha_asm)
+	
 else()
-	set(shaNasm "${CMAKE_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
-	set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
-	set(nasmScript "${CMAKE_SOURCE_DIR}/cryptoTools/nasm.sh")
+		set(shaNasm "${CMAKE_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
+        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
+      
+        add_custom_command(
+                OUTPUT ${shaNasmOutput}
+                DEPENDS ${shaNasm} 
+                COMMENT "nasm -f elf64 ${shaNasm} -o ${shaNasmOutput}"
+                COMMAND "nasm" "-f elf64" "${shaNasm}" "-o ${shaNasmOutput}"
+                VERBATIM)
 
-	# couldn't figure out how to pass a command to build this
-	# asm file so i just wrote a script that does the compile.
-	# if you change this, update the nasm.sh script
-	add_custom_command(
-		OUTPUT ${shaNasmOutput} 
-		DEPENDS ${shaNasm} ${nasmScript}
-		COMMENT "${nasmScript}"
-		COMMAND "${nasmScript}")
 
 	# mark this asm output input to everything.
-	add_custom_target(sha_asm ALL
-		DEPENDS ${shaNasmOutput})
+	add_custom_target(sha_asm DEPENDS ${shaNasmOutput})
 endif()
 
 
@@ -34,7 +32,7 @@ file(GLOB_RECURSE SRCS *.cpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/cryptoTools)
 add_library(cryptoTools ${SRCS} ${shaNasmOutput})
-
+add_dependencies(cryptoTools sha_asm)
 
 
 
