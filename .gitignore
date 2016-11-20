@@ -6,6 +6,10 @@
 *.user
 *.sln.docstates
 
+CMakeFiles/*
+cmake_install.cmake
+Makefile
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

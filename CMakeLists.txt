@@ -1,4 +1,5 @@
 
+
 project(cryptoTools C CXX)
 
 
@@ -40,36 +41,56 @@ add_library(cryptoTools ${SRCS} ${shaNasmOutput})
 ###########################################################################  
 ###########################################################################  
 #                        Link external libraries                          #
-#						 -----------------------						  #
-#																		  #
-#  Define the expected location for miracl and boost. 					  #
-#  Boost will be found using the findBoost  module in CMake				  #
-#  It should look in the location specified and then look elsewhere		  # 
-#																		  #
+#                        -----------------------                          #
+#                                                                         #
+#  Define the expected location for miracl and boost.                     #
+#  Boost will be found using the findBoost  module in CMake               #
+#  It should look in the location specified and then look elsewhere       # 
+#                                                                         #
 ###########################################################################  
   
 # here is where we expect these libraries to be. Boost will fall back to system location
 
 set(Miracl_Lib_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/miracl/miracl/source/")
+#set(Boost_Lib_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/boost/stage/lib/")
+
+# default location for miracl
+set(MIRACL_LIB "${Miracl_Lib_Dirs}libmiracl.a")
+
+
+if(NOT EXISTS "MIRACL_LIB")
+
+  # we failed to find it, try using find_library
+  find_library(
+    MIRACL_LIB 
+    NAMES miracl  
+    HINTS Miracl_Lib_Dirs)
+  
+  # if we still cant fint it, throw an error
+  if(NOT MIRACL_LIB)
+    Message(${MIRACL_LIB})
+    message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
+  endif()
+
+endif()
+
+
+
+
+
 set(Boost_Lib_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/boost/stage/lib/")
-
-
-
-find_library(MIRACL_LIB  miracl HINTS Miracl_Lib_Dirs)
-
-
-
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)
 set(BOOST_LIBRARYDIR  ${Boost_Lib_Dirs})
 
-find_package(Boost  COMPONENTS filesystem system thread)
+find_package(Boost  COMPONENTS system thread)
 
 if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS}) 
+  include_directories(${Boost_INCLUDE_DIR}) 
+  message( "Found Boost at ${Boost_LIBRARY_DIR}")
 else()
-   message( FATAL_ERROR "Failed to Find boost" )
+   message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
 
@@ -77,3 +98,6 @@ endif()
 #target_link_libraries(cryptoTools sha_asm)
 target_link_libraries(cryptoTools ${MIRACL_LIB})
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
+
+
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
