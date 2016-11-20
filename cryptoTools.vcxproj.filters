@@ -110,9 +110,6 @@
     <ClCompile Include="Crypto\PRNG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\sha.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Network\BtAcceptor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -128,10 +125,16 @@
     <ClCompile Include="Network\Channel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Crypto\sha1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Crypto\asm\sha_win64.asm">
+    <CustomBuild Include="Crypto\asm\sha_win64.asm">
       <Filter>Source Files</Filter>
-    </None>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
 </Project>

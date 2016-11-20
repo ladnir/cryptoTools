@@ -102,7 +102,7 @@
     <ClCompile Include="Crypto\AES.cpp" />
     <ClCompile Include="Crypto\Curve.cpp" />
     <ClCompile Include="Crypto\PRNG.cpp" />
-    <ClCompile Include="Crypto\sha.cpp" />
+    <ClCompile Include="Crypto\sha1.cpp" />
     <ClCompile Include="Network\BtAcceptor.cpp" />
     <ClCompile Include="Network\BtChannel.cpp" />
     <ClCompile Include="Network\BtEndpoint.cpp" />
@@ -117,6 +117,9 @@
       </AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
