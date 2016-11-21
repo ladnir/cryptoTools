@@ -47,36 +47,19 @@ add_dependencies(cryptoTools sha_asm)
 #                                                                         #
 ###########################################################################  
   
-# here is where we expect these libraries to be. Boost will fall back to system location
 
-set(Miracl_Lib_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/miracl/miracl/source/")
-#set(Boost_Lib_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/boost/stage/lib/")
-
-# default location for miracl
-set(MIRACL_LIB "${Miracl_Lib_Dirs}libmiracl.a")
-
-
-if(NOT EXISTS "MIRACL_LIB")
-
-  # we failed to find it, try using find_library
-  find_library(
-    MIRACL_LIB 
-    NAMES miracl  
-    HINTS Miracl_Lib_Dirs)
+ 
+find_library(
+  MIRACL_LIB 
+  NAMES miracl  
+  HINTS "${Miracl_Dirs}/miracl/source/")
   
-  # if we still cant fint it, throw an error
-  if(NOT MIRACL_LIB)
-    Message(${MIRACL_LIB})
-    message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
-  endif()
-
+# if we cant fint it, throw an error
+if(NOT MIRACL_LIB)
+  Message(${MIRACL_LIB})
+  message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
 endif()
 
-
-
-
-
-set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/thirdparty/linux/boost/")
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
