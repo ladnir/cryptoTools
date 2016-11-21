@@ -69,7 +69,7 @@ find_package(Boost  COMPONENTS system thread)
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIR}) 
-  message( "Found Boost at ${Boost_LIBRARY_DIR}")
+  #message( "Found Boost at ${Boost_LIBRARIES}")
 else()
    message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
