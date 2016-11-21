@@ -25,7 +25,8 @@ namespace osuCrypto {
         }
 
         ArrayIterator<T> operator++(int) {
-            return ArrayIterator<T>(mBegin, mCur + 1, mEnd);
+            ++mCur;
+            return ArrayIterator<T>(mBegin, mCur - 1, mEnd);
         }
 
         ArrayIterator<T> operator+(int i) {
@@ -45,7 +46,8 @@ namespace osuCrypto {
         }
 
         ArrayIterator<T> operator--(int) {
-            return ArrayIterator<T>(mBegin, mCur - 1, mEnd);
+            --mCur;
+            return ArrayIterator<T>(mBegin, mCur + 1, mEnd);
         }
 
         ArrayIterator<T> operator-(int i) {
