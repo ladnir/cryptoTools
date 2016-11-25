@@ -58,7 +58,7 @@ namespace osuCrypto {
 
         if(ec)
         {
-            Log::out << ec.message() << Log::endl;
+            std::cout << ec.message() << std::endl;
 
             throw std::runtime_error(ec.message());
         }
@@ -89,13 +89,13 @@ namespace osuCrypto {
                     //boost::asio::socket_base::receive_buffer_size option2(262144);
                     //newSocket->mHandle.set_option(option2);
                     //newSocket->mHandle.get_option(option2);
-                    //Log::out << option2.value() << Log::endl;
+                    //std::cout << option2.value() << std::endl;
 
 
                     //boost::asio::socket_base::send_buffer_size option3((1 << 20 )/8);
                     //newSocket->mHandle.set_option(option3);
                     //newSocket->mHandle.get_option(option3);
-                    //Log::out << option3.value() << Log::endl;
+                    //std::cout << option3.value() << std::endl;
 
                     newSocket->mHandle.async_receive(boost::asio::buffer(buff->data(), buff->size()), 
                         [newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
@@ -125,7 +125,7 @@ namespace osuCrypto {
                                 }
                                 else
                                 {
-                                    Log::out << "async_accept->async_receive->async_receive (body) failed with error_code:" << ec3.message() << Log::endl;
+                                    std::cout << "async_accept->async_receive->async_receive (body) failed with error_code:" << ec3.message() << std::endl;
                                 }
 
                                 delete buff;
@@ -134,7 +134,7 @@ namespace osuCrypto {
                         }
                         else
                         {
-                            Log::out << "async_accept->async_receive (header) failed with error_code:" << ec2.message() << Log::endl;
+                            std::cout << "async_accept->async_receive (header) failed with error_code:" << ec2.message() << std::endl;
                             delete newSocket;
                             delete buff;
                         }
@@ -143,7 +143,7 @@ namespace osuCrypto {
                 }
                 else
                 {
-                    //Log::out << "async_accept failed with error_code:" << ec.message() << Log::endl;
+                    //std::cout << "async_accept failed with error_code:" << ec.message() << std::endl;
                     delete newSocket;
                 }
             });

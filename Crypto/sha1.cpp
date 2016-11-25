@@ -216,7 +216,7 @@ namespace osuCrypto
 
         idx = 0;
 
-        //Log::out << "final " << state[0] << " " << state[1] << " " << state[2] << " " << state[3] << " " << state[4] << Log::endl;
+        //std::cout << "final " << state[0] << " " << state[1] << " " << state[2] << " " << state[3] << " " << state[4] << std::endl;
 
         memcpy(DataOut, state.data(), sizeof(u32) * 5);
         //mSha.Final(DataOut);

@@ -169,7 +169,7 @@ namespace osuCrypto {
             auto name = iter->getName();
             if (name == chlName)
             {
-                //Log::out << Log::lock << "removing " << getName() << " "<< name << " = " << chlName << Log::unlock << Log::endl;
+                //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
                 mChannels.erase(iter);
                 break;
             }

@@ -142,7 +142,7 @@ namespace osuCrypto {
         }
         catch (BadReceiveBufferSize& bad)
         {
-            Log::out << bad.mWhat << Log::endl;
+            std::cout << bad.mWhat << std::endl;
             throw;
         }
     }

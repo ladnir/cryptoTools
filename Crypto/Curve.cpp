@@ -458,11 +458,11 @@ namespace osuCrypto
         {
             auto result = epoint_set(mCurve->mMiracl, XX.mVal, YY.mVal, 0, mVal);
 
-            //Log::out << "plain " << XX << " " << YY << Log::endl;
-            //Log::out << "point " << *this << Log::endl;
+            //std::cout << "plain " << XX << " " << YY << std::endl;
+            //std::cout << "point " << *this << std::endl;
             if (result == false)
             {
-                Log::out << "bad point" << Log::endl;
+                std::cout << "bad point" << std::endl;
                 throw std::runtime_error(LOCATION);
             }
         }
@@ -472,7 +472,7 @@ namespace osuCrypto
 
             if (result == false)
             {
-                Log::out << "bad point" << Log::endl;
+                std::cout << "bad point" << std::endl;
                 throw std::runtime_error(LOCATION);
             }
         }
@@ -937,8 +937,8 @@ namespace osuCrypto
         //dest[0] = exsign(mVal);
         //if (b)
         //{
-        //    Log::out << *this << Log::endl;
-        //    Log::out << u32(dest[0]) << Log::endl;
+        //    std::cout << *this << std::endl;
+        //    std::cout << u32(dest[0]) << std::endl;
         //}
     }
 
@@ -947,14 +947,14 @@ namespace osuCrypto
         bytes_to_big(mCurve->mMiracl, (int)sizeBytes(), (char*)src, mVal);
         //mIsNres = NresState::nonNres;
         //if (b)
-        //Log::out << *this << Log::endl;
+        //std::cout << *this << std::endl;
 
         //insign(char(src[0]), mVal);
 
         //if (b)
         //{
-        //    Log::out << *this << Log::endl;
-        //    Log::out << u32(src[0]) << Log::endl;
+        //    std::cout << *this << std::endl;
+        //    std::cout << u32(src[0]) << std::endl;
         //}
     }
 
@@ -1014,7 +1014,7 @@ namespace osuCrypto
 
         while (mr_compare(mVal, mCurve->getOrder().mVal) > 0)
         {
-            Log::out << "bad rand" << Log::endl;
+            std::cout << "bad rand" << std::endl;
             throw std::runtime_error("");
         }
 
@@ -1037,7 +1037,7 @@ namespace osuCrypto
 
         if (exsign(mVal) == -1)
         {
-            //Log::out << "neg                  " << *this << Log::endl;
+            //std::cout << "neg                  " << *this << std::endl;
 
 
             add(mCurve->mMiracl, mVal, mCurve->getOrder().mVal, mVal);
@@ -1045,8 +1045,8 @@ namespace osuCrypto
 
             if (exsign(mVal) == -1)
             {
-                Log::out << "neg reduce error " << *this << Log::endl;
-                Log::out << "                  " << mCurve->getOrder() << Log::endl;
+                std::cout << "neg reduce error " << *this << std::endl;
+                std::cout << "                  " << mCurve->getOrder() << std::endl;
                 throw std::runtime_error(LOCATION);
             }
         }
@@ -1061,7 +1061,7 @@ namespace osuCrypto
             bool  n = 0;
             if (exsign(mVal) == -1)
             {
-                Log::out << *this << " -> ";
+                std::cout << *this << " -> ";
                 n = 1;
             }
 
@@ -1072,7 +1072,7 @@ namespace osuCrypto
 
             if (n)
             {
-                Log::out << *this << Log::endl;
+                std::cout << *this << std::endl;
             }
         }
 
@@ -1088,7 +1088,7 @@ namespace osuCrypto
 
         //if (exsign(mVal) == -1 || *this >= mCurve->getModulus())
         //{
-        //    Log::out << "EccNumber mod error" << Log::endl;
+        //    std::cout << "EccNumber mod error" << std::endl;
         //    throw std::runtime_error("");
         //}
     }

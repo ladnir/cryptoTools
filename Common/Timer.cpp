@@ -11,7 +11,7 @@ namespace osuCrypto
     {
         mTimes.push_back(std::make_pair(timeUnit::clock::now(), msg));
 
-        //Log::out << msg << "     " << std::chrono::duration_cast<std::chrono::milliseconds>(mTimes.back().first - mStart).count() << Log::endl;
+        //std::cout << msg << "     " << std::chrono::duration_cast<std::chrono::milliseconds>(mTimes.back().first - mStart).count() << std::endl;
 
         return mTimes.back().first;
         //return mStart;

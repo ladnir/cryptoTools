@@ -42,10 +42,10 @@ namespace osuCrypto
             // Create a server worker thread and pass the completion port to the thread
             thrd = std::thread([&, i]()
             {
-                Log::setThreadName("io_Thrd_" + std::to_string(i));
+                setThreadName("io_Thrd_" + std::to_string(i));
                 mIoService.run();
 
-                //Log::out << "io_Thrd_" + std::to_string(i) << " closed" << Log::endl;
+                //std::cout << "io_Thrd_" + std::to_string(i) << " closed" << std::endl;
             });
             ++i;
         }
@@ -238,7 +238,7 @@ namespace osuCrypto
 
                 if (ec)
                 {
-                    Log::out << "network send error. " << ec.message() << Log::endl;
+                    std::cout << "network send error. " << ec.message() << std::endl;
                     throw std::runtime_error("rt error at " LOCATION);
 
                 }
@@ -250,9 +250,9 @@ namespace osuCrypto
                 if (bytesTransferred !=
                     boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
                 {
-                    Log::out << "failed to send all data. Expected to send "
+                    std::cout << "failed to send all data. Expected to send "
                         << (boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
-                        << "  but transfered " << bytesTransferred << Log::endl;
+                        << "  but transfered " << bytesTransferred << std::endl;
 
                     throw std::runtime_error("rt error at " LOCATION);
                 }
@@ -298,7 +298,7 @@ namespace osuCrypto
         }
         else
         {
-            Log::out << "error" + boost::lexical_cast<std::string>(socket) << Log::endl;
+            std::cout << "error" + boost::lexical_cast<std::string>(socket) << std::endl;
             throw std::runtime_error("rt error at " LOCATION);
         }
     }
