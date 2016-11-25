@@ -22,19 +22,21 @@
 *   Software.
 */
 #include "Common/Log.h"
+#include "Common/defines.h"
 #include <stdint.h>
 #include <string>
+#include "sha1.h"
 
 //#define NO_INTEL_ASM_SHA1
 extern "C" void sha1_update_intel(int *hash, const char* input);
-void sha1_compress(uint32_t state[5], const uint8_t block[64]) 
+void sha1_compress(uint32_t state[5], const uint8_t block[64])
 {
 
-#ifdef NO_INTEL_ASM_SHA1
+#ifndef NO_INTEL_ASM_SHA1
 
     // disable this if you dont want the assembly version.
-
     sha1_update_intel((int*)state, (const char*)block);
+
 #else
 #define ROTL32(x, n)  (((0U + (x)) << (n)) | ((x) >> (32 - (n))))  // Assumes that x is uint32_t and 0 < n < 32
 
@@ -165,5 +167,67 @@ void sha1_compress(uint32_t state[5], const uint8_t block[64])
     //    throw std::runtime_error("b");
     //}
 }
+namespace osuCrypto
+{
+    SHA1::SHA1() { Reset(); }
+    void SHA1::Reset()
+    {
+        state.fill(0);
+        block.fill(0);
+        //mSha.Restart();
+        //memset(state, 0, sizeof(u32) * 5);
+        //memset(block, 0,sizeof(u8) * 64);
+        idx = 0;
+    }
+    void SHA1::Update(const u8 * dataIn, u64 length)
+    {
+        //sha1_compress(nullptr, nullptr);
+        //mSha.Update(dataIn, length);
+        while (length)
+        {
+            u64 step = std::min(length, u64(64) - idx);
 
- 
+            memcpy(block.data() + idx, dataIn, step);
+
+            idx += step;
+            dataIn += step;
+            length -= step;
+
+
+            if (idx == 64)
+            {
+                sha1_compress(state.data(), block.data());
+                idx = 0;
+            }
+
+        }
+    }
+
+    //void SHA1::Update(const block & blk)
+    void SHA1::Update(const osuCrypto::block & blk)
+    {
+        Update(ByteArray(blk), sizeof(block));
+    }
+
+    void SHA1::Final(u8 * DataOut)
+    {
+        if (idx)
+            sha1_compress(state.data(), block.data());
+
+        idx = 0;
+
+        Log::out << "final " << state[0] << " " << state[1] << " " << state[2] << " " << state[3] << " " << state[4] << Log::endl;
+
+        memcpy(DataOut, state.data(), sizeof(u32) * 5);
+        //mSha.Final(DataOut);
+    }
+    const SHA1& SHA1::operator=(const SHA1& src)
+    {
+        state = src.state;
+        block = src.block;
+        //mSha = src.mSha;
+        //memcpy(state.data(), src.state.data(), sizeof(u32) * 5);
+        //memcpy(block.data(), src.block.data(), sizeof(u8) * 64);
+        return *this;
+    }
+}
