@@ -173,7 +173,7 @@ namespace osuCrypto
     void SHA1::Reset()
     {
         state.fill(0);
-        block.fill(0);
+        buffer.fill(0);
         //mSha.Restart();
         //memset(state, 0, sizeof(u32) * 5);
         //memset(block, 0,sizeof(u8) * 64);
@@ -187,7 +187,7 @@ namespace osuCrypto
         {
             u64 step = std::min(length, u64(64) - idx);
 
-            memcpy(block.data() + idx, dataIn, step);
+            memcpy(buffer.data() + idx, dataIn, step);
 
             idx += step;
             dataIn += step;
@@ -196,7 +196,7 @@ namespace osuCrypto
 
             if (idx == 64)
             {
-                sha1_compress(state.data(), block.data());
+                sha1_compress(state.data(), buffer.data());
                 idx = 0;
             }
 
@@ -212,7 +212,7 @@ namespace osuCrypto
     void SHA1::Final(u8 * DataOut)
     {
         if (idx)
-            sha1_compress(state.data(), block.data());
+            sha1_compress(state.data(), buffer.data());
 
         idx = 0;
 
@@ -224,7 +224,7 @@ namespace osuCrypto
     const SHA1& SHA1::operator=(const SHA1& src)
     {
         state = src.state;
-        block = src.block;
+        buffer = src.buffer;
         //mSha = src.mSha;
         //memcpy(state.data(), src.state.data(), sizeof(u32) * 5);
         //memcpy(block.data(), src.block.data(), sizeof(u8) * 64);

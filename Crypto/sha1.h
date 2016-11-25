@@ -21,7 +21,7 @@ namespace osuCrypto {
     private:
         //CryptoPP::SHA1 mSha;
         std::array<uint32_t,5> state;
-        std::array<uint8_t, 64> block;
+        std::array<uint8_t, 64> buffer;
         u64 idx;
     };
     
