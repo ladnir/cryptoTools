@@ -85,7 +85,7 @@ namespace osuCrypto
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
     
-    std::array<char*,16> colorMap
+    std::array<const char*,16> colorMap
     {
         "",         //    -- = 0,
         "",         //    -- = 1,
