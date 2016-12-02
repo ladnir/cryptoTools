@@ -116,6 +116,8 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe $(SolutionDir)\$(MSBuildProjectName)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
