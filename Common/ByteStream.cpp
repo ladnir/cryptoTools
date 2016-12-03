@@ -60,7 +60,7 @@ namespace osuCrypto {
     {
         if (loc > mCapacity) throw std::runtime_error("rt error at " LOCATION);
         mPutHead = loc;
-        mGetHead = std::min(mGetHead, mPutHead);
+        mGetHead = std::min<u64>(mGetHead, mPutHead);
     }
 
     u64 ByteStream::tellg()const

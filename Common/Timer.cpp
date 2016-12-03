@@ -30,7 +30,7 @@ namespace osuCrypto
             auto iter = timer.mTimes.begin();
             out << iter->second;
 
-            u64 tabs = std::min((u64)4, (u64)4 - (iter->second.size() / 8));
+            u64 tabs = std::min<u64>((u64)4, (u64)4 - (iter->second.size() / 8));
 
             for (u64 i = 0; i < tabs; ++i)
                 out << "\t";
@@ -42,7 +42,7 @@ namespace osuCrypto
             {
                 out << iter->second;
                 
-                tabs = std::min((u64)4,  (u64)4 - (iter->second.size() / 8));
+                tabs = std::min<u64>((u64)4,  (u64)4 - (iter->second.size() / 8));
 
                 for (u64 i = 0; i < tabs ; ++i)
                     out << "\t";

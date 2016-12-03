@@ -185,7 +185,7 @@ namespace osuCrypto
         //mSha.Update(dataIn, length);
         while (length)
         {
-            u64 step = std::min(length, u64(64) - idx);
+            u64 step = std::min<u64>(length, u64(64) - idx);
 
             memcpy(buffer.data() + idx, dataIn, step);
 

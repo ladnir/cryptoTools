@@ -160,7 +160,7 @@ namespace osuCrypto {
         {
         }
 
-        template<u64 n>
+        template<size_t n>
         ArrayView(std::array<T,n>& container)
             : mData(container.data()),
             mSize(container.size()),
