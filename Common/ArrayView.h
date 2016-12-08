@@ -14,7 +14,7 @@ namespace osuCrypto {
             :mBegin(begin), mCur(cur), mEnd(end)
         {
             if (mCur > mEnd) throw std::runtime_error("iter went past end. " LOCATION);
-            if (mCur < mBegin - 1) throw std::runtime_error("iter went past begin. " LOCATION);
+            if (mCur && mCur < mBegin - 1) throw std::runtime_error("iter went past begin. " LOCATION);
         }
         T* mBegin, *mCur, *mEnd;
 
