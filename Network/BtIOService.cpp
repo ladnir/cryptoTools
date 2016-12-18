@@ -115,7 +115,11 @@ namespace osuCrypto
 
 
                 if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[0]) || ec)
+                {
+                    std::cout << ("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0]))) << std::endl;
+                    std::cout << "This could be from the other end closing too early or the connection beign dropped." << std::endl;
                     throw std::runtime_error("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])));
+                }
 
                 // Try to set the recv buffer to be the right size.
                 try {
