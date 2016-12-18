@@ -91,7 +91,7 @@
     <ClInclude Include="Network\BtSocket.h" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
-    <ClInclude Include="Network\SharedChannel.h" />
+    <ClInclude Include="Network\Broadcaster.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp" />
@@ -109,7 +109,7 @@
     <ClCompile Include="Network\BtEndpoint.cpp" />
     <ClCompile Include="Network\BtIOService.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
-    <ClCompile Include="Network\SharedChannel.cpp" />
+    <ClCompile Include="Network\Broadcaster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

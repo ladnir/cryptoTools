@@ -24,7 +24,7 @@ namespace osuCrypto {
         friend class Channel;
         friend class BtIOService;
         friend class BtChannel;
-        friend class SharedChannel;
+        friend class Broadcaster;
     protected:
         virtual u8* ChannelBufferData() const = 0;
         virtual u64 ChannelBufferSize() const = 0;

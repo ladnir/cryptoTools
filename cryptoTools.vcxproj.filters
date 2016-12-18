@@ -81,7 +81,7 @@
     <ClInclude Include="Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\SharedChannel.h">
+    <ClInclude Include="Network\Broadcaster.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -131,7 +131,7 @@
     <ClCompile Include="Crypto\sha1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\SharedChannel.cpp">
+    <ClCompile Include="Network\Broadcaster.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

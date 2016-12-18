@@ -374,11 +374,11 @@ namespace osuCrypto
 #endif
         if (mCurve->mIsPrimeField)
         {
-            return static_cast<bool>(epoint_comp(mCurve->mMiracl, mVal, cmp.mVal));
+            return epoint_comp(mCurve->mMiracl, mVal, cmp.mVal) != 0;
         }
         else
         {
-            return static_cast<bool>(epoint2_comp(mCurve->mMiracl, mVal, cmp.mVal));
+            return epoint2_comp(mCurve->mMiracl, mVal, cmp.mVal) != 0;
         }
     }
     bool EccPoint::operator!=(
@@ -1109,13 +1109,13 @@ namespace osuCrypto
 
 
 
-            result = static_cast<bool>(ebrick_init(
+            result = 0 < ebrick_init(
                 mCurve->mMiracl,
                 &mBrick,
                 x, y,
                 mCurve->BA, mCurve->BB,
                 mCurve->getFieldPrime().mVal,
-                8, mCurve->mEccpParams.bitCount));
+                8, mCurve->mEccpParams.bitCount);
 
             mirkill(x);
             mirkill(y);
@@ -1124,7 +1124,7 @@ namespace osuCrypto
         {
 
             //fe2ec2(point)->getxy(x, y);
-            result = static_cast<bool>(ebrick2_init(
+            result = 0 < ebrick2_init(
                 mCurve->mMiracl,
                 &mBrick2,
                 copy.mVal->X,
@@ -1136,7 +1136,7 @@ namespace osuCrypto
                 mCurve->mEcc2mParams.b,
                 mCurve->mEcc2mParams.c,
                 8,
-                mCurve->mEcc2mParams.bitCount));
+                mCurve->mEcc2mParams.bitCount);
         }
 
         if (result == 0)
