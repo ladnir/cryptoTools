@@ -72,8 +72,9 @@ namespace osuCrypto {
         if (stopped() == false)
         {
 
-            BtSocket* newSocket = new BtSocket(mIOService);
-            mHandle.async_accept(newSocket->mHandle, [newSocket, this](const boost::system::error_code& ec)
+
+            boost::asio::ip::tcp::socket* newSocket = new boost::asio::ip::tcp::socket(mIOService.mIoService);
+            mHandle.async_accept(*newSocket, [newSocket, this](const boost::system::error_code& ec)
             {
                 start();
 
@@ -84,7 +85,7 @@ namespace osuCrypto {
                     buff->setp(buff->capacity());
 
                     boost::asio::ip::tcp::no_delay option(true);
-                    newSocket->mHandle.set_option(option);
+                    newSocket->set_option(option);
 
                     //boost::asio::socket_base::receive_buffer_size option2(262144);
                     //newSocket->mHandle.set_option(option2);
@@ -97,7 +98,7 @@ namespace osuCrypto {
                     //newSocket->mHandle.get_option(option3);
                     //std::cout << option3.value() << std::endl;
 
-                    newSocket->mHandle.async_receive(boost::asio::buffer(buff->data(), buff->size()), 
+                    newSocket->async_receive(boost::asio::buffer(buff->data(), buff->size()), 
                         [newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
                     {
                         if(!ec2 || bytesTransferred != 4)
@@ -107,21 +108,23 @@ namespace osuCrypto {
                             buff->reserve(size);
                             buff->setp(size);
 
-                            newSocket->mHandle.async_receive(boost::asio::buffer(buff->data(), buff->size()),
+                            newSocket->async_receive(boost::asio::buffer(buff->data(), buff->size()),
                                 [newSocket, buff, size, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
                             {
                                 if (!ec3 || bytesTransferred2 != size)
                                 {
                                     // lets split it into pieces.
-                                    auto names = split(std::string((char*)buff->data(), buff->size()), char('`'));
+                                    auto str = std::string((char*)buff->data(), buff->size());
+                                    auto names = split(str, '`');
 
+                                    if (str.back() == '`' && names.size() == 2) names.emplace_back("");
 
                                     // Now lets create or get the std::promise<WinNetSocket> that will hold this socket
                                     // for the WinNetEndpoint that will eventually receive it.
-                                    auto& prom = getSocketPromise(names[0], names[2], names[1]);
-
-
-                                    prom.set_value(newSocket);
+                                    //getSocketPromise(names[0], names[2], names[1]);
+                                    asyncSetHandel(names[0], names[2], names[1], newSocket);
+                                    //prom->first
+                                    //prom.set_value(newSocket);
                                 }
                                 else
                                 {
@@ -165,7 +168,7 @@ namespace osuCrypto {
         return mStopped;
     }
 
-    BtSocket* BtAcceptor::getSocket(BtChannel & chl)
+    void BtAcceptor::asyncGetHandel(BtChannel & chl)
     {
         std::string tag = chl.getEndpoint().getName() + ":" + chl.getName() + ":" + chl.getRemoteName();
 
@@ -175,16 +178,24 @@ namespace osuCrypto {
 
             if (iter == mSocketPromises.end())
             {
-                mSocketPromises.emplace(tag, std::promise<BtSocket*>());
+                mSocketPromises.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(nullptr, &chl));
+            }
+            else
+            { 
+                chl.mHandle = iter->second.first;
+                chl.mRecvSocketSet = true;
+                chl.mSendSocketSet = true;
+                chl.mOpenProm.set_value();
             }
         }
-        return std::move(mSocketPromises[tag].get_future().get());
+        //return std::move(mSocketPromises[tag].get_future().get());
     }
 
-    std::promise<BtSocket*>& BtAcceptor::getSocketPromise(
+    void BtAcceptor::asyncSetHandel(
         std::string endpointName,
         std::string localChannelName,
-        std::string remoteChannelName)
+        std::string remoteChannelName, 
+        boost::asio::ip::tcp::socket* sock)
     {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
@@ -194,10 +205,18 @@ namespace osuCrypto {
 
             if (iter == mSocketPromises.end())
             {
-                mSocketPromises.emplace(tag, std::promise<BtSocket*>());
+                mSocketPromises.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(sock, nullptr));
+            }
+            else
+            {
+                if (iter->second.second->mHandle)
+                    throw std::runtime_error(LOCATION);
+
+                iter->second.second->mHandle = sock;
+
+                mIOService.startSocket(iter->second.second);
             }
         }
 
-        return mSocketPromises[tag];
     }
 }

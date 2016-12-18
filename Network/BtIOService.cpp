@@ -95,17 +95,17 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::receiveOne(BtSocket* socket)
+    void BtIOService::receiveOne(BtChannel* socket)
     {
         ////////////////////////////////////////////////////////////////////////////////
         //// THis is within the stand. We have sequential access to the recv queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        BoostIOOperation& op = socket->mRecvQueue.front();
+        BtIOOperation& op = socket->mRecvQueue.front();
 
-        if (op.mType == BoostIOOperation::Type::RecvData)
+        if (op.mType == BtIOOperation::Type::RecvData)
         {
-            boost::asio::async_read(socket->mHandle,
+            boost::asio::async_read(*socket->mHandle,
                 std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[0] },
                 [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
             {
@@ -164,7 +164,7 @@ namespace osuCrypto
                     }
                 }
 
-                boost::asio::async_read(socket->mHandle,
+                boost::asio::async_read(*socket->mHandle,
                     std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] },
                     [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
                 {
@@ -180,7 +180,7 @@ namespace osuCrypto
                     if (op.mException)
                         op.mPromise->set_exception(op.mException);
                     else
-                        op.mPromise->set_value();
+                        op.mPromise->set_value(socket->mId);
 
                     delete op.mPromise;
 
@@ -205,11 +205,11 @@ namespace osuCrypto
 
             });
         }
-        else if (op.mType == BoostIOOperation::Type::CloseRecv)
+        else if (op.mType == BtIOOperation::Type::CloseRecv)
         {
             auto prom = op.mPromise;
             socket->mRecvQueue.pop_front();
-            prom->set_value();
+            prom->set_value(0);
         }
         else
         {
@@ -217,19 +217,19 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::sendOne(BtSocket* socket)
+    void BtIOService::sendOne(BtChannel* socket)
     {
         ////////////////////////////////////////////////////////////////////////////////
         //// This is within the stand. We have sequential access to the send queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        BoostIOOperation& op = socket->mSendQueue.front();
+        BtIOOperation& op = socket->mSendQueue.front();
 
 
-        if (op.mType == BoostIOOperation::Type::SendData)
+        if (op.mType == BtIOOperation::Type::SendData)
         {
 
-            boost::asio::async_write(socket->mHandle, op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
+            boost::asio::async_write(*socket->mHandle, op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
             {
                 //////////////////////////////////////////////////////////////////////////
                 //// This is *** NOT *** within the stand. Dont touch the send queue! ////
@@ -261,11 +261,11 @@ namespace osuCrypto
 
                 // if this was a synchronous send, fulfill the promise that the message was sent.
                 if (op.mPromise != nullptr)
-                    op.mPromise->set_value();
+                    op.mPromise->set_value(socket->mId);
 
                 // if they provided a callback, execute it.
-                //if (op->mCallback)
-                //    op->mCallback();
+                if (op.mCallback)
+                    op.mCallback();
 
                 socket->mSendStrand.dispatch([socket, this]()
                 {
@@ -287,14 +287,14 @@ namespace osuCrypto
             });
 
         }
-        else if (op.mType == BoostIOOperation::Type::CloseSend)
+        else if (op.mType == BtIOOperation::Type::CloseSend)
         {
             // This is a special case which may happen if the channel calls stop() 
             // with async sends still queued up, we will get here after they get completes. fulfill the 
             // promise that all async send operations have been completed.
             auto prom = op.mPromise;
             socket->mSendQueue.pop_front();
-            prom->set_value();
+            prom->set_value(0);
         }
         else
         {
@@ -303,16 +303,65 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::dispatch(BtSocket* socket, BoostIOOperation& op)
+    void BtIOService::startSocket(BtChannel * socket)
+    {
+
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        socket->mRecvStrand.post([this, socket]()
+        {
+            // the queue must be guarded from concurrent access, so add the op within the strand
+            socket->mRecvSocketSet = true;
+
+            auto ii = ++socket->mOpenCount;
+            if (ii == 2) socket->mOpenProm.set_value();
+
+            // check to see if we should kick off a new set of recv operations. Since we are just now
+            // starting the socket, its possible that the async connect call returned and the caller scheduled a receive 
+            // operation. But since the socket handshake just finished, those operations didn't start. So if 
+            // the queue has anything in it, we should actually start the operation now...
+
+            if (socket->mRecvQueue.size())
+            {
+                // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
+                // will be kicked off at the completion of this operation.
+                receiveOne(socket);
+            }
+        });
+
+
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        socket->mSendStrand.post([this, socket]()
+        {
+            // the queue must be guarded from concurrent access, so add the op within the strand
+            socket->mSendSocketSet = true;
+
+            auto ii = ++socket->mOpenCount;
+            if (ii == 2) socket->mOpenProm.set_value();
+
+            // check to see if we should kick off a new set of send operations. Since we are just now
+            // starting the socket, its possible that the async connect call returned and the caller scheduled a send 
+            // operation. But since the socket handshake just finished, those operations didn't start. So if 
+            // the queue has anything in it, we should actually start the operation now...
+
+            if (socket->mSendQueue.size())
+            {
+                // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
+                // will be kicked off at the completion of this operation.
+                sendOne(socket);
+            }
+        });
+    }
+
+    void BtIOService::dispatch(BtChannel* socket, BtIOOperation& op)
     {
         switch (op.mType)
         {
-        case BoostIOOperation::Type::RecvData:
+        case BtIOOperation::Type::RecvData:
 
             if (op.mOther == nullptr && boost::asio::buffer_size(op.mBuffs[1]) == 0)
                 throw std::runtime_error("rt error at " LOCATION);
 
-        case BoostIOOperation::Type::CloseRecv:
+        case BtIOOperation::Type::CloseRecv:
         {
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -325,7 +374,7 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of recv operations. If the size > 1, then there
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool startRecving = (socket->mRecvQueue.size() == 1);
+                bool startRecving = (socket->mRecvQueue.size() == 1) && socket->mRecvSocketSet;
 
 
                 if (startRecving)
@@ -337,12 +386,12 @@ namespace osuCrypto
             });
         }
         break;
-        case BoostIOOperation::Type::SendData:
+        case BtIOOperation::Type::SendData:
 
             if (op.mSize == 0)
                 throw std::runtime_error("rt error at " LOCATION);
 
-        case BoostIOOperation::Type::CloseSend:
+        case BtIOOperation::Type::CloseSend:
         {
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -359,7 +408,7 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of send operations. If the size > 1, then there
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-                auto startSending = (socket->mSendQueue.size() == 1);
+                auto startSending = (socket->mSendQueue.size() == 1) && socket->mSendSocketSet;;
 
                 if (startSending)
                 {
