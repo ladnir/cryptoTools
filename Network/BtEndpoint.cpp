@@ -134,7 +134,7 @@ namespace osuCrypto {
                         chl.mHandle->async_connect(mRemoteAddr, initialCallback);
                     });
                 }
-                else if ((bool)ec == false)
+                else if (!ec)
                 {
                     boost::asio::ip::tcp::no_delay option(true);
                     chl.mHandle->set_option(option);
