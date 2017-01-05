@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -59,7 +59,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -91,7 +91,6 @@
     <ClInclude Include="Network\BtSocket.h" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
-    <ClInclude Include="Network\Broadcaster.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp" />
@@ -109,7 +108,6 @@
     <ClCompile Include="Network\BtEndpoint.cpp" />
     <ClCompile Include="Network\BtIOService.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
-    <ClCompile Include="Network\Broadcaster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

@@ -1,9 +1,9 @@
 #include "Curve.h"
 
-#include "Common/Log.h"
+#include "cryptoTools/Common/Log.h"
 
 #include "miracl/include/miracl.h"
-#include "Common/ByteStream.h"
+#include "cryptoTools/Common/ByteStream.h"
 
 namespace osuCrypto
 {

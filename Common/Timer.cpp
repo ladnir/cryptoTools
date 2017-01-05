@@ -1,8 +1,8 @@
 #include "Timer.h"
 #include <ostream>
 #include <string>
-#include "Common/Defines.h"
-#include "Common/Log.h"
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Common/Log.h"
 namespace osuCrypto
 {
     //const Timer::timeUnit  Timer::mStart(Timer::timeUnit::clock::now());

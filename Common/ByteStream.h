@@ -1,11 +1,11 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
  
-#include "Common/Defines.h"
-#include "Network/Channel.h" 
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Network/Channel.h" 
 #include "ArrayView.h"
 #include "MatrixView.h"
-#include "Common/BitIterator.h"
+#include "cryptoTools/Common/BitIterator.h"
 
 
 namespace osuCrypto { 

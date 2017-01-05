@@ -2,11 +2,11 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 
 /* Define the hash based commitment scheme */
-#include "Common/Defines.h"
-#include "Crypto/PRNG.h"
-#include "Common/ByteStream.h"
-//#include "Common/Exceptions.h"
-#include "Crypto/sha1.h"
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Crypto/PRNG.h"
+#include "cryptoTools/Common/ByteStream.h"
+//#include "cryptoTools/Common/Exceptions.h"
+#include "cryptoTools/Crypto/sha1.h"
 #include <iostream>
 
 namespace osuCrypto {

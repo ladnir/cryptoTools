@@ -1,8 +1,8 @@
 #include "BtChannel.h"
-#include "Network/BtSocket.h"
-#include "Network/BtEndpoint.h"
-#include  "Common/Defines.h"
-#include "Common/Log.h"
+#include "cryptoTools/Network/BtSocket.h"
+#include "cryptoTools/Network/BtEndpoint.h"
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Common/Log.h"
 
 namespace osuCrypto {
 

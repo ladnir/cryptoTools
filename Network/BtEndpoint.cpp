@@ -1,10 +1,10 @@
 #include "BtEndpoint.h"
-#include "Network/BtIOService.h"
-#include "Network/BtChannel.h"
-#include "Network/BtAcceptor.h"
-#include "Common/ByteStream.h"
-#include "Network/BtSocket.h"
-#include "Common/Log.h"
+#include "cryptoTools/Network/BtIOService.h"
+#include "cryptoTools/Network/BtChannel.h"
+#include "cryptoTools/Network/BtAcceptor.h"
+#include "cryptoTools/Common/ByteStream.h"
+#include "cryptoTools/Network/BtSocket.h"
+#include "cryptoTools/Common/Log.h"
 
 
 #include <sstream>

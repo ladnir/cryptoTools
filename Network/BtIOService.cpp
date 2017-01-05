@@ -1,15 +1,15 @@
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 
 #include "BtIOService.h"
 #include <stdio.h>
 #include <algorithm>
 
-#include "Common/Log.h"
-#include "Common/ByteStream.h"
+#include "cryptoTools/Common/Log.h"
+#include "cryptoTools/Common/ByteStream.h"
 
-#include "Network/BtEndpoint.h"
-#include "Network/BtSocket.h"
-#include "Network/BtAcceptor.h"
+#include "cryptoTools/Network/BtEndpoint.h"
+#include "cryptoTools/Network/BtSocket.h"
+#include "cryptoTools/Network/BtAcceptor.h"
 
 #include <sstream>
 
