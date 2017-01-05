@@ -24,7 +24,6 @@ namespace osuCrypto {
         friend class Channel;
         friend class BtIOService;
         friend class BtChannel;
-        friend class Broadcaster;
     protected:
         virtual u8* ChannelBufferData() const = 0;
         virtual u64 ChannelBufferSize() const = 0;
@@ -60,22 +59,19 @@ namespace osuCrypto {
         /// <summary>Synchronous call to send data over the network. </summary>
         virtual void send(const void * bufferPtr, u64 length) = 0;
 
-        /// <summary>Synchronous call to send data over the network. </summary>
-        virtual void asyncSend(const void * bufferPtr, u64 length, std::function<void(void)> callback) = 0;
-
         /// <summary>A call to asynchronously receive data over this channel. Data will be saved at dest and is expected 
         ///          to be of size length. Will through otherwise</summary>
-        virtual std::future<u64> asyncRecv(void* dest, u64 length) = 0;
+        virtual std::future<void> asyncRecv(void* dest, u64 length) = 0;
 
         /// <summary>A call to asynchronously receive data over this channel. Data will be saved at buff which will resized 
         /// (if allowed) to fit the data size.</summary>
-        virtual std::future<u64> asyncRecv(ChannelBuffer& mH) = 0;
+        virtual std::future<void> asyncRecv(ChannelBuffer& mH) = 0;
 
         /// <summary>Synchronous call to receive data over the network. Assumes dest has byte size length. WARNING: will through if received message length does not match.</summary>
-        virtual u64 recv(void* dest, u64 length) = 0; 
+        virtual void recv(void* dest, u64 length) = 0; 
 
         /// <summary>Synchronous call to receive data over the network. Will *TRY* to resize buffer to be the appropriate size. A ChannelBuff may refuse to resize...</summary>
-        virtual u64 recv(ChannelBuffer& mH) = 0;
+        virtual void recv(ChannelBuffer& mH) = 0;
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
         virtual bool opened() = 0;

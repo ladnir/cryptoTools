@@ -9,10 +9,10 @@
 
 namespace osuCrypto {
 
-    //class BtSocket;
+    class BtSocket;
     class BtChannel;
     class BtIOService;
-    struct BtIOOperation;
+    struct BoostIOOperation;
 
     class BtAcceptor
     {
@@ -33,15 +33,14 @@ namespace osuCrypto {
 
         std::atomic<bool> mStopped;
         std::mutex mMtx;
-        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>> mSocketPromises;
+        std::unordered_map<std::string, std::promise<BtSocket*>> mSocketPromises;
 
-        void asyncSetHandel(
+        std::promise<BtSocket*>& getSocketPromise(
             std::string endpointName,
             std::string localChannelName,
-            std::string remoteChannelName,
-            boost::asio::ip::tcp::socket* handel);
+            std::string remoteChannelName);
 
-        void asyncGetHandel(BtChannel& chl);
+        BtSocket* getSocket(BtChannel& chl);
 
         u64 mPort;
         boost::asio::ip::tcp::endpoint mAddress;

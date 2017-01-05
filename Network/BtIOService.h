@@ -40,15 +40,15 @@ namespace osuCrypto
 
 
     class BtAcceptor;
-    struct BtIOOperation;
+    struct BoostIOOperation;
     class BtEndpoint;
-    //class BtSocket;
+    class BtSocket;
 
     std::vector<std::string> split(const std::string &s, char delim);
 
     class BtIOService
     {
-        friend class BtChannel;
+        friend class BtSocket;
         friend class BtEndpoint;
 
     public:
@@ -83,16 +83,14 @@ namespace osuCrypto
         /// <summary> A list containing futures for the endpoint that use this IO service. Each is fulfilled when the endpoint is finished with this class.</summary>
         std::list<std::shared_future<void>> mEndpointStopFutures;
 
-        void receiveOne(BtChannel* socket);
+        void receiveOne(BtSocket* socket);
 
-        void sendOne(BtChannel* socket);
-
-        void startSocket(BtChannel* chl);
+        void sendOne(BtSocket* socket);
 
         /// <summary> Used to queue up asynchronous socket operations.</summary>
         /// <param name="socket">The socket that is being operated on.</param>
         /// <param name="op">The operation that should be queued up. </param>
-        void dispatch(BtChannel* socket, BtIOOperation& op);
+        void dispatch(BtSocket* socket, BoostIOOperation& op);
 
         /// <summary> Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         /// Needed since multiple endpoints with different names may listen on a single port.</summary>
