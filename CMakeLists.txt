@@ -30,7 +30,7 @@ endif()
 
 file(GLOB_RECURSE SRCS *.cpp)
 
-include_directories(${CMAKE_SOURCE_DIR}/cryptoTools)
+include_directories(${CMAKE_SOURCE_DIR})
 add_library(cryptoTools ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
 
