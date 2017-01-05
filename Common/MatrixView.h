@@ -116,7 +116,6 @@ namespace osuCrypto
             return copy;
         }
 
-        // returns an array { #number of rows, # of columns (row size)};
         const std::array<u64, 2>& size() const { return mSize; }
         T* data() const { return mData; };
 #ifndef NDEBUG

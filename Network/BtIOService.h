@@ -42,7 +42,6 @@ namespace osuCrypto
     class BtAcceptor;
     struct BtIOOperation;
     class BtEndpoint;
-    class BtChannel;
     //class BtSocket;
 
     std::vector<std::string> split(const std::string &s, char delim);

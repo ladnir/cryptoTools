@@ -9,7 +9,6 @@
 
 #include "Network/BtEndpoint.h"
 #include "Network/BtSocket.h"
-#include "Network/BtChannel.h"
 #include "Network/BtAcceptor.h"
 
 #include <sstream>
