@@ -5,7 +5,7 @@
 #include <memory>
 #include <future>
 
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 
 namespace osuCrypto {
 

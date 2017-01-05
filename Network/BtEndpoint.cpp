@@ -1,10 +1,10 @@
 #include "BtEndpoint.h"
-#include "Network/BtIOService.h"
-#include "Network/BtChannel.h"
-#include "Network/BtAcceptor.h"
-#include "Common/ByteStream.h"
-#include "Network/BtSocket.h"
-#include "Common/Log.h"
+#include "cryptoTools/Network/BtIOService.h"
+#include "cryptoTools/Network/BtChannel.h"
+#include "cryptoTools/Network/BtAcceptor.h"
+#include "cryptoTools/Common/ByteStream.h"
+#include "cryptoTools/Network/BtSocket.h"
+#include "cryptoTools/Common/Log.h"
 
 
 #include <sstream>
@@ -12,7 +12,7 @@
 namespace osuCrypto {
 
     //extern std::vector<std::string> split(const std::string &s, char delim);
-        
+
 
     void BtEndpoint::start(BtIOService& ioService, std::string remoteIP, u32 port, bool host, std::string name)
     {
@@ -51,7 +51,7 @@ namespace osuCrypto {
         {
             std::stringstream ss(vec[1]);
             ss >> port;
-        } 
+        }
 
         start(ioService, ip, port, host, name);
 
@@ -126,12 +126,33 @@ namespace osuCrypto {
                 if (ec && chl.mStopped == false && this->stopped() == false)
                 {
                     boost::asio::deadline_timer t(getIOService().mIoService, boost::posix_time::milliseconds(10));
-                    
+
                     // tell the io service to wait 10 ms and then try again...
                     t.async_wait([&](const boost::system::error_code& ec)
                     {
-                        //boost::asio::async_connect()
-                        chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+                        if (chl.mStopped == false)
+                        {
+                            if (ec)
+                            {
+                                auto message = ec.message();
+                                auto val = ec.value();
+
+                                std::stringstream ss;
+
+                                ss << "network error (wait)  \n  Location: " LOCATION "\n  message: ";
+
+                                ss << message << "\n  value: ";
+                                
+                                ss << val << std::endl;
+
+                                std::cout << ss.str() << std::flush;
+                                std::cout << "stopped: " << chl.mStopped << std::endl;
+                                //throw std::runtime_error(LOCATION);
+                            }
+
+                            ////boost::asio::async_connect()
+                            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+                        }
                     });
                 }
                 else if (!ec)
@@ -177,6 +198,16 @@ namespace osuCrypto {
                             getIOService().receiveOne(&chl);
                         }
                     });
+                }
+                else
+                {
+                    std::stringstream ss;
+                    ss << "network error (init cb) \n  Location: " LOCATION "\n  message: "
+                        << ec.message() << "\n  value: " << ec.value() << std::endl;
+
+
+                    std::cout << ss.str() << std::flush;
+                    throw std::runtime_error(LOCATION);
                 }
             };
 

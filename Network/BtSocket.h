@@ -1,13 +1,13 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 
 
 #include <deque>
 #include <mutex>
 #include <future> 
 
-#include "Network/BtIOService.h"
+#include "cryptoTools/Network/BtIOService.h"
 
 namespace osuCrypto { 
 

@@ -21,8 +21,8 @@
 *   out of or in connection with the Software or the use or other dealings in the
 *   Software.
 */
-#include "Common/Log.h"
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Log.h"
+#include "cryptoTools/Common/Defines.h"
 #include <stdint.h>
 #include <string>
 #include "sha1.h"

@@ -1,7 +1,7 @@
-#include "Common/Defines.h"
-#include "Crypto/Commit.h"
-#include "Common/BitVector.h"
-//#include "Common/Timer.h"
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Crypto/Commit.h"
+#include "cryptoTools/Common/BitVector.h"
+//#include "cryptoTools/Common/Timer.h"
 
 namespace osuCrypto {
 

@@ -3,9 +3,9 @@
 #include<list>
 #include <future>
 #include <unordered_map>
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 #include <atomic>
-#include "Network/BtSocket.h"
+#include "cryptoTools/Network/BtSocket.h"
 
 namespace osuCrypto {
 

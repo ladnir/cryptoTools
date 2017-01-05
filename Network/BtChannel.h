@@ -3,10 +3,10 @@
 
 #include "boost/asio.hpp"
 #include <deque>
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 
 
-#include "Network/Channel.h"
+#include "cryptoTools/Network/Channel.h"
 #include <future>
 
 namespace osuCrypto {

@@ -1,6 +1,6 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
-#include "Common/Defines.h"
+#include "cryptoTools/Common/Defines.h"
 # if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
 #  error WinSock.h has already been included. Please move the boost headers above the WinNet*.h headers
 # endif // defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)

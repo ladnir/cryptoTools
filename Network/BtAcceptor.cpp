@@ -1,9 +1,9 @@
-#include "Network/BtAcceptor.h"
-#include "Network/BtIOService.h"
-#include "Network/BtChannel.h"
-#include "Network/Endpoint.h"
-#include "Common/Log.h"
-#include <Common/ByteStream.h>
+#include "cryptoTools/Network/BtAcceptor.h"
+#include "cryptoTools/Network/BtIOService.h"
+#include "cryptoTools/Network/BtChannel.h"
+#include "cryptoTools/Network/Endpoint.h"
+#include "cryptoTools/Common/Log.h"
+#include "cryptoTools/Common/ByteStream.h"
 
 #include "boost/lexical_cast.hpp"
 
