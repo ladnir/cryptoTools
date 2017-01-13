@@ -28,17 +28,6 @@ namespace osuCrypto {
             ++mCur;
             return ArrayIterator<T>(mBegin, mCur - 1, mEnd);
         }
-
-        ArrayIterator<T> operator+(int i) {
-            return ArrayIterator<T>(mBegin, mCur + i, mEnd);
-        }
-
-        ArrayIterator<T>& operator+=(int i) {
-            mCur += i;
-            if (mCur > mEnd) throw std::runtime_error("iter went past end. " LOCATION);
-            return *this;
-        }
-
         ArrayIterator<T>& operator--() {
             --mCur;
             if (mCur < mBegin - 1) throw std::runtime_error("iter went past end. " LOCATION);
@@ -50,16 +39,29 @@ namespace osuCrypto {
             return ArrayIterator<T>(mBegin, mCur + 1, mEnd);
         }
 
-        ArrayIterator<T> operator-(int i) {
+        ArrayIterator<T> operator+(i64 i) {
+            return ArrayIterator<T>(mBegin, mCur + i, mEnd);
+        }
+
+        ArrayIterator<T>& operator+=(i64 i) {
+            mCur += i;
+            if (mCur > mEnd) throw std::runtime_error("iter went past end. " LOCATION);
+            return *this;
+        }
+
+        ArrayIterator<T> operator-(i64 i) {
             return ArrayIterator<T>(mBegin, mCur - i, mEnd);
         }
 
-        ArrayIterator<T>& operator-=(int i) {
+        ArrayIterator<T>& operator-=(i64 i) {
             mCur -= i;
             if (mCur < mBegin - 1) throw std::runtime_error("iter went past end. " LOCATION);
             return *this;
         }
 
+        i64 operator-(T* i) {
+            return mCur - i;
+        }
 
         T& operator*() {
             if (mCur >= mEnd || mCur < mBegin)throw std::runtime_error("deref past begin or end. " LOCATION);

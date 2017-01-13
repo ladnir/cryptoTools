@@ -125,11 +125,11 @@ namespace osuCrypto
         };
         ArrayIterator<T> end() const {
             T* e = (T*)mData + (mSize[0] * mSize[1]);
-            return ArrayIterator<T>(mData, e, e);
+            return ArrayIterator<T>(mData, e, e); 
         }
 #else
         T* begin() const { return mData; };
-        T* end() const { return mData + mSize; }
+        T* end() const { return mData + mSize[0] * mSize[1]; }
 #endif
 
         ArrayView<T> operator[](u64 rowIdx) const
