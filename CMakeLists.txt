@@ -31,9 +31,16 @@ endif()
 file(GLOB_RECURSE SRCS *.cpp)
 
 include_directories(${CMAKE_SOURCE_DIR})
-add_library(cryptoTools ${SRCS} ${shaNasmOutput})
+add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
 
+
+#############################################
+#            Install                        #
+#############################################
+
+# export cryptoTools headers too
+install(DIRECTORY cryptoTools DESTINATION include FILES_MATCHING PATTERN "*.h")
 
 
 ###########################################################################  
