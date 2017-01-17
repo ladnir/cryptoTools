@@ -85,7 +85,7 @@ namespace osuCrypto {
         bool operator==(const ArrayIterator<T>& cmp) { return mCur == cmp.mCur; }
         bool operator!=(const ArrayIterator<T>& cmp) { return mCur != cmp.mCur; }
 
-        ArrayIterator<T>* operator=(const ArrayIterator<T>& cmp)
+        ArrayIterator<T>& operator=(const ArrayIterator<T>& cmp)
         {
             mBegin = cmp.mBegin; mCur = cmp.mCur; mEnd = cmp.mEnd; return *this;
         }

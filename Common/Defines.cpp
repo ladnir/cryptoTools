@@ -5,7 +5,7 @@
 
 namespace osuCrypto {
 
-    Timer gTimer;
+    Timer gTimer(true);
     const block ZeroBlock = _mm_set_epi64x(0, 0);
     const block OneBlock = _mm_set_epi64x(0, 1);
     const block AllOneBlock = _mm_set_epi64x(u64(-1), u64(-1));

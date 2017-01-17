@@ -3,7 +3,7 @@
 #include <list>
 #include <chrono>
 #include <string>
-
+#include <mutex>
 namespace osuCrypto
 { 
 
@@ -14,10 +14,12 @@ namespace osuCrypto
 
         timeUnit mStart;
         std::list< std::pair<timeUnit, std::string>> mTimes;
-
+        bool mLocking;
+        std::mutex mMtx;
     public: 
-        Timer()
+        Timer(bool locking = false)
         :mStart(Timer::timeUnit::clock::now()) 
+            , mLocking(locking)
         {}
         //Timer(const Timer&);
 
