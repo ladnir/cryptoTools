@@ -239,9 +239,9 @@ namespace osuCrypto
 
         u64 sizeBytes() const;
         void toBytes(u8* dest) const;
-        void fromBytes(u8* src);
-        void fromHex(char* src);
-        void fromDec(char* src);
+        void fromBytes(const u8* src);
+        void fromHex(const char* src);
+        void fromDec(const char* src);
 
         void randomize(PRNG& prng);
         void randomize(const block& seed);

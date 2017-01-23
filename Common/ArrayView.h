@@ -65,7 +65,7 @@ namespace osuCrypto {
 
         T& operator*() {
             if (mCur >= mEnd || mCur < mBegin)throw std::runtime_error("deref past begin or end. " LOCATION);
-            return *mCur; 
+            return *mCur;
         }
 
         T* operator->()
@@ -97,12 +97,13 @@ namespace osuCrypto {
     template<class T>
     class ArrayView
     {
-         
+
         T* mData;
         u64 mSize;
         bool mOwner;
-    public: 
+    public:
 
+        typedef T value_type;
 
         ArrayView()
             :mData(nullptr),
@@ -140,13 +141,17 @@ namespace osuCrypto {
         {}
 
         //template<typename Container>
-        
+
         template <class Iter>
         ArrayView(Iter start, Iter end, typename Iter::iterator_category *p = 0) :
             mData(&*start),
             mSize(end - start),
             mOwner(false)
         {
+            //static_assert(std::is_same<typename Iter::value_type, T>::value, "Iter iter must have the same value_type as ArrayView");
+            //(void*)p;
+            std::ignore = p;
+
         }
 
         ArrayView(T* begin, T* end, bool owner) :
@@ -155,12 +160,24 @@ namespace osuCrypto {
             mOwner(owner)
         {}
 
-        ArrayView(std::vector<T>& container)
-            : mData(container.data()),
-            mSize(container.size()),
+
+        template<template<typename, typename...> class C, typename... Args>
+        ArrayView(const C<T, Args...>& cont, typename C<T, Args...>::value_type* p = 0) :
+            mData(&*((C<T, Args...>&)cont).begin()),
+            mSize((((C<T, Args...>&)cont).end() - ((C<T, Args...>&)cont).begin())),
             mOwner(false)
         {
+            std::ignore = p;
+            //static_assert(std::is_same<typename C<T, Args...>::value_type, T>::value, "Container cont must have the same value_type as ArrayView");
+            //(void*)p;
         }
+
+        //ArrayView(std::vector<T>& container)
+        //    : mData(container.data()),
+        //    mSize(container.size()),
+        //    mOwner(false)
+        //{
+        //}
 
         template<size_t n>
         ArrayView(std::array<T,n>& container)
@@ -212,7 +229,7 @@ namespace osuCrypto {
         inline T& operator[](u64 idx) const
         {
 #ifndef NDEBUG
-            if (idx >= mSize) throw std::runtime_error(LOCATION); 
+            if (idx >= mSize) throw std::runtime_error(LOCATION);
 #endif
 
             return mData[idx];

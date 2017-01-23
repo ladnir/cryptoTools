@@ -942,7 +942,7 @@ namespace osuCrypto
         //}
     }
 
-    void EccNumber::fromBytes(u8 * src)
+    void EccNumber::fromBytes(const u8 * src)
     {
         bytes_to_big(mCurve->mMiracl, (int)sizeBytes(), (char*)src, mVal);
         //mIsNres = NresState::nonNres;
@@ -958,23 +958,23 @@ namespace osuCrypto
         //}
     }
 
-    void EccNumber::fromHex(char * src)
+    void EccNumber::fromHex(const char * src)
     {
         auto oldBase = mCurve->mMiracl->IOBASE;
         mCurve->mMiracl->IOBASE = 16;
 
-        cinstr(mCurve->mMiracl, mVal, src);
+        cinstr(mCurve->mMiracl, mVal, (char*)src);
         //mIsNres = NresState::nonNres;
 
         mCurve->mMiracl->IOBASE = oldBase;
     }
 
-    void EccNumber::fromDec(char * src)
+    void EccNumber::fromDec(const char * src)
     {
         auto oldBase = mCurve->mMiracl->IOBASE;
         mCurve->mMiracl->IOBASE = 10;
 
-        cinstr(mCurve->mMiracl, mVal, src);
+        cinstr(mCurve->mMiracl, mVal,(char*) src);
         //mIsNres = NresState::nonNres;
 
         mCurve->mMiracl->IOBASE = oldBase;
