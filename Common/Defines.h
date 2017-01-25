@@ -67,7 +67,7 @@ namespace osuCrypto {
 
     inline block toBlock(u8*data) { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
 
-    inline block toBlock(u64 x)   { return _mm_set1_epi64x(x); }
+    inline block toBlock(u64 x)   { return _mm_set_epi64x(0,x); }
 
     template <size_t N>
     using  MultiBlock = std::array<block, N>;
