@@ -15,7 +15,7 @@ namespace osuCrypto
         timeUnit mStart;
         std::list< std::pair<timeUnit, std::string>> mTimes;
         bool mLocking;
-        std::mutex mMtx;
+        //std::mutex mMtx;
     public: 
         Timer(bool locking = false)
         :mStart(Timer::timeUnit::clock::now()) 

@@ -9,10 +9,10 @@ namespace osuCrypto
 
     const Timer::timeUnit& Timer::setTimePoint(const std::string& msg)
     {
-        if (mLocking) mMtx.lock();
+        //if (mLocking) mMtx.lock();
         mTimes.push_back(std::make_pair(timeUnit::clock::now(), msg));
         auto& ret = mTimes.back().first;
-        if (mLocking) mMtx.unlock();
+        //if (mLocking) mMtx.unlock();
         //std::cout << msg << "     " << std::chrono::duration_cast<std::chrono::milliseconds>(mTimes.back().first - mStart).count() << std::endl;
 
         return ret;
