@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 
 #include <cinttypes>
 #include <iomanip>
@@ -20,13 +20,13 @@
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 #define __STR2__(x) #x
 #define __STR1__(x) __STR2__(x)
 #define TODO(x) __pragma(message (__FILE__ ":"__STR1__(__LINE__) " Warning:TODO - " #x))
-#define ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration 
+#define ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
 #else
-#define TODO(x) 
+#define TODO(x)
 #define ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
 #endif
 
@@ -64,8 +64,10 @@ namespace osuCrypto {
     }
 
     typedef  __m128i block;
-    inline block toBlock(u8*data)
-    { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
+
+    inline block toBlock(u8*data) { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
+
+    inline block toBlock(u64 x)   { return _mm_set1_epi64x(x); }
 
     template <size_t N>
     using  MultiBlock = std::array<block, N>;
@@ -93,7 +95,7 @@ namespace osuCrypto {
         return _mm_add_epi64(lhs, rhs);
     }
 
-    
+
 #endif
 
     template <size_t N>
@@ -141,7 +143,7 @@ namespace osuCrypto {
     }
 
     std::ostream& operator<<(std::ostream& out, const block& block);
-    
+
     template <size_t N>
     std::ostream& operator<<(std::ostream& out, const MultiBlock<N>& block);
 
