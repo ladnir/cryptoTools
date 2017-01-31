@@ -142,8 +142,13 @@ namespace osuCrypto
                         // OK, this is the other type of recv where an expected size was provided.  op->mWSABufs[1].len  
                         // will contain the expected size and op->mSize contains the size reported in the header.
                         if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
-                            throw std::runtime_error("The provided buffer does not fit the received message. Expected: "
-                                + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + ", actual: " + std::to_string(op.mSize));
+                        {
+                            auto msg = "The provided buffer does not fit the received message. Expected: "
+                                + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + ", actual: " + std::to_string(op.mSize);
+                            std::cout << msg << std::endl;
+
+                            throw std::runtime_error(msg);
+                        }
 
                     }
                 }

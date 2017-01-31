@@ -163,7 +163,7 @@ namespace osuCrypto {
 
         template<template<typename, typename...> class C, typename... Args>
         ArrayView(const C<T, Args...>& cont, typename C<T, Args...>::value_type* p = 0) :
-            mData(&*((C<T, Args...>&)cont).begin()),
+            mData(((C<T, Args...>&)cont).data()),
             mSize((((C<T, Args...>&)cont).end() - ((C<T, Args...>&)cont).begin())),
             mOwner(false)
         {
