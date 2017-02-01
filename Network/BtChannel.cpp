@@ -214,6 +214,11 @@ namespace osuCrypto {
         return (mSocket) ? (u64)mSocket->mTotalSentData : 0;
     }
 
+    u64 BtChannel::getTotalDataRecv() const
+    {
+        return (mSocket) ? (u64)mSocket->mTotalRecvData : 0;
+    }
+
     u64 BtChannel::getMaxOutstandingSendData() const
     {
         return (mSocket) ? (u64)mSocket->mMaxOutstandingSendData : 0;

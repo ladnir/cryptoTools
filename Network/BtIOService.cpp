@@ -317,10 +317,12 @@ namespace osuCrypto
         switch (op.mType)
         {
         case BoostIOOperation::Type::RecvData:
+        {
 
-            if (op.mOther == nullptr && boost::asio::buffer_size(op.mBuffs[1]) == 0)
+            if (op.mOther == nullptr &&  op.mSize == 0)
                 throw std::runtime_error("rt error at " LOCATION);
 
+        }
         case BoostIOOperation::Type::CloseRecv:
         {
 
@@ -328,6 +330,7 @@ namespace osuCrypto
             socket->mRecvStrand.post([this, socket, op]()
             {
                 // the queue must be guarded from concurrent access, so add the op within the strand
+                socket->mTotalRecvData += op.mSize;
 
                 // queue up the operation.
                 socket->mRecvQueue.push_back(op);

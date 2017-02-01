@@ -47,6 +47,7 @@ namespace osuCrypto {
         virtual void resetStats() {};
 
         virtual u64 getTotalDataSent() const = 0;
+        virtual u64 getTotalDataRecv() const = 0;
 
         virtual u64 getMaxOutstandingSendData() const = 0;
 

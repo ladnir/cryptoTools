@@ -34,6 +34,7 @@ namespace osuCrypto {
         void resetStats() override;
 
         u64 getTotalDataSent() const override;
+        u64 getTotalDataRecv() const override;
 
         u64 getMaxOutstandingSendData() const override;
         
