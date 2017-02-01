@@ -211,6 +211,10 @@ inline bool operator<(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
 
 
 #endif
+
+
+namespace oc = osuCrypto;
+
 //typedef struct largeBlock {
 //
 //} largeBlock;

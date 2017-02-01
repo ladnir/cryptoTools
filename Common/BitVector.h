@@ -120,7 +120,7 @@ namespace osuCrypto {
     template<class T>
     inline ArrayView<T> BitVector::getArrayView() const
     {
-        return ArrayView<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)), false);
+        return ArrayView<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
     }
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);
