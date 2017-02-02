@@ -204,6 +204,7 @@ namespace osuCrypto {
         if (mSocket)
         {
             mSocket->mTotalSentData = 0;
+            mSocket->mTotalRecvData = 0;
             mSocket->mMaxOutstandingSendData = 0;
             mSocket->mOutstandingSendData = 0;
         }
