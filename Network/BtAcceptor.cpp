@@ -102,7 +102,7 @@ namespace osuCrypto {
                     {
                         if(!ec2 || bytesTransferred != 4)
                         {
-                            u32 size = buff->getArrayView<u32>()[0];
+                            u32 size = buff->getSpan<u32>()[0];
 
                             buff->reserve(size);
                             buff->setp(size);

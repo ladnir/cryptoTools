@@ -105,6 +105,10 @@ namespace osuCrypto {
         template<class T>
         ArrayView<T> getArrayView() const;
 
+        template<class T>
+        gsl::span<T> getSpan() const;
+
+
     protected:
         u8* ChannelBufferData() const override { return mData; }
         u64 ChannelBufferSize() const override { return sizeBytes(); };
@@ -121,6 +125,12 @@ namespace osuCrypto {
     inline ArrayView<T> BitVector::getArrayView() const
     {
         return ArrayView<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
+    }
+
+    template<class T>
+    inline gsl::span<T> BitVector::getSpan() const
+    {
+        return gsl::span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
     }
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);

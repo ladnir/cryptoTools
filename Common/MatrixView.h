@@ -4,7 +4,7 @@
 #include <array>
 #include "cryptoTools/Common/ArrayView.h"
 
-
+#include "cryptoTools/gsl/multi_span.h"
 namespace osuCrypto
 {
 

@@ -196,9 +196,21 @@ namespace osuCrypto {
         template<class T>
         ArrayView<T> getArrayView() const;
 
+        template<class T>
+        gsl::span<T> getSpan() const;
+
 
         template<class T>
         MatrixView<T> getMatrixView(u64 columnSize) const;
+
+        template<class T>
+        gsl::multi_span<T, gsl::dynamic_range, gsl::dynamic_range> getMultiSpan(/*u64 d1 = implicit,*/  u64 d2) const;
+
+        template<class T, size_t N>
+        gsl::multi_span<T, gsl::dynamic_range, N> getMultiSpan(/*u64 d1 = implicit,*/) const;
+
+        //template<class T>
+        //gsl::multi_span<T, gsl::dynamic_range, gsl::dynamic_range, gsl::dynamic_range> getMultiSpan(/*u64 d1 = implicit,*/ u64 d2, u64 d3) const;
 
 
         BitIterator bitIterBegin() const;
@@ -233,11 +245,43 @@ namespace osuCrypto {
     {
         return ArrayView<T>((T*)mData, (T*)mData + (mPutHead / sizeof(T)));
     }
+
+    template<class T>
+    inline gsl::span<T> ByteStream::getSpan() const
+    {
+        return gsl::span<T>((T*)mData, (T*)mData + (mPutHead / sizeof(T)));
+    }
+
     template<class T>
     inline MatrixView<T> ByteStream::getMatrixView(u64 columnSize) const
     {
         u64 numRows = mPutHead / (columnSize * sizeof(T));
         return MatrixView<T>((T*)mData, numRows, columnSize, false);
     }
+
+
+    template<class T>
+    inline gsl::multi_span<T, gsl::dynamic_range, gsl::dynamic_range>
+        ByteStream::getMultiSpan(/*u64 d1 = implicit,*/  u64 d2) const
+    {
+        u64 d1 = mPutHead / (d2 * sizeof(T));
+        return gsl::as_multi_span((T*)mData, gsl::dim(d1), gsl::dim(d2));
+    }
+
+    template<class T, size_t N>
+    inline gsl::multi_span<T, gsl::dynamic_range, N>
+        ByteStream::getMultiSpan(/*u64 d1 = implicit,*/) const
+    {
+        u64 d1 = mPutHead / (N * sizeof(T));
+        return gsl::as_multi_span((T*)mData, gsl::dim(d1), gsl::dim<N>());
+    }
+    //template<class T>
+    //inline gsl::multi_span<T, gsl::dynamic_range, gsl::dynamic_range, gsl::dynamic_range>
+    //    ByteStream::getMultiSpan(/*u64 d1 = implicit,*/ u64 d2, u64 d3) const
+    //{
+    //    u64 d1 = mPutHead / (d2 * d3 * sizeof(T));
+    //    return gsl::as_multi_span((T*)mData, gsl::dim(d1), gsl::dim(d2), gsl::dim(d3));
+    //}
+
 }
 
