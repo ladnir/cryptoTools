@@ -33,12 +33,22 @@
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
-
+#include "cryptoTools/gsl/span.h"
+#include "cryptoTools/gsl/multi_span.h"
 
 namespace osuCrypto {
     template<typename T> using ptr = T*;
     template<typename T> using uPtr = std::unique_ptr<T>;
     template<typename T> using sPtr = std::shared_ptr<T>;
+    template<typename T> using span = gsl::span<T>;
+
+    template<typename T, std::ptrdiff_t FirstDimension, std::ptrdiff_t... RestDimensions> 
+    using multi_span = gsl::multi_span<T, FirstDimension, RestDimensions...>;
+
+    const std::ptrdiff_t dyn = gsl::dynamic_range;
+
+    //template <typename T>
+    //using MatrixSpan = multi_span<T, dyn, dyn>;
 
     typedef uint64_t u64;
     typedef int64_t i64;

@@ -1473,7 +1473,7 @@ public:
         return bounds_.extent(dim);
     }
 
-    constexpr bounds_type bounds() const noexcept { return bounds_; }
+    constexpr bounds_type bounds() const noexcept { return bounds_; } 
 
     constexpr pointer data() const noexcept { return data_; }
 
