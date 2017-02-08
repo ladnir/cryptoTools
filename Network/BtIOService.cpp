@@ -121,57 +121,41 @@ namespace osuCrypto
                     throw std::runtime_error("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])));
                 }
 
-                // Try to set the recv buffer to be the right size.
-                try {
-                    // We support two types of receives. One where we provide the expected size of the message and one 
-                    // where we allow for variable length messages. op->other will be non null in the resize case and allow 
-                    // us to resize the ChannelBuffer which will hold the data.
-                    if (op.mOther != nullptr)
-                    {
-                        // Get the ChannelBuffer from the multi purpose other pointer.
-                        ChannelBuffer* mH = (ChannelBuffer*)op.mOther;
-
-                        // resize it. This could throw is the channel buffer chooses to.
-                        mH->ChannelBufferResize(op.mSize);
-
-                        // set the WSA buffer to point into the channel buffer storage location.
-                        op.mBuffs[1] = boost::asio::buffer((char*)mH->ChannelBufferData(), op.mSize);
-                    }
-                    else
-                    {
-                        // OK, this is the other type of recv where an expected size was provided.  op->mWSABufs[1].len  
-                        // will contain the expected size and op->mSize contains the size reported in the header.
-                        if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
-                        {
-                            auto msg = "The provided buffer does not fit the received message. Expected: "
-                                + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + ", actual: " + std::to_string(op.mSize);
-                            std::cout << msg << std::endl;
-
-                            throw std::runtime_error(msg);
-                        }
-
-                    }
-                }
-                catch (std::exception& e)
+                // We support two types of receives. One where we provide the expected size of the message and one 
+                // where we allow for variable length messages. op->other will be non null in the resize case and allow 
+                // us to resize the ChannelBuffer which will hold the data.
+                if (op.mOther != nullptr)
                 {
-                    // OK, something went wrong with resizing the recv buffer. Lets make our own buffer
-                    std::unique_ptr<char[]> newBuff(nullptr);
-                    //std::unique_ptr<char[]> newBuff(new char[op.mSize]);
-                    //op.mBuffs[1] = boost::asio::buffer(newBuff.get(), op.mSize);
+                    // Get the ChannelBuffer from the multi purpose other pointer.
+                    ChannelBuffer* mH = (ChannelBuffer*)op.mOther;
 
-                    // store the exception and then throw it once the recv is done.
-                    try
+                    // resize it. This could throw is the channel buffer chooses to.
+                    mH->ChannelBufferResize(op.mSize);
+
+                    // set the WSA buffer to point into the channel buffer storage location.
+                    op.mBuffs[1] = boost::asio::buffer((char*)mH->ChannelBufferData(), op.mSize);
+                }
+                else
+                {
+                    // OK, this is the other type of recv where an expected size was provided.  op->mWSABufs[1].len  
+                    // will contain the expected size and op->mSize contains the size reported in the header.
+                    if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
                     {
-                        throw BadReceiveBufferSize(e.what(), boost::asio::buffer_size(op.mBuffs[1]), std::move(newBuff));
-                    }
-                    catch (...) {
+                        auto msg = "The provided buffer does not fit the received message. Expected: "
+                            + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + ", actual: " + std::to_string(op.mSize);
+                        std::cout << msg << std::endl;
+
+                        std::unique_ptr<char[]> newBuff(nullptr);
+                        auto e_ptr = std::make_exception_ptr(BadReceiveBufferSize(msg, op.mSize));
+
                         op.mException = std::current_exception();
                         op.mPromise->set_exception(op.mException);
                         delete op.mPromise;
 
-                       return;
+                        return;
                     }
                 }
+
 
                 boost::asio::async_read(socket->mHandle,
                     std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] },

@@ -28,14 +28,20 @@ namespace osuCrypto
     public:
         std::string mWhat;
         u64 mLength;
-        std::unique_ptr<char[]> mData;
+        //std::shared_ptr<char[]> mData;
 
-        BadReceiveBufferSize(std::string what, u64 length, std::unique_ptr<char[]>&& data)
+        BadReceiveBufferSize(std::string what, u64 length)
             :
             mWhat(what),
-            mLength(length),
-            mData(std::move(data))
+            mLength(length)
         { }
+
+        BadReceiveBufferSize(const BadReceiveBufferSize& src) = default;
+        BadReceiveBufferSize(BadReceiveBufferSize&& src) = default;
+        //    : mWhat(src.mWhat)
+        //    , mLength(src.mLength)
+        //{
+        //}
     };
 
 
