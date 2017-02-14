@@ -6,6 +6,7 @@
 #include <deque>
 #include <mutex>
 #include <future> 
+#include <functional> 
 
 #include "cryptoTools/Network/BtIOService.h"
 
@@ -60,7 +61,7 @@ namespace osuCrypto {
         void* mOther;
         std::promise<void>* mPromise;
         std::exception_ptr mException;
-        //std::function<void()> mCallback;
+        std::function<void()> mCallback;
     };
 
 

@@ -40,6 +40,9 @@ namespace osuCrypto {
         
         /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
         void asyncSend(const void * bufferPtr, u64 length) override;
+        
+        /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
+        void asyncSend(const void * bufferPtr, u64 length, std::function<void()> callback) override;
 
         /// <summary>Buffer will be MOVED and then sent over the network asynchronously. </summary>
         void asyncSend(std::unique_ptr<ChannelBuffer> mH) override;

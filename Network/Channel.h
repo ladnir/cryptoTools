@@ -54,6 +54,10 @@ namespace osuCrypto {
         /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
         virtual void asyncSend(const void * bufferPtr, u64 length) = 0;
 
+
+        /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
+        virtual void asyncSend(const void * bufferPtr, u64 length, std::function<void()> callback) = 0;
+
         /// <summary>Buffer will be MOVED and then sent over the network asynchronously. </summary>
         virtual void asyncSend(std::unique_ptr<ChannelBuffer> mH) = 0;
 

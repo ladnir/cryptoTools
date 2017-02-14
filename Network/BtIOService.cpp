@@ -257,8 +257,8 @@ namespace osuCrypto
                     op.mPromise->set_value();
 
                 // if they provided a callback, execute it.
-                //if (op->mCallback)
-                //    op->mCallback();
+                if (op.mCallback)
+                    op.mCallback();
 
                 socket->mSendStrand.dispatch([socket, this]()
                 {
@@ -336,7 +336,11 @@ namespace osuCrypto
         case BoostIOOperation::Type::SendData:
 
             if (op.mSize == 0)
-                throw std::runtime_error("rt error at " LOCATION);
+            {
+
+                //std::cout << "\n\n" << Backtrace() << std::endl;
+                throw std::runtime_error("Network error, tried to send zero sized messsage." LOCATION);
+            }
 
         case BoostIOOperation::Type::CloseSend:
         {

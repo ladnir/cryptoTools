@@ -135,7 +135,7 @@ namespace osuCrypto {
         friend class PRNG;
 
     public: 
-        ByteStream(u64 size = 0);
+        ByteStream(u64 size = 0, bool zero = true);
         ByteStream(const ByteStream& os);
         ByteStream(const u8* data, u64 length);
 

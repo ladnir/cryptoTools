@@ -6,10 +6,10 @@
 
 namespace osuCrypto {
 
-    ByteStream::ByteStream(u64 maxlen)
+    ByteStream::ByteStream(u64 maxlen, bool zero)
     {
         mCapacity = maxlen; mPutHead = maxlen; mGetHead = 0;
-        mData = mCapacity ? new u8[mCapacity]() : nullptr;
+        mData = mCapacity ?  ( zero ? new u8[mCapacity]()  : new u8[mCapacity]): nullptr;
     }
 
 
@@ -163,7 +163,7 @@ namespace osuCrypto {
         if (length > mCapacity)
         {
             delete[] mData;
-            mData = new u8[mCapacity = length]();
+            mData = new u8[mCapacity = length];
         }
         mPutHead = length;
         mGetHead = 0;
