@@ -167,7 +167,10 @@ namespace osuCrypto
 
 
                     if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[1]) || ec)
-                        throw std::runtime_error("rt error at " LOCATION);
+                        throw std::runtime_error("Network error, other end may have crashed. Received incomplete message. error at " LOCATION);
+
+
+                    socket->mTotalRecvData += boost::asio::buffer_size(op.mBuffs[1]);
 
                     // signal that the recv has completed.
                     if (op.mException)
@@ -314,7 +317,7 @@ namespace osuCrypto
             socket->mRecvStrand.post([this, socket, op]()
             {
                 // the queue must be guarded from concurrent access, so add the op within the strand
-                socket->mTotalRecvData += op.mSize;
+                //socket->mTotalRecvData += op.mSize;
 
                 // queue up the operation.
                 socket->mRecvQueue.push_back(op);
