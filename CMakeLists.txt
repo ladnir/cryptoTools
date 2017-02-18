@@ -2,7 +2,7 @@ project(cryptoTools)
 cmake_minimum_required(VERSION 3.6)
 set(BUILD_CURVE ON CACHE BOOL "whether to build Curve.cpp- requires miracl")
 
-set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
+set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -g")
 set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
 if($ENV{nasm} MATCHES "")
@@ -73,17 +73,16 @@ set(Boost_USE_STATIC_RUNTIME     ON)
 find_package(Boost COMPONENTS system thread)
 
 if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIR}) 
-  #message( "Found Boost at ${Boost_LIBRARIES}")
+    include_directories(${Boost_INCLUDE_DIR}) 
 else()
-   message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
+    message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
-#target_link_libraries(cryptoTools sha_asm)
 if (${BUILD_CURVE})
     target_link_libraries(cryptoTools ${MIRACL_LIB})
 endif()
 
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
 
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+add_executable(tests tests.cpp)
+target_link_libraries(tests cryptoTools)
