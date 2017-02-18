@@ -21,7 +21,7 @@ struct CuckooParam {
 class CuckooHasher {
     public:
         CuckooHasher() = delete;
-        CuckooHasher(size_t stash_size) : mTotalTries(0), stash_size(stash_size) {}
+        CuckooHasher(size_t stash_size) : mTotalTries(0), mStashSize(stash_size) {}
         ~CuckooHasher();
 
         struct Bin {
@@ -71,7 +71,7 @@ class CuckooHasher {
         MatrixView<u64> mHashesView;
         std::vector<Bin> mBins;
         std::vector<Bin> mStash;
-        size_t stash_size;
+        size_t mStashSize;
 };
 
 } // namespace osuCrypto

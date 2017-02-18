@@ -8,6 +8,7 @@
 #include <random>
 
 #define CUCKOO_MAP_STASH_SIZE 3
+#define CUCKOO_MAP_THRESHOLD 16
 
 using std::vector;
 using std::unique_ptr;
@@ -25,30 +26,44 @@ public:
 private:
     u64 n, next_bin;
     AES aes;
-    CuckooHasher ch;
+    unique_ptr<CuckooHasher> ch;
     vector<V> elems;
+    u64 keys[CUCKOO_MAP_THRESHOLD]; // for dumb lookup when n is small
 };
 
 template<typename V>
 CuckooMap<V>::CuckooMap(u64 n)
-    : n(n), next_bin(0), ch(CUCKOO_MAP_STASH_SIZE), elems(n)
+    : n(n), next_bin(0), elems(n)
 {
-    ch.init(n, 40);
-    std::random_device rd;
-    aes.setKey(toBlock(rd(), rd()));
+    if (n > CUCKOO_MAP_THRESHOLD) {
+        ch.reset(new CuckooHasher(CUCKOO_MAP_STASH_SIZE));
+        ch->init(n, 40);
+        std::random_device rd;
+        aes.setKey(toBlock(rd(), rd()));
+    } else {
+        memset(keys, 0xFF, sizeof(u64) * CUCKOO_MAP_THRESHOLD);
+    }
 }
 
 template<typename V>
 V&
-CuckooMap<V>::operator[](u64 key)
+CuckooMap<V>::operator[](u64 k)
 {
-    auto h = ArrayView<u64>(2);
-    aes.ecbEncBlock(toBlock(key), (block&)h[0]);
-    u64 ix = ch.find(h);
-    if (ix == u64(-1)) { // not found
-        ch.insert(next_bin, h);
-        return elems[next_bin++];
+    if (n > CUCKOO_MAP_THRESHOLD) {
+        auto h = ArrayView<u64>(2);
+        aes.ecbEncBlock(toBlock(k), (block&)h[0]);
+        u64 ix = ch->find(h);
+        if (ix == u64(-1)) { // not found
+            ch->insert(next_bin, h);
+            return elems[next_bin++];
+        }
+        return elems[ix];
     } else {
+        u64 ix = keys[k];
+        if (ix == u64(-1)) {
+            keys[k] = next_bin;
+            return elems[next_bin++];
+        }
         return elems[ix];
     }
 }
