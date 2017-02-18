@@ -1,7 +1,9 @@
-
-
 project(cryptoTools)
+cmake_minimum_required(VERSION 3.6)
+set(BUILD_CURVE ON CACHE BOOL "whether to build Curve.cpp- requires miracl")
 
+set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
+set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
 if($ENV{nasm} MATCHES "")
 	message(WARNING "\nnasm environment variable NOT defined!!!! This means the fast SHA1 function will not be used.")
@@ -12,7 +14,7 @@ if($ENV{nasm} MATCHES "")
 	add_custom_target(sha_asm)
 	
 else()
-		set(shaNasm "${CMAKE_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
+        set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/Crypto/asm/sha_lnx.S")
         set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
       
         add_custom_command(
@@ -30,10 +32,13 @@ endif()
 
 file(GLOB_RECURSE SRCS *.cpp)
 
-include_directories(${CMAKE_SOURCE_DIR})
+if (NOT ${BUILD_CURVE})
+    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Crypto/Curve.cpp)
+endif()
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
-
 
 #############################################
 #            Install                        #
@@ -54,19 +59,14 @@ install(TARGETS cryptoTools DESTINATION lib/${PROJECT_NAME})
 #                                                                         #
 ###########################################################################  
   
-
- 
-find_library(
-  MIRACL_LIB 
-  NAMES miracl  
-  HINTS "${Miracl_Dirs}/miracl/source/")
-  
-# if we cant fint it, throw an error
-if(NOT MIRACL_LIB)
-  Message(${MIRACL_LIB})
-  message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
+if (${BUILD_CURVE})
+    find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Dirs}/miracl/source/")
+    # if we cant fint it, throw an error
+    if(NOT MIRACL_LIB)
+        Message(${MIRACL_LIB})
+        message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
+    endif()
 endif()
-
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
@@ -81,11 +81,11 @@ else()
    message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
-
-
 #target_link_libraries(cryptoTools sha_asm)
-target_link_libraries(cryptoTools ${MIRACL_LIB})
-target_link_libraries(cryptoTools ${Boost_LIBRARIES})
+if (${BUILD_CURVE})
+    target_link_libraries(cryptoTools ${MIRACL_LIB})
+endif()
 
+target_link_libraries(cryptoTools ${Boost_LIBRARIES})
 
 #set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
