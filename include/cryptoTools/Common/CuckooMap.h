@@ -67,7 +67,7 @@ CuckooMap<V>::operator[](u64 k)
             }
         }
         if (ix == u64(-1)) {
-            keys[k] = next_bin;
+            keys[next_bin] = k;
             return elems[next_bin++];
         }
         return elems[ix];
