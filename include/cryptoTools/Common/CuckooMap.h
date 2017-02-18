@@ -59,7 +59,7 @@ CuckooMap<V>::operator[](u64 k)
         }
         return elems[ix];
     } else {
-        u64 ix = 0;
+        u64 ix = u64(-1);
         for (u64 i = 0; i < n; i++) {
             if (k == keys[i]) {
                 ix = i;
