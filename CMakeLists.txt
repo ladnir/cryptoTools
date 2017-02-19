@@ -2,7 +2,7 @@ project(cryptoTools)
 cmake_minimum_required(VERSION 3.6)
 set(BUILD_CURVE ON CACHE BOOL "whether to build Curve.cpp- requires miracl")
 
-set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -g")
+set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
 set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
 if($ENV{nasm} MATCHES "")
@@ -84,5 +84,5 @@ endif()
 
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
 
-add_executable(tests tests.cpp)
-target_link_libraries(tests cryptoTools)
+add_executable(cryptoTools-tests tests.cpp)
+target_link_libraries(cryptoTools-tests cryptoTools)

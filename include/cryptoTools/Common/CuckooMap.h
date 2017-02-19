@@ -7,8 +7,8 @@
 #include <memory>
 #include <random>
 
-#define CUCKOO_MAP_STASH_SIZE 3
-#define CUCKOO_MAP_THRESHOLD 16
+#define CUCKOO_MAP_STASH_SIZE 8
+#define CUCKOO_MAP_THRESHOLD 128
 
 using std::vector;
 using std::unique_ptr;
@@ -28,7 +28,7 @@ private:
     AES aes;
     unique_ptr<CuckooHasher> ch;
     vector<V> elems;
-    u64 keys[CUCKOO_MAP_THRESHOLD]; // for dumb lookup when n is small
+    vector<u64> keys; // for dumb lookup when n is small
 };
 
 template<typename V>
@@ -41,7 +41,7 @@ CuckooMap<V>::CuckooMap(u64 n)
         std::random_device rd;
         aes.setKey(toBlock(rd(), rd()));
     } else {
-        memset(keys, 0xFF, sizeof(u64) * CUCKOO_MAP_THRESHOLD);
+        keys.resize(n);
     }
 }
 
