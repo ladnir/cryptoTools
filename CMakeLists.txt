@@ -83,6 +83,3 @@ if (${BUILD_CURVE})
 endif()
 
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
-
-add_executable(cryptoTools-tests tests.cpp)
-target_link_libraries(cryptoTools-tests cryptoTools)
