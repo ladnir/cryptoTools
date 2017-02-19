@@ -15,126 +15,135 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\ArrayView.h">
+    <Text Include="CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cryptoTools\Common\ArrayView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\BitIterator.h">
+    <ClInclude Include="cryptoTools\Common\BitIterator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\BitVector.h">
+    <ClInclude Include="cryptoTools\Common\BitVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\ByteStream.h">
+    <ClInclude Include="cryptoTools\Common\ByteStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Defines.h">
+    <ClInclude Include="cryptoTools\Common\CuckooHasher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Exceptions.h">
+    <ClInclude Include="cryptoTools\Common\CuckooMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Log.h">
+    <ClInclude Include="cryptoTools\Common\Defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MatrixView.h">
+    <ClInclude Include="cryptoTools\Common\Exceptions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\mpsc_queue.h">
+    <ClInclude Include="cryptoTools\Common\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Timer.h">
+    <ClInclude Include="cryptoTools\Common\MatrixView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\AES.h">
+    <ClInclude Include="cryptoTools\Common\mpsc_queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\Commit.h">
+    <ClInclude Include="cryptoTools\Common\Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\Curve.h">
+    <ClInclude Include="cryptoTools\Crypto\AES.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\PRNG.h">
+    <ClInclude Include="cryptoTools\Crypto\Commit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\sha1.h">
+    <ClInclude Include="cryptoTools\Crypto\Curve.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtAcceptor.h">
+    <ClInclude Include="cryptoTools\Crypto\PRNG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtChannel.h">
+    <ClInclude Include="cryptoTools\Crypto\sha1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtEndpoint.h">
+    <ClInclude Include="cryptoTools\Network\BtAcceptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtIOService.h">
+    <ClInclude Include="cryptoTools\Network\BtChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtSocket.h">
+    <ClInclude Include="cryptoTools\Network\BtEndpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Channel.h">
+    <ClInclude Include="cryptoTools\Network\BtIOService.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Endpoint.h">
+    <ClInclude Include="cryptoTools\Network\BtSocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cryptoTools\Network\Channel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cryptoTools\Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\BitIterator.cpp">
+    <ClCompile Include="cryptoTools\Common\BitIterator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\BitVector.cpp">
+    <ClCompile Include="cryptoTools\Common\BitVector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\ByteStream.cpp">
+    <ClCompile Include="cryptoTools\Common\ByteStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Defines.cpp">
+    <ClCompile Include="cryptoTools\Common\CuckooHasher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Log.cpp">
+    <ClCompile Include="cryptoTools\Common\Defines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Timer.cpp">
+    <ClCompile Include="cryptoTools\Common\Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\AES.cpp">
+    <ClCompile Include="cryptoTools\Common\Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\Curve.cpp">
+    <ClCompile Include="cryptoTools\Crypto\AES.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\PRNG.cpp">
+    <ClCompile Include="cryptoTools\Crypto\Curve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BtAcceptor.cpp">
+    <ClCompile Include="cryptoTools\Crypto\PRNG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BtChannel.cpp">
+    <ClCompile Include="cryptoTools\Crypto\sha1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BtEndpoint.cpp">
+    <ClCompile Include="cryptoTools\Network\BtAcceptor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BtIOService.cpp">
+    <ClCompile Include="cryptoTools\Network\BtChannel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\Channel.cpp">
+    <ClCompile Include="cryptoTools\Network\BtEndpoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\sha1.cpp">
+    <ClCompile Include="cryptoTools\Network\BtIOService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cryptoTools\Network\Channel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Crypto\asm\sha_win64.asm">
+    <CustomBuild Include="cryptoTools\Crypto\asm\sha_win64.asm">
       <Filter>Source Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="CMakeLists.txt" />
   </ItemGroup>
 </Project>

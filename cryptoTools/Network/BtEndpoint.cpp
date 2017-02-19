@@ -70,21 +70,7 @@ namespace osuCrypto {
     Channel & BtEndpoint::addChannel(std::string localName, std::string remoteName)
     {
         if (remoteName == "") remoteName = localName;
-
-        //{
-        //    std::stringstream ss;
-        //    ss << mName << char('`') << localName << char('`') << remoteName;
-
-        //    auto str = ss.str();
-        //    if (str.size() > 256)
-        //    {
-        //        std::cout << "full channel name must be shorter than 256 characters.\n    " << str << std::endl;
-        //        throw std::runtime_error(LOCATION);
-        //    }
-        //}
-
-
-        BtChannel* chlPtr;
+        Channel* chlPtr;
 
         // first, add the channel to the endpoint.
         {
@@ -99,119 +85,51 @@ namespace osuCrypto {
             chlPtr = &mChannels.back();
         }
 
-        BtChannel& chl = *chlPtr;
-
+        Channel& chl = *chlPtr;
 
 
         if (mHost)
         {
-            // the acceptor will do the handshake, set chl.mHandel and
-            // kick off any send and receives which may happen after this
-            // call but before the handshake completes
-            mAcceptor->asyncGetHandel(chl);
-            chl.mId = 0;
-
+            // if we are a host, then we can ask out acceptor for the socket which match the channel name.
+            chl.mSocket.reset(mAcceptor->getSocket(chl));
         }
         else
         {
-            chl.mHandle = new boost::asio::ip::tcp::socket(getIOService().mIoService);
-
-            chl.mId = 1;
+            chl.mSocket.reset(new BtSocket(*mIOService));
 
             boost::system::error_code ec;
+            auto tryCount = 10000000;
 
+            chl.mSocket->mHandle.connect(mRemoteAddr, ec);
 
-            std::function<void(const boost::system::error_code&)> initialCallback = [&, localName, remoteName](const boost::system::error_code& ec)
+            while (tryCount-- && ec)
             {
-                if (ec && chl.mStopped == false && this->stopped() == false)
-                {
-                    boost::asio::deadline_timer t(getIOService().mIoService, boost::posix_time::milliseconds(10));
+                chl.mSocket->mHandle.connect(mRemoteAddr, ec);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
 
-                    // tell the io service to wait 10 ms and then try again...
-                    t.async_wait([&](const boost::system::error_code& ec)
-                    {
-                        if (chl.mStopped == false)
-                        {
-                            if (ec)
-                            {
-                                auto message = ec.message();
-                                auto val = ec.value();
+            if (ec)
+            {
+                throw std::runtime_error("rt error at " LOCATION);
+            }
 
-                                std::stringstream ss;
+            boost::asio::ip::tcp::no_delay option(true);
+            chl.mSocket->mHandle.set_option(option);
 
-                                ss << "network error (wait)  \n  Location: " LOCATION "\n  message: ";
+            //boost::asio::socket_base::receive_buffer_size option2((1 << 20) * 16);
+            //chl.mSocket->mHandle.set_option(option2);
 
-                                ss << message << "\n  value: ";
+            //boost::asio::socket_base::send_buffer_size option3((1 << 20) * 16);
+            ////chl.mSocket->mHandle.set_option(option3);
 
-                                ss << val << std::endl;
+            std::stringstream ss;
+            ss << mName << char('`') << localName << char('`') << remoteName;
 
-                                std::cout << ss.str() << std::flush;
-                                std::cout << "stopped: " << chl.mStopped << std::endl;
-                                //throw std::runtime_error(LOCATION);
-                            }
-
-                            ////boost::asio::async_connect()
-                            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
-                        }
-                    });
-                }
-                else if (!ec)
-                {
-                    boost::asio::ip::tcp::no_delay option(true);
-                    chl.mHandle->set_option(option);
+            auto str = ss.str();
+            std::unique_ptr<ByteStream> buff(new ByteStream((u8*)str.data(), str.size()));
 
 
-                    std::stringstream ss;
-                    ss << mName << char('`') << localName << char('`') << remoteName;
-
-                    auto str = ss.str();
-
-                    ByteStream* buff(new ByteStream((u8*)str.data(), str.size()));
-
-                    BtIOOperation op;
-                    op.mSize = (u32)buff->size();
-                    op.mBuffs[1] = boost::asio::buffer((char*)buff->data(), (u32)buff->size());
-                    op.mType = BtIOOperation::Type::SendData;
-                    op.mOther = buff;
-
-                    chl.mSendStrand.post([this, &chl, op]()
-                    {
-                        chl.mSendQueue.push_front(op);
-                        chl.mSendSocketSet = true;
-
-                        auto ii = ++chl.mOpenCount;
-                        if (ii == 2) chl.mOpenProm.set_value();
-
-                        getIOService().sendOne(&chl);
-                    });
-
-
-                    chl.mRecvStrand.post([this, &chl, op]()
-                    {
-                        chl.mRecvSocketSet = true;
-
-                        auto ii = ++chl.mOpenCount;
-                        if (ii == 2) chl.mOpenProm.set_value();
-
-                        if (chl.mRecvQueue.size())
-                        {
-                            getIOService().receiveOne(&chl);
-                        }
-                    });
-                }
-                else
-                {
-                    std::stringstream ss;
-                    ss << "network error (init cb) \n  Location: " LOCATION "\n  message: "
-                        << ec.message() << "\n  value: " << ec.value() << std::endl;
-
-
-                    std::cout << ss.str() << std::flush;
-                    throw std::runtime_error(LOCATION);
-                }
-            };
-
-            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+            chl.asyncSend(std::move(buff));
         }
 
         return chl;
@@ -234,7 +152,7 @@ namespace osuCrypto {
         }
         mDoneFuture.get();
     }
-     
+
     bool BtEndpoint::stopped() const
     {
         return mStopped;
