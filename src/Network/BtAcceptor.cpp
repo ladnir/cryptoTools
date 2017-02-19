@@ -100,7 +100,7 @@ namespace osuCrypto {
                     newSocket->mHandle.async_receive(boost::asio::buffer(buff->data(), buff->size()), 
                         [newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
                     {
-                        if(!ec2 || bytesTransferred != 4)
+                        if(!ec2 && bytesTransferred == 4)
                         {
                             u32 size = buff->getArrayView<u32>()[0];
 
@@ -110,7 +110,7 @@ namespace osuCrypto {
                             newSocket->mHandle.async_receive(boost::asio::buffer(buff->data(), buff->size()),
                                 [newSocket, buff, size, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
                             {
-                                if (!ec3 || bytesTransferred2 != size)
+                                if (!ec3 && bytesTransferred2 == size)
                                 {
                                     // lets split it into pieces.
                                     auto names = split(std::string((char*)buff->data(), buff->size()), char('`'));
@@ -165,7 +165,7 @@ namespace osuCrypto {
         return mStopped;
     }
 
-    BtSocket* BtAcceptor::getSocket(BtChannel & chl)
+    BtSocket* BtAcceptor::getSocket(Channel & chl)
     {
         std::string tag = chl.getEndpoint().getName() + ":" + chl.getName() + ":" + chl.getRemoteName();
 

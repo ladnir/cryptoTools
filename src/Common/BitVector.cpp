@@ -64,7 +64,7 @@ namespace osuCrypto {
         if (srcOffset || destOffset)
         {
 
-            TODO("make this more efficient");
+            //TODO("make this more efficient");
             for (u64 i = 0; i < length; ++i, ++bitIdx, ++offset)
             {
                 u8 bit = data[offset / 8] & masks[offset % 8];
@@ -290,7 +290,7 @@ namespace osuCrypto {
 
     u64 BitVector::hammingWeight() const
     {
-        TODO("make sure top bits are cleared");
+        //TODO("make sure top bits are cleared");
         u64 ham(0);
         for (u64 i = 0; i < sizeBytes(); ++i)
         {

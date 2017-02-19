@@ -129,41 +129,44 @@ namespace osuCrypto {
 
     };
 
-    class ByteStream : public ChannelBuffer
+    class ByteStream// : public ChannelBuffer
     {
         friend std::ostream& operator<<(std::ostream& s, const ByteStream& o);
         friend class PRNG;
 
     public:
+        typedef u8* pointer;
+        typedef u64 size_type;
+        typedef u8 value_type;
         ByteStream(u64 size = 0, bool zero = true);
         ByteStream(const ByteStream& os);
-        ByteStream(const u8* data, u64 length);
+        ByteStream(const pointer data, u64 length);
 
         ~ByteStream() { delete[] mData; }
 
         /// <summary>The size of the unconsumed steam/data.</summary>
-        u64 size() const { return tellp() - tellg(); }
+        size_type size() const { return tellp() - tellg(); }
 
         /// <summary>The capacity of the container.</summary>
-        u64 capacity() const { return mCapacity; }
+        size_type capacity() const { return mCapacity; }
 
         /// <summary>The location of the data.</summary>
-        u8* data() const { return mData; }
+        pointer data() const { return mData; }
 
         /// <summary>The start location of that data unconsumed data.</summary>
-        u8* begin() const { return mData + tellg(); }
+        pointer begin() const { return mData + tellg(); }
 
         /// <summary>The end location of that data.</summary>
-        u8* end() const { return mData + tellp(); }
+        pointer end() const { return mData + tellp(); }
 
         /// <summary>Returns the offset of where data will be PUT in the stream.</summary>
-        u64 tellp() const;
+        size_type tellp() const;
 
         /// <summary>Sets the offset of where data will be PUT in the stream.</summary>
         void setp(u64 loc);
 
         /// <summary>Returns the offset of where data will be GET in the stream.</summary>
-        u64 tellg()const;
+        size_type tellg()const;
 
         /// <summary>Sets the offset of where data will be GET in the stream.</summary>
         void setg(u64 loc);
@@ -174,10 +177,10 @@ namespace osuCrypto {
         void resize(u64 size);
 
         /// <summary>Copies length bytes starting at data to the end of the container tellp().</summary>
-        void append(const u8* data, const u64 length);
+        void append(const u8* data, const size_type length);
 
         /// <summary>Copies the next length bytes starting at data() + tellg()  to dest</summary>
-        void consume(u8* dest, const u64 length);
+        void consume(u8* dest, const size_type length);
 
         void append(const block& b);
         //void append(const blockRIOT& b, const u64 length);
@@ -203,15 +206,15 @@ namespace osuCrypto {
 
         BitIterator bitIterBegin() const;
 
-    protected:
-        u8* ChannelBufferData() const override { return begin(); }
-        u64 ChannelBufferSize() const override { return size(); };
-        void ChannelBufferResize(u64 length) override;
+    //protected:
+    //    u8* ChannelBufferData() const override { return begin(); }
+    //    u64 ChannelBufferSize() const override { return size(); };
+    //    void ChannelBufferResize(u64 length) override;
 
     private:
 
         u64 mPutHead, mCapacity, mGetHead;
-        u8 *mData;
+        pointer mData;
     };
     typedef ByteStream Buff;
 

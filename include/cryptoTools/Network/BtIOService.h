@@ -27,21 +27,18 @@ namespace osuCrypto
     {
     public:
         std::string mWhat;
-        u64 mLength;
-        //std::shared_ptr<char[]> mData;
+        u64 mSize;
+        std::function<void(u8*)> mRescheduler;
 
-        BadReceiveBufferSize(std::string what, u64 length)
+        BadReceiveBufferSize(std::string what, u64 length, std::function<void(u8*)> rescheduler)
             :
-            mWhat(what),
-            mLength(length)
+            mWhat(std::move(what)),
+            mSize(length),
+            mRescheduler(std::move(rescheduler))
         { }
 
         BadReceiveBufferSize(const BadReceiveBufferSize& src) = default;
         BadReceiveBufferSize(BadReceiveBufferSize&& src) = default;
-        //    : mWhat(src.mWhat)
-        //    , mLength(src.mLength)
-        //{
-        //}
     };
 
 
@@ -64,7 +61,7 @@ namespace osuCrypto
 
         /// <summary> Constructor for the IO service that services network IO operations.</summary>
         /// <param name="threadCount">The number of threads that should be used to service IO operations. 0 = use # of CPU cores.</param>
-        BtIOService(u64 threadCount);
+        BtIOService(u64 threadCount = 0);
         ~BtIOService();
         
         /// /// <summary> This is a Windows specific object that is used to queue up pending network IO operations.</summary>
