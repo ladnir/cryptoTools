@@ -121,9 +121,9 @@
     <CustomBuild Include="cryptoTools\Crypto\asm\sha_win64.asm">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe $(ProjectDir)\cryptoTools\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe $(ProjectDir)\cryptoTools\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(MSBuildProjectName)\x64\$(Configuration)\sha_win64.obj</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
