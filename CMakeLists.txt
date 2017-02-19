@@ -14,8 +14,8 @@ if($ENV{nasm} MATCHES "")
 	add_custom_target(sha_asm)
 	
 else()
-        set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/src/Crypto/asm/sha_lnx.S")
-        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/src/Crypto/sha_lnx.S.o")
+        set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
+        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/cryptoTools/Crypto/sha_lnx.S.o")
       
         add_custom_command(
                 OUTPUT ${shaNasmOutput}
@@ -30,13 +30,13 @@ else()
 endif()
 
 
-file(GLOB_RECURSE SRCS src/*.cpp)
+file(GLOB_RECURSE SRCS cryptoTools/*.cpp)
 
 if (NOT ${BUILD_CURVE})
-    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/Crypto/Curve.cpp)
+    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Crypto/Curve.cpp)
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
 
@@ -44,7 +44,7 @@ add_dependencies(cryptoTools sha_asm)
 #            Install                        #
 #############################################
 
-install(DIRECTORY include/${PROJECT_NAME} DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY cryptoTools DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(TARGETS cryptoTools DESTINATION lib/${PROJECT_NAME})
 
 ###########################################################################  
