@@ -53,12 +53,6 @@ namespace osuCrypto {
         /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
         void asyncSend(const void * bufferPtr, u64 length, std::function<void()> callback);
 
-        /// <summary>length bytes starting at data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
-        void asyncSend(const void * data, u64 length);
-
-        /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
-        void asyncSend(const void * bufferPtr, u64 length, std::function<void()> callback);
-
         /// <summary>buffer will be MOVED and then sent over the network asynchronously.
         /// Note: The type within the unique_ptr must be a container type, see is_container for requirements.
         /// Returns: void </summary>

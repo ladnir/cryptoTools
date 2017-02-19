@@ -1,5 +1,5 @@
-#include "Channel.h"
-#include "cryptoTools/Common/ByteStream.h"
+#include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Common/ByteStream.h>
 //
 //void osuCrypto::Channel::send(const ChannelBuffer & buf)
 //{
