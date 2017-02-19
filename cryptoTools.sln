@@ -5,18 +5,11 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools", "cryptoTools.vcxproj", "{B707F703-490A-447F-9737-C6A70B8D7A61}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools_Tests", "cryptoTools_Tests\cryptoTools_Tests.vcxproj", "{10DCA769-B168-4E7F-914E-E8A525333327}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B707F703-490A-447F-9737-C6A70B8D7A61} = {B707F703-490A-447F-9737-C6A70B8D7A61}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "frontend_cryptoTools", "frontend_cryptoTools\frontend_cryptoTools.vcxproj", "{9816C48C-6316-40C7-929C-4B29505C7E0A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ctFrontend", "ctFrontend\ctFrontend.vcxproj", "{9816C48C-6316-40C7-929C-4B29505C7E0A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B707F703-490A-447F-9737-C6A70B8D7A61} = {B707F703-490A-447F-9737-C6A70B8D7A61}
-		{10DCA769-B168-4E7F-914E-E8A525333327} = {10DCA769-B168-4E7F-914E-E8A525333327}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests_cryptoTools", "tests_cryptoTools\tests_cryptoTools.vcxproj", "{10DCA769-B168-4E7F-914E-E8A525333327}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools_TestsVS", "cryptoTools_TestsVS\cryptoTools_TestsVS.vcxproj", "{E0912377-D59C-4B08-B397-A7209C04B966}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsVS_cryptoTools", "testsVS_cryptoTools\testsVS_cryptoTools.vcxproj", "{E0912377-D59C-4B08-B397-A7209C04B966}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,18 +25,18 @@ Global
 		{B707F703-490A-447F-9737-C6A70B8D7A61}.Release|x64.ActiveCfg = Release|x64
 		{B707F703-490A-447F-9737-C6A70B8D7A61}.Release|x64.Build.0 = Release|x64
 		{B707F703-490A-447F-9737-C6A70B8D7A61}.Release|x86.ActiveCfg = Release|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x64.ActiveCfg = Debug|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x64.Build.0 = Debug|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x86.ActiveCfg = Debug|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.ActiveCfg = Release|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.Build.0 = Release|x64
-		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x86.ActiveCfg = Release|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Debug|x64.ActiveCfg = Debug|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Debug|x64.Build.0 = Debug|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Debug|x86.ActiveCfg = Debug|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Release|x64.ActiveCfg = Release|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Release|x64.Build.0 = Release|x64
 		{9816C48C-6316-40C7-929C-4B29505C7E0A}.Release|x86.ActiveCfg = Release|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x64.ActiveCfg = Debug|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x64.Build.0 = Debug|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Debug|x86.ActiveCfg = Debug|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.ActiveCfg = Release|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.Build.0 = Release|x64
+		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x86.ActiveCfg = Release|x64
 		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x64.ActiveCfg = Debug|x64
 		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x64.Build.0 = Debug|x64
 		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x86.ActiveCfg = Debug|Win32
