@@ -22,7 +22,7 @@ namespace osuCrypto {
         mGetHead = os.mGetHead;
     }
 
-    ByteStream::ByteStream(const u8 * data, u64 length)
+    ByteStream::ByteStream(const pointer data, u64 length)
         :mPutHead(0),
         mCapacity(0),
         mGetHead(0),
@@ -158,15 +158,15 @@ namespace osuCrypto {
         return BitIterator(mData,0);
     }
 
-    void ByteStream::ChannelBufferResize(u64 length)
-    {
-        if (length > mCapacity)
-        {
-            delete[] mData;
-            mData = new u8[mCapacity = length];
-        }
-        mPutHead = length;
-        mGetHead = 0;
-    }
+    //void ByteStream::ChannelBufferResize(u64 length)
+    //{
+    //    if (length > mCapacity)
+    //    {
+    //        delete[] mData;
+    //        mData = new u8[mCapacity = length];
+    //    }
+    //    mPutHead = length;
+    //    mGetHead = 0;
+    //}
 
 }

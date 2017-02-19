@@ -11,13 +11,17 @@ namespace osuCrypto {
 
     //class PRNG;
 
-    class BitVector : public ChannelBuffer
+    class BitVector// : public ChannelBuffer
     {
 
         u8* mData;
         u64 mNumBits, mAllocBytes;
 
     public:
+
+        typedef u8 value_type;
+        typedef value_type* pointer;
+        typedef u64 size_type;
 
         BitVector()
             :mData(nullptr),
@@ -105,14 +109,14 @@ namespace osuCrypto {
         template<class T>
         ArrayView<T> getArrayView() const;
 
-    protected:
-        u8* ChannelBufferData() const override { return mData; }
-        u64 ChannelBufferSize() const override { return sizeBytes(); };
-        void ChannelBufferResize(u64 len) override
-        {
-            if (sizeBytes() != len)
-                throw std::invalid_argument("asdsdasfaf ;) "); 
-        }
+    //protected:
+    //    u8* ChannelBufferData() const override { return mData; }
+    //    u64 ChannelBufferSize() const override { return sizeBytes(); };
+    //    void ChannelBufferResize(u64 len) override
+    //    {
+    //        if (sizeBytes() != len)
+    //            throw std::invalid_argument("asdsdasfaf ;) "); 
+    //    }
 
 
     };
@@ -124,4 +128,20 @@ namespace osuCrypto {
     }
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);
+
+
+    template <>
+    struct RefChannelBuff<BitVector> : ChannelBuffBase {
+
+        typedef BitVector F;
+        F mObj;
+        RefChannelBuff(F& obj) : mObj(obj) {}
+
+        u8* data() override { return (u8*)mObj.data(); }
+        u64 size() override { return mObj.sizeBytes() * sizeof(F::value_type); }
+        bool resize(u64 s) override 
+        {
+            return mObj.sizeBytes() == s;
+        }
+    };
 }

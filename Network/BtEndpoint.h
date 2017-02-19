@@ -27,7 +27,7 @@ namespace osuCrypto {
         bool mHost, mStopped;
         BtIOService* mIOService;
         BtAcceptor* mAcceptor;
-        std::list<BtChannel> mChannels;
+        std::list<Channel> mChannels;
         std::mutex mAddChannelMtx; 
         std::promise<void> mDoneProm;
         std::shared_future<void> mDoneFuture;

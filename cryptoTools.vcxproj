@@ -50,6 +50,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -62,6 +63,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

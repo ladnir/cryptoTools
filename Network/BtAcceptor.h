@@ -10,7 +10,7 @@
 namespace osuCrypto {
 
     class BtSocket;
-    class BtChannel;
+    class Channel;
     class BtIOService;
     struct BoostIOOperation;
 
@@ -40,7 +40,7 @@ namespace osuCrypto {
             std::string localChannelName,
             std::string remoteChannelName);
 
-        BtSocket* getSocket(BtChannel& chl);
+        BtSocket* getSocket(Channel& chl);
 
         u64 mPort;
         boost::asio::ip::tcp::endpoint mAddress;

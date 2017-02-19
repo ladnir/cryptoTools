@@ -105,6 +105,9 @@ namespace osuCrypto
 
         if (op.mType == BoostIOOperation::Type::RecvData)
         {
+
+            op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
+
             boost::asio::async_read(socket->mHandle,
                 std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[0] },
                 [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
@@ -121,19 +124,25 @@ namespace osuCrypto
                     throw std::runtime_error("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])));
                 }
 
+                std::string msg;
+
                 // We support two types of receives. One where we provide the expected size of the message and one 
                 // where we allow for variable length messages. op->other will be non null in the resize case and allow 
                 // us to resize the ChannelBuffer which will hold the data.
-                if (op.mOther != nullptr)
+                if (op.mContainer != nullptr)
                 {
-                    // Get the ChannelBuffer from the multi purpose other pointer.
-                    ChannelBuffer* mH = (ChannelBuffer*)op.mOther;
-
                     // resize it. This could throw is the channel buffer chooses to.
-                    mH->ChannelBufferResize(op.mSize);
+                    if (op.mSize != op.mContainer->size() && op.mContainer->resize(op.mSize) == false)
+                    {
+                        msg = std::string() + "The provided buffer does not fit the received message. \n" +
+                            "   Expected: Container::size() * sizeof(Container::value_type) = " +
+                            std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes\n"
+                            "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
+                            "If sizeof(Container::value_type) % Actual != 0, this will throw or RefChannelBuff<Container>::resize(...) returned false.";
+                    }
 
-                    // set the WSA buffer to point into the channel buffer storage location.
-                    op.mBuffs[1] = boost::asio::buffer((char*)mH->ChannelBufferData(), op.mSize);
+                    // set the buffer to point into the channel buffer storage location.
+                    op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mSize);
                 }
                 else
                 {
@@ -141,25 +150,13 @@ namespace osuCrypto
                     // will contain the expected size and op->mSize contains the size reported in the header.
                     if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
                     {
-                        auto msg = "The provided buffer does not fit the received message. Expected: "
-                            + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + ", actual: " + std::to_string(op.mSize);
-                        std::cout << msg << std::endl;
-
-                        std::unique_ptr<char[]> newBuff(nullptr);
-                        auto e_ptr = std::make_exception_ptr(BadReceiveBufferSize(msg, op.mSize));
-
-                        op.mException = std::current_exception();
-                        op.mPromise->set_exception(op.mException);
-                        delete op.mPromise;
-
-                        return;
+                        msg = "The provided buffer does not fit the received message. Expected: "
+                            + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes, actual: " + std::to_string(op.mSize);
                     }
                 }
 
 
-                boost::asio::async_read(socket->mHandle,
-                    std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] },
-                    [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
+                auto recvMain = [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
                 {
                     //////////////////////////////////////////////////////////////////////////
                     //// This is *** NOT *** within the stand. Dont touch the recv queue! ////
@@ -172,13 +169,16 @@ namespace osuCrypto
 
                     socket->mTotalRecvData += boost::asio::buffer_size(op.mBuffs[1]);
 
-                    // signal that the recv has completed.
-                    if (op.mException)
-                        op.mPromise->set_exception(op.mException);
-                    else
+                    //// signal that the recv has completed.
+                    //if (op.mException)
+                    //    op.mPromise->set_exception(op.mException);
+                    //else
+
+                    if(op.mPromise)
                         op.mPromise->set_value();
 
                     delete op.mPromise;
+                    delete op.mContainer;
 
                     socket->mRecvStrand.dispatch([socket, this]()
                     {
@@ -196,7 +196,37 @@ namespace osuCrypto
                             receiveOne(socket);
                         }
                     });
-                });
+                };
+
+
+
+                if (msg.size())
+                {
+                    std::cout << msg << std::endl;
+
+                    // give the user a chance to give us another location.
+                    auto e_ptr = std::make_exception_ptr(BadReceiveBufferSize(msg, op.mSize, [&, recvMain](u8* dest)
+                    {
+
+                        op.mBuffs[1] = boost::asio::buffer(dest, op.mSize);
+
+                        boost::system::error_code ec;
+
+                        auto ss  = boost::asio::read(socket->mHandle,
+                            std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, ec);
+                        
+                        recvMain(ec, ss);
+                    }));
+
+                    op.mPromise->set_exception(e_ptr);
+                    delete op.mPromise;
+                    op.mPromise = nullptr;
+                }
+                else
+                {
+                    boost::asio::async_read(socket->mHandle,
+                        std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, recvMain);
+                }
 
 
             });
@@ -224,6 +254,7 @@ namespace osuCrypto
 
         if (op.mType == BoostIOOperation::Type::SendData)
         {
+            op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
             boost::asio::async_write(socket->mHandle, op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
             {
@@ -240,7 +271,7 @@ namespace osuCrypto
                 }
 
                 // lets delete the other pointer as its either nullptr or a buffer that was allocated
-                delete (ChannelBuffer*)op.mOther;
+                //delete (ChannelBuffer*)op.mContainer;
 
                 // make sure all the data sent. If this fails, look up whether WSASend guarantees that all the data in the buffers will be send.
                 if (bytesTransferred !=
@@ -262,6 +293,8 @@ namespace osuCrypto
                 // if they provided a callback, execute it.
                 if (op.mCallback)
                     op.mCallback();
+
+                delete op.mContainer;
 
                 socket->mSendStrand.dispatch([socket, this]()
                 {
@@ -306,7 +339,7 @@ namespace osuCrypto
         case BoostIOOperation::Type::RecvData:
         {
 
-            if (op.mOther == nullptr &&  op.mSize == 0)
+            if (op.mContainer == nullptr &&  op.mSize == 0)
                 throw std::runtime_error("rt error at " LOCATION);
 
         }
