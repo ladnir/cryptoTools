@@ -21,6 +21,8 @@ set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/thirdparty/linux/boost/")
 #############################################
 #       cryptoTools, tests, frontend        #
 #############################################
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}) 
+
 
 add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
