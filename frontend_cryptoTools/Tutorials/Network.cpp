@@ -29,8 +29,8 @@ void networkTutorial()
     // connectionName denotes an identifier that both people on either side 
     // of this connection will use. If a server connects to several clients,
     // they should all use different connection names.
-    BtEndpoint server(ios, serversIpAddress, /*is server?*/ true, connectionName);
-    BtEndpoint client(ios, serversIpAddress, /*is server?*/ false, connectionName);
+    BtEndpoint server(ios, serversIpAddress, BtEndpoint::Server, connectionName);
+    BtEndpoint client(ios, serversIpAddress, BtEndpoint::Client, connectionName);
 
 
     // Two endpoints with the same connectionName can have many channels, each independent.

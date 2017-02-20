@@ -14,7 +14,7 @@ namespace osuCrypto {
     //extern std::vector<std::string> split(const std::string &s, char delim);
 
 
-    void BtEndpoint::start(BtIOService& ioService, std::string remoteIP, u32 port, bool host, std::string name)
+    void BtEndpoint::start(BtIOService& ioService, std::string remoteIP, u32 port, EndpointRole type, std::string name)
     {
         if (mStopped == false)
             throw std::runtime_error("rt error at " LOCATION);
@@ -22,12 +22,12 @@ namespace osuCrypto {
 
         mIP = (remoteIP);
         mPort = (port);
-        mHost = (host);
+        mType = (type);
         mIOService = &(ioService);
         mStopped = (false);
         mName = (name);
 
-        if (host)
+        if (type == BtEndpoint::Server)
             mAcceptor = (ioService.getAcceptor(*this));
         else
         {
@@ -41,7 +41,7 @@ namespace osuCrypto {
 
     }
 
-    void BtEndpoint::start(BtIOService& ioService, std::string address, bool host, std::string name)
+    void BtEndpoint::start(BtIOService& ioService, std::string address, EndpointRole host, std::string name)
     {
         auto vec = split(address, ':');
 
@@ -88,9 +88,9 @@ namespace osuCrypto {
         Channel& chl = *chlPtr;
 
 
-        if (mHost)
+        if (mType)
         {
-            // if we are a host, then we can ask out acceptor for the socket which match the channel name.
+            // if we are a type, then we can ask out acceptor for the socket which match the channel name.
             chl.mSocket.reset(mAcceptor->getSocket(chl));
         }
         else

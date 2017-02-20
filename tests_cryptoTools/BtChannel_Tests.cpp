@@ -35,7 +35,7 @@ using namespace osuCrypto;
                 setThreadName("Test_Client");
 
                 //std::cout << "client ep start" << std::endl;
-                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, false, "endpoint");
+                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Client, "endpoint");
                 //std::cout << "client ep done" << std::endl;
 
                 Channel& chl = endpoint.addChannel(channelName, channelName);
@@ -72,7 +72,7 @@ using namespace osuCrypto;
 
             //std::cout << "host ep start" << std::endl;
 
-            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, true, "endpoint");
+            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Server, "endpoint");
 
             //std::cout << "host ep done" << std::endl;
 
@@ -124,7 +124,7 @@ using namespace osuCrypto;
             {
                 setThreadName("Test_Client");
 
-                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, false, "endpoint");
+                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Client, "endpoint");
                 Channel& chl = endpoint.addChannel(channelName, channelName);
 
                 std::unique_ptr<ByteStream> srvRecv(new ByteStream());
@@ -142,7 +142,7 @@ using namespace osuCrypto;
             });
 
 
-            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, true, "endpoint");
+            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Server, "endpoint");
             auto& chl = endpoint.addChannel(channelName, channelName);
 
             chl.asyncSend(oneMegabyte.begin(), oneMegabyte.size());
@@ -186,7 +186,7 @@ using namespace osuCrypto;
                 BtIOService ioService(1);
                 setThreadName("Test_client");
 
-                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, false, "endpoint");
+                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Client, "endpoint");
 
                 std::vector<std::thread> threads;
 
@@ -225,7 +225,7 @@ using namespace osuCrypto;
 
             BtIOService ioService(1);
 
-            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, true, "endpoint");
+            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Server, "endpoint");
 
             std::vector<std::thread> threads;
 
@@ -272,7 +272,7 @@ using namespace osuCrypto;
             auto thrd = std::thread([&]() {
                 BtIOService ioService(0);
                 //setThreadName("Net_Cross1_Thread");
-                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, false, "endpoint");
+                BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Client, "endpoint");
 
 
                 auto& sendChl1 = endpoint.addChannel("send", "recv");
@@ -309,7 +309,7 @@ using namespace osuCrypto;
                 ioService.stop();
             });
             BtIOService ioService(0);
-            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, true, "endpoint");
+            BtEndpoint endpoint(ioService, "127.0.0.1", 1212, BtEndpoint::Server, "endpoint");
 
 
             auto& recvChl0 = endpoint.addChannel("recv", "send");
@@ -375,9 +375,9 @@ using namespace osuCrypto;
                     {
                         if (j != i)
                         {
-                            bool host = i > j;
+                            BtEndpoint::EndpointRole host = i > j ? BtEndpoint::Server : BtEndpoint::Client;
                             std::string name("endpoint:");
-                            if (host)
+                            if (host == BtEndpoint::Server)
                             {
                                 name += std::to_string(i) + "->" + std::to_string(j);
                                 port = basePort + (u32)i;

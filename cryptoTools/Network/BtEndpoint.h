@@ -20,11 +20,21 @@ namespace osuCrypto {
         public Endpoint
     {
 
+    public:
+        enum EndpointRole
+        {
+            Client = 0,
+            Server = 1
+        };
+
+    private:
+
         BtEndpoint(const BtEndpoint&) = delete;
 
         std::string mIP;
         u32 mPort;
-        bool mHost, mStopped;
+        EndpointRole mType;
+        bool mStopped;
         BtIOService* mIOService;
         BtAcceptor* mAcceptor;
         std::list<Channel> mChannels;
@@ -35,26 +45,28 @@ namespace osuCrypto {
         boost::asio::ip::tcp::endpoint mRemoteAddr;
     public:
 
-        void start(BtIOService& ioService, std::string remoteIp, u32 port, bool host, std::string name);
-        void start(BtIOService& ioService, std::string address, bool host, std::string name);
+ 
 
-        BtEndpoint(BtIOService & ioService, std::string address, bool host, std::string name)
-            : mPort(0), mHost(false), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+        void start(BtIOService& ioService, std::string remoteIp, u32 port, EndpointRole type, std::string name);
+        void start(BtIOService& ioService, std::string address, EndpointRole type, std::string name);
+
+        BtEndpoint(BtIOService & ioService, std::string address, EndpointRole type, std::string name)
+            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
             mDoneFuture(mDoneProm.get_future().share())
         {
-            start(ioService, address, host, name);
+            start(ioService, address, type, name);
         }
 
-        BtEndpoint(BtIOService & ioService, std::string remoteIP, u32 port, bool host, std::string name)
-            : mPort(0), mHost(false), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+        BtEndpoint(BtIOService & ioService, std::string remoteIP, u32 port, EndpointRole type, std::string name)
+            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
             mDoneFuture(mDoneProm.get_future().share())
         {
-            start(ioService, remoteIP, port, host, name);
+            start(ioService, remoteIP, port, type, name);
         }
 
 
         BtEndpoint()
-            : mPort(0), mHost(false), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
               mDoneFuture(mDoneProm.get_future().share())
         {
         }
@@ -82,7 +94,7 @@ namespace osuCrypto {
 
         std::string IP() const { return mIP;  }
 
-        bool isHost() const { return mHost; };
+        bool isHost() const { return mType == Server; };
     };
 
 
