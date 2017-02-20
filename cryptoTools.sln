@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools", "cryptoTools.vcxproj", "{B707F703-490A-447F-9737-C6A70B8D7A61}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools", "cryptoTools\cryptoTools.vcxproj", "{B707F703-490A-447F-9737-C6A70B8D7A61}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "frontend_cryptoTools", "frontend_cryptoTools\frontend_cryptoTools.vcxproj", "{9816C48C-6316-40C7-929C-4B29505C7E0A}"
 	ProjectSection(ProjectDependencies) = postProject

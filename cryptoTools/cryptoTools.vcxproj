@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/..;$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -61,7 +61,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/..;$(SolutionDir)/thirdparty/win;C:\libs;$(SolutionDir)/thirdparty/win/boost;C:\libs\boost;$(SolutionDir)/thirdparty/win/miracl;C:\libs\miracl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -75,55 +75,55 @@
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cryptoTools\Common\ArrayView.h" />
-    <ClInclude Include="cryptoTools\Common\BitIterator.h" />
-    <ClInclude Include="cryptoTools\Common\BitVector.h" />
-    <ClInclude Include="cryptoTools\Common\ByteStream.h" />
-    <ClInclude Include="cryptoTools\Common\CuckooHasher.h" />
-    <ClInclude Include="cryptoTools\Common\CuckooMap.h" />
-    <ClInclude Include="cryptoTools\Common\Defines.h" />
-    <ClInclude Include="cryptoTools\Common\Exceptions.h" />
-    <ClInclude Include="cryptoTools\Common\Log.h" />
-    <ClInclude Include="cryptoTools\Common\MatrixView.h" />
-    <ClInclude Include="cryptoTools\Common\mpsc_queue.h" />
-    <ClInclude Include="cryptoTools\Common\Timer.h" />
-    <ClInclude Include="cryptoTools\Crypto\AES.h" />
-    <ClInclude Include="cryptoTools\Crypto\Commit.h" />
-    <ClInclude Include="cryptoTools\Crypto\Curve.h" />
-    <ClInclude Include="cryptoTools\Crypto\PRNG.h" />
-    <ClInclude Include="cryptoTools\Crypto\sha1.h" />
-    <ClInclude Include="cryptoTools\Network\BtAcceptor.h" />
-    <ClInclude Include="cryptoTools\Network\BtChannel.h" />
-    <ClInclude Include="cryptoTools\Network\BtEndpoint.h" />
-    <ClInclude Include="cryptoTools\Network\BtIOService.h" />
-    <ClInclude Include="cryptoTools\Network\BtSocket.h" />
-    <ClInclude Include="cryptoTools\Network\Channel.h" />
-    <ClInclude Include="cryptoTools\Network\Endpoint.h" />
+    <ClInclude Include="Common\ArrayView.h" />
+    <ClInclude Include="Common\BitIterator.h" />
+    <ClInclude Include="Common\BitVector.h" />
+    <ClInclude Include="Common\ByteStream.h" />
+    <ClInclude Include="Common\CuckooHasher.h" />
+    <ClInclude Include="Common\CuckooMap.h" />
+    <ClInclude Include="Common\Defines.h" />
+    <ClInclude Include="Common\Exceptions.h" />
+    <ClInclude Include="Common\Log.h" />
+    <ClInclude Include="Common\MatrixView.h" />
+    <ClInclude Include="Common\mpsc_queue.h" />
+    <ClInclude Include="Common\Timer.h" />
+    <ClInclude Include="Crypto\AES.h" />
+    <ClInclude Include="Crypto\Commit.h" />
+    <ClInclude Include="Crypto\Curve.h" />
+    <ClInclude Include="Crypto\PRNG.h" />
+    <ClInclude Include="Crypto\sha1.h" />
+    <ClInclude Include="Network\BtAcceptor.h" />
+    <ClInclude Include="Network\BtChannel.h" />
+    <ClInclude Include="Network\BtEndpoint.h" />
+    <ClInclude Include="Network\BtIOService.h" />
+    <ClInclude Include="Network\BtSocket.h" />
+    <ClInclude Include="Network\Channel.h" />
+    <ClInclude Include="Network\Endpoint.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cryptoTools\Common\BitIterator.cpp" />
-    <ClCompile Include="cryptoTools\Common\BitVector.cpp" />
-    <ClCompile Include="cryptoTools\Common\ByteStream.cpp" />
-    <ClCompile Include="cryptoTools\Common\CuckooHasher.cpp" />
-    <ClCompile Include="cryptoTools\Common\Defines.cpp" />
-    <ClCompile Include="cryptoTools\Common\Log.cpp" />
-    <ClCompile Include="cryptoTools\Common\Timer.cpp" />
-    <ClCompile Include="cryptoTools\Crypto\AES.cpp" />
-    <ClCompile Include="cryptoTools\Crypto\Curve.cpp" />
-    <ClCompile Include="cryptoTools\Crypto\PRNG.cpp" />
-    <ClCompile Include="cryptoTools\Crypto\sha1.cpp" />
-    <ClCompile Include="cryptoTools\Network\BtAcceptor.cpp" />
-    <ClCompile Include="cryptoTools\Network\BtChannel.cpp" />
-    <ClCompile Include="cryptoTools\Network\BtEndpoint.cpp" />
-    <ClCompile Include="cryptoTools\Network\BtIOService.cpp" />
-    <ClCompile Include="cryptoTools\Network\Channel.cpp" />
+    <ClCompile Include="Common\BitIterator.cpp" />
+    <ClCompile Include="Common\BitVector.cpp" />
+    <ClCompile Include="Common\ByteStream.cpp" />
+    <ClCompile Include="Common\CuckooHasher.cpp" />
+    <ClCompile Include="Common\Defines.cpp" />
+    <ClCompile Include="Common\Log.cpp" />
+    <ClCompile Include="Common\Timer.cpp" />
+    <ClCompile Include="Crypto\AES.cpp" />
+    <ClCompile Include="Crypto\Curve.cpp" />
+    <ClCompile Include="Crypto\PRNG.cpp" />
+    <ClCompile Include="Crypto\sha1.cpp" />
+    <ClCompile Include="Network\BtAcceptor.cpp" />
+    <ClCompile Include="Network\BtChannel.cpp" />
+    <ClCompile Include="Network\BtEndpoint.cpp" />
+    <ClCompile Include="Network\BtIOService.cpp" />
+    <ClCompile Include="Network\Channel.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="cryptoTools\Crypto\asm\sha_win64.asm">
+    <CustomBuild Include="Crypto\asm\sha_win64.asm">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe $(ProjectDir)\cryptoTools\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe $(ProjectDir)\cryptoTools\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
     </CustomBuild>
   </ItemGroup>
