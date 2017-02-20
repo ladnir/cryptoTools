@@ -42,7 +42,7 @@ namespace osuCrypto {
         op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
 
         mEndpoint.getIOService().dispatch(mSocket.get(), op);
     }
@@ -57,7 +57,7 @@ namespace osuCrypto {
         op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
         op.mCallback = callback;
 
         mEndpoint.getIOService().dispatch(mSocket.get(), op);
@@ -74,7 +74,7 @@ namespace osuCrypto {
 
 
     //    op.mBuffs[1] = boost::asio::buffer((char*)buff->ChannelBufferData(), buff->ChannelBufferSize());
-    //    op.mType = BoostIOOperation::Type::SendData;
+    //    op.mMode = BoostIOOperation::Type::SendData;
 
     //    //op.mContainer = ;
     //    buff.release();
@@ -94,7 +94,7 @@ namespace osuCrypto {
         op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
 
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
 
         std::promise<void> prom;
         op.mPromise = &prom;
@@ -115,7 +115,7 @@ namespace osuCrypto {
         op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
-        op.mType = BoostIOOperation::Type::RecvData;
+        op.mMode = BoostIOOperation::Type::RecvData;
 
         op.mContainer = nullptr;
 
@@ -136,7 +136,7 @@ namespace osuCrypto {
     //    op.clear();
 
 
-    //    op.mType = BoostIOOperation::Type::RecvData;
+    //    op.mMode = BoostIOOperation::Type::RecvData;
 
     //    //op.mContainer.reset(new MoveChannelBuff<ChannelBuffer>(std::move(c)));
 
@@ -189,14 +189,14 @@ namespace osuCrypto {
 
 
         BoostIOOperation closeRecv;
-        closeRecv.mType = BoostIOOperation::Type::CloseRecv;
+        closeRecv.mMode = BoostIOOperation::Type::CloseRecv;
         std::promise<void> recvPromise;
         closeRecv.mPromise = &recvPromise;
 
         mEndpoint.getIOService().dispatch(mSocket.get(), closeRecv);
 
         BoostIOOperation closeSend;
-        closeSend.mType = BoostIOOperation::Type::CloseSend;
+        closeSend.mMode = BoostIOOperation::Type::CloseSend;
         std::promise<void> sendPromise;
         closeSend.mPromise = &sendPromise;
         mEndpoint.getIOService().dispatch(mSocket.get(), closeSend);

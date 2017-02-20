@@ -185,7 +185,7 @@ namespace osuCrypto {
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -203,7 +203,7 @@ namespace osuCrypto {
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -221,7 +221,7 @@ namespace osuCrypto {
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mType = BoostIOOperation::Type::SendData;
+        op.mMode = BoostIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -239,7 +239,7 @@ namespace osuCrypto {
         op.clear();
 
 
-        op.mType = BoostIOOperation::Type::RecvData;
+        op.mMode = BoostIOOperation::Type::RecvData;
 
         //op.mContainer = (new RefChannelBuff<Container>(c));
         op.mContainer = nullptr;
@@ -269,7 +269,7 @@ namespace osuCrypto {
         op.clear();
 
 
-        op.mType = BoostIOOperation::Type::RecvData;
+        op.mMode = BoostIOOperation::Type::RecvData;
 
         op.mContainer = (new RefChannelBuff<Container>(c));
         //op.mContainer = nullptr;//

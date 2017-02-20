@@ -193,7 +193,7 @@ namespace osuCrypto {
         BoostIOOperation(const BoostIOOperation& copy) = default;
         BoostIOOperation(BoostIOOperation&& copy) = default;
         //    :
-        //    mType(copy.mType);
+        //    mMode(copy.mMode);
         //    mSize = copy.mSize;
         //    mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
         //    mBuffs[1] = copy.mBuffs[1];
@@ -204,7 +204,7 @@ namespace osuCrypto {
 
         void clear()
         {
-            mType = (Type)0;
+            mMode = (Type)0;
             mSize = 0; 
             mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
             mBuffs[1] = boost::asio::mutable_buffer();
@@ -214,7 +214,7 @@ namespace osuCrypto {
 
 
         std::array<boost::asio::mutable_buffer,2> mBuffs;
-        Type mType;
+        Type mMode;
         u32 mSize;
 
         ChannelBuffBase* mContainer;

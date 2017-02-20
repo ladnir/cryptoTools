@@ -11,7 +11,7 @@ else()
 	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
-	add_definitions(-DSOLUTION_DIR=\"${CMAKE_SOURCE_DIR}\")
+	#add_definitions(-DSOLUTION_DIR=\"${CMAKE_SOURCE_DIR}\")
 	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 

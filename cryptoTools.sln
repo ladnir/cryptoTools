@@ -22,6 +22,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsVS_cryptoTools", "test
 		{10DCA769-B168-4E7F-914E-E8A525333327} = {10DCA769-B168-4E7F-914E-E8A525333327}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B6997DC9-9F5D-4917-82EE-D571981CD2C7}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		CMakeLists.txt = CMakeLists.txt
+		readme.md = readme.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

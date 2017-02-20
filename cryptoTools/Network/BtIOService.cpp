@@ -100,7 +100,7 @@ namespace osuCrypto
 
         BoostIOOperation& op = socket->mRecvQueue.front();
 
-        if (op.mType == BoostIOOperation::Type::RecvData)
+        if (op.mMode == BoostIOOperation::Type::RecvData)
         {
 
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
@@ -228,7 +228,7 @@ namespace osuCrypto
 
             });
         }
-        else if (op.mType == BoostIOOperation::Type::CloseRecv)
+        else if (op.mMode == BoostIOOperation::Type::CloseRecv)
         {
             auto prom = op.mPromise;
             socket->mRecvQueue.pop_front();
@@ -249,7 +249,7 @@ namespace osuCrypto
         BoostIOOperation& op = socket->mSendQueue.front();
 
 
-        if (op.mType == BoostIOOperation::Type::SendData)
+        if (op.mMode == BoostIOOperation::Type::SendData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
@@ -313,7 +313,7 @@ namespace osuCrypto
             });
 
         }
-        else if (op.mType == BoostIOOperation::Type::CloseSend)
+        else if (op.mMode == BoostIOOperation::Type::CloseSend)
         {
             // This is a special case which may happen if the channel calls stop()
             // with async sends still queued up, we will get here after they get completes. fulfill the
@@ -331,7 +331,7 @@ namespace osuCrypto
 
     void BtIOService::dispatch(BtSocket* socket, BoostIOOperation& op)
     {
-        switch (op.mType)
+        switch (op.mMode)
         {
         case BoostIOOperation::Type::RecvData:
         {

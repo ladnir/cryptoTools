@@ -16,16 +16,12 @@ namespace osuCrypto {
 
     class BtAcceptor;
 
+    enum class EpMode :  bool { Client, Server };
+
+
     class BtEndpoint :
         public Endpoint
     {
-
-    public:
-        enum EndpointRole
-        {
-            Client = 0,
-            Server = 1
-        };
 
     private:
 
@@ -33,7 +29,7 @@ namespace osuCrypto {
 
         std::string mIP;
         u32 mPort;
-        EndpointRole mType;
+        EpMode mMode;
         bool mStopped;
         BtIOService* mIOService;
         BtAcceptor* mAcceptor;
@@ -47,18 +43,18 @@ namespace osuCrypto {
 
  
 
-        void start(BtIOService& ioService, std::string remoteIp, u32 port, EndpointRole type, std::string name);
-        void start(BtIOService& ioService, std::string address, EndpointRole type, std::string name);
+        void start(BtIOService& ioService, std::string remoteIp, u32 port, EpMode type, std::string name);
+        void start(BtIOService& ioService, std::string address, EpMode type, std::string name);
 
-        BtEndpoint(BtIOService & ioService, std::string address, EndpointRole type, std::string name)
-            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+        BtEndpoint(BtIOService & ioService, std::string address, EpMode type, std::string name)
+            : mPort(0), mMode(EpMode::Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
             mDoneFuture(mDoneProm.get_future().share())
         {
             start(ioService, address, type, name);
         }
 
-        BtEndpoint(BtIOService & ioService, std::string remoteIP, u32 port, EndpointRole type, std::string name)
-            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+        BtEndpoint(BtIOService & ioService, std::string remoteIP, u32 port, EpMode type, std::string name)
+            : mPort(0), mMode(EpMode::Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
             mDoneFuture(mDoneProm.get_future().share())
         {
             start(ioService, remoteIP, port, type, name);
@@ -66,7 +62,7 @@ namespace osuCrypto {
 
 
         BtEndpoint()
-            : mPort(0), mType(Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
+            : mPort(0), mMode(EpMode::Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
               mDoneFuture(mDoneProm.get_future().share())
         {
         }
@@ -94,7 +90,7 @@ namespace osuCrypto {
 
         std::string IP() const { return mIP;  }
 
-        bool isHost() const { return mType == Server; };
+        bool isHost() const { return mMode == EpMode::Server; };
     };
 
 
