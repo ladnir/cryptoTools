@@ -1,0 +1,4 @@
+
+add_subdirectory(cryptoTools)
+add_subdirectory(tests_cryptoTools)
+add_subdirectory(frontend_cryptoTools)

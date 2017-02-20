@@ -46,24 +46,24 @@ void EccpNumber_Test()
 
         auto mult_var = one;
         auto mult_var2 = one;
-        auto mult_expected = int(1);
+        auto mult_expected = u64(1);
 
         auto div_var = one;
 
 
         auto add_var = zero;
-        auto add_expected = int(0);
+        auto add_expected = u64(0);
         auto sub_var = zero;
 
         for (u64 j = 0; j < 20; ++j)
         {
             // sample Z*_p
-            auto mult = (prng.get<int>() % (mod - 1)) + 1;
+            auto mult = int(prng.get<u64>() % (mod - 1)) + 1;
 
             //std::cout << "mult in " << mult << std::endl;
 
             // sample Z_p
-            auto add = prng.get<int>() % mod;
+            auto add = int(prng.get<u64>() % mod);
 
             mult_expected = mult_expected * mult % mod;
             mult_var = mult_var * mult;

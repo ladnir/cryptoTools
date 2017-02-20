@@ -14,8 +14,8 @@ if($ENV{nasm} MATCHES "")
 	add_custom_target(sha_asm)
 	
 else()
-        set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
-        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/cryptoTools/Crypto/sha_lnx.S.o")
+        set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/Crypto/asm/sha_lnx.S")
+        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
       
         add_custom_command(
                 OUTPUT ${shaNasmOutput}
