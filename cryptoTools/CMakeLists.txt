@@ -48,6 +48,7 @@ add_dependencies(cryptoTools sha_asm)
 install(DIRECTORY cryptoTools DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(TARGETS cryptoTools DESTINATION lib/${PROJECT_NAME})
 
+
 ###########################################################################  
 #                        Link external libraries                          #
 #                        -----------------------                          #
@@ -59,7 +60,8 @@ install(TARGETS cryptoTools DESTINATION lib/${PROJECT_NAME})
 ###########################################################################  
   
 if (${BUILD_CURVE})
-    find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Dirs}/miracl/source/")
+	set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
+    find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
     # if we cant fint it, throw an error
     if(NOT MIRACL_LIB)
         Message(${MIRACL_LIB})
