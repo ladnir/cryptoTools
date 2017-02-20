@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
@@ -98,7 +98,7 @@ namespace osuCrypto {
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match.
         /// Returns: a void future that is fulfilled when all of the data has been written. </summary>
-        std::future<void> asyncRecv(void* dest, u64 length);
+        std::future<u64> asyncRecv(void* dest, u64 length);
 
         /// <summary>Asynchronous call to receive data over the network.
         /// Note: Conatiner can be resizable. If received size does not match Container::size(),
@@ -107,7 +107,7 @@ namespace osuCrypto {
         template <class Container>
         typename std::enable_if_t<
             is_container<Container>::value &&
-            !has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
+            !has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
             asyncRecv(Container& c);
 
 
@@ -118,7 +118,7 @@ namespace osuCrypto {
         template <class Container>
         typename std::enable_if_t<
             is_container<Container>::value &&
-            has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
+            has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
             asyncRecv(Container& c);
 
         template <class Container>
@@ -127,7 +127,7 @@ namespace osuCrypto {
             has_resize<Container, void(typename Container::size_type)>::value, void>
             recv(Container & c)
         {
-                asyncRecv(c).get();
+            asyncRecv(c).get();
         }
 
         //template <class Container>
@@ -148,7 +148,7 @@ namespace osuCrypto {
 
         /// <summary>Synchronous call to receive data over the network.
         /// WARNING: will through if received message length does not match.</summary>
-        void recv(void * dest, u64 length);
+        u64 recv(void * dest, u64 length);
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
         bool opened();
@@ -160,12 +160,23 @@ namespace osuCrypto {
         void close();
 
 
-        std::unique_ptr<BtSocket> mSocket;
+        boost::asio::ip::tcp::socket* mHandle;
+        boost::asio::strand mSendStrand, mRecvStrand;
+
+        std::deque<BtIOOperation> mSendQueue, mRecvQueue;
+        std::promise<void> mOpenProm;
+        std::shared_future<void> mOpenFut;
+
+        std::atomic<u8> mOpenCount;
+        bool mStopped, mRecvSocketSet, mSendSocketSet;
+        u64 mId;
+        u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
+
         BtEndpoint& mEndpoint;
         std::string mRemoteName, mLocalName;
 
     private:
-        void dispatch(BoostIOOperation& op);
+        void dispatch(BtIOOperation& op);
     };
 
     typedef Channel BtChannel;
@@ -176,16 +187,16 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::unique_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mSocket->mStopped || c->size() > u32(-1))
+        if (mStopped || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
         op.mContainer = (new MoveChannelBuff<std::unique_ptr<Container>>(std::move(c)));
 
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -194,16 +205,16 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::shared_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mSocket->mStopped || c->size() > u32(-1))
+        if (mStopped || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
         op.mContainer = (new MoveChannelBuff<std::shared_ptr<Container>>(std::move(c)));
 
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -212,16 +223,16 @@ namespace osuCrypto {
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(Container && c)
     {
-        if (mSocket->mStopped || c.size() > u32(-1))
+        if (mStopped || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
         op.mContainer = (new MoveChannelBuff<Container>(std::move(c)));
 
         op.mSize = u32(op.mContainer->size());
         op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
 
         dispatch(op);
     }
@@ -229,24 +240,24 @@ namespace osuCrypto {
     template <class Container>
     typename std::enable_if_t<
         is_container<Container>::value &&
-        !has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
+        !has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mSocket->mStopped || c.size() > u32(-1))
+        if (mStopped || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
         op.clear();
 
 
-        op.mMode = BoostIOOperation::Type::RecvData;
+        op.mType = BtIOOperation::Type::RecvData;
 
         //op.mContainer = (new RefChannelBuff<Container>(c));
         op.mContainer = nullptr;
 
         op.mSize = u32(c.size());
         op.mBuffs[1] = boost::asio::buffer(c.data(), c.size() * sizeof(typename Container::value_type));
-        op.mPromise = new std::promise<void>();
+        op.mPromise = new std::promise<u64>();
         auto future = op.mPromise->get_future();
 
         dispatch(op);
@@ -259,22 +270,22 @@ namespace osuCrypto {
     template <class Container>
     typename std::enable_if_t<
         is_container<Container>::value &&
-        has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
+        has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mSocket->mStopped || c.size() > u32(-1))
+        if (mStopped || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
         op.clear();
 
 
-        op.mMode = BoostIOOperation::Type::RecvData;
+        op.mType = BtIOOperation::Type::RecvData;
 
         op.mContainer = (new RefChannelBuff<Container>(c));
         //op.mContainer = nullptr;//
 
-        op.mPromise = new std::promise<void>();
+        op.mPromise = new std::promise<u64>();
         auto future = op.mPromise->get_future();
 
         dispatch(op);

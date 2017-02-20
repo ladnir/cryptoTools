@@ -20,7 +20,7 @@
 #include <future>
 #include <string>
 
-namespace osuCrypto 
+namespace osuCrypto
 {
 
     class BadReceiveBufferSize : public std::exception
@@ -43,15 +43,16 @@ namespace osuCrypto
 
 
     class BtAcceptor;
-    struct BoostIOOperation;
+    struct BtIOOperation;
     class BtEndpoint;
-    class BtSocket;
+    class Channel;
+    //class BtSocket;
 
     std::vector<std::string> split(const std::string &s, char delim);
 
     class BtIOService
     {
-        friend class BtSocket;
+        friend class Channel;
         friend class BtEndpoint;
 
     public:
@@ -63,7 +64,7 @@ namespace osuCrypto
         /// <param name="threadCount">The number of threads that should be used to service IO operations. 0 = use # of CPU cores.</param>
         BtIOService(u64 threadCount = 0);
         ~BtIOService();
-        
+
         /// /// <summary> This is a Windows specific object that is used to queue up pending network IO operations.</summary>
         boost::asio::io_service mIoService;
 
@@ -72,11 +73,11 @@ namespace osuCrypto
 
         /// <summary> This list hold the threads that send and recv messages. </summary>
         std::list<std::thread> mWorkerThrds;
-        
+
         /// <summary> The list of acceptor objects that hold state about the ports that are being listened to. </summary>
         std::list<BtAcceptor> mAcceptors;
 
-        
+
         /// <summary> indicates whether stop() has been called already.</summary>
         bool mStopped;
 
@@ -86,14 +87,16 @@ namespace osuCrypto
         /// <summary> A list containing futures for the endpoint that use this IO service. Each is fulfilled when the endpoint is finished with this class.</summary>
         std::list<std::shared_future<void>> mEndpointStopFutures;
 
-        void receiveOne(BtSocket* socket);
+        void receiveOne(Channel* socket);
 
-        void sendOne(BtSocket* socket);
+        void sendOne(Channel* socket);
+
+        void startSocket(Channel* chl);
 
         /// <summary> Used to queue up asynchronous socket operations.</summary>
         /// <param name="socket">The socket that is being operated on.</param>
         /// <param name="op">The operation that should be queued up. </param>
-        void dispatch(BtSocket* socket, BoostIOOperation& op);
+        void dispatch(Channel* socket, BtIOOperation& op);
 
         /// <summary> Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         /// Needed since multiple endpoints with different names may listen on a single port.</summary>

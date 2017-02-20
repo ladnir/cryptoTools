@@ -76,7 +76,7 @@ void EccpNumber_Test()
             
             sub_var = sub_var - add;
 
-            if (mult_var != mult_expected || mult_var2 != mult_expected)
+            if (mult_var != int(mult_expected) || mult_var2 != int(mult_expected))
             {
                 std::cout << i << "  " << j << std::endl;
                 std::cout << "mult var  " << mult_var << std::endl;
@@ -89,7 +89,7 @@ void EccpNumber_Test()
 
 
 
-        if (add_var != add_expected)
+        if (add_var != int(add_expected))
         {
             std::cout << i << "  " /*<< j*/ << std::endl;
             std::cout << "add var  " << add_var << std::endl;

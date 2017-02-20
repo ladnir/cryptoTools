@@ -1,5 +1,6 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.  
+#include "cryptoTools/Common/Defines.h"
 
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/BtAcceptor.h>
@@ -23,8 +24,7 @@ namespace osuCrypto {
         public Endpoint
     {
 
-    private:
-
+        
         BtEndpoint(const BtEndpoint&) = delete;
 
         std::string mIP;
@@ -41,7 +41,7 @@ namespace osuCrypto {
         boost::asio::ip::tcp::endpoint mRemoteAddr;
     public:
 
- 
+
 
         void start(BtIOService& ioService, std::string remoteIp, u32 port, EpMode type, std::string name);
         void start(BtIOService& ioService, std::string address, EpMode type, std::string name);
@@ -63,7 +63,7 @@ namespace osuCrypto {
 
         BtEndpoint()
             : mPort(0), mMode(EpMode::Client), mStopped(true), mIOService(nullptr), mAcceptor(nullptr),
-              mDoneFuture(mDoneProm.get_future().share())
+            mDoneFuture(mDoneProm.get_future().share())
         {
         }
 
@@ -90,7 +90,8 @@ namespace osuCrypto {
 
         std::string IP() const { return mIP;  }
 
-        bool isHost() const { return mMode == EpMode::Server; };
+        bool isHost() const { return mMode == EpMode::Server;
+        };
     };
 
 

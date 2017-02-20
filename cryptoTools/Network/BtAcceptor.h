@@ -5,7 +5,6 @@
 #include <list>
 #include <future>
 #include <unordered_map>
-#include "Common/Defines.h"
 #include <atomic>
 #include "Network/BtSocket.h"
 
@@ -14,7 +13,7 @@ namespace osuCrypto {
     class BtSocket;
     class Channel;
     class BtIOService;
-    struct BoostIOOperation;
+    struct BtIOOperation;
 
     class BtAcceptor
     {
@@ -35,14 +34,15 @@ namespace osuCrypto {
 
         std::atomic<bool> mStopped;
         std::mutex mMtx;
-        std::unordered_map<std::string, std::promise<BtSocket*>> mSocketPromises;
+        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, Channel*>> mSocketPromises;
 
-        std::promise<BtSocket*>& getSocketPromise(
+        void asyncSetHandel(
             std::string endpointName,
             std::string localChannelName,
-            std::string remoteChannelName);
+            std::string remoteChannelName,
+            boost::asio::ip::tcp::socket* handel);
 
-        BtSocket* getSocket(Channel& chl);
+        void asyncGetHandel(Channel& chl);
 
         u64 mPort;
         boost::asio::ip::tcp::endpoint mAddress;

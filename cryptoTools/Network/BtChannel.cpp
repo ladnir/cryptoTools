@@ -1,4 +1,4 @@
-#include <cryptoTools/Network/BtChannel.h>
+#include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/BtSocket.h>
 #include <cryptoTools/Network/BtEndpoint.h>
 #include <cryptoTools/Common/Defines.h>
@@ -13,7 +13,20 @@ namespace osuCrypto {
         std::string remoteName)
         :mEndpoint(endpoint),
         mRemoteName(remoteName),
-        mLocalName(localName)
+        mLocalName(localName),
+        mHandle(nullptr),
+        mSendStrand(endpoint.getIOService().mIoService),
+        mRecvStrand(endpoint.getIOService().mIoService),
+        mOpenProm(),
+        mOpenFut(mOpenProm.get_future()),
+        mOpenCount(0),
+        mStopped(false),
+        mRecvSocketSet(false),
+        mSendSocketSet(false),
+        mId(0),
+        mOutstandingSendData(0),
+        mMaxOutstandingSendData(0),
+        mTotalSentData(0)
     {
 
     }
@@ -34,131 +47,107 @@ namespace osuCrypto {
 
     void Channel::asyncSend(const void * buff, u64 size)
     {
-        if (mSocket->mStopped || size > u32(-1))
+        if (mStopped || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
 
-        op.mSize = u32(size);
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
+        op.mSize = (u32)size;
+        op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
 
-        mEndpoint.getIOService().dispatch(mSocket.get(), op);
+        mEndpoint.getIOService().dispatch(this, op);
     }
 
     void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
     {
-        if (mSocket->mStopped || size > u32(-1))
+        if (mStopped || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
+        BtIOOperation op;
 
         op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
         op.mCallback = callback;
 
-        mEndpoint.getIOService().dispatch(mSocket.get(), op);
+        dispatch(op);
     }
-
-    //void Channel::asyncSend(std::unique_ptr<ChannelBuffer> buff)
-    //{
-    //    if (mSocket->mStopped || buff->ChannelBufferSize() > u32(-1))
-    //        throw std::runtime_error("rt error at " LOCATION);
-
-    //    BoostIOOperation op;
-
-    //    op.mSize = (u32)buff->ChannelBufferSize();
-
-
-    //    op.mBuffs[1] = boost::asio::buffer((char*)buff->ChannelBufferData(), buff->ChannelBufferSize());
-    //    op.mMode = BoostIOOperation::Type::SendData;
-
-    //    //op.mContainer = ;
-    //    buff.release();
-
-    //    mEndpoint.getIOService().dispatch(mSocket.get(), op);
-    //}
 
     void Channel::send(const void * buff, u64 size)
     {
-        if (mSocket->mStopped ||  size > u32(-1))
+        if (mStopped ||  size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
-        op.clear();
+        BtIOOperation op;
 
         op.mSize = (u32)size;
         op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
 
 
-        op.mMode = BoostIOOperation::Type::SendData;
+        op.mType = BtIOOperation::Type::SendData;
 
-        std::promise<void> prom;
+        std::promise<u64> prom;
         op.mPromise = &prom;
 
-        mEndpoint.getIOService().dispatch(mSocket.get(), op);
+        mEndpoint.getIOService().dispatch(this, op);
 
         prom.get_future().get();
     }
 
-    std::future<void> Channel::asyncRecv(void * buff, u64 size)
+    std::future<u64> Channel::asyncRecv(void * buff, u64 size)
     {
-        if (mSocket->mStopped || size > u32(-1))
+        if (mStopped || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        BoostIOOperation op;
-        op.clear();
+        BtIOOperation op;
 
-        op.mSize = u32(size);
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
+        op.mSize = (u32)size;
+        op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
 
-        op.mMode = BoostIOOperation::Type::RecvData;
+        op.mType = BtIOOperation::Type::RecvData;
 
         op.mContainer = nullptr;
 
-        op.mPromise = new std::promise<void>();
+        op.mPromise = new std::promise<u64>();
         auto future = op.mPromise->get_future();
 
-        mEndpoint.getIOService().dispatch(mSocket.get(), op);
+        mEndpoint.getIOService().dispatch(this, op);
 
         return future;
     }
 
-    //std::future<void> Channel::asyncRecv(ChannelBuffer & mH)
+    //std::future<u64> Channel::asyncRecv(ChannelBuffer & mH)
     //{
-    //    if (mSocket->mStopped)
+    //    if (mStopped)
     //        throw std::runtime_error("rt error at " LOCATION);
 
-    //    BoostIOOperation op;
-    //    op.clear();
+    //    BtIOOperation op;
 
 
-    //    op.mMode = BoostIOOperation::Type::RecvData;
+    //    op.mType = BtIOOperation::Type::RecvData;
 
-    //    //op.mContainer.reset(new MoveChannelBuff<ChannelBuffer>(std::move(c)));
+    //    op.mOther = &mH;
 
-    //    //op.mContainer = &mH;
-
-    //    op.mPromise = new std::promise<void>();
+    //    op.mPromise = new std::promise<u64>();
     //    auto future = op.mPromise->get_future();
 
-    //    mEndpoint.getIOService().dispatch(mSocket.get(), op);
+    //    mEndpoint.getIOService().dispatch(this, op);
 
     //    return future;
     //}
 
-    void Channel::recv(void * dest, u64 length)
+    u64 Channel::recv(void * dest, u64 length)
     {
         try {
             // schedule the recv.
             auto request = asyncRecv(dest, length);
 
-            // block until the receive has been completed.
+            // block until the receive has been completed. 
             // Could throw if the length is wrong.
-            request.get();
+            return request.get();
         }
         catch (BadReceiveBufferSize& bad)
         {
@@ -167,51 +156,53 @@ namespace osuCrypto {
         }
     }
 
-    //void Channel::recv(ChannelBuffer & mH)
+    //u64 Channel::recv(ChannelBuffer & mH)
     //{
-    //    asyncRecv(mH).get();
+    //    return asyncRecv(mH).get();
     //}
 
     bool Channel::opened()
     {
-        return true;
+        return mSendSocketSet  && mRecvSocketSet;
     }
     void Channel::waitForOpen()
     {
-        // async connect hasn't been implemented.
+        return mOpenFut.get();
     }
 
     void Channel::close()
     {
         // indicate that no more messages should be queued and to fulfill
         // the mSocket->mDone* promised.
-        mSocket->mStopped = true;
+        mStopped = true;
 
 
-        BoostIOOperation closeRecv;
-        closeRecv.mMode = BoostIOOperation::Type::CloseRecv;
-        std::promise<void> recvPromise;
+        BtIOOperation closeRecv;
+        closeRecv.mType = BtIOOperation::Type::CloseRecv;
+        std::promise<u64> recvPromise;
         closeRecv.mPromise = &recvPromise;
 
-        mEndpoint.getIOService().dispatch(mSocket.get(), closeRecv);
+        mEndpoint.getIOService().dispatch(this, closeRecv);
 
-        BoostIOOperation closeSend;
-        closeSend.mMode = BoostIOOperation::Type::CloseSend;
-        std::promise<void> sendPromise;
+        BtIOOperation closeSend;
+        closeSend.mType = BtIOOperation::Type::CloseSend;
+        std::promise<u64> sendPromise;
         closeSend.mPromise = &sendPromise;
-        mEndpoint.getIOService().dispatch(mSocket.get(), closeSend);
+        mEndpoint.getIOService().dispatch(this, closeSend);
 
         recvPromise.get_future().get();
         sendPromise.get_future().get();
 
         // ok, the send and recv queues are empty. Lets close the socket
-        mSocket->mHandle.close();
+        mHandle->close();
 
         // lets de allocate ourselves in the endpoint.
         mEndpoint.removeChannel(getName());
 
         // WARNING: we are deallocated now. Do not touch any member variables.
     }
+
+
 
 
     std::string Channel::getRemoteName() const
@@ -221,40 +212,25 @@ namespace osuCrypto {
 
     void Channel::resetStats()
     {
-        if (mSocket)
-        {
-            mSocket->mTotalSentData = 0;
-            mSocket->mTotalRecvData = 0;
-            mSocket->mMaxOutstandingSendData = 0;
-            mSocket->mOutstandingSendData = 0;
-        }
+        mTotalSentData = 0;
+        mMaxOutstandingSendData = 0;
+        mOutstandingSendData = 0;
     }
 
     u64 Channel::getTotalDataSent() const
     {
-        return (mSocket) ? (u64)mSocket->mTotalSentData : 0;
+        return mTotalSentData;
     }
 
     u64 Channel::getTotalDataRecv() const
     {
-        return (mSocket) ? (u64)mSocket->mTotalRecvData : 0;
+        return mTotalRecvData;
     }
 
     u64 Channel::getMaxOutstandingSendData() const
     {
-        return (mSocket) ? (u64)mSocket->mMaxOutstandingSendData : 0;
+        return (u64)mMaxOutstandingSendData;
     }
-
-    //
-    //void Channel::send(const ChannelBuffer & buf)
-    //{
-    //    send(buf.ChannelBufferData(), buf.ChannelBufferSize());
-    //}
-    //
-    //void Channel::asyncSendCopy(const ChannelBuffer & buf)
-    //{
-    //    asyncSendCopy(buf.ChannelBufferData(), buf.ChannelBufferSize());
-    //}
 
     void Channel::asyncSendCopy(const void * bufferPtr, u64 length)
     {
@@ -262,11 +238,9 @@ namespace osuCrypto {
         asyncSend(std::move(bs));
     }
 
-    void Channel::dispatch(BoostIOOperation & op)
+    void Channel::dispatch(BtIOOperation & op)
     {
-        mEndpoint.getIOService().dispatch(mSocket.get(), op);
-
+        mEndpoint.getIOService().dispatch(this, op);
     }
 
 }
-

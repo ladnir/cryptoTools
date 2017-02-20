@@ -173,7 +173,7 @@ namespace osuCrypto {
     //};
 
 
-    struct BoostIOOperation
+    struct BtIOOperation
     {
         enum class Type
         {
@@ -185,13 +185,13 @@ namespace osuCrypto {
             CloseThread
         };
 
-        BoostIOOperation()
+        BtIOOperation()
         {
             clear();
         }
 
-        BoostIOOperation(const BoostIOOperation& copy) = default;
-        BoostIOOperation(BoostIOOperation&& copy) = default;
+        BtIOOperation(const BtIOOperation& copy) = default;
+        BtIOOperation(BtIOOperation&& copy) = default;
         //    :
         //    mMode(copy.mMode);
         //    mSize = copy.mSize;
@@ -204,7 +204,7 @@ namespace osuCrypto {
 
         void clear()
         {
-            mMode = (Type)0;
+            mType = (Type)0;
             mSize = 0; 
             mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
             mBuffs[1] = boost::asio::mutable_buffer();
@@ -214,40 +214,40 @@ namespace osuCrypto {
 
 
         std::array<boost::asio::mutable_buffer,2> mBuffs;
-        Type mMode;
+        Type mType;
         u32 mSize;
 
         ChannelBuffBase* mContainer;
-        std::promise<void>* mPromise;
+        std::promise<u64>* mPromise;
         std::function<void()> mCallback;
     };
 
 
 
-    class BtSocket
-    {
-    public:
-        BtSocket(BtIOService& ios);
+    //class BtSocket
+    //{
+    //public:
+    //    BtSocket(BtIOService& ios);
 
-        boost::asio::ip::tcp::socket mHandle;
-        boost::asio::strand mSendStrand, mRecvStrand;
+    //    boost::asio::ip::tcp::socket mHandle;
+    //    boost::asio::strand mSendStrand, mRecvStrand;
 
-        std::deque<BoostIOOperation> mSendQueue, mRecvQueue;
-        bool mStopped;
+    //    std::deque<BtIOOperation> mSendQueue, mRecvQueue;
+    //    bool mStopped;
 
-        std::atomic<u64> mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
-    };
+    //    std::atomic<u64> mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
+    //};
 
-    inline BtSocket::BtSocket(BtIOService& ios) :
-        mHandle(ios.mIoService),
-        mSendStrand(ios.mIoService),
-        mRecvStrand(ios.mIoService),
-        mStopped(false),
-        mOutstandingSendData(0),
-        mMaxOutstandingSendData(0),
-        mTotalSentData(0),
-        mTotalRecvData(0)
-    {}
+    //inline BtSocket::BtSocket(BtIOService& ios) :
+    //    mHandle(ios.mIoService),
+    //    mSendStrand(ios.mIoService),
+    //    mRecvStrand(ios.mIoService),
+    //    mStopped(false),
+    //    mOutstandingSendData(0),
+    //    mMaxOutstandingSendData(0),
+    //    mTotalSentData(0),
+    //    mTotalRecvData(0)
+    //{}
 
 
 }

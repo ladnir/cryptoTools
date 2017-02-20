@@ -92,46 +92,113 @@ namespace osuCrypto {
 
         if (mMode == EpMode::Server)
         {
-            // if we are a type, then we can ask out acceptor for the socket which match the channel name.
-            chl.mSocket.reset(mAcceptor->getSocket(chl));
+            // the acceptor will do the handshake, set chl.mHandel and
+            // kick off any send and receives which may happen after this
+            // call but before the handshake completes
+            mAcceptor->asyncGetHandel(chl);
+            chl.mId = 0;
+
         }
         else
         {
-            chl.mSocket.reset(new BtSocket(*mIOService));
+            chl.mHandle = new boost::asio::ip::tcp::socket(getIOService().mIoService);
+
+            chl.mId = 1;
 
             boost::system::error_code ec;
-            auto tryCount = 10000000;
 
-            chl.mSocket->mHandle.connect(mRemoteAddr, ec);
 
-            while (tryCount-- && ec)
+            std::function<void(const boost::system::error_code&)> initialCallback = [&, localName, remoteName](const boost::system::error_code& ec)
             {
-                chl.mSocket->mHandle.connect(mRemoteAddr, ec);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
+                if (ec && chl.mStopped == false && this->stopped() == false)
+                {
+                    boost::asio::deadline_timer t(getIOService().mIoService, boost::posix_time::milliseconds(10));
 
-            if (ec)
-            {
-                throw std::runtime_error("rt error at " LOCATION);
-            }
+                    // tell the io service to wait 10 ms and then try again...
+                    t.async_wait([&](const boost::system::error_code& ec)
+                    {
+                        if (chl.mStopped == false)
+                        {
+                            if (ec)
+                            {
+                                auto message = ec.message();
+                                auto val = ec.value();
 
-            boost::asio::ip::tcp::no_delay option(true);
-            chl.mSocket->mHandle.set_option(option);
+                                std::stringstream ss;
 
-            //boost::asio::socket_base::receive_buffer_size option2((1 << 20) * 16);
-            //chl.mSocket->mHandle.set_option(option2);
+                                ss << "network error (wait)  \n  Location: " LOCATION "\n  message: ";
 
-            //boost::asio::socket_base::send_buffer_size option3((1 << 20) * 16);
-            ////chl.mSocket->mHandle.set_option(option3);
+                                ss << message << "\n  value: ";
 
-            std::stringstream ss;
-            ss << mName << char('`') << localName << char('`') << remoteName;
+                                ss << val << std::endl;
 
-            auto str = ss.str();
-            std::unique_ptr<ByteStream> buff(new ByteStream((u8*)str.data(), str.size()));
+                                std::cout << ss.str() << std::flush;
+                                std::cout << "stopped: " << chl.mStopped << std::endl;
+                                //throw std::runtime_error(LOCATION);
+                            }
+
+                            ////boost::asio::async_connect()
+                            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+                        }
+                    });
+                }
+                else if (!ec)
+                {
+                    boost::asio::ip::tcp::no_delay option(true);
+                    chl.mHandle->set_option(option);
 
 
-            chl.asyncSend(std::move(buff));
+                    std::stringstream ss;
+                    ss << mName << char('`') << localName << char('`') << remoteName;
+
+                    auto str = ss.str();
+
+                    ByteStream buff((u8*)str.data(), str.size());
+
+                    BtIOOperation op;
+                    op.mSize = (u32)buff.size();
+                    op.mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
+                    op.mType = BtIOOperation::Type::SendData;
+                    op.mContainer = (new MoveChannelBuff<ByteStream>(std::move(buff)));
+
+                    chl.mSendStrand.post([this, &chl, op]()
+                    {
+                        chl.mSendQueue.push_front(op);
+                        chl.mSendSocketSet = true;
+
+                        auto ii = ++chl.mOpenCount;
+                        if (ii == 2) chl.mOpenProm.set_value();
+
+                        getIOService().sendOne(&chl);
+                    });
+
+
+                    chl.mRecvStrand.post([this, &chl, op]()
+                    {
+                        chl.mRecvSocketSet = true;
+
+                        auto ii = ++chl.mOpenCount;
+                        if (ii == 2) chl.mOpenProm.set_value();
+
+                        if (chl.mRecvQueue.size())
+                        {
+                            getIOService().receiveOne(&chl);
+                        }
+                    });
+                }
+                else
+                {
+                    std::stringstream ss;
+                    ss << "network error (init cb) \n  Location: " LOCATION "\n  message: "
+                        << ec.message() << "\n  value: " << ec.value() << std::endl;
+
+
+                    std::cout << ss.str() << std::flush;
+                    throw std::runtime_error(LOCATION);
+                }
+            };
+
+            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
         }
 
         return chl;
