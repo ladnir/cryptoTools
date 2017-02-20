@@ -1,9 +1,11 @@
 project(cryptoTools)
-cmake_minimum_required(VERSION 3.6)
+
 set(BUILD_CURVE ON CACHE BOOL "whether to build Curve.cpp- requires miracl")
 
-set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
-set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
+
+get_directory_property(hasParent PARENT_DIRECTORY)
+
+
 
 if($ENV{nasm} MATCHES "")
 	message(WARNING "\nnasm environment variable NOT defined!!!! This means the fast SHA1 function will not be used.")
@@ -36,7 +38,6 @@ if (NOT ${BUILD_CURVE})
     list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Crypto/Curve.cpp)
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
 
