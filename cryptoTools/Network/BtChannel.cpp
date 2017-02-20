@@ -39,7 +39,7 @@ namespace osuCrypto {
 
         BoostIOOperation op;
 
-        op.mSize = size;
+        op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
         op.mType = BoostIOOperation::Type::SendData;
@@ -54,7 +54,7 @@ namespace osuCrypto {
 
         BoostIOOperation op;
 
-        op.mSize = size;
+        op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
         op.mType = BoostIOOperation::Type::SendData;
@@ -112,7 +112,7 @@ namespace osuCrypto {
         BoostIOOperation op;
         op.clear();
 
-        op.mSize = size;
+        op.mSize = u32(size);
         op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
 
         op.mType = BoostIOOperation::Type::RecvData;

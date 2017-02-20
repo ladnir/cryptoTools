@@ -19,10 +19,10 @@ void BitVector_Indexing_Test_Impl()
 
     for (auto i = 0; i < 128; ++i)
     {
-        if ((bool)bb[i] != gold[i])
+        if ((bb[i] > 0) != gold[i])
             throw std::runtime_error("");
 
-        if ((bool)bb[i] != gold[i])
+        if ((bb[i] > 0) != gold[i])
             throw UnitTestFail();
     }
 }

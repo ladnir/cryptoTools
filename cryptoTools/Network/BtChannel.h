@@ -232,7 +232,7 @@ namespace osuCrypto {
         !has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
         Channel::asyncRecv(Container & c)
     {
-        if (mSocket->mStopped)
+        if (mSocket->mStopped || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BoostIOOperation op;
@@ -244,7 +244,7 @@ namespace osuCrypto {
         //op.mContainer = (new RefChannelBuff<Container>(c));
         op.mContainer = nullptr;
 
-        op.mSize = c.size();
+        op.mSize = u32(c.size());
         op.mBuffs[1] = boost::asio::buffer(c.data(), c.size() * sizeof(typename Container::value_type));
         op.mPromise = new std::promise<void>();
         auto future = op.mPromise->get_future();
@@ -262,7 +262,7 @@ namespace osuCrypto {
         has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>
         Channel::asyncRecv(Container & c)
     {
-        if (mSocket->mStopped)
+        if (mSocket->mStopped || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BoostIOOperation op;

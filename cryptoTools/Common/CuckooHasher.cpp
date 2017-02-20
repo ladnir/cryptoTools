@@ -89,7 +89,7 @@ void CuckooHasher::init(u64 n, u64 statSecParam)
 
     mHashes.resize(n * mParams.mNumHashes, u64(-1));
     mHashesView = MatrixView<u64>(mHashes.begin(), mHashes.end(), mParams.mNumHashes);
-    u64 binCount = mParams.mBinScaler * n;
+    u64 binCount = u64(mParams.mBinScaler * n);
     mBins.resize(binCount);
     mStash.resize(mStashSize);
 }
