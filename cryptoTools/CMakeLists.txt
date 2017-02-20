@@ -30,10 +30,10 @@ else()
 endif()
 
 
-file(GLOB_RECURSE SRCS cryptoTools/*.cpp)
+file(GLOB_RECURSE SRCS *.cpp)
 
 if (NOT ${BUILD_CURVE})
-    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Crypto/Curve.cpp)
+    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Crypto/Curve.cpp)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
