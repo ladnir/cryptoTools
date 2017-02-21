@@ -76,10 +76,10 @@ namespace osuCrypto {
     //    virtual void recv(ChannelBuffer& mH) = 0;
 
     //    /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
-    //    virtual bool opened() = 0;
+    //    virtual bool isConnected() = 0;
 
     //    /// <summary>A blocking call that waits until the channel is open in that it can send/receive data</summary>
-    //    virtual void waitForOpen() = 0;
+    //    virtual void waitForConnection() = 0;
 
     //    /// <summary>Close this channel to denote that no more data will be sent or received.</summary>
     //    virtual void close() = 0;

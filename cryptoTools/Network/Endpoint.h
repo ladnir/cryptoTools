@@ -21,7 +21,7 @@ namespace osuCrypto {
         /// <summary>Stops this Endpoint. Will block until all channels have closed.</summary>
         virtual void stop() = 0;
 
-        /// <summary>returns whether the endpoint has been stopped (or never opened).</summary>
+        /// <summary>returns whether the endpoint has been stopped (or never isConnected).</summary>
         virtual bool stopped() const = 0;
 
         //
