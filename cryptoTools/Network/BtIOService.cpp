@@ -252,6 +252,7 @@ namespace osuCrypto
 
         if (op.mType == BtIOOperation::Type::SendData)
         {
+            op.mBuffs[0] = boost::asio::buffer(&op.mSize, 4);
 
             boost::asio::async_write(*socket->mHandle, op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
             {

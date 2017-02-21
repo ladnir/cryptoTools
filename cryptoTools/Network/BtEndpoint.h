@@ -39,6 +39,10 @@ namespace osuCrypto {
         std::shared_future<void> mDoneFuture;
         std::string mName;
         boost::asio::ip::tcp::endpoint mRemoteAddr;
+        
+        //std::unique_ptr<boost::asio::deadline_timer> mDeadlineTimer;// (getIOService().mIoService, boost::posix_time::milliseconds(10));
+
+
     public:
 
 
@@ -80,7 +84,7 @@ namespace osuCrypto {
         /// <summary>Stops this Endpoint. Will block until all channels have closed.</summary>
         void stop() override;
 
-        /// <summary>returns whether the endpoint has been stopped (or never opened).</summary>
+        /// <summary>returns whether the endpoint has been stopped (or never isConnected).</summary>
         bool stopped() const override;
 
         /// <summary> Removes the channel with chlName. (deallocates it)</summary>

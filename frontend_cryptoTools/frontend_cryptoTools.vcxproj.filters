@@ -24,12 +24,18 @@
     <ClCompile Include="Tutorials\Network.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="signalHandle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UnitTests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Tutorials\Network.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="signalHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

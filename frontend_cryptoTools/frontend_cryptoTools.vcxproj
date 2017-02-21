@@ -75,10 +75,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="signalHandle.cpp" />
     <ClCompile Include="Tutorials\Network.cpp" />
     <ClCompile Include="UnitTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="signalHandle.h" />
     <ClInclude Include="Tutorials\Network.h" />
     <ClInclude Include="UnitTests.h" />
   </ItemGroup>

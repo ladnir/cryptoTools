@@ -33,6 +33,7 @@ namespace osuCrypto {
 
     Channel::~Channel()
     {
+        //std::cout << IoStream::lock << "deleting handle: " << mHandle.get() << std::endl << IoStream::unlock;
     }
 
     Endpoint & Channel::getEndpoint()
@@ -161,11 +162,11 @@ namespace osuCrypto {
     //    return asyncRecv(mH).get();
     //}
 
-    bool Channel::opened()
+    bool Channel::isConnected()
     {
         return mSendSocketSet  && mRecvSocketSet;
     }
-    void Channel::waitForOpen()
+    void Channel::waitForConnection()
     {
         return mOpenFut.get();
     }

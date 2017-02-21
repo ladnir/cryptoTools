@@ -35,6 +35,7 @@ void run(std::string name, std::function<void(void)> func)
 void NetWork_all()
 {
     std::cout << std::endl;
+
     run("BtNetwork_Connect1_Boost_Test        ", BtNetwork_Connect1_Boost_Test);
     run("BtNetwork_OneMegabyteSend_Boost_Test ", BtNetwork_OneMegabyteSend_Boost_Test);
     run("BtNetwork_ConnectMany_Boost_Test     ", BtNetwork_ConnectMany_Boost_Test);
@@ -72,7 +73,7 @@ void run_all()
 {
 
     NetWork_all();
-    bitVec_all();
-    Ecc_all();
-    
+    //bitVec_all();
+    //Ecc_all();
+    //
 }

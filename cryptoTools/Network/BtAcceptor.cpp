@@ -80,6 +80,7 @@ namespace osuCrypto {
 
                 if (!ec)
                 {
+                    //std::cout << "async_accept new connection" << std::endl;
 
                     auto buff = new ByteStream(4);
                     buff->setp(buff->capacity());
@@ -103,6 +104,9 @@ namespace osuCrypto {
                     {
                         if(!ec2 && bytesTransferred == 4)
                         {
+
+                            //std::cout << "async_accept new connection size" << std::endl;
+
                             u32 size = buff->getArrayView<u32>()[0];
 
                             buff->reserve(size);
@@ -115,6 +119,10 @@ namespace osuCrypto {
                                 {
                                     // lets split it into pieces.
                                     auto str = std::string((char*)buff->data(), buff->size());
+
+                                    //std::cout << "async_accept new connection name: "<<str << std::endl;
+
+
                                     auto names = split(str, '`');
 
                                     if (str.back() == '`' && names.size() == 2) names.emplace_back("");
@@ -122,13 +130,16 @@ namespace osuCrypto {
                                     // Now lets create or get the std::promise<WinNetSocket> that will hold this socket
                                     // for the WinNetEndpoint that will eventually receive it.
                                     //getSocketPromise(names[0], names[2], names[1]);
-                                    asyncSetHandel(names[0], names[2], names[1], newSocket);
+                                    asyncSetSocket(names[0], names[2], names[1], newSocket);
                                     //prom->first
                                     //prom.set_value(newSocket);
                                 }
                                 else
                                 {
-                                    std::cout << "async_accept->async_receive->async_receive (body) failed with error_code:" << ec3.message() << std::endl;
+                                    std::cout
+                                        << "async_accept->async_receive->async_receive "
+                                        << " (body) failed with error_code:" << ec3.message() << std::endl
+                                        << bytesTransferred2 << "  vs " << size << std::endl;;
                                 }
 
                                 delete buff;
@@ -159,6 +170,7 @@ namespace osuCrypto {
 
     void BtAcceptor::stop()
     {
+        //std::cout << "\n#################################### acceptor stop ################################" << std::endl;
         mStopped = true;
         mHandle.close();
     }
@@ -168,30 +180,33 @@ namespace osuCrypto {
         return mStopped;
     }
 
-    void BtAcceptor::asyncGetHandel(Channel & chl)
+    void BtAcceptor::asyncGetSocket(Channel & chl)
     {
         std::string tag = chl.getEndpoint().getName() + ":" + chl.getName() + ":" + chl.getRemoteName();
 
         {
             std::unique_lock<std::mutex> lock(mMtx);
-            auto iter = mSocketPromises.find(tag);
+            auto iter = mSocketChannelPairs.find(tag);
 
-            if (iter == mSocketPromises.end())
+            if (iter == mSocketChannelPairs.end())
             {
-                mSocketPromises.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(nullptr, &chl));
+
+                //std::cout << "asyncGetSocket waiting on socket " << tag << std::endl;
+                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(nullptr, &chl));
             }
             else
             {
-                chl.mHandle = iter->second.first;
+                //std::cout << "asyncGetSocket aquired socket " << tag << std::endl;
+
+                chl.mHandle.reset(iter->second.first);
                 chl.mRecvSocketSet = true;
                 chl.mSendSocketSet = true;
                 chl.mOpenProm.set_value();
             }
         }
-        //return std::move(mSocketPromises[tag].get_future().get());
     }
 
-    void BtAcceptor::asyncSetHandel(
+    void BtAcceptor::asyncSetSocket(
         std::string endpointName,
         std::string localChannelName,
         std::string remoteChannelName,
@@ -201,18 +216,22 @@ namespace osuCrypto {
 
         {
             std::unique_lock<std::mutex> lock(mMtx);
-            auto iter = mSocketPromises.find(tag);
+            auto iter = mSocketChannelPairs.find(tag);
 
-            if (iter == mSocketPromises.end())
+            if (iter == mSocketChannelPairs.end())
             {
-                mSocketPromises.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(sock, nullptr));
+                //std::cout << "asyncSetSocket created socket " << tag << std::endl;
+                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(sock, nullptr));
             }
             else
             {
                 if (iter->second.second->mHandle)
                     throw std::runtime_error(LOCATION);
 
-                iter->second.second->mHandle = sock;
+                //std::cout << "asyncSetSocket set socket " << tag << std::endl;
+
+
+                iter->second.second->mHandle.reset(sock);
 
                 mIOService.startSocket(iter->second.second);
             }

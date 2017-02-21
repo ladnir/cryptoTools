@@ -19,7 +19,6 @@ namespace osuCrypto {
         if (mStopped == false)
             throw std::runtime_error("rt error at " LOCATION);
 
-
         mIP = (remoteIP);
         mPort = (port);
         mMode = (type);
@@ -95,27 +94,38 @@ namespace osuCrypto {
             // the acceptor will do the handshake, set chl.mHandel and
             // kick off any send and receives which may happen after this
             // call but before the handshake completes
-            mAcceptor->asyncGetHandel(chl);
+            mAcceptor->asyncGetSocket(chl);
             chl.mId = 0;
 
         }
         else
         {
-            chl.mHandle = new boost::asio::ip::tcp::socket(getIOService().mIoService);
+            chl.mHandle.reset(new boost::asio::ip::tcp::socket(getIOService().mIoService));
+            //std::cout << IoStream::lock << "new socket: " << chl.mHandle.get() << std::endl << IoStream::unlock;
 
+             
             chl.mId = 1;
 
             boost::system::error_code ec;
 
+            //std::cout << "Endpoint connect " << mName << " " << localName << " " << remoteName << std::endl;
 
-            std::function<void(const boost::system::error_code&)> initialCallback = [&, localName, remoteName](const boost::system::error_code& ec)
+            auto initialCallback = new std::function<void(const boost::system::error_code&)>();
+            auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
+
+            *initialCallback = [&, timer, initialCallback, localName, remoteName](const boost::system::error_code& ec)
             {
+                //std::cout << "Endpoint connect call back " << std::endl;
+
                 if (ec && chl.mStopped == false && this->stopped() == false)
                 {
-                    boost::asio::deadline_timer t(getIOService().mIoService, boost::posix_time::milliseconds(10));
+                    //std::cout << IoStream::lock << "        failed, retrying " << chl.mHandle.get() << std::endl << IoStream::unlock;
+
+                    //auto t = new boost::asio::deadline_timer (getIOService().mIoService, boost::posix_time::milliseconds(10));
+
 
                     // tell the io service to wait 10 ms and then try again...
-                    t.async_wait([&](const boost::system::error_code& ec)
+                    timer->async_wait([&,timer, initialCallback](const boost::system::error_code& ec)
                     {
                         if (chl.mStopped == false)
                         {
@@ -126,24 +136,38 @@ namespace osuCrypto {
 
                                 std::stringstream ss;
 
-                                ss << "network error (wait)  \n  Location: " LOCATION "\n  message: ";
+                                ss << "network error (wait) " << std::this_thread::get_id() << " \n  Location: " LOCATION "\n  message: ";
 
                                 ss << message << "\n  value: ";
 
                                 ss << val << std::endl;
 
                                 std::cout << ss.str() << std::flush;
-                                std::cout << "stopped: " << chl.mStopped << std::endl;
-                                //throw std::runtime_error(LOCATION);
-                            }
+                                std::cout << "stopped: " << chl.mStopped << " " << stopped() << std::endl;
 
-                            ////boost::asio::async_connect()
-                            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+                                delete initialCallback;
+                                delete timer;
+
+                            }
+                            else
+                            {
+
+                                //std::cout << "        failed, retrying'" << std::endl;
+
+                                ////boost::asio::async_connect()
+
+                                //std::cout << IoStream::lock << "connect cb handle: " << chl.mHandle.get() << std::endl << IoStream::unlock;
+                                //std::cout << IoStream::lock << "initialCallback! = " << initialCallback << std::endl << IoStream::unlock;
+
+                                chl.mHandle->async_connect(mRemoteAddr, *initialCallback);
+                            }
                         }
                     });
                 }
                 else if (!ec)
                 {
+                    //std::cout << "        connected" << std::endl;
+
                     boost::asio::ip::tcp::no_delay option(true);
                     chl.mHandle->set_option(option);
 
@@ -157,8 +181,8 @@ namespace osuCrypto {
 
                     BtIOOperation op;
                     op.mSize = (u32)buff.size();
-                    op.mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
                     op.mType = BtIOOperation::Type::SendData;
+                    op.mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
                     op.mContainer = (new MoveChannelBuff<ByteStream>(std::move(buff)));
 
                     chl.mSendStrand.post([this, &chl, op]()
@@ -173,7 +197,7 @@ namespace osuCrypto {
                     });
 
 
-                    chl.mRecvStrand.post([this, &chl, op]()
+                    chl.mRecvStrand.post([this, &chl]()
                     {
                         chl.mRecvSocketSet = true;
 
@@ -185,6 +209,9 @@ namespace osuCrypto {
                             getIOService().receiveOne(&chl);
                         }
                     });
+
+                    delete initialCallback;
+                    delete timer;
                 }
                 else
                 {
@@ -192,13 +219,17 @@ namespace osuCrypto {
                     ss << "network error (init cb) \n  Location: " LOCATION "\n  message: "
                         << ec.message() << "\n  value: " << ec.value() << std::endl;
 
+                    delete initialCallback;
+                    delete timer;
 
                     std::cout << ss.str() << std::flush;
                     throw std::runtime_error(LOCATION);
                 }
             };
 
-            chl.mHandle->async_connect(mRemoteAddr, initialCallback);
+
+            //std::cout << IoStream::lock << "initialCallback = " << initialCallback << std::endl << IoStream::unlock;
+            chl.mHandle->async_connect(mRemoteAddr, *initialCallback);
         }
 
         return chl;

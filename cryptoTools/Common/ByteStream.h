@@ -140,6 +140,7 @@ namespace osuCrypto {
         typedef u8 value_type;
         ByteStream(u64 size = 0, bool zero = true);
         ByteStream(const ByteStream& os);
+        ByteStream(ByteStream&& os);
         ByteStream(const pointer data, u64 length);
 
         ~ByteStream() { delete[] mData; }

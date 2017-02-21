@@ -21,6 +21,18 @@ namespace osuCrypto {
         mGetHead = os.mGetHead;
     }
 
+    ByteStream::ByteStream(ByteStream && os)
+        : mPutHead(os.mPutHead)
+        , mCapacity(os.mCapacity)
+        , mGetHead(os.mGetHead)
+        , mData(os.mData)
+    {
+        os.mCapacity = 0;
+        os.mData = nullptr;
+        os.mGetHead = 0;
+        os.mPutHead = 0;
+    }
+
     ByteStream::ByteStream(const pointer data, u64 length)
         :mPutHead(0),
         mCapacity(0),

@@ -47,6 +47,17 @@ void networkTutorial()
 
     Channel& chl1 = server.addChannel(channelName);
 
+    // we now have a pair of channels, but it is possible that they have yet
+    // to actually connect to each other in the backgound. To test that the 
+    // channel has a completed the connection, we can do
+    std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
+
+    // To block until we know for sure the channel is open, we can call
+    chl0.waitForConnection();
+
+    // This call will now always return true.
+    std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
+
 
     /*#####################################################
     ##                   The Basics                      ##

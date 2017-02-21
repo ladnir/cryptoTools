@@ -34,15 +34,15 @@ namespace osuCrypto {
 
         std::atomic<bool> mStopped;
         std::mutex mMtx;
-        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, Channel*>> mSocketPromises;
+        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, Channel*>> mSocketChannelPairs;
 
-        void asyncSetHandel(
+        void asyncSetSocket(
             std::string endpointName,
             std::string localChannelName,
             std::string remoteChannelName,
             boost::asio::ip::tcp::socket* handel);
 
-        void asyncGetHandel(Channel& chl);
+        void asyncGetSocket(Channel& chl);
 
         u64 mPort;
         boost::asio::ip::tcp::endpoint mAddress;

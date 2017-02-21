@@ -151,16 +151,16 @@ namespace osuCrypto {
         u64 recv(void * dest, u64 length);
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
-        bool opened();
+        bool isConnected();
 
         /// <summary>A blocking call that waits until the channel is open in that it can send/receive data</summary>
-        void waitForOpen();
+        void waitForConnection();
 
         /// <summary>Close this channel to denote that no more data will be sent or received.</summary>
         void close();
 
 
-        boost::asio::ip::tcp::socket* mHandle;
+        std::unique_ptr<boost::asio::ip::tcp::socket> mHandle;
         boost::asio::strand mSendStrand, mRecvStrand;
 
         std::deque<BtIOOperation> mSendQueue, mRecvQueue;

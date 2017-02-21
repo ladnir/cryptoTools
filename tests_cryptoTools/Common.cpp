@@ -8,7 +8,7 @@
 using namespace osuCrypto;
 
 static std::fstream* file = nullptr;
-std::string SolutionDir = "../../";
+std::string SolutionDir = "../..";
 
 void InitDebugPrinting(std::string filePath)
 {
