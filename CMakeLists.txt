@@ -1,91 +1,70 @@
+cmake_minimum_required (VERSION 2.8)
 
+if(hasParent)
+else()
 
-project(cryptoTools)
+	############################################
+	#          If top level cmake              #
+	############################################
 
+	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
+	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
+	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
-if($ENV{nasm} MATCHES "")
-	message(WARNING "\nnasm environment variable NOT defined!!!! This means the fast SHA1 function will not be used.")
+	#add_definitions(-DSOLUTION_DIR=\"${CMAKE_SOURCE_DIR}\")
+	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
+	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
-	# define this so that the asm is disabled.
-	add_definitions(-DNO_INTEL_ASM_SHA1=1)
-	set(shaNasmOutput )
-	add_custom_target(sha_asm)
 	
-else()
-		set(shaNasm "${CMAKE_SOURCE_DIR}/cryptoTools/Crypto/asm/sha_lnx.S")
-        set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
-      
-        add_custom_command(
-                OUTPUT ${shaNasmOutput}
-                DEPENDS ${shaNasm} 
-                COMMENT "nasm -f elf64 ${shaNasm} -o ${shaNasmOutput}"
-                COMMAND "nasm" "-f elf64" "${shaNasm}" "-o ${shaNasmOutput}"
-                VERBATIM)
+	# Set a default build type for single-configuration
+	# CMake generators if no build type is set.
+	if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+	   SET(CMAKE_BUILD_TYPE Release)
+	endif()
+
+	if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+	  message(WARNING "\nConfiguration NOT set to Release. Please call cmake with -DCMAKE_BUILD_TYPE=Release  instead of ${CMAKE_BUILD_TYPE}")
+
+		if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+		  #message(WARNING "Debug build.")
+		elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Release") 
+		  #message(WARNING "Release build.")
+		elseif("${CMAKE_BUILD_TYPE}" STREQUAL  "RELWITHDEBINFO")
+		  #message(WARNING "RELWITHDEBINFO=Release with debug info build.")
+		else()
+		  message(ERROR ": Unknown build type - ${CMAKE_BUILD_TYPE}  Please use one of Debug, Release, or RELWITHDEBINFO\n\n" )
+		endif()
+	endif()
+
+	# Select flags.
+	SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
+	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb -rdynamic")
+	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb -rdynamic")
+
+endif() 
+
+#############################################
+#       Library/includes locations          #
+#############################################
+
+# default location for miracl
+set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/miracl/")
+include_directories("${Miracl_Dirs}") 
+link_directories("${Miracl_Dirs}/miracl/source/")
+install(FILES "${Miracl_Dirs}/miracl/source/libmiracl.a" DESTINATION lib)
+
+# default location for Boost
+set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/boost/")
 
 
-	# mark this asm output input to everything.
-	add_custom_target(sha_asm DEPENDS ${shaNasmOutput})
-endif()
-
-
-file(GLOB_RECURSE SRCS *.cpp)
-
-include_directories(${CMAKE_SOURCE_DIR})
-add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
-add_dependencies(cryptoTools sha_asm)
 
 
 #############################################
-#            Install                        #
+#       cryptoTools, tests, frontend        #
 #############################################
-
-# export cryptoTools headers too
-install(DIRECTORY . DESTINATION include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
-install(TARGETS cryptoTools DESTINATION lib/${PROJECT_NAME})
-
-###########################################################################  
-###########################################################################  
-#                        Link external libraries                          #
-#                        -----------------------                          #
-#                                                                         #
-#  Define the expected location for miracl and boost.                     #
-#  Boost will be found using the findBoost  module in CMake               #
-#  It should look in the location specified and then look elsewhere       # 
-#                                                                         #
-###########################################################################  
-  
-
- 
-find_library(
-  MIRACL_LIB 
-  NAMES miracl  
-  HINTS "${Miracl_Dirs}/miracl/source/")
-  
-# if we cant fint it, throw an error
-if(NOT MIRACL_LIB)
-  Message(${MIRACL_LIB})
-  message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
-endif()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}) 
 
 
-set(Boost_USE_STATIC_LIBS        ON) # only find static libs
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME     ON)
-
-find_package(Boost  COMPONENTS system thread)
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIR}) 
-  #message( "Found Boost at ${Boost_LIBRARIES}")
-else()
-   message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
-endif()
-
-
-
-#target_link_libraries(cryptoTools sha_asm)
-target_link_libraries(cryptoTools ${MIRACL_LIB})
-target_link_libraries(cryptoTools ${Boost_LIBRARIES})
-
-
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+add_subdirectory(cryptoTools)
+add_subdirectory(tests_cryptoTools)
+add_subdirectory(frontend_cryptoTools)
