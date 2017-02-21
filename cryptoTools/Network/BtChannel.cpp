@@ -20,13 +20,15 @@ namespace osuCrypto {
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
-        mStopped(false),
         mRecvSocketSet(false),
         mSendSocketSet(false),
+        mStatus(Status::Normal),
         mId(0),
         mOutstandingSendData(0),
         mMaxOutstandingSendData(0),
-        mTotalSentData(0)
+        mTotalSentData(0),
+        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
     {
 
     }
@@ -48,7 +50,7 @@ namespace osuCrypto {
 
     void Channel::asyncSend(const void * buff, u64 size)
     {
-        if (mStopped || size > u32(-1))
+        if (mStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -63,7 +65,7 @@ namespace osuCrypto {
 
     void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
     {
-        if (mStopped || size > u32(-1))
+        if (mStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -79,7 +81,7 @@ namespace osuCrypto {
 
     void Channel::send(const void * buff, u64 size)
     {
-        if (mStopped ||  size > u32(-1))
+        if (mStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -100,7 +102,7 @@ namespace osuCrypto {
 
     std::future<u64> Channel::asyncRecv(void * buff, u64 size)
     {
-        if (mStopped || size > u32(-1))
+        if (mStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -120,26 +122,6 @@ namespace osuCrypto {
         return future;
     }
 
-    //std::future<u64> Channel::asyncRecv(ChannelBuffer & mH)
-    //{
-    //    if (mStopped)
-    //        throw std::runtime_error("rt error at " LOCATION);
-
-    //    BtIOOperation op;
-
-
-    //    op.mType = BtIOOperation::Type::RecvData;
-
-    //    op.mOther = &mH;
-
-    //    op.mPromise = new std::promise<u64>();
-    //    auto future = op.mPromise->get_future();
-
-    //    mEndpoint.getIOService().dispatch(this, op);
-
-    //    return future;
-    //}
-
     u64 Channel::recv(void * dest, u64 length)
     {
         try {
@@ -157,11 +139,6 @@ namespace osuCrypto {
         }
     }
 
-    //u64 Channel::recv(ChannelBuffer & mH)
-    //{
-    //    return asyncRecv(mH).get();
-    //}
-
     bool Channel::isConnected()
     {
         return mSendSocketSet  && mRecvSocketSet;
@@ -175,27 +152,35 @@ namespace osuCrypto {
     {
         // indicate that no more messages should be queued and to fulfill
         // the mSocket->mDone* promised.
-        mStopped = true;
 
+        auto status = mStatus;
+        mStatus = Status::Stopped;
 
-        BtIOOperation closeRecv;
-        closeRecv.mType = BtIOOperation::Type::CloseRecv;
-        std::promise<u64> recvPromise;
-        closeRecv.mPromise = &recvPromise;
+        if (status == Status::Normal)
+        {
+            BtIOOperation closeRecv;
+            closeRecv.mType = BtIOOperation::Type::CloseRecv;
+            closeRecv.mPromise = &mRecvQueueEmptyProm;
 
-        mEndpoint.getIOService().dispatch(this, closeRecv);
+            mEndpoint.getIOService().dispatch(this, closeRecv);
 
-        BtIOOperation closeSend;
-        closeSend.mType = BtIOOperation::Type::CloseSend;
-        std::promise<u64> sendPromise;
-        closeSend.mPromise = &sendPromise;
-        mEndpoint.getIOService().dispatch(this, closeSend);
+            BtIOOperation closeSend;
+            closeSend.mType = BtIOOperation::Type::CloseSend;
+            closeSend.mPromise = &mSendQueueEmptyProm;
+            mEndpoint.getIOService().dispatch(this, closeSend);
 
-        recvPromise.get_future().get();
-        sendPromise.get_future().get();
+        }
+        else if( status == Status::RecvSizeError)
+        {
+            cancelQueuedOperations();
+        }
+
+        mRecvQueueEmptyFuture.get();
+        mSendQueueEmptyFuture.get();
 
         // ok, the send and recv queues are empty. Lets close the socket
-        mHandle->close();
+        if (mHandle)
+            mHandle->close();
 
         // lets de allocate ourselves in the endpoint.
         mEndpoint.removeChannel(getName());
@@ -205,6 +190,50 @@ namespace osuCrypto {
 
 
 
+    void Channel::cancelQueuedOperations()
+    {
+        mSendStrand.post([this]()
+        {
+
+            while (mSendQueue.size())
+            {
+                auto& front = mSendQueue.front();
+
+                delete front.mContainer;
+
+                if (front.mPromise)
+                {
+                    auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mErrorMessage));
+                    front.mPromise->set_exception(e_ptr);
+                }
+
+                mSendQueue.pop_front();
+            }
+            mSendQueueEmptyProm.set_value(0);
+        });
+
+        mRecvStrand.post([this]()
+        {
+            while (mRecvQueue.size())
+            {
+                auto& front = mRecvQueue.front();
+
+                delete front.mContainer;
+
+                if (front.mPromise)
+                {
+                    auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mErrorMessage));
+                    front.mPromise->set_exception(e_ptr);
+                }
+
+                mRecvQueue.pop_front();
+            }
+            mRecvQueueEmptyProm.set_value(0);
+
+        });
+
+
+    }
 
     std::string Channel::getRemoteName() const
     {
@@ -243,5 +272,44 @@ namespace osuCrypto {
     {
         mEndpoint.getIOService().dispatch(this, op);
     }
+
+    void Channel::setFatalError(std::string reason)
+    {
+        if (mStatus != Status::Normal)
+        {
+            std::cout << "Double Error in Channel::setFatalError, Channel: " << getName() << "\n   " << LOCATION << "\n error set twice." << std::endl;
+            std::terminate();
+        }
+
+        mErrorMessage = reason;
+        mStatus = Status::FatalError;
+
+        cancelQueuedOperations();
+    }
+
+    void Channel::setBadRecvErrorState(std::string reason)
+    {
+        if (mStatus != Status::Normal)
+        {
+            std::cout << "Double Error in Channel::setBadRecvErrorState, Channel: " << getName() << "\n   " << LOCATION << "\n error set twice." << std::endl;
+            std::terminate();
+        }
+        mErrorMessage = reason;
+        mStatus = Status::RecvSizeError;
+    }
+
+    void Channel::clearBadRecvErrorState()
+    {
+
+        if (mStatus != Status::RecvSizeError)
+        {
+            std::cout << "Error in Channel::clearBadRecvErrorState, Channel: " << getName() << "\n   " << LOCATION << "\n Was not in Status::RecvSizeError." << std::endl;
+            std::terminate();
+        }
+
+        mErrorMessage = "";
+        mStatus = Status::Normal;
+    }
+
 
 }

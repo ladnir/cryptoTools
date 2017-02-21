@@ -57,7 +57,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -83,6 +83,7 @@
     <ClInclude Include="Common\CuckooMap.h" />
     <ClInclude Include="Common\Defines.h" />
     <ClInclude Include="Common\Exceptions.h" />
+    <ClInclude Include="Common\Finally.h" />
     <ClInclude Include="Common\Log.h" />
     <ClInclude Include="Common\MatrixView.h" />
     <ClInclude Include="Common\mpsc_queue.h" />

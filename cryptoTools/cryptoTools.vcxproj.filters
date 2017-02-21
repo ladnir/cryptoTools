@@ -90,6 +90,9 @@
     <ClInclude Include="Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Finally.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp">

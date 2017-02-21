@@ -22,6 +22,15 @@
 
 namespace osuCrypto
 {
+    class NetworkError : public std::exception
+    {
+    public:
+        std::string mWhat;
+        NetworkError(std::string what)
+            :mWhat(what)
+        {
+        }
+    };
 
     class BadReceiveBufferSize : public std::exception
     {
@@ -58,7 +67,6 @@ namespace osuCrypto
     public:
 
         BtIOService(const BtIOService&) = delete;
-        BtIOService() = delete;
 
         /// <summary> Constructor for the IO service that services network IO operations.</summary>
         /// <param name="threadCount">The number of threads that should be used to service IO operations. 0 = use # of CPU cores.</param>
@@ -77,6 +85,7 @@ namespace osuCrypto
         /// <summary> The list of acceptor objects that hold state about the ports that are being listened to. </summary>
         std::list<BtAcceptor> mAcceptors;
 
+        void printErrorMessages(bool v);
 
         /// <summary> indicates whether stop() has been called already.</summary>
         bool mStopped;
@@ -107,6 +116,7 @@ namespace osuCrypto
         void stop();
 
 
+        bool mPrint;
 
     };
 

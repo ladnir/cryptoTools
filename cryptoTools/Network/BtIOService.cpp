@@ -21,7 +21,8 @@ namespace osuCrypto
         :
         mIoService(),
         mWorker(new boost::asio::io_service::work(mIoService)),
-        mStopped(false)
+        mStopped(false),
+        mPrint(false)
     {
 
 
@@ -93,22 +94,26 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::receiveOne(Channel* socket)
+    void BtIOService::printErrorMessages(bool v)
+    {
+        mPrint = v;
+    }
+
+    void BtIOService::receiveOne(Channel* channel)
     {
         ////////////////////////////////////////////////////////////////////////////////
         //// THis is within the stand. We have sequential access to the recv queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        BtIOOperation& op = socket->mRecvQueue.front();
+        BtIOOperation& op = channel->mRecvQueue.front();
 
         if (op.mType == BtIOOperation::Type::RecvData)
         {
-
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
-            boost::asio::async_read(*socket->mHandle,
+            boost::asio::async_read(*channel->mHandle,
                 std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[0] },
-                [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
+                [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
             {
                 //////////////////////////////////////////////////////////////////////////
                 //// This is *** NOT *** within the stand. Dont touch the recv queue! ////
@@ -117,9 +122,12 @@ namespace osuCrypto
 
                 if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[0]) || ec)
                 {
-                    std::cout << ("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0]))) << std::endl;
-                    std::cout << "This could be from the other end closing too early or the connection beign dropped." << std::endl;
-                    throw std::runtime_error("rt error at " LOCATION "  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])));
+                    auto reason = ("rt error at " LOCATION "\n  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0]))) 
+                        + "\nThis could be from the other end closing too early or the connection being dropped.";
+                    
+                    if(mPrint) std::cout << reason << std::endl;
+                    channel->setFatalError(reason);
+                    return;
                 }
 
                 std::string msg;
@@ -154,7 +162,7 @@ namespace osuCrypto
                 }
 
 
-                auto recvMain = [&op, socket, this](const boost::system::error_code& ec, u64 bytesTransfered)
+                auto recvMain = [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
                 {
                     //////////////////////////////////////////////////////////////////////////
                     //// This is *** NOT *** within the stand. Dont touch the recv queue! ////
@@ -162,10 +170,14 @@ namespace osuCrypto
 
 
                     if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[1]) || ec)
-                        throw std::runtime_error("Network error, other end may have crashed. Received incomplete message. error at " LOCATION);
+                    {
+                        auto reason = ("Network error: " + ec.message() +"\nOther end may have crashed. Received incomplete message. at " LOCATION);
+                        if (mPrint) std::cout << reason << std::endl;
+                        channel->setFatalError(reason);
+                        return;
+                    }
 
-
-                    socket->mTotalRecvData += boost::asio::buffer_size(op.mBuffs[1]);
+                    channel->mTotalRecvData += boost::asio::buffer_size(op.mBuffs[1]);
 
                     //// signal that the recv has completed.
                     //if (op.mException)
@@ -173,25 +185,25 @@ namespace osuCrypto
                     //else
 
                     if (op.mPromise)
-                        op.mPromise->set_value(socket->mId);
+                        op.mPromise->set_value(channel->mId);
 
                     delete op.mPromise;
                     delete op.mContainer;
 
-                    socket->mRecvStrand.dispatch([socket, this]()
+                    channel->mRecvStrand.dispatch([channel, this]()
                     {
                         ////////////////////////////////////////////////////////////////////////////////
                         //// This is within the stand. We have sequential access to the recv queue. ////
                         ////////////////////////////////////////////////////////////////////////////////
 
-                        socket->mRecvQueue.pop_front();
+                        channel->mRecvQueue.pop_front();
 
                         // is there more messages to recv?
-                        bool sendMore = (socket->mRecvQueue.size() != 0);
+                        bool sendMore = (channel->mRecvQueue.size() != 0);
 
                         if (sendMore)
                         {
-                            receiveOne(socket);
+                            receiveOne(channel);
                         }
                     });
                 };
@@ -200,17 +212,19 @@ namespace osuCrypto
 
                 if (msg.size())
                 {
-                    std::cout << msg << std::endl;
+                    if (mPrint) std::cout << msg << std::endl;
+                    channel->setBadRecvErrorState(msg);
 
                     // give the user a chance to give us another location.
-                    auto e_ptr = std::make_exception_ptr(BadReceiveBufferSize(msg, op.mSize, [&, recvMain](u8* dest)
+                    auto e_ptr = std::make_exception_ptr(BadReceiveBufferSize(msg, op.mSize, [&, channel, recvMain](u8* dest)
                     {
+                        channel->clearBadRecvErrorState();
 
                         op.mBuffs[1] = boost::asio::buffer(dest, op.mSize);
 
                         boost::system::error_code ec;
 
-                        auto ss  = boost::asio::read(*socket->mHandle,
+                        auto ss  = boost::asio::read(*channel->mHandle,
                             std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, ec);
 
                         recvMain(ec, ss);
@@ -222,7 +236,7 @@ namespace osuCrypto
                 }
                 else
                 {
-                    boost::asio::async_read(*socket->mHandle,
+                    boost::asio::async_read(*channel->mHandle,
                         std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, recvMain);
                 }
 
@@ -232,12 +246,13 @@ namespace osuCrypto
         else if (op.mType == BtIOOperation::Type::CloseRecv)
         {
             auto prom = op.mPromise;
-            socket->mRecvQueue.pop_front();
+            channel->mRecvQueue.pop_front();
             prom->set_value(0);
         }
         else
         {
-            throw std::runtime_error("rt error at " LOCATION);
+            std::cout << "error, unknown operation " << int(u8(op.mType) ) << std::endl;
+            std::terminate();
         }
     }
 
@@ -263,9 +278,11 @@ namespace osuCrypto
 
                 if (ec)
                 {
-                    std::cout << "network send error. " << ec.message() << std::endl;
-                    throw std::runtime_error("rt error at " LOCATION);
+                    auto reason  = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
+                    if (mPrint) std::cout << reason << std::endl;
 
+                    socket->setFatalError(reason);
+                    return;
                 }
 
                 // lets delete the other pointer as its either nullptr or a buffer that was allocated
@@ -275,11 +292,15 @@ namespace osuCrypto
                 if (bytesTransferred !=
                     boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
                 {
-                    std::cout << "failed to send all data. Expected to send "
-                        << (boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
-                        << "  but transfered " << bytesTransferred << std::endl;
+                    auto reason  = std::string("failed to send all data. Expected to send ")
+                        + ToString(boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
+                        + " bytes but transfered "  + ToString(bytesTransferred) + "\n"
+                        + "  at  " + LOCATION;
 
-                    throw std::runtime_error("rt error at " LOCATION);
+                    if (mPrint) std::cout << reason << std::endl;
+
+                    socket->setFatalError(reason);
+                    return;
                 }
 
                 socket->mOutstandingSendData -= op.mSize;
@@ -325,8 +346,8 @@ namespace osuCrypto
         }
         else
         {
-            std::cout << "error" + boost::lexical_cast<std::string>(socket) << std::endl;
-            throw std::runtime_error("rt error at " LOCATION);
+            std::cout << "error, unknown operation " << std::endl;
+            std::terminate();
         }
     }
 
@@ -335,12 +356,6 @@ namespace osuCrypto
         switch (op.mType)
         {
         case BtIOOperation::Type::RecvData:
-        {
-
-            if (op.mContainer == nullptr &&  op.mSize == 0)
-                throw std::runtime_error("rt error at " LOCATION);
-
-        }
         case BtIOOperation::Type::CloseRecv:
         {
 
@@ -354,8 +369,9 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of recv operations. If the size > 1, then there
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool startRecving = (socket->mRecvQueue.size() == 1) && socket->mRecvSocketSet;
+                bool startRecving = (socket->mRecvQueue.size() == 1) && (socket->mRecvSocketSet || op.mType == BtIOOperation::Type::CloseRecv);
 
+                //std::cout << " dis " << (op.mType == BtIOOperation::Type::RecvData ? "RecvData" : "CloseRecv") << "  " << startRecving << std::endl;
 
                 if (startRecving)
                 {
@@ -367,16 +383,9 @@ namespace osuCrypto
         }
         break;
         case BtIOOperation::Type::SendData:
-
-            if (op.mSize == 0)
-            {
-
-                //std::cout << "\n\n" << Backtrace() << std::endl;
-                throw std::runtime_error("Network error, tried to send zero sized messsage." LOCATION);
-            }
-
         case BtIOOperation::Type::CloseSend:
         {
+            //std::cout << " dis " << (op.mType == BtIOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
             socket->mSendStrand.post([this, socket, op]()
@@ -392,7 +401,7 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of send operations. If the size > 1, then there
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-                auto startSending = (socket->mSendQueue.size() == 1) && socket->mSendSocketSet;;
+                auto startSending = (socket->mSendQueue.size() == 1) && (socket->mSendSocketSet || op.mType == BtIOOperation::Type::CloseSend);
 
                 if (startSending)
                 {
@@ -407,7 +416,8 @@ namespace osuCrypto
         break;
         default:
 
-            throw std::runtime_error("unknown BtIOOperation::Type");
+            std::cout << ("unknown BtIOOperation::Type") << std::endl;
+            std::terminate();
             break;
         }
     }
@@ -470,11 +480,11 @@ namespace osuCrypto
             if (ii == 2) socket->mOpenProm.set_value();
 
             // check to see if we should kick off a new set of recv operations. Since we are just now
-            // starting the socket, its possible that the async connect call returned and the caller scheduled a receive 
-            // operation. But since the socket handshake just finished, those operations didn't start. So if 
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a receive 
+            // operation. But since the channel handshake just finished, those operations didn't start. So if 
             // the queue has anything in it, we should actually start the operation now...
 
-            if (socket->mRecvQueue.size())
+            if (socket->mRecvQueue.size() && socket->mStatus == Channel::Status::Normal)
             {
                 // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
                 // will be kicked off at the completion of this operation.
@@ -493,11 +503,11 @@ namespace osuCrypto
             if (ii == 2) socket->mOpenProm.set_value();
 
             // check to see if we should kick off a new set of send operations. Since we are just now
-            // starting the socket, its possible that the async connect call returned and the caller scheduled a send 
-            // operation. But since the socket handshake just finished, those operations didn't start. So if 
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a send 
+            // operation. But since the channel handshake just finished, those operations didn't start. So if 
             // the queue has anything in it, we should actually start the operation now...
 
-            if (socket->mSendQueue.size())
+            if (socket->mSendQueue.size() && socket->mStatus == Channel::Status::Normal)
             {
                 // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
                 // will be kicked off at the completion of this operation.

@@ -47,6 +47,29 @@ namespace osuCrypto_tests
             InitDebugPrinting();
             BtNetwork_ManyEndpoints_Test();
         }
+
+        TEST_METHOD(BtNetwork_AsyncConnect_Boost_TestVS)
+        {
+            InitDebugPrinting();
+            BtNetwork_AsyncConnect_Boost_Test();
+        }
+        TEST_METHOD(BtNetwork_std_Containers_TestVS)
+        {
+            InitDebugPrinting();
+            BtNetwork_std_Containers_Test();
+        }
+        TEST_METHOD(BtNetwork_recvError_TestVS)
+        {
+            InitDebugPrinting();
+            BtNetwork_recvErrorHandler_Test();
+        }
+
+        TEST_METHOD(BtNetwork_closeOnError_TestVS)
+        {
+            InitDebugPrinting();
+            BtNetwork_closeOnError_Test();
+        }
+
     };
 }
 #endif

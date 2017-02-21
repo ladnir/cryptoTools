@@ -25,15 +25,15 @@ namespace osuCrypto {
         BtAcceptor(BtIOService& ioService);
         ~BtAcceptor();
 
-        std::promise<void> mStoppedPromise;
-        std::future<void> mStoppedFuture;
+        std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
+        std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
 
         BtIOService& mIOService;
 
         boost::asio::ip::tcp::acceptor mHandle;
 
         std::atomic<bool> mStopped;
-        std::mutex mMtx;
+        std::mutex mSocketChannelPairsMtx;
         std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, Channel*>> mSocketChannelPairs;
 
         void asyncSetSocket(
@@ -43,6 +43,8 @@ namespace osuCrypto {
             boost::asio::ip::tcp::socket* handel);
 
         void asyncGetSocket(Channel& chl);
+
+        void remove(std::string endpoint, std::string localName, std::string remoteName);
 
         u64 mPort;
         boost::asio::ip::tcp::endpoint mAddress;

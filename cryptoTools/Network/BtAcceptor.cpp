@@ -12,7 +12,8 @@ namespace osuCrypto {
 
     BtAcceptor::BtAcceptor(BtIOService& ioService)
         :
-        mStoppedFuture(mStoppedPromise.get_future()),
+        mStoppedListeningFuture(mStoppedListeningPromise.get_future()),
+        mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
         mIOService(ioService),
         mHandle(ioService.mIoService),
         mStopped(false),
@@ -30,7 +31,6 @@ namespace osuCrypto {
         stop();
 
 
-        mStoppedFuture.get();
     }
 
 
@@ -102,7 +102,7 @@ namespace osuCrypto {
                     newSocket->async_receive(boost::asio::buffer(buff->data(), buff->size()),
                         [newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
                     {
-                        if(!ec2 && bytesTransferred == 4)
+                        if (!ec2 && bytesTransferred == 4)
                         {
 
                             //std::cout << "async_accept new connection size" << std::endl;
@@ -136,10 +136,12 @@ namespace osuCrypto {
                                 }
                                 else
                                 {
-                                    std::cout
-                                        << "async_accept->async_receive->async_receive "
-                                        << " (body) failed with error_code:" << ec3.message() << std::endl
-                                        << bytesTransferred2 << "  vs " << size << std::endl;;
+
+                                    std::cout << "async_accept error, failed to receive first header on connection handshake."
+                                        << " Other party may have closed the connection. "
+                                        << (bool(ec3) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
+
+                                    delete newSocket;
                                 }
 
                                 delete buff;
@@ -148,7 +150,10 @@ namespace osuCrypto {
                         }
                         else
                         {
-                            std::cout << "async_accept->async_receive (header) failed with error_code:" << ec2.message() << std::endl;
+                            std::cout << "async_accept error, failed to receive first header on connection handshake."
+                                << " Other party may have closed the connection. "
+                                << (bool(ec2) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+
                             delete newSocket;
                             delete buff;
                         }
@@ -164,15 +169,34 @@ namespace osuCrypto {
         }
         else
         {
-            mStoppedPromise.set_value();
+            mStoppedListeningPromise.set_value();
         }
     }
 
     void BtAcceptor::stop()
     {
         //std::cout << "\n#################################### acceptor stop ################################" << std::endl;
-        mStopped = true;
-        mHandle.close();
+
+        if (mStopped == false)
+        {
+
+            {
+                mSocketChannelPairsMtx.lock();
+                mStopped = true;
+
+                if (mSocketChannelPairs.size() == 0)
+                    mSocketChannelPairsRemovedProm.set_value();
+
+                mSocketChannelPairsMtx.unlock();
+            }
+
+            mSocketChannelPairsRemovedFuture.get();
+
+            mHandle.close();
+
+            mStoppedListeningFuture.get();
+        }
+
     }
 
     bool BtAcceptor::stopped() const
@@ -185,7 +209,9 @@ namespace osuCrypto {
         std::string tag = chl.getEndpoint().getName() + ":" + chl.getName() + ":" + chl.getRemoteName();
 
         {
-            std::unique_lock<std::mutex> lock(mMtx);
+            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            mSocketChannelPairsMtx.lock();
+
             auto iter = mSocketChannelPairs.find(tag);
 
             if (iter == mSocketChannelPairs.end())
@@ -202,9 +228,58 @@ namespace osuCrypto {
                 chl.mRecvSocketSet = true;
                 chl.mSendSocketSet = true;
                 chl.mOpenProm.set_value();
+
+                //std::cout << "erase1   " << iter->first << std::endl;
+                mSocketChannelPairs.erase(iter);
+
+
+                if (mStopped == true && mSocketChannelPairs.size() == 0)
+                {
+                    mSocketChannelPairsRemovedProm.set_value();
+                }
             }
+            mSocketChannelPairsMtx.unlock();
         }
     }
+
+    void BtAcceptor::remove(
+        std::string endpointName,
+        std::string localChannelName,
+        std::string remoteChannelName)
+    {
+        std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
+
+        {
+            mSocketChannelPairsMtx.lock();
+            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            auto iter = mSocketChannelPairs.find(tag);
+
+            if (iter != mSocketChannelPairs.end())
+            {
+
+                if (iter->second.first)
+                {
+                    iter->second.first->close();
+                    delete iter->second.first;
+
+                    //std::cout << "erase2   " << iter->first << std::endl;
+                    mSocketChannelPairs.erase(iter);
+
+
+                    if (mStopped == true && mSocketChannelPairs.size() == 0)
+                    {
+                        mSocketChannelPairsRemovedProm.set_value();
+                    }
+                }
+                else
+                {
+                    iter->second.second = nullptr;
+                }
+            }
+            mSocketChannelPairsMtx.unlock();
+        }
+    }
+
 
     void BtAcceptor::asyncSetSocket(
         std::string endpointName,
@@ -215,8 +290,10 @@ namespace osuCrypto {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
         {
-            std::unique_lock<std::mutex> lock(mMtx);
-            auto iter = mSocketChannelPairs.find(tag);
+            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            mSocketChannelPairsMtx.lock();
+
+            const auto iter = mSocketChannelPairs.find(tag);
 
             if (iter == mSocketChannelPairs.end())
             {
@@ -225,16 +302,33 @@ namespace osuCrypto {
             }
             else
             {
-                if (iter->second.second->mHandle)
-                    throw std::runtime_error(LOCATION);
 
-                //std::cout << "asyncSetSocket set socket " << tag << std::endl;
+                if (iter->second.second == nullptr)
+                {
+                    boost::system::error_code ec;
+                    sock->close(ec);
 
 
-                iter->second.second->mHandle.reset(sock);
+                    if (ec)
+                    {
+                        std::cout << ec.message() << std::endl;
+                    }
+                }
+                else
+                {
+                    iter->second.second->mHandle.reset(sock);
+                    mIOService.startSocket(iter->second.second);
+                }
 
-                mIOService.startSocket(iter->second.second);
+                mSocketChannelPairs.erase(iter);
+
+
+                if (mStopped == true && mSocketChannelPairs.size() == 0)
+                {
+                    mSocketChannelPairsRemovedProm.set_value();
+                }
             }
+            mSocketChannelPairsMtx.unlock();
         }
 
     }

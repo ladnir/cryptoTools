@@ -19,7 +19,7 @@ namespace osuCrypto {
 
     class Channel
     {
-
+        friend class BtIOService;
     public:
 
         Channel(BtEndpoint& endpoint, std::string localName, std::string remoteName);
@@ -168,15 +168,45 @@ namespace osuCrypto {
         std::shared_future<void> mOpenFut;
 
         std::atomic<u8> mOpenCount;
-        bool mStopped, mRecvSocketSet, mSendSocketSet;
+        bool mRecvSocketSet, mSendSocketSet;
         u64 mId;
         u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
 
+        std::string mErrorMessage;
         BtEndpoint& mEndpoint;
         std::string mRemoteName, mLocalName;
 
+
+        enum class Status
+        {
+            Normal,
+            RecvSizeError,
+            FatalError,
+            Stopped
+        };
+
+        Status mStatus;
+
     private:
+        std::promise<u64> mSendQueueEmptyProm, mRecvQueueEmptyProm;
+        std::future<u64> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
+
+
+
         void dispatch(BtIOOperation& op);
+
+        void setFatalError(std::string reason);
+        void setBadRecvErrorState(std::string reason);
+        void clearBadRecvErrorState();
+
+        void cancelQueuedOperations();
+
+        inline void errorCheck()
+        {
+            //if (mStopped) throw std::runtime_error("Channel has been stopped\n");
+            //if (mStatus) throw std::runtime_error("Channel is in error state\n  Reason: " + mErrorMessage);
+        }
+
     };
 
     typedef Channel BtChannel;
@@ -187,7 +217,7 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::unique_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mStopped || c->size() > u32(-1))
+        if (mStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -205,7 +235,7 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::shared_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mStopped || c->size() > u32(-1))
+        if (mStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -223,7 +253,7 @@ namespace osuCrypto {
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(Container && c)
     {
-        if (mStopped || c.size() > u32(-1))
+        if (mStatus != Status::Normal || c.size() == 0 || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -243,7 +273,7 @@ namespace osuCrypto {
         !has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mStopped || c.size() > u32(-1))
+        if (mStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;
@@ -273,7 +303,7 @@ namespace osuCrypto {
         has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mStopped || c.size() > u32(-1))
+        if (mStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
         BtIOOperation op;

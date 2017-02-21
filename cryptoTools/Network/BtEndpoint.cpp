@@ -60,6 +60,7 @@ namespace osuCrypto {
 
     BtEndpoint::~BtEndpoint()
     {
+        stop();
     }
 
     std::string BtEndpoint::getName() const
@@ -80,6 +81,16 @@ namespace osuCrypto {
             if (mStopped == true)
             {
                 throw std::runtime_error("rt error at " LOCATION);
+            }
+
+            auto iter = mChannels.begin();
+            while (iter != mChannels.end())
+            {
+                if (iter->getName() == localName ||
+                    iter->getRemoteName() == remoteName)
+                    throw std::runtime_error("Error: channel name already exists.\n   " LOCATION);
+
+                ++iter;
             }
 
             mChannels.emplace_back(*this, localName, remoteName);
@@ -103,7 +114,7 @@ namespace osuCrypto {
             chl.mHandle.reset(new boost::asio::ip::tcp::socket(getIOService().mIoService));
             //std::cout << IoStream::lock << "new socket: " << chl.mHandle.get() << std::endl << IoStream::unlock;
 
-             
+
             chl.mId = 1;
 
             boost::system::error_code ec;
@@ -117,7 +128,7 @@ namespace osuCrypto {
             {
                 //std::cout << "Endpoint connect call back " << std::endl;
 
-                if (ec && chl.mStopped == false && this->stopped() == false)
+                if (ec && chl.mStatus != Channel::Status::Stopped && this->stopped() == false)
                 {
                     //std::cout << IoStream::lock << "        failed, retrying " << chl.mHandle.get() << std::endl << IoStream::unlock;
 
@@ -125,9 +136,9 @@ namespace osuCrypto {
 
 
                     // tell the io service to wait 10 ms and then try again...
-                    timer->async_wait([&,timer, initialCallback](const boost::system::error_code& ec)
+                    timer->async_wait([&, timer, initialCallback](const boost::system::error_code& ec)
                     {
-                        if (chl.mStopped == false)
+                        if (chl.mStatus != Channel::Status::Stopped)
                         {
                             if (ec)
                             {
@@ -143,7 +154,7 @@ namespace osuCrypto {
                                 ss << val << std::endl;
 
                                 std::cout << ss.str() << std::flush;
-                                std::cout << "stopped: " << chl.mStopped << " " << stopped() << std::endl;
+                                std::cout << "stopped: " << (chl.mStatus == Channel::Status::Stopped) << " " << stopped() << std::endl;
 
                                 delete initialCallback;
                                 delete timer;
@@ -238,19 +249,23 @@ namespace osuCrypto {
 
     void BtEndpoint::stop()
     {
+        if (stopped() == false)
         {
-            std::lock_guard<std::mutex> lock(mAddChannelMtx);
-            if (mStopped == false)
-            {
-                mStopped = true;
 
-                if (mChannels.size() == 0)
+            {
+                std::lock_guard<std::mutex> lock(mAddChannelMtx);
+                if (mStopped == false)
                 {
-                    mDoneProm.set_value();
+                    mStopped = true;
+
+                    if (mChannels.size() == 0)
+                    {
+                        mDoneProm.set_value();
+                    }
                 }
             }
+            mDoneFuture.get();
         }
-        mDoneFuture.get();
     }
 
     bool BtEndpoint::stopped() const
@@ -260,26 +275,31 @@ namespace osuCrypto {
 
     void BtEndpoint::removeChannel(std::string  chlName)
     {
-        std::lock_guard<std::mutex> lock(mAddChannelMtx);
-
-        auto iter = mChannels.begin();
-
-        while (iter != mChannels.end())
         {
-            auto name = iter->getName();
-            if (name == chlName)
+            std::lock_guard<std::mutex> lock(mAddChannelMtx);
+
+            auto iter = mChannels.begin();
+
+            while (iter != mChannels.end())
             {
-                //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
-                mChannels.erase(iter);
-                break;
-            }
-            ++iter;
-        }
+                auto name = iter->getName();
+                if (name == chlName)
+                {
+                    //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
+                    if (mAcceptor)
+                        mAcceptor->remove(mName, chlName, iter->getRemoteName());
 
-        // if there are no more channels and the send point has stopped, signal that the last one was just removed.
-        if (mStopped && mChannels.size() == 0)
-        {
-            mDoneProm.set_value();
+                    mChannels.erase(iter);
+                    break;
+                }
+                ++iter;
+            }
+
+            // if there are no more channels and the send point has stopped, signal that the last one was just removed.
+            if (mStopped && mChannels.size() == 0)
+            {
+                mDoneProm.set_value();
+            }
         }
     }
 }

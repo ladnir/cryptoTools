@@ -11,7 +11,7 @@ using namespace osuCrypto;
 
 void run(std::string name, std::function<void(void)> func)
 {
-    std::cout << name << std::flush;
+    std::cout << Color::Blue << name << ColorDefault << std::flush;
 
     auto start = std::chrono::high_resolution_clock::now();
     try
@@ -34,14 +34,18 @@ void run(std::string name, std::function<void(void)> func)
 
 void NetWork_all()
 {
+
     std::cout << std::endl;
+    run("BtNetwork_Connect1_Boost_Test           ", BtNetwork_Connect1_Boost_Test);
+    run("BtNetwork_OneMegabyteSend_Boost_Test    ", BtNetwork_OneMegabyteSend_Boost_Test);
+    run("BtNetwork_ConnectMany_Boost_Test        ", BtNetwork_ConnectMany_Boost_Test);
+    run("BtNetwork_CrossConnect_Test             ", BtNetwork_CrossConnect_Test);
+    run("BtNetwork_ManyEndpoints_Test            ", BtNetwork_ManyEndpoints_Test);
 
-    run("BtNetwork_Connect1_Boost_Test        ", BtNetwork_Connect1_Boost_Test);
-    run("BtNetwork_OneMegabyteSend_Boost_Test ", BtNetwork_OneMegabyteSend_Boost_Test);
-    run("BtNetwork_ConnectMany_Boost_Test     ", BtNetwork_ConnectMany_Boost_Test);
-    run("BtNetwork_CrossConnect_Test          ", BtNetwork_CrossConnect_Test);
-    run("BtNetwork_ManyEndpoints_Test         ", BtNetwork_ManyEndpoints_Test);
-
+    run("BtNetwork_AsyncConnect_Boost_Test();    ", BtNetwork_AsyncConnect_Boost_Test);
+    run("BtNetwork_std_Containers_Test();        ", BtNetwork_std_Containers_Test);
+    run("BtNetwork_recvErrorHandler_Test();      ", BtNetwork_recvErrorHandler_Test);
+    run("BtNetwork_closeOnError_Test();          ", BtNetwork_closeOnError_Test);
 }
 
 void bitVec_all()
@@ -73,7 +77,7 @@ void run_all()
 {
 
     NetWork_all();
-    //bitVec_all();
-    //Ecc_all();
+    bitVec_all();
+    Ecc_all();
     //
 }
