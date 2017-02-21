@@ -6,7 +6,7 @@
 #include <future>
 #include <unordered_map>
 #include <atomic>
-#include "Network/BtSocket.h"
+#include <cryptoTools/Network/BtSocket.h>
 
 namespace osuCrypto {
 
