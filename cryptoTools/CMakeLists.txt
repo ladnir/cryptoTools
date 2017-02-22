@@ -46,6 +46,7 @@ add_dependencies(cryptoTools sha_asm)
 #############################################
 
 install(DIRECTORY . DESTINATION include/cryptoTools FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY gsl DESTINATION include/cryptoTools)
 install(TARGETS cryptoTools DESTINATION lib)
 
 
