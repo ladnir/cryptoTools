@@ -247,7 +247,7 @@ namespace osuCrypto {
     template<class T>
     inline ArrayView<T> ByteStream::getArrayView() const
     {
-        return ArrayView<T>((T*)mData, (T*)mData + (mPutHead / sizeof(T)));
+        return ArrayView<T>((T*)mData, mPutHead / sizeof(T));
     }
 
     template<class T>

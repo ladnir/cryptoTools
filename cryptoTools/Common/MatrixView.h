@@ -4,7 +4,7 @@
 #include <array>
 #include <cryptoTools/Common/ArrayView.h>
 
-#include "cryptoTools/gsl/multi_span.h"
+//#include "cryptoTools/gsl/multi_span.h"
 namespace osuCrypto
 {
 
@@ -12,153 +12,102 @@ namespace osuCrypto
     template<class T>
     class MatrixView
     {
-
-        T* mData;
-
-        // Matrix is index by [rowIdx][columnIdx]
-        std::array<u64, 2> mSize;
-        bool mOwner;
-
     public:
 
-        typedef T value_type;
+        using iterator = gsl::details::span_iterator<gsl::span<T>, false>;
+        using const_iterator = gsl::details::span_iterator<gsl::span<T>, true>;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+        //using iterator = gsl::span<T>::iterator;
 
+        typedef T value_type;
+        typedef value_type* pointer;
+        typedef u64 size_type;
+
+        
         MatrixView()
-            :mData(nullptr),
-            mSize({ 0,0 }),
-            mOwner(false)
+            :mStride(0)
         {
         }
 
         MatrixView(const MatrixView& av) :
-            mData(av.mData),
-            mSize(av.mSize),
-            mOwner(false)
+            mView(av.mView),
+            mStride(av.mStride)
         { }
 
-        MatrixView(MatrixView&& av) :
-            mData(av.mData),
-            mSize(av.mSize),
-            mOwner(av.mOwner)
-        {
-            av.mData = nullptr;
-            av.mSize = { 0,0 };
-            av.mOwner = false;
-        }
-
-
-        MatrixView(u64 rowSize, u64 columnSize) :
-            mData(new T[rowSize * columnSize]()),
-            mSize({ rowSize, columnSize }),
-            mOwner(true)
-        { }
-
-
-        MatrixView(T* data, u64 rowSize, u64 columnSize, bool owner) :
-            mData(data),
-            mSize({ rowSize, columnSize }),
-            mOwner(owner)
+        MatrixView(pointer data, size_type numRows, size_type stride) :
+            mView(data, numRows * stride),
+            mStride(stride)
         {}
 
-        MatrixView(T* start, T* end, u64 numColumns) :
-            mData(&*start),
-            mSize({ (end - start) / numColumns, numColumns }),
-            mOwner(false)
+        MatrixView(pointer start, pointer end, size_type stride) :
+            mView(start, end - ((end - start) % stride)),
+            mStride(stride)
         {
         }
 
         template <class Iter>
-        MatrixView(Iter start, Iter end, u64 numColumns, typename Iter::iterator_category *p = 0) :
-            mData(&*start),
-            mSize({ (end - start) / numColumns, numColumns }),
-            mOwner(false)
+        MatrixView(Iter start, Iter end, size_type stride, typename Iter::iterator_category *p = 0) :
+            mView(start, end/* - ((end - start) % stride)*/),
+            mStride(stride)
         {
-            //static_assert(std::is_same<Iter::value_type, T>::value, "Iter iter must have the same value_type as ArrayView");
             std::ignore = p;
-
         }
-
-        //template<class C>
-        //MatrixView(const C& cont, u64 numColumns, typename C::value_type* p = 0) :
-        //    mData(&*((C&)cont).begin()),
-        //    mSize({ (((C&)cont).end() - ((C&)cont).begin()) / numColumns, numColumns }),
-        //    mOwner(false)
-        //{
-        //    static_assert(std::is_same<C::value_type, T>::value, "Container cont must have the same value_type as ArrayView");
-
-        //    (void*)p;
-        //}
 
         template<template<typename, typename...> class C, typename... Args>
-        MatrixView(const C<T, Args...>& cont, u64 numColumns, typename C<T, Args...>::value_type* p = 0) :
-            mData(&*((C<T, Args...>&)cont).begin()),
-            mSize({ (((C<T, Args...>&)cont).end() - ((C<T, Args...>&)cont).begin()) / numColumns, numColumns }),
-            mOwner(false)
+        MatrixView(const C<T, Args...>& cont, size_type stride, typename C<T, Args...>::value_type* p = 0) :
+            MatrixView(cont.begin(), cont.end(), stride)
         {
-            //static_assert(std::is_same<C::value_type, T>::value, "Container cont must have the same value_type as ArrayView");
             std::ignore = p;
-
-        }
-
-
-        ~MatrixView()
-        {
-            if (mOwner) delete[] mData;
-        }
-
-        const MatrixView<T>& operator=(MatrixView<T>&& copy)
-        {
-            if (mOwner) delete[] mData;
-
-            mData = copy.mData;
-            mSize = copy.mSize;
-            mOwner = copy.mOwner;
-
-            copy.mData = nullptr;
-            copy.mSize = std::array<u64, 2>{0, 0};
-            copy.mOwner = false;
-
-            return copy;
         }
 
         const MatrixView<T>& operator=(const MatrixView<T>& copy)
         {
-
-            mData = copy.mData;
-            mSize = copy.mSize;
-            mOwner = false;
-
+            mView = copy.mView;
+            mStride = copy.mStride;
             return copy;
         }
 
-        const std::array<u64, 2>& size() const { return mSize; }
-        T* data() const { return mData; };
-//#ifndef NDEBUG & 0
-//        ArrayIterator<T> begin() const 
-//        { 
-//            T* b = mData;
-//            T* c = mData;
-//            T* e = (T*)mData + (mSize[0] * mSize[1]);
-//
-//            return ArrayIterator<T>(b, c, e);
-//        };
-//        ArrayIterator<T> end() const {
-//            T* e = (T*)mData + (mSize[0] * mSize[1]);
-//            return ArrayIterator<T>(mData, e, e); 
-//        }
-//#else
-        T* begin() const { return mData; };
-        T* end() const { return mData + mSize[0] * mSize[1]; }
-//#endif
 
-        ArrayView<T> operator[](u64 rowIdx) const
+        void reshape(size_type rows, size_type columns)
+        {
+            if (rows * columns != size())
+                throw std::runtime_error(LOCATION);
+
+            mView = ArrayView<T>(mView.data(), rows * columns);
+            mStride = columns;
+        }
+
+        const size_type size() const { return mView.size(); }
+        const size_type stride() const { return mStride; }
+
+        std::array<size_type, 2> bounds() const { return {size() / stride() , stride() }; }
+
+        pointer data() const { return mView.data(); };
+
+        iterator begin() const { return mView.begin(); };
+        iterator end() const { return mView.end(); }
+
+        T& operator()(size_type rowIdx, size_type colIdx)
+        {
+            return mView[rowIdx * stride() + colIdx];
+        }
+
+        ArrayView<T> operator[](size_type rowIdx) const
         {
 #ifndef NDEBUG
-            if (rowIdx >= mSize[0]) throw std::runtime_error(LOCATION);
+            if (rowIdx >= mView.size() / stride()) throw std::runtime_error(LOCATION);
 #endif
 
-            return ArrayView<T>(mData + rowIdx * mSize[1], mSize[1]);
+            return ArrayView<T>(mView.data() + rowIdx * stride(), stride());
         }
+
+
+
+    protected:
+        ArrayView<T> mView;
+        size_type mStride;
+
 
     };
 }
