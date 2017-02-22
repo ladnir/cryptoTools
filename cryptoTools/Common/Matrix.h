@@ -20,24 +20,23 @@ namespace osuCrypto
 
         ~Matrix()
         {
-            delete[] mView.data();
+            delete[] MatrixView<T>::mView.data();
         }
 
 
 
         void resize(u64 rows, u64 columns)
         {
-            auto old = mView;
+            auto old = MatrixView<T>::mView;
             
-            mView = ArrayView<T>(new T[rows * columns]());
+            MatrixView<T>::mView = ArrayView<T>(new T[rows * columns](), rows * columns);
 
-            auto min = std::min(old.size(), rows * columns) * sizeof(T);
-            memcpy(mView.data(), old.data(), min);
+            auto min = std::min<u64>(old.size(), rows * columns) * sizeof(T);
+            memcpy(MatrixView<T>::mView.data(), old.data(), min);
 
             delete[] old.data();
 
-            mBounds[0] = rows;
-            mBounds[1] = columns;
+            MatrixView<T>::mStride = columns;
         }
 
     };

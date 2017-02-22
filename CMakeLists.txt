@@ -40,21 +40,22 @@ else()
 	SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
 	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb -rdynamic")
 	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb -rdynamic")
+	
+	#############################################
+	#       Library/includes locations          #
+	#############################################
+
+	# default location for miracl
+	set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/miracl/")
+	include_directories("${Miracl_Dirs}") 
+	link_directories("${Miracl_Dirs}/miracl/source/")
+	install(FILES "${Miracl_Dirs}/miracl/source/libmiracl.a" DESTINATION lib)
+
+	# default location for Boost
+	set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/boost/")
+
 
 endif() 
-
-#############################################
-#       Library/includes locations          #
-#############################################
-
-# default location for miracl
-set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/miracl/")
-include_directories("${Miracl_Dirs}") 
-link_directories("${Miracl_Dirs}/miracl/source/")
-install(FILES "${Miracl_Dirs}/miracl/source/libmiracl.a" DESTINATION lib)
-
-# default location for Boost
-set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/boost/")
 
 
 

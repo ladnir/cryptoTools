@@ -60,6 +60,7 @@ install(TARGETS cryptoTools DESTINATION lib)
 ###########################################################################  
   
 if (${BUILD_CURVE})
+
 	set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
     find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
     # if we cant fint it, throw an error
@@ -67,6 +68,10 @@ if (${BUILD_CURVE})
         Message(${MIRACL_LIB})
         message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
     endif()
+	
+	
+	message(WARNING "Miracl_Dirs: ${Miracl_Dirs}")
+	message(WARNING "MIRACL_LIB:  ${MIRACL_LIB}")
 endif()
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
