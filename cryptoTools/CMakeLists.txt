@@ -1,8 +1,5 @@
 project(cryptoTools)
 
-set(BUILD_CURVE ON CACHE BOOL "whether to build Curve.cpp- requires miracl")
-
-
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 
@@ -34,10 +31,6 @@ endif()
 
 file(GLOB_RECURSE SRCS *.cpp)
 
-if (NOT ${BUILD_CURVE})
-    list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Crypto/Curve.cpp)
-endif()
-
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 add_dependencies(cryptoTools sha_asm)
 
@@ -60,20 +53,17 @@ install(TARGETS cryptoTools DESTINATION lib)
 #                                                                         #
 ###########################################################################  
   
-if (${BUILD_CURVE})
-
-	set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
-    find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
-    # if we cant fint it, throw an error
-    if(NOT MIRACL_LIB)
-        Message(${MIRACL_LIB})
-        message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
-    endif()
-	
-	
-	message(WARNING "Miracl_Dirs: ${Miracl_Dirs}")
-	message(WARNING "MIRACL_LIB:  ${MIRACL_LIB}")
+set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
+find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
+# if we cant fint it, throw an error
+if(NOT MIRACL_LIB)
+    Message(${MIRACL_LIB})
+    message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
 endif()
+
+
+message(WARNING "Miracl_Dirs: ${Miracl_Dirs}")
+message(WARNING "MIRACL_LIB:  ${MIRACL_LIB}")
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
@@ -87,8 +77,5 @@ else()
     message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
-if (${BUILD_CURVE})
-    target_link_libraries(cryptoTools ${MIRACL_LIB})
-endif()
-
+target_link_libraries(cryptoTools ${MIRACL_LIB})
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
