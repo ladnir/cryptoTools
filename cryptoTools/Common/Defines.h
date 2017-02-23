@@ -42,7 +42,7 @@ namespace osuCrypto {
     template<typename T> using sPtr = std::shared_ptr<T>;
     template<typename T> using span = gsl::span<T>;
 
-    //template<typename T, std::ptrdiff_t FirstDimension, std::ptrdiff_t... RestDimensions> 
+    //template<typename T, std::ptrdiff_t FirstDimension, std::ptrdiff_t... RestDimensions>
     //using multi_span = gsl::multi_span<T, FirstDimension, RestDimensions...>;
 
     const std::ptrdiff_t dyn = gsl::dynamic_range;
@@ -177,6 +177,7 @@ namespace osuCrypto {
     u64 log2ceil(u64);
     u64 log2floor(u64);
 
+    block sysRandomSeed();
 }
 
 inline bool eq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)

@@ -16,8 +16,6 @@ using std::unique_ptr;
 
 namespace osuCrypto {
 
-block dev_random_seed();
-
 template<typename V>
 class CuckooMap {
 public:
