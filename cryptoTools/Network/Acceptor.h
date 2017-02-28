@@ -1,40 +1,40 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
-#include <cryptoTools/Network/BtSocket.h>
+#include <cryptoTools/Network/IoBuffer.h>
 #include <list>
 #include <future>
 #include <unordered_map>
 #include <atomic>
-#include <cryptoTools/Network/BtSocket.h>
+#include <cryptoTools/Network/IoBuffer.h>
 
 namespace osuCrypto {
 
-    class BtSocket;
-    class Channel;
-    class BtIOService;
-    struct BtIOOperation;
+    class Socket;
+    class ChannelBase;
+    class IOService;
+    struct IOOperation;
 
-    class BtAcceptor
+    class Acceptor
     {
 
     public:
-        BtAcceptor() = delete;
-        BtAcceptor(const BtAcceptor&) = delete;
+        Acceptor() = delete;
+        Acceptor(const Acceptor&) = delete;
 
-        BtAcceptor(BtIOService& ioService);
-        ~BtAcceptor();
+        Acceptor(IOService& ioService);
+        ~Acceptor();
 
         std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
         std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
 
-        BtIOService& mIOService;
+        IOService& mIOService;
 
         boost::asio::ip::tcp::acceptor mHandle;
 
         std::atomic<bool> mStopped;
         std::mutex mSocketChannelPairsMtx;
-        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, Channel*>> mSocketChannelPairs;
+        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>> mSocketChannelPairs;
 
         void asyncSetSocket(
             std::string endpointName,
@@ -42,7 +42,7 @@ namespace osuCrypto {
             std::string remoteChannelName,
             boost::asio::ip::tcp::socket* handel);
 
-        void asyncGetSocket(Channel& chl);
+        void asyncGetSocket(ChannelBase& chl);
 
         void remove(std::string endpoint, std::string localName, std::string remoteName);
 

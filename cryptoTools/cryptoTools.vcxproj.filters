@@ -69,31 +69,25 @@
     <ClInclude Include="Crypto\sha1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtAcceptor.h">
+    <ClInclude Include="Common\Finally.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtChannel.h">
+    <ClInclude Include="Common\Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\BtEndpoint.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Network\BtIOService.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Network\BtSocket.h">
+    <ClInclude Include="Network\Acceptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Network\Channel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Network\IOService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Finally.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Matrix.h">
+    <ClInclude Include="Network\IoBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -131,19 +125,16 @@
     <ClCompile Include="Crypto\sha1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\BtAcceptor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Network\BtChannel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Network\BtEndpoint.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Network\BtIOService.cpp">
+    <ClCompile Include="Network\Acceptor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Network\Channel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\IOService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Endpoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -4,9 +4,9 @@
 #include <memory>
 
 #include <cryptoTools/Common/Defines.h>
-#include <cryptoTools/Network/BtIOService.h>
+#include <cryptoTools/Network/IOService.h>
 
-#include <cryptoTools/Network/BtEndpoint.h>
+#include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/Channel.h>
 
 #include <cryptoTools/Common/ByteStream.h>
@@ -30,16 +30,16 @@ void BtNetwork_Connect1_Boost_Test()
     std::string msg{ "This is the message" };
     ByteStream msgBuff((u8*)msg.data(), msg.size());
 
-    BtIOService ioService(0);
+    IOService ioService(0);
     auto thrd = std::thread([&]()
     {
         setThreadName("Test_Client");
 
         //std::cout << "client ep start" << std::endl;
-        BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
         //std::cout << "client ep done" << std::endl;
 
-        Channel& chl = endpoint.addChannel(channelName, channelName);
+        Channel chl = endpoint.addChannel(channelName, channelName);
         //std::cout << "client chl1 done" << std::endl;
 
 
@@ -69,15 +69,15 @@ void BtNetwork_Connect1_Boost_Test()
 
     });
 
-    //BtIOService ioService;
+    //IOService ioService;
 
     //std::cout << "host ep start" << std::endl;
 
-    BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
     //std::cout << "host ep done" << std::endl;
 
-    auto& chl = endpoint.addChannel(channelName, channelName);
+    auto chl = endpoint.addChannel(channelName, channelName);
     //std::cout << "host chl1 done" << std::endl;
 
     //std::cout << " client channel added" << std::endl;
@@ -119,14 +119,14 @@ void BtNetwork_OneMegabyteSend_Boost_Test()
 
     memset(oneMegabyte.data() + 100, 0xcc, 1000000 - 100);
 
-    BtIOService ioService(0);
+    IOService ioService(0);
 
     auto thrd = std::thread([&]()
     {
         setThreadName("Test_Client");
 
-        BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-        Channel& chl = endpoint.addChannel(channelName, channelName);
+        Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Channel chl = endpoint.addChannel(channelName, channelName);
 
         std::unique_ptr<ByteStream> srvRecv(new ByteStream());
         chl.recv(*srvRecv);
@@ -143,8 +143,8 @@ void BtNetwork_OneMegabyteSend_Boost_Test()
     });
 
 
-    BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
-    auto& chl = endpoint.addChannel(channelName, channelName);
+    Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    auto chl = endpoint.addChannel(channelName, channelName);
 
     chl.asyncSend(oneMegabyte.begin(), oneMegabyte.size());
 
@@ -184,10 +184,10 @@ void BtNetwork_ConnectMany_Boost_Test()
 
     std::thread serverThrd = std::thread([&]()
     {
-        BtIOService ioService(1);
+        IOService ioService(1);
         setThreadName("Test_client");
 
-        BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
 
         std::vector<std::thread> threads;
 
@@ -196,7 +196,7 @@ void BtNetwork_ConnectMany_Boost_Test()
             threads.emplace_back([i, &buff, &endpoint, messageCount, print, channelName]()
             {
                 setThreadName("Test_client_" + std::to_string(i));
-                auto& chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
+                auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
                 ByteStream mH;
 
                 for (u64 j = 0; j < messageCount; j++)
@@ -224,9 +224,9 @@ void BtNetwork_ConnectMany_Boost_Test()
         //std::cout << "server done" << std::endl;
     });
 
-    BtIOService ioService(1);
+    IOService ioService(1);
 
-    BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
     std::vector<std::thread> threads;
 
@@ -235,7 +235,7 @@ void BtNetwork_ConnectMany_Boost_Test()
         threads.emplace_back([i, &endpoint, &buff, messageCount, print, channelName]()
         {
             setThreadName("Test_Host_" + std::to_string(i));
-            auto& chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
+            auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
             ByteStream mH(buff);
 
             for (u64 j = 0; j < messageCount; j++)
@@ -271,13 +271,13 @@ void BtNetwork_CrossConnect_Test()
     const block recv = _mm_set_epi64x(7654333, 8765433);
 
     auto thrd = std::thread([&]() {
-        BtIOService ioService(0);
+        IOService ioService(0);
         //setThreadName("Net_Cross1_Thread");
-        BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
 
 
-        auto& sendChl1 = endpoint.addChannel("send", "recv");
-        auto& recvChl1 = endpoint.addChannel("recv", "send");
+        auto sendChl1 = endpoint.addChannel("send", "recv");
+        auto recvChl1 = endpoint.addChannel("recv", "send");
 
         ByteStream buff;
         buff.append(send);
@@ -309,12 +309,12 @@ void BtNetwork_CrossConnect_Test()
 
         ioService.stop();
     });
-    BtIOService ioService(0);
-    BtEndpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    IOService ioService(0);
+    Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
 
-    auto& recvChl0 = endpoint.addChannel("recv", "send");
-    auto& sendChl0 = endpoint.addChannel("send", "recv");
+    auto recvChl0 = endpoint.addChannel("recv", "send");
+    auto sendChl0 = endpoint.addChannel("send", "recv");
 
     ByteStream buff;
     buff.append(send);
@@ -368,9 +368,9 @@ void BtNetwork_ManyEndpoints_Test()
 
 
             u32 port;// = basePort + i;
-            BtIOService ioService(0);
-            std::list<BtEndpoint> endpoints;
-            std::vector<Channel*> channels;
+            IOService ioService(0);
+            std::list<Endpoint> endpoints;
+            std::vector<Channel> channels;
 
             for (u64 j = 0; j < nodeCount; ++j)
             {
@@ -391,7 +391,7 @@ void BtNetwork_ManyEndpoints_Test()
 
                     endpoints.emplace_back(ioService, ip, port, host, name);
 
-                    channels.push_back(&endpoints.back().addChannel("chl", "chl"));
+                    channels.push_back(endpoints.back().addChannel("chl", "chl"));
                 }
             }
             for (u64 j = 0, idx = 0; idx < nodeCount; ++j, ++idx)
@@ -404,15 +404,15 @@ void BtNetwork_ManyEndpoints_Test()
                 }
 
                 std::string msg = "hello" + std::to_string(idx);
-                channels[j]->asyncSend(std::move(std::unique_ptr<ByteStream>(new ByteStream((u8*)msg.data(), msg.size()))));
+                channels[j].asyncSend(std::move(std::unique_ptr<ByteStream>(new ByteStream((u8*)msg.data(), msg.size()))));
             }
 
             std::string expected = "hello" + std::to_string(i);
 
-            for (auto chl : channels)
+            for (auto& chl : channels)
             {
                 ByteStream recv;
-                chl->recv(recv);
+                chl.recv(recv);
                 std::string msg((char*)recv.data(), recv.size());
 
 
@@ -421,8 +421,8 @@ void BtNetwork_ManyEndpoints_Test()
             }
             //std::cout << IoStream::lock << "re " << i << std::endl << IoStream::unlock;
 
-            for (auto chl : channels)
-                chl->close();
+            for (auto& chl : channels)
+                chl.close();
 
             for (auto& endpoint : endpoints)
                 endpoint.stop();
@@ -444,22 +444,22 @@ void BtNetwork_AsyncConnect_Boost_Test()
     std::string channelName{ "TestChannel" };
     std::string msg{ "This is the message" };
 
-    BtIOService ioService(4);
+    IOService ioService(4);
 
-    BtEndpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-    auto& chl1 = ep1.addChannel(channelName, channelName);
+    Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+    auto chl1 = ep1.addChannel(channelName, channelName);
     Finally cleanup1([&]() { chl1.close(); ep1.stop(); ioService.stop(); });
 
     if (chl1.isConnected() == true) throw UnitTestFail();
 
 
-    BtEndpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
     Finally cleanup2([&]() { ep2.stop(); });
 
     if (chl1.isConnected() == true) throw UnitTestFail();
 
 
-    auto& chl2 = ep2.addChannel(channelName, channelName);
+    auto chl2 = ep2.addChannel(channelName, channelName);
     Finally cleanup3([&]() { chl2.close(); });
 
     chl1.waitForConnection();
@@ -471,13 +471,13 @@ void BtNetwork_std_Containers_Test()
 {
     setThreadName("Test_Host");
     std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-    BtIOService ioService;
+    IOService ioService;
 
-    BtEndpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-    BtEndpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+    Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
-    auto& chl1 = ep1.addChannel(channelName, channelName);
-    auto& chl2 = ep2.addChannel(channelName, channelName);
+    auto chl1 = ep1.addChannel(channelName, channelName);
+    auto chl2 = ep2.addChannel(channelName, channelName);
 
     Finally cleanup([&]() {
         chl1.close();
@@ -524,15 +524,15 @@ void BtNetwork_recvErrorHandler_Test()
 
     setThreadName("Test_Host");
     std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-    BtIOService ioService;
+    IOService ioService;
 
     ioService.printErrorMessages(false);
 
-    BtEndpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-    BtEndpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+    Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+    Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
-    auto& chl1 = ep1.addChannel(channelName, channelName);
-    auto& chl2 = ep2.addChannel(channelName, channelName);
+    auto chl1 = ep1.addChannel(channelName, channelName);
+    auto chl2 = ep2.addChannel(channelName, channelName);
 
     Finally cleanup([&]() {
         chl1.close();
@@ -588,15 +588,15 @@ void BtNetwork_closeOnError_Test()
 
         setThreadName("Test_Host");
         std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-        BtIOService ioService;
+        IOService ioService;
 
         ioService.printErrorMessages(false);
 
-        BtEndpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-        BtEndpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+        Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
-        auto& chl1 = ep1.addChannel(channelName, channelName);
-        auto& chl2 = ep2.addChannel(channelName, channelName);
+        auto chl1 = ep1.addChannel(channelName, channelName);
+        auto chl2 = ep2.addChannel(channelName, channelName);
 
         Finally cleanup([&]() {
             chl1.close();
@@ -630,14 +630,14 @@ void BtNetwork_closeOnError_Test()
 
         setThreadName("Test_Host");
         std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-        BtIOService ioService;
+        IOService ioService;
         ioService.printErrorMessages(false);
 
-        BtEndpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-        BtEndpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+        Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+        Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
-        auto& chl1 = ep1.addChannel(channelName, channelName);
-        auto& chl2 = ep2.addChannel(channelName, channelName);
+        auto chl1 = ep1.addChannel(channelName, channelName);
+        auto chl2 = ep2.addChannel(channelName, channelName);
 
         Finally cleanup([&]() {
             chl2.close();

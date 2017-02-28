@@ -94,13 +94,11 @@
     <ClInclude Include="Crypto\Curve.h" />
     <ClInclude Include="Crypto\PRNG.h" />
     <ClInclude Include="Crypto\sha1.h" />
-    <ClInclude Include="Network\BtAcceptor.h" />
-    <ClInclude Include="Network\BtChannel.h" />
-    <ClInclude Include="Network\BtEndpoint.h" />
-    <ClInclude Include="Network\BtIOService.h" />
-    <ClInclude Include="Network\BtSocket.h" />
+    <ClInclude Include="Network\Acceptor.h" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
+    <ClInclude Include="Network\IOService.h" />
+    <ClInclude Include="Network\IoBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp" />
@@ -114,11 +112,10 @@
     <ClCompile Include="Crypto\Curve.cpp" />
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\sha1.cpp" />
-    <ClCompile Include="Network\BtAcceptor.cpp" />
-    <ClCompile Include="Network\BtChannel.cpp" />
-    <ClCompile Include="Network\BtEndpoint.cpp" />
-    <ClCompile Include="Network\BtIOService.cpp" />
+    <ClCompile Include="Network\Acceptor.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
+    <ClCompile Include="Network\Endpoint.cpp" />
+    <ClCompile Include="Network\IOService.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">
