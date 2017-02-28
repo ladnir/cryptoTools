@@ -1,6 +1,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/Commit.h>
 #include <cryptoTools/Common/BitVector.h>
+#include <random>
 //#include <cryptoTools/Common/Timer.h>
 
 namespace osuCrypto {
@@ -17,7 +18,7 @@ namespace osuCrypto {
         out << std::hex;
         u64* data = (u64*)&blk;
 
-        out << std::setw(16) << std::setfill('0') << data[1] 
+        out << std::setw(16) << std::setfill('0') << data[1]
             << std::setw(16) << std::setfill('0') << data[0];
 
         out << std::dec << std::setw(0);
@@ -80,7 +81,7 @@ namespace osuCrypto {
 
         mAesFixedKey.ecbEncBlock(ret, enc);
 
-        ret = ret ^ enc; // H( a0 ) 
+        ret = ret ^ enc; // H( a0 )
 
         return ret;
     }
@@ -124,6 +125,14 @@ namespace osuCrypto {
     u64 log2ceil(u64 value)
     {
         return u64(std::ceil(std::log2(value)));
+    }
+
+    block sysRandomSeed()
+    {
+        std::random_device rd;
+        u64 x = rd();
+        u64 y = rd();
+        return osuCrypto::toBlock(x, y);
     }
 }
 

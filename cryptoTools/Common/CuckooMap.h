@@ -5,6 +5,7 @@
 #include <cryptoTools/Crypto/AES.h>
 #include <vector>
 #include <memory>
+#include <array>
 #include <random>
 
 #define CUCKOO_MAP_STASH_SIZE 8
@@ -14,8 +15,6 @@ using std::vector;
 using std::unique_ptr;
 
 namespace osuCrypto {
-
-block dev_random_seed();
 
 template<typename V>
 class CuckooMap {
@@ -50,7 +49,7 @@ V&
 CuckooMap<V>::operator[](u64 k)
 {
     if (n > CUCKOO_MAP_THRESHOLD) {
-        auto h = ArrayView<u64>(2);
+        std::array<u64, 2> h;
         aes.ecbEncBlock(toBlock(k), (block&)h[0]);
         u64 ix = ch->find(h);
         if (ix == u64(-1)) { // not found

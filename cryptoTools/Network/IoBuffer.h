@@ -9,7 +9,7 @@
 #include <functional> 
 #include <memory> 
 
-#include <cryptoTools/Network/BtIOService.h>
+#include <cryptoTools/Network/IOService.h>
 
 namespace osuCrypto { 
 
@@ -173,7 +173,7 @@ namespace osuCrypto {
     //};
 
 
-    struct BtIOOperation
+    struct IOOperation
     {
         enum class Type
         {
@@ -185,13 +185,13 @@ namespace osuCrypto {
             CloseThread
         };
 
-        BtIOOperation()
+        IOOperation()
         {
             clear();
         }
 
-        BtIOOperation(const BtIOOperation& copy) = default;
-        BtIOOperation(BtIOOperation&& copy) = default;
+        IOOperation(const IOOperation& copy) = default;
+        IOOperation(IOOperation&& copy) = default;
         //    :
         //    mMode(copy.mMode);
         //    mSize = copy.mSize;
@@ -224,21 +224,21 @@ namespace osuCrypto {
 
 
 
-    //class BtSocket
+    //class Socket
     //{
     //public:
-    //    BtSocket(BtIOService& ios);
+    //    Socket(IOService& ios);
 
     //    boost::asio::ip::tcp::socket mHandle;
     //    boost::asio::strand mSendStrand, mRecvStrand;
 
-    //    std::deque<BtIOOperation> mSendQueue, mRecvQueue;
+    //    std::deque<IOOperation> mSendQueue, mRecvQueue;
     //    bool mStopped;
 
     //    std::atomic<u64> mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
     //};
 
-    //inline BtSocket::BtSocket(BtIOService& ios) :
+    //inline Socket::Socket(IOService& ios) :
     //    mHandle(ios.mIoService),
     //    mSendStrand(ios.mIoService),
     //    mRecvStrand(ios.mIoService),

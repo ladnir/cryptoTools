@@ -1,7 +1,7 @@
 #include "Network.h"
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/BtIOService.h>
+#include <cryptoTools/Network/IOService.h>
 
 
 using namespace osuCrypto;
@@ -20,7 +20,7 @@ void networkTutorial()
 
     // create network I/O service with 4 background threads. 
     // This object must stay in scope until everything is cleaned up.
-    BtIOService ios(4);
+    IOService ios(4);
 
     std::string serversIpAddress = "127.0.0.1:1212";
 
@@ -34,8 +34,8 @@ void networkTutorial()
     // connectionName denotes an identifier that both people on either side 
     // of this connection will use. If a server connects to several clients,
     // they should all use different connection names.
-    BtEndpoint server(ios, serversIpAddress, EpMode::Server, connectionName);
-    BtEndpoint client(ios, serversIpAddress, EpMode::Client, connectionName);
+    Endpoint server(ios, serversIpAddress, EpMode::Server, connectionName);
+    Endpoint client(ios, serversIpAddress, EpMode::Client, connectionName);
 
 
     // Two endpoints with the same connectionName can have many channels, each independent.
@@ -43,9 +43,9 @@ void networkTutorial()
     std::string channelName = "channelName";
 
     // Actually get the channel that can be used to communicate on.
-    Channel& chl0 = client.addChannel(channelName);
+    Channel chl0 = client.addChannel(channelName);
 
-    Channel& chl1 = server.addChannel(channelName);
+    Channel chl1 = server.addChannel(channelName);
 
     // we now have a pair of channels, but it is possible that they have yet
     // to actually connect to each other in the background. To test that the 

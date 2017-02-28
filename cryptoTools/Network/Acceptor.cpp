@@ -1,6 +1,6 @@
-#include <cryptoTools/Network/BtAcceptor.h>
-#include <cryptoTools/Network/BtIOService.h>
-#include <cryptoTools/Network/BtChannel.h>
+#include <cryptoTools/Network/Acceptor.h>
+#include <cryptoTools/Network/IOService.h>
+#include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/ByteStream.h>
@@ -10,7 +10,7 @@
 namespace osuCrypto {
 
 
-    BtAcceptor::BtAcceptor(BtIOService& ioService)
+    Acceptor::Acceptor(IOService& ioService)
         :
         mStoppedListeningFuture(mStoppedListeningPromise.get_future()),
         mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
@@ -26,7 +26,7 @@ namespace osuCrypto {
 
 
 
-    BtAcceptor::~BtAcceptor()
+    Acceptor::~Acceptor()
     {
         stop();
 
@@ -36,7 +36,7 @@ namespace osuCrypto {
 
 
 
-    void BtAcceptor::bind(u32 port, std::string ip)
+    void Acceptor::bind(u32 port, std::string ip)
     {
         auto pStr = std::to_string(port);
         mPort = port;
@@ -67,7 +67,7 @@ namespace osuCrypto {
         mHandle.listen(boost::asio::socket_base::max_connections);
     }
 
-    void BtAcceptor::start()
+    void Acceptor::start()
     {
         if (stopped() == false)
         {
@@ -173,7 +173,7 @@ namespace osuCrypto {
         }
     }
 
-    void BtAcceptor::stop()
+    void Acceptor::stop()
     {
         //std::cout << "\n#################################### acceptor stop ################################" << std::endl;
 
@@ -199,14 +199,14 @@ namespace osuCrypto {
 
     }
 
-    bool BtAcceptor::stopped() const
+    bool Acceptor::stopped() const
     {
         return mStopped;
     }
 
-    void BtAcceptor::asyncGetSocket(Channel & chl)
+    void Acceptor::asyncGetSocket(ChannelBase & chl)
     {
-        std::string tag = chl.getEndpoint().getName() + ":" + chl.getName() + ":" + chl.getRemoteName();
+        std::string tag = chl.mEndpoint.getName() + ":" + chl.mLocalName+ ":" + chl.mRemoteName;
 
         {
             //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
@@ -218,7 +218,7 @@ namespace osuCrypto {
             {
 
                 //std::cout << "asyncGetSocket waiting on socket " << tag << std::endl;
-                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(nullptr, &chl));
+                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>(nullptr, &chl));
             }
             else
             {
@@ -242,7 +242,7 @@ namespace osuCrypto {
         }
     }
 
-    void BtAcceptor::remove(
+    void Acceptor::remove(
         std::string endpointName,
         std::string localChannelName,
         std::string remoteChannelName)
@@ -281,7 +281,7 @@ namespace osuCrypto {
     }
 
 
-    void BtAcceptor::asyncSetSocket(
+    void Acceptor::asyncSetSocket(
         std::string endpointName,
         std::string localChannelName,
         std::string remoteChannelName,
@@ -298,7 +298,7 @@ namespace osuCrypto {
             if (iter == mSocketChannelPairs.end())
             {
                 //std::cout << "asyncSetSocket created socket " << tag << std::endl;
-                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, BtChannel*>(sock, nullptr));
+                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>(sock, nullptr));
             }
             else
             {

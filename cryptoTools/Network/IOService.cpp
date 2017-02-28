@@ -1,11 +1,11 @@
-#include <cryptoTools/Network/BtIOService.h>
+#include <cryptoTools/Network/IOService.h>
 #include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Network/BtAcceptor.h>
-#include <cryptoTools/Network/BtEndpoint.h>
-#include <cryptoTools/Network/BtSocket.h>
-#include <cryptoTools/Network/BtChannel.h>
+#include <cryptoTools/Network/Acceptor.h>
+#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/IoBuffer.h>
+#include <cryptoTools/Network/Channel.h>
 
 #include <stdio.h>
 #include <algorithm>
@@ -17,7 +17,7 @@ namespace osuCrypto
     extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
     extern std::vector<std::string> split(const std::string &s, char delim);
 
-    BtIOService::BtIOService(u64 numThreads)
+    IOService::IOService(u64 numThreads)
         :
         mIoService(),
         mWorker(new boost::asio::io_service::work(mIoService)),
@@ -50,13 +50,13 @@ namespace osuCrypto
         }
     }
 
-    BtIOService::~BtIOService()
+    IOService::~IOService()
     {
         // block until everything has shutdown.
         //stop();
     }
 
-    void BtIOService::stop()
+    void IOService::stop()
     {
         std::lock_guard<std::mutex> lock(mMtx);
 
@@ -94,20 +94,20 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::printErrorMessages(bool v)
+    void IOService::printErrorMessages(bool v)
     {
         mPrint = v;
     }
 
-    void BtIOService::receiveOne(Channel* channel)
+    void IOService::receiveOne(ChannelBase* channel)
     {
         ////////////////////////////////////////////////////////////////////////////////
         //// THis is within the stand. We have sequential access to the recv queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        BtIOOperation& op = channel->mRecvQueue.front();
+        IOOperation& op = channel->mRecvQueue.front();
 
-        if (op.mType == BtIOOperation::Type::RecvData)
+        if (op.mType == IOOperation::Type::RecvData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
@@ -243,7 +243,7 @@ namespace osuCrypto
 
             });
         }
-        else if (op.mType == BtIOOperation::Type::CloseRecv)
+        else if (op.mType == IOOperation::Type::CloseRecv)
         {
             auto prom = op.mPromise;
             channel->mRecvQueue.pop_front();
@@ -256,16 +256,16 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::sendOne(Channel* socket)
+    void IOService::sendOne(ChannelBase* socket)
     {
         ////////////////////////////////////////////////////////////////////////////////
         //// This is within the stand. We have sequential access to the send queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        BtIOOperation& op = socket->mSendQueue.front();
+        IOOperation& op = socket->mSendQueue.front();
 
 
-        if (op.mType == BtIOOperation::Type::SendData)
+        if (op.mType == IOOperation::Type::SendData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, 4);
 
@@ -335,7 +335,7 @@ namespace osuCrypto
             });
 
         }
-        else if (op.mType == BtIOOperation::Type::CloseSend)
+        else if (op.mType == IOOperation::Type::CloseSend)
         {
             // This is a special case which may happen if the channel calls stop() 
             // with async sends still queued up, we will get here after they get completes. fulfill the 
@@ -351,12 +351,12 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::dispatch(Channel* socket, BtIOOperation& op)
+    void IOService::dispatch(ChannelBase* socket, IOOperation& op)
     {
         switch (op.mType)
         {
-        case BtIOOperation::Type::RecvData:
-        case BtIOOperation::Type::CloseRecv:
+        case IOOperation::Type::RecvData:
+        case IOOperation::Type::CloseRecv:
         {
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -369,9 +369,9 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of recv operations. If the size > 1, then there
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool startRecving = (socket->mRecvQueue.size() == 1) && (socket->mRecvSocketSet || op.mType == BtIOOperation::Type::CloseRecv);
+                bool startRecving = (socket->mRecvQueue.size() == 1) && (socket->mRecvSocketSet || op.mType == IOOperation::Type::CloseRecv);
 
-                //std::cout << " dis " << (op.mType == BtIOOperation::Type::RecvData ? "RecvData" : "CloseRecv") << "  " << startRecving << std::endl;
+                //std::cout << " dis " << (op.mType == IOOperation::Type::RecvData ? "RecvData" : "CloseRecv") << "  " << startRecving << std::endl;
 
                 if (startRecving)
                 {
@@ -382,10 +382,10 @@ namespace osuCrypto
             });
         }
         break;
-        case BtIOOperation::Type::SendData:
-        case BtIOOperation::Type::CloseSend:
+        case IOOperation::Type::SendData:
+        case IOOperation::Type::CloseSend:
         {
-            //std::cout << " dis " << (op.mType == BtIOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
+            //std::cout << " dis " << (op.mType == IOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
             socket->mSendStrand.post([this, socket, op]()
@@ -401,7 +401,7 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of send operations. If the size > 1, then there
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-                auto startSending = (socket->mSendQueue.size() == 1) && (socket->mSendSocketSet || op.mType == BtIOOperation::Type::CloseSend);
+                auto startSending = (socket->mSendQueue.size() == 1) && (socket->mSendSocketSet || op.mType == IOOperation::Type::CloseSend);
 
                 if (startSending)
                 {
@@ -416,14 +416,14 @@ namespace osuCrypto
         break;
         default:
 
-            std::cout << ("unknown BtIOOperation::Type") << std::endl;
+            std::cout << ("unknown IOOperation::Type") << std::endl;
             std::terminate();
             break;
         }
     }
 
 
-    BtAcceptor* BtIOService::getAcceptor(BtEndpoint& endpoint)
+    Acceptor* IOService::getAcceptor(Endpoint& endpoint)
     {
 
         if (endpoint.isHost())
@@ -433,7 +433,7 @@ namespace osuCrypto
             // see if there already exists an acceptor that this endpoint can use.
             auto acceptorIter = std::find_if(
                 mAcceptors.begin(),
-                mAcceptors.end(), [&](const BtAcceptor& acptr)
+                mAcceptors.end(), [&](const Acceptor& acptr)
             {
                 return acptr.mPort == endpoint.port();
             });
@@ -467,7 +467,7 @@ namespace osuCrypto
         }
     }
 
-    void BtIOService::startSocket(BtChannel * socket)
+    void IOService::startSocket(ChannelBase * socket)
     {
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
