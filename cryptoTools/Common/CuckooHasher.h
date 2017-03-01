@@ -1,30 +1,33 @@
 #pragma once
-#include <cryptoTools/Common/ArrayView.h>
-#include <cryptoTools/Common/BitVector.h>
-#include <cryptoTools/Common/Defines.h>
-#include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Common/MatrixView.h>
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Common/Log.h"
+#include "cryptoTools/Common/BitVector.h"
+#include "cryptoTools/Common/ArrayView.h"
+#include "cryptoTools/Common/MatrixView.h"
+//#include <mutex>
 #include <atomic>
 
-using osuCrypto::u64;
-using osuCrypto::ArrayView;
-using osuCrypto::MatrixView;
+#define THREAD_SAFE_CUCKOO
 
-namespace osuCrypto {
+namespace osuCrypto
+{
+    struct CuckooParam
+    {
+        u64 mStashSize;
+        double mBinScaler;
+        u64 mNumHashes, mN;
+    };
 
-struct CuckooParam {
-    double mBinScaler;
-    u64 mNumHashes;
-    u64 mSenderBinSize;
-};
 
-class CuckooHasher {
+
+    class CuckooHasher
+    {
     public:
-        CuckooHasher() = delete;
-        CuckooHasher(size_t stash_size) : mTotalTries(0), mStashSize(stash_size) {}
+        CuckooHasher();
         ~CuckooHasher();
 
-        struct Bin {
+        struct Bin
+        {
             Bin() :mVal(-1) {}
             Bin(u64 idx, u64 hashIdx) : mVal(idx | (hashIdx << 56)) {}
 
@@ -43,10 +46,20 @@ class CuckooHasher {
             u64 mVal;
 #endif
         };
+        struct Workspace
+        {
+            Workspace(u64 n)
+                : curAddrs(n)
+                , curHashIdxs(n)
+                , oldVals(n)
+                , findVal(n)
+            {}
 
-        struct Workspace {
-            Workspace(u64 n) : curAddrs(n), curHashIdxs(n), oldVals(n) {}
-            std::vector<u64> curAddrs, curHashIdxs, oldVals;
+            std::vector<u64>
+                curAddrs,
+                curHashIdxs,
+                oldVals
+
             std::vector<std::array<u64, 2>> findVal;
         };
 
@@ -58,20 +71,24 @@ class CuckooHasher {
         CuckooParam mParams;
 
         void print() const;
-        void init(u64 n, u64 statSecParam);
+        void init(u64 n, u64 statSecParam, bool multiThreaded = 0);
         void insert(u64 IdxItem, ArrayView<u64> hashes);
         void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
 
         void insertBatch(ArrayView<u64> itemIdxs, MatrixView<u64> hashs, Workspace& workspace);
 
         u64 find(ArrayView<u64> hashes);
-        u64 findBatch(MatrixView<u64> hashes, ArrayView<u64> idxs, Workspace& wordkspace);
+        u64 findBatch(MatrixView<u64> hashes,
+            ArrayView<u64> idxs,
+            Workspace& wordkspace);
+
 
         std::vector<u64> mHashes;
         MatrixView<u64> mHashesView;
+
         std::vector<Bin> mBins;
         std::vector<Bin> mStash;
-        size_t mStashSize;
-};
 
-} // namespace osuCrypto
+    };
+
+}
