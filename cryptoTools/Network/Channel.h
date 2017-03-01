@@ -25,8 +25,13 @@ namespace osuCrypto {
 
         Channel(Endpoint& endpoint, std::string localName, std::string remoteName);
         Channel(Channel && move) = default;
+        Channel(const Channel & copy) = default;
+        Channel() = default;
 
         ~Channel();
+
+        Channel& operator=(Channel&& move);
+        Channel& operator=(const Channel& copy);
 
         /// <summary>Get the local endpoint for this channel.</summary>
         Endpoint& getEndpoint();
@@ -132,12 +137,6 @@ namespace osuCrypto {
             asyncRecv(c).get();
         }
 
-        //template <class Container>
-        //typename std::enable_if_t<
-        //    is_container<Container>::value &&
-        //    !is_resizable_container<Container>::value, void>
-        //    Channel::recv(Container & c);
-        //has_resize<Container, void(typename Container::size_type)>::value
 
         template <class Container>
         typename std::enable_if_t<
@@ -171,7 +170,7 @@ namespace osuCrypto {
         };
 
 
-        std::unique_ptr<ChannelBase> mBase;
+        std::shared_ptr<ChannelBase> mBase;
 
     private:
 

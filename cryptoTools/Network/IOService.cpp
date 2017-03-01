@@ -53,11 +53,22 @@ namespace osuCrypto
     IOService::~IOService()
     {
         // block until everything has shutdown.
-        //stop();
+        stop();
     }
 
     void IOService::stop()
     {
+        //WaitCallback wait();
+        boost::asio::deadline_timer timer(mIoService, boost::posix_time::seconds(5));
+        //timer.async_wait([&](boost::system::error_code ec) {
+
+        //    if (!ec)
+        //    {
+        //        std::cerr << "waiting for endpoint/channel to close " << std::endl;;
+        //    }
+        //});
+         
+
         std::lock_guard<std::mutex> lock(mMtx);
 
         // Skip if its already shutdown.
@@ -92,6 +103,8 @@ namespace osuCrypto
             // close the completion port since no more IO operations will be queued.
 
         }
+
+        timer.cancel();
     }
 
     void IOService::printErrorMessages(bool v)
