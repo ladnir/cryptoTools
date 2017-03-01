@@ -60,6 +60,18 @@ namespace osuCrypto {
         return mBase->mLocalName;
     }
 
+    Channel & Channel::operator=(Channel && move)
+    {
+        mBase = std::move(move.mBase);
+        return *this;
+    }
+
+    Channel & Channel::operator=(const Channel & copy)
+    {
+        mBase = copy.mBase;
+        return *this;
+    }
+
     void Channel::asyncSend(const void * buff, u64 size)
     {
         if (mBase->mStatus != Status::Normal || size == 0 || size > u32(-1))
