@@ -58,7 +58,7 @@ namespace osuCrypto
             std::vector<u64>
                 curAddrs,
                 curHashIdxs,
-                oldVals
+                oldVals;
 
             std::vector<std::array<u64, 2>> findVal;
         };
