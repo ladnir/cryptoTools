@@ -71,6 +71,7 @@
     <ClInclude Include="AES_Tests.h" />
     <ClInclude Include="BtChannel_Tests.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="Cuckoo_Tests.h" />
     <ClInclude Include="Ecc_Tests.h" />
     <ClInclude Include="Misc_Tests.h" />
   </ItemGroup>
@@ -78,6 +79,7 @@
     <ClCompile Include="AES_Tests.cpp" />
     <ClCompile Include="BtChannel_Tests.cpp" />
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="Cuckoo_Tests.cpp" />
     <ClCompile Include="Ecc_Tests.cpp" />
     <ClCompile Include="Misc_Tests.cpp" />
   </ItemGroup>

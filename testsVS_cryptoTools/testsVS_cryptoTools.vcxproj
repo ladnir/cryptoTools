@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="AES_TestsVS.cpp" />
     <ClCompile Include="BtChannel_TestsVS.cpp" />
+    <ClCompile Include="Cuckoo_TestsVS.cpp" />
     <ClCompile Include="Ecc_TestsVS.cpp" />
     <ClCompile Include="Misc_Tests_VS.cpp" />
     <ClCompile Include="stdafx.cpp">
