@@ -73,6 +73,11 @@ namespace osuCrypto {
     {
         if (remoteName == "") remoteName = localName;
 
+        Channel chl(*this, localName, remoteName);
+
+        auto base = chl.mBase.get();
+
+
         // first, add the channel to the endpoint.
         {
             std::lock_guard<std::mutex> lock(mAddChannelMtx);
@@ -85,18 +90,15 @@ namespace osuCrypto {
             auto iter = mChannels.begin();
             while (iter != mChannels.end())
             {
-                if (*iter == localName)
+                if ((*iter)->mLocalName == localName)
                     throw std::runtime_error("Error: channel name already exists.\n   " LOCATION);
 
                 ++iter;
             }
 
-            mChannels.emplace_back(localName);
+            mChannels.emplace_back(base);
         }
 
-        Channel chl(*this, localName, remoteName);
-
-        auto base = chl.mBase.get();
 
         if (mMode == EpMode::Server)
         {
@@ -270,7 +272,7 @@ namespace osuCrypto {
     {
         return mStopped;
     }
-    void Endpoint::removeChannel(ChannelBase* chl)
+    void Endpoint::removeChannel(ChannelBase* base)
     {
         {
             std::lock_guard<std::mutex> lock(mAddChannelMtx);
@@ -279,12 +281,12 @@ namespace osuCrypto {
 
             while (iter != mChannels.end())
             {
-                auto name = *iter;
-                if (name == chl->mLocalName)
+                auto baseIter = *iter;
+                if (baseIter == base)
                 {
                     //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
                     if (mAcceptor)
-                        mAcceptor->remove(mName, chl->mLocalName, chl->mRemoteName);
+                        mAcceptor->remove(mName, base->mLocalName, base->mRemoteName);
 
                     mChannels.erase(iter);
                     break;

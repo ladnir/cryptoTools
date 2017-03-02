@@ -33,7 +33,7 @@ namespace osuCrypto {
         bool mStopped;
         IOService* mIOService;
         Acceptor* mAcceptor;
-        std::list<std::string> mChannels;
+        std::list<ChannelBase*> mChannels;
         std::mutex mAddChannelMtx;
         std::promise<void> mDoneProm;
         std::shared_future<void> mDoneFuture;

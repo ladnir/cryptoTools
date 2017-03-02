@@ -70,6 +70,11 @@ namespace osuCrypto_tests
             BtNetwork_closeOnError_Test();
         }
 
+        TEST_METHOD(BtNetwork_bitVector_TestVS)
+        {
+            InitDebugPrinting();
+            BtNetwork_bitVector_Test();
+        }
     };
 }
 #endif

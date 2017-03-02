@@ -11,6 +11,7 @@
 
 #include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/Finally.h>
 
 
@@ -512,6 +513,34 @@ void BtNetwork_std_Containers_Test()
     chl1.recv(hello);
 
     if (hello != "hello world") UnitTestFail("std::string move");
+
+
+}
+
+
+void BtNetwork_bitVector_Test()
+{
+    setThreadName("Test_Host");
+    std::string channelName{ "TestChannel" }, msg{ "This is the message" };
+    IOService ioService;
+
+    Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+    Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+
+    auto chl1 = ep1.addChannel(channelName, channelName);
+    auto chl2 = ep2.addChannel(channelName, channelName);
+
+
+    BitVector bb(77);
+    bb[55] = 1;
+    bb[33] = 1;
+
+    chl1.send(bb);
+    chl2.recv(bb);
+
+
+    if (!bb[55] || !bb[33])
+        throw UnitTestFail();
 
 
 }

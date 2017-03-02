@@ -46,8 +46,6 @@ namespace osuCrypto {
 
     Channel::~Channel()
     {
-        close();
-        //std::cout << IoStream::lock << "deleting handle: " << mHandle.get() << std::endl << IoStream::unlock;
     }
 
     Endpoint & Channel::getEndpoint()
@@ -179,46 +177,49 @@ namespace osuCrypto {
         if (mBase)
         {
 
-
-            auto status = mBase->mStatus;
-
-
-            if (status != Status::Stopped)
-            {
-                mBase->mStatus = Status::Stopped;
-
-                if (status == Status::Normal)
-                {
-                    IOOperation closeRecv;
-                    closeRecv.mType = IOOperation::Type::CloseRecv;
-                    closeRecv.mPromise = &mBase->mRecvQueueEmptyProm;
-
-                    mBase->mEndpoint.getIOService().dispatch(mBase.get(), closeRecv);
-
-                    IOOperation closeSend;
-                    closeSend.mType = IOOperation::Type::CloseSend;
-                    closeSend.mPromise = &mBase->mSendQueueEmptyProm;
-                    mBase->mEndpoint.getIOService().dispatch(mBase.get(), closeSend);
-
-                }
-                else if (status == Status::RecvSizeError)
-                {
-                    mBase->cancelQueuedOperations();
-                }
-
-                mBase->mRecvQueueEmptyFuture.get();
-                mBase->mSendQueueEmptyFuture.get();
-
-                // ok, the send and recv queues are empty. Lets close the socket
-                if (mBase->mHandle)
-                    mBase->mHandle->close();
-
-                // notify the endpoint.
-                mBase->mEndpoint.removeChannel(mBase.get());
-            }
+            mBase->close();
         }
     }
+    void ChannelBase::close()
+    {
 
+        auto status = mStatus;
+
+
+        if (status != Channel::Status::Stopped)
+        {
+            mStatus = Channel::Status::Stopped;
+
+            if (status == Channel::Status::Normal)
+            {
+                IOOperation closeRecv;
+                closeRecv.mType = IOOperation::Type::CloseRecv;
+                closeRecv.mPromise = &mRecvQueueEmptyProm;
+
+                mEndpoint.getIOService().dispatch(this, closeRecv);
+
+                IOOperation closeSend;
+                closeSend.mType = IOOperation::Type::CloseSend;
+                closeSend.mPromise = &mSendQueueEmptyProm;
+                mEndpoint.getIOService().dispatch(this, closeSend);
+
+            }
+            else if (status == Channel::Status::RecvSizeError)
+            {
+                cancelQueuedOperations();
+            }
+
+            mRecvQueueEmptyFuture.get();
+            mSendQueueEmptyFuture.get();
+
+            // ok, the send and recv queues are empty. Lets close the socket
+            if (mHandle)
+                mHandle->close();
+
+            // notify the endpoint.
+            mEndpoint.removeChannel(this);
+        }
+    }
 
 
     void ChannelBase::cancelQueuedOperations()

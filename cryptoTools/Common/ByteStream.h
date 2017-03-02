@@ -260,7 +260,7 @@ namespace osuCrypto {
     inline MatrixView<T> ByteStream::getMatrixView(u64 columnSize) const
     {
         u64 numRows = mPutHead / (columnSize * sizeof(T));
-        return MatrixView<T>((T*)mData, numRows, columnSize, false);
+        return MatrixView<T>((T*)mData, numRows, columnSize);
     }
 
 

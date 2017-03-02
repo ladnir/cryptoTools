@@ -12,6 +12,7 @@
 
     void BtNetwork_AsyncConnect_Boost_Test();
     void BtNetwork_std_Containers_Test();
+    void BtNetwork_bitVector_Test();
 
 
     void BtNetwork_recvErrorHandler_Test();

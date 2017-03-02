@@ -157,7 +157,7 @@ namespace osuCrypto
                             "   Expected: Container::size() * sizeof(Container::value_type) = " +
                             std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes\n"
                             "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
-                            "If sizeof(Container::value_type) % Actual != 0, this will throw or RefChannelBuff<Container>::resize(...) returned false.";
+                            "If sizeof(Container::value_type) % Actual != 0, this will throw or ResizableChannelBuffRef<Container>::resize(...) returned false.";
                     }
 
                     // set the buffer to point into the channel buffer storage location.

@@ -86,9 +86,9 @@ namespace osuCrypto {
 
     struct ChannelBuffBase
     {
-        virtual u8* data() = 0;
-        virtual u64 size() = 0;
-        virtual bool resize(u64) = 0;
+        virtual u8* data() const = 0;
+        virtual u64 size() const = 0;
+        virtual bool resize(u64) { return false; };
         virtual ~ChannelBuffBase() {}
     };
 
@@ -97,13 +97,8 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() override { return (u8*)mObj.data(); }
-        u64 size() override { return mObj.size() * sizeof(typename  F::value_type); }
-
-        bool resize(u64 s) override
-        {  
-            return false;
-        }
+        u8* data() const override { return (u8*)mObj.data(); }
+        u64 size() const override { return mObj.size() * sizeof(typename  F::value_type); }
     };
 
 
@@ -114,15 +109,11 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() override { return (u8*)mObj->data(); }
-        u64 size() override { return mObj->size() * sizeof(typename  F::element_type::value_type); }
-
-        bool resize(u64 s) override
-        {
-            return false;
-        }
+        u8* data() const override { return (u8*)mObj->data(); }
+        u64 size() const override { return mObj->size() * sizeof(typename  F::element_type::value_type); }
     };
     
+
     template <typename T>
     struct MoveChannelBuff<std::shared_ptr<T>> : ChannelBuffBase {
 
@@ -130,47 +121,34 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() override { return (u8*)mObj->data(); }
-        u64 size() override { return mObj->size() * sizeof(typename F::element_type::value_type); }
-
-        bool resize(u64 s) override
-        {
-            return false;
-        }
+        u8* data() const override { return (u8*)mObj->data(); }
+        u64 size() const override { return mObj->size() * sizeof(typename F::element_type::value_type); }
     };
 
     template <typename F>
-    struct RefChannelBuff : ChannelBuffBase {
-        F& mObj;
-        RefChannelBuff(F& obj) : mObj(obj) {}
+    struct ChannelBuffRef : ChannelBuffBase {
+        const F& mObj;
+        ChannelBuffRef(const F& obj) : mObj(obj) {}
 
-        u8* data() override { return (u8*)mObj.data(); }
-        u64 size() override { return mObj.size() * sizeof(typename  F::value_type); }
+        u8* data() const override { return (u8*)mObj.data(); }
+        u64 size() const override { return mObj.size() * sizeof(typename  F::value_type); }
+    };
+
+    template <typename F>
+    struct ResizableChannelBuffRef : ChannelBuffRef<F> {
+        ResizableChannelBuffRef(F& obj) 
+            : 
+            ChannelBuffRef<F>(obj)
+        {}
 
         bool resize(u64 s) override
         {
             if (s % sizeof(typename  F::value_type)) return false;
-            mObj.resize(s / sizeof(typename  F::value_type));
+            ((F&)ChannelBuffRef<F>::mObj).resize(s / sizeof(typename  F::value_type));
             return true;
         }
     };
 
-
-    //template <typename F>
-    //struct RefResizableChannelBuff : ChannelBuffBase {
-    //    F& mObj;
-    //    RefChannelBuff(F& obj) : mObj(obj) {}
-
-    //    u8* data() override { return (u8*)mObj.data(); }
-    //    u64 size() override { return mObj.size() * sizeof(F::value_type); }
-
-    //    bool resize(u64 s) override
-    //    {
-    //        if (s % sizeof(F::value_type)) return false;
-    //        mObj.resize(s / sizeof(F::value_type));
-    //        return true;
-    //    }
-    //};
 
 
     struct IOOperation

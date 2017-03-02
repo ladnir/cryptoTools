@@ -194,6 +194,10 @@ namespace osuCrypto {
     {
     public:
         ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
+        ~ChannelBase()
+        {
+            close();
+        }
 
         std::unique_ptr<boost::asio::ip::tcp::socket> mHandle;
         boost::asio::strand mSendStrand, mRecvStrand;
@@ -221,6 +225,8 @@ namespace osuCrypto {
         void clearBadRecvErrorState();
 
         void cancelQueuedOperations();
+
+        void close();
 
     };
 
@@ -293,7 +299,7 @@ namespace osuCrypto {
 
         op.mType = IOOperation::Type::RecvData;
 
-        //op.mContainer = (new RefChannelBuff<Container>(c));
+        //op.mContainer = (new ResizableChannelBuffRef<Container>(c));
         op.mContainer = nullptr;
 
         op.mSize = u32(c.size());
@@ -323,7 +329,7 @@ namespace osuCrypto {
 
         op.mType = IOOperation::Type::RecvData;
 
-        op.mContainer = (new RefChannelBuff<Container>(c));
+        op.mContainer = (new ResizableChannelBuffRef<Container>(c));
         //op.mContainer = nullptr;//
 
         op.mPromise = new std::promise<u64>();
@@ -354,7 +360,10 @@ namespace osuCrypto {
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::send(const Container & buf)
     {
-        send((u8*)buf.data(), buf.size() * sizeof(typename Container::value_type));
+        //send((u8*)buf.data(), buf.size() * sizeof(typename Container::value_type));
+        ChannelBuffRef<Container>c(buf);
+
+        send(c.data(), c.size());
     }
 
     template<typename Container>
