@@ -71,7 +71,7 @@ namespace osuCrypto
         CuckooParam mParams;
 
         void print() const;
-        void init(u64 n, u64 statSecParam, bool multiThreaded = 0);
+        void init(u64 n, u64 statSecParam, bool multiThreaded = 0, bool insecureNBins = 0);
         void insert(u64 IdxItem, ArrayView<u64> hashes);
         void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
 
