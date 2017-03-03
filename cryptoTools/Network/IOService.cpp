@@ -155,7 +155,7 @@ namespace osuCrypto
                     {
                         msg = std::string() + "The provided buffer does not fit the received message. \n" +
                             "   Expected: Container::size() * sizeof(Container::value_type) = " +
-                            std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes\n"
+                            std::to_string(op.mContainer->size()) + " bytes\n"
                             "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
                             "If sizeof(Container::value_type) % Actual != 0, this will throw or ResizableChannelBuffRef<Container>::resize(...) returned false.";
                     }

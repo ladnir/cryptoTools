@@ -67,22 +67,29 @@ namespace osuCrypto {
         std::is_pod<typename Container::value_type>::value>
         ,
         void>;
+    
 
-    ///// type trait that defines what is considered a STL like resizable Container
-    ///// 
-    ///// Must be a container, see above
-    /////    * is_container<Container>::value == true
-    ///// Must have the following member function:
-    /////    * void Container::resize(Container::size_type);
-    //template<typename Container>
-    //using is_resizable_container =
-    //    std::is_same<
-    //    std::enable_if_t<
-    //    is_container<Container>::value &&
-    //    has_resize<Container, void(u64)>::value
-    //    >
-    //    ,
-    //    void>;
+    template<typename T>
+    inline u8* channelBuffData(const T& container)
+    {
+        return (u8*)container.data();
+    }
+
+    template<typename T>
+    inline u64 channelBuffSize(const T& container)
+    {
+        return container.size() * sizeof(typename  T::value_type);
+    }
+
+    template<typename T>
+    inline bool channelBuffResize(T& container, u64 size)
+    {
+        if (size % sizeof(typename  T::value_type)) return false;
+
+        container.resize(size / sizeof(typename  T::value_type));
+        return true;
+    }
+
 
     struct ChannelBuffBase
     {
@@ -97,8 +104,8 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() const override { return (u8*)mObj.data(); }
-        u64 size() const override { return mObj.size() * sizeof(typename  F::value_type); }
+        u8* data() const override { return channelBuffData(mObj); }
+        u64 size() const override { return channelBuffSize(mObj); }
     };
 
 
@@ -109,8 +116,8 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() const override { return (u8*)mObj->data(); }
-        u64 size() const override { return mObj->size() * sizeof(typename  F::element_type::value_type); }
+        u8* data() const override { return channelBuffData(*mObj); }
+        u64 size() const override { return channelBuffSize(*mObj); }
     };
     
 
@@ -121,8 +128,8 @@ namespace osuCrypto {
         F mObj;
         MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
 
-        u8* data() const override { return (u8*)mObj->data(); }
-        u64 size() const override { return mObj->size() * sizeof(typename F::element_type::value_type); }
+        u8* data() const override { return channelBuffData(*mObj); }
+        u64 size() const override { return channelBuffSize(*mObj); }
     };
 
     template <typename F>
@@ -130,8 +137,8 @@ namespace osuCrypto {
         const F& mObj;
         ChannelBuffRef(const F& obj) : mObj(obj) {}
 
-        u8* data() const override { return (u8*)mObj.data(); }
-        u64 size() const override { return mObj.size() * sizeof(typename  F::value_type); }
+        u8* data() const override { return channelBuffData(mObj); }
+        u64 size() const override { return channelBuffSize(mObj); }
     };
 
     template <typename F>
@@ -141,12 +148,7 @@ namespace osuCrypto {
             ChannelBuffRef<F>(obj)
         {}
 
-        bool resize(u64 s) override
-        {
-            if (s % sizeof(typename  F::value_type)) return false;
-            ((F&)ChannelBuffRef<F>::mObj).resize(s / sizeof(typename  F::value_type));
-            return true;
-        }
+        bool resize(u64 s) override { return channelBuffResize((F&)ChannelBuffRef<F>::mObj, s); }
     };
 
 

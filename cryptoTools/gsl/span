@@ -337,7 +337,7 @@ class span
 public:
     // constants and types
     typedef ElementType value_type;
-    typedef std::ptrdiff_t size_type;
+    typedef std::size_t size_type;
 
     using element_type = ElementType;
     using index_type = std::ptrdiff_t;
@@ -504,7 +504,7 @@ public:
 
     // [span.obs], span observers
     constexpr index_type length() const GSL_NOEXCEPT { return size(); }
-    constexpr index_type size() const GSL_NOEXCEPT { return storage_.size(); }
+    constexpr size_type size() const GSL_NOEXCEPT { return storage_.size(); }
     constexpr index_type length_bytes() const GSL_NOEXCEPT { return size_bytes(); }
     constexpr index_type size_bytes() const GSL_NOEXCEPT { return size() * narrow_cast<index_type>(sizeof(element_type)); }
     constexpr bool empty() const GSL_NOEXCEPT { return size() == 0; }

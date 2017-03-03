@@ -131,30 +131,22 @@ namespace osuCrypto {
     std::ostream& operator<<(std::ostream& in, const BitVector& val);
 
 
-    template <>
-    struct ChannelBuffRef<BitVector> : ChannelBuffBase {
+    template<>
+    inline u8* channelBuffData<BitVector>(const BitVector& container)
+    {
+        return (u8*)container.data();
+    }
 
-        typedef BitVector F;
-        const F mObj;
+    template<>
+    inline BitVector::size_type channelBuffSize<BitVector>(const BitVector& container)
+    {
+        return container.sizeBytes();
+    }
 
-        ChannelBuffRef(const F& obj) : mObj(obj) {}
+    template<>
+    inline bool channelBuffResize<BitVector>(BitVector& container, u64 size)
+    {
+        return size == container.size();
+    }
 
-        u8* data() const override { return (u8*)mObj.data(); }
-        u64 size() const override { return mObj.sizeBytes() * sizeof(F::value_type); }
-
-    };
-
-    template <>
-    struct ResizableChannelBuffRef<BitVector> : ChannelBuffRef<BitVector> {
-
-        typedef BitVector F;
-        ResizableChannelBuffRef(F& obj) : ChannelBuffRef<F>(obj) {}
-
-        u8* data() const override { return (u8*)mObj.data(); }
-        u64 size() const override { return mObj.sizeBytes() * sizeof(F::value_type); }
-        bool resize(u64 s) override 
-        {
-            return mObj.sizeBytes() == s;
-        }
-    };
 }

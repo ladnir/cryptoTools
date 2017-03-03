@@ -199,6 +199,11 @@ namespace osuCrypto {
             close();
         }
 
+        Endpoint& mEndpoint;
+        std::string mRemoteName, mLocalName;
+        u64 mId;
+        Channel::Status mStatus;
+
         std::unique_ptr<boost::asio::ip::tcp::socket> mHandle;
         boost::asio::strand mSendStrand, mRecvStrand;
 
@@ -208,14 +213,10 @@ namespace osuCrypto {
 
         std::atomic<u8> mOpenCount;
         bool mRecvSocketSet, mSendSocketSet;
-        u64 mId;
-        u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
 
         std::string mErrorMessage;
-        Endpoint& mEndpoint;
-        std::string mRemoteName, mLocalName;
+        u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
 
-        Channel::Status mStatus;
         std::promise<u64> mSendQueueEmptyProm, mRecvQueueEmptyProm;
         std::future<u64> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
 
