@@ -5,6 +5,7 @@
 #include "tests_cryptoTools/BtChannel_Tests.h"
 #include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
+#include "tests_cryptoTools/Cuckoo_Tests.h"
 
 
 using namespace osuCrypto;
@@ -72,6 +73,12 @@ void Ecc_all()
 
 }
 
+void Cuckoo_all()
+{
+    std::cout << std::endl;
+    run("CuckooHasher_Test_Impl                  ", CuckooHasher_Test_Impl);
+    run("CuckooHasher_parallel_Test_Impl         ", CuckooHasher_parallel_Test_Impl);
+}
 
 void run_all()
 {
@@ -79,5 +86,5 @@ void run_all()
     NetWork_all();
     bitVec_all();
     Ecc_all();
-    //
+    Cuckoo_all();
 }

@@ -8,7 +8,6 @@
 #include <array>
 #include <random>
 
-#define CUCKOO_MAP_STASH_SIZE 8
 #define CUCKOO_MAP_THRESHOLD 128
 
 using std::vector;
@@ -35,7 +34,7 @@ CuckooMap<V>::CuckooMap(u64 n)
     : n(n), next_bin(0), elems(n)
 {
     if (n > CUCKOO_MAP_THRESHOLD) {
-        ch.reset(new CuckooHasher(CUCKOO_MAP_STASH_SIZE));
+        ch.reset(new CuckooHasher());
         ch->init(n, 40);
         std::random_device rd;
         aes.setKey(toBlock(rd(), rd()));
