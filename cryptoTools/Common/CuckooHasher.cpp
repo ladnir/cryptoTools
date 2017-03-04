@@ -116,7 +116,19 @@ namespace osuCrypto
 
         //std::cout << "Params: " << n << " " << std::log2(n) << std::endl;
 
-        if (n <= 1 << 7)
+        if (n <= 1 << 1)
+            mParams = k2n01s40CuckooParam;
+        else if (n <= u64(1) << 2)
+            mParams = k2n02s40CuckooParam;
+        else if (n <= u64(1) << 3)
+            mParams = k2n03s40CuckooParam;
+        else if (n <= u64(1) << 4)
+            mParams = k2n04s40CuckooParam;
+        else if (n <= u64(1) << 5)
+            mParams = k2n05s40CuckooParam;
+        else if (n <= u64(1) << 6)
+            mParams = k2n06s40CuckooParam;
+        else if (n <= u64(1) << 7)
             mParams = k2n07s40CuckooParam;
         else if (n <= u64(1) << 8)
             mParams = k2n08s40CuckooParam;

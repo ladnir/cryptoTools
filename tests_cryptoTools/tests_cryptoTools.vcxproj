@@ -74,6 +74,7 @@
     <ClInclude Include="Cuckoo_Tests.h" />
     <ClInclude Include="Ecc_Tests.h" />
     <ClInclude Include="Misc_Tests.h" />
+    <ClInclude Include="UnitTests.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AES_Tests.cpp" />
@@ -82,6 +83,7 @@
     <ClCompile Include="Cuckoo_Tests.cpp" />
     <ClCompile Include="Ecc_Tests.cpp" />
     <ClCompile Include="Misc_Tests.cpp" />
+    <ClCompile Include="UnitTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

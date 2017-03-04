@@ -186,6 +186,7 @@ namespace osuCrypto {
         {
             mType = (Type)0;
             mSize = 0; 
+            mIdx = 0;
             mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
             mBuffs[1] = boost::asio::mutable_buffer();
             mContainer = nullptr;
@@ -196,6 +197,7 @@ namespace osuCrypto {
         std::array<boost::asio::mutable_buffer,2> mBuffs;
         Type mType;
         u32 mSize;
+        u32 mIdx;
 
         ChannelBuffBase* mContainer;
         std::promise<u64>* mPromise;

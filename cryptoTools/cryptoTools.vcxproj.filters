@@ -143,4 +143,7 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="gsl\span" />
+  </ItemGroup>
 </Project>

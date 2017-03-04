@@ -1,5 +1,5 @@
 
-#include "UnitTests.h"
+#include "../tests_cryptoTools/UnitTests.h"
 #include "Tutorials/Network.h"
 
 #include <cryptoTools/Common/Matrix.h>
@@ -17,12 +17,8 @@ int main(int argc, char** argv)
 
 
     m[2][1];
-    //m.getView()(2, 1);
     m(2, 1);
 
-    run_all();
-
-    //networkTutorial();
-
+    tests_cryptoTools::tests_all();
 
 }

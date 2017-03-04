@@ -1,6 +1,8 @@
 
 
 
+namespace tests_cryptoTools
+{
 
 
     void BtNetwork_Connect1_Boost_Test();
@@ -19,3 +21,4 @@
     void BtNetwork_closeOnError_Test();
 
 
+}

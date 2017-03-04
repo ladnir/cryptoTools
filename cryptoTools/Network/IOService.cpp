@@ -22,7 +22,7 @@ namespace osuCrypto
         mIoService(),
         mWorker(new boost::asio::io_service::work(mIoService)),
         mStopped(false),
-        mPrint(false)
+        mPrint(true)
     {
 
 
@@ -59,7 +59,7 @@ namespace osuCrypto
     void IOService::stop()
     {
         //WaitCallback wait();
-        boost::asio::deadline_timer timer(mIoService, boost::posix_time::seconds(5));
+        //boost::asio::deadline_timer timer(mIoService, boost::posix_time::seconds(5));
         //timer.async_wait([&](boost::system::error_code ec) {
 
         //    if (!ec)
@@ -104,7 +104,7 @@ namespace osuCrypto
 
         }
 
-        timer.cancel();
+        //timer.cancel();
     }
 
     void IOService::printErrorMessages(bool v)
@@ -120,6 +120,9 @@ namespace osuCrypto
 
         IOOperation& op = channel->mRecvQueue.front();
 
+#ifdef CHANNEL_LOGGING
+        channel->mLog.push("starting recv #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
+#endif
         if (op.mType == IOOperation::Type::RecvData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
@@ -139,7 +142,7 @@ namespace osuCrypto
                         + "\nThis could be from the other end closing too early or the connection being dropped.";
                     
                     if(mPrint) std::cout << reason << std::endl;
-                    channel->setFatalError(reason);
+                    channel->setRecvFatalError(reason);
                     return;
                 }
 
@@ -186,7 +189,7 @@ namespace osuCrypto
                     {
                         auto reason = ("Network error: " + ec.message() +"\nOther end may have crashed. Received incomplete message. at " LOCATION);
                         if (mPrint) std::cout << reason << std::endl;
-                        channel->setFatalError(reason);
+                        channel->setRecvFatalError(reason);
                         return;
                     }
 
@@ -203,12 +206,14 @@ namespace osuCrypto
                     delete op.mPromise;
                     delete op.mContainer;
 
-                    channel->mRecvStrand.dispatch([channel, this]()
+                    channel->mRecvStrand.dispatch([channel, this, &op]()
                     {
                         ////////////////////////////////////////////////////////////////////////////////
                         //// This is within the stand. We have sequential access to the recv queue. ////
                         ////////////////////////////////////////////////////////////////////////////////
-
+#ifdef CHANNEL_LOGGING
+                        channel->mLog.push("completed recv #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
+#endif
                         channel->mRecvQueue.pop_front();
 
                         // is there more messages to recv?
@@ -258,9 +263,13 @@ namespace osuCrypto
         }
         else if (op.mType == IOOperation::Type::CloseRecv)
         {
+#ifdef CHANNEL_LOGGING
+            channel->mLog.push("recvClosed #" + ToString(op.mIdx));
+#endif
             auto prom = op.mPromise;
             channel->mRecvQueue.pop_front();
             prom->set_value(0);
+
         }
         else
         {
@@ -277,6 +286,9 @@ namespace osuCrypto
 
         IOOperation& op = socket->mSendQueue.front();
 
+#ifdef CHANNEL_LOGGING
+        socket->mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
+#endif
 
         if (op.mType == IOOperation::Type::SendData)
         {
@@ -294,7 +306,7 @@ namespace osuCrypto
                     auto reason  = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
                     if (mPrint) std::cout << reason << std::endl;
 
-                    socket->setFatalError(reason);
+                    socket->setSendFatalError(reason);
                     return;
                 }
 
@@ -312,7 +324,7 @@ namespace osuCrypto
 
                     if (mPrint) std::cout << reason << std::endl;
 
-                    socket->setFatalError(reason);
+                    socket->setSendFatalError(reason);
                     return;
                 }
 
@@ -328,11 +340,14 @@ namespace osuCrypto
 
                 delete op.mContainer;
 
-                socket->mSendStrand.dispatch([socket, this]()
+                socket->mSendStrand.dispatch([&op,socket, this]()
                 {
                     ////////////////////////////////////////////////////////////////////////////////
                     //// This is within the stand. We have sequential access to the send queue. ////
                     ////////////////////////////////////////////////////////////////////////////////
+#ifdef CHANNEL_LOGGING
+                    socket->mLog.push("completed send #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
+#endif
 
                     socket->mSendQueue.pop_front();
 
@@ -353,6 +368,9 @@ namespace osuCrypto
             // This is a special case which may happen if the channel calls stop() 
             // with async sends still queued up, we will get here after they get completes. fulfill the 
             // promise that all async send operations have been completed.
+#ifdef CHANNEL_LOGGING
+            socket->mLog.push("sendClosed #" + ToString(op.mIdx));
+#endif
             auto prom = op.mPromise;
             socket->mSendQueue.pop_front();
             prom->set_value(0);
@@ -366,6 +384,10 @@ namespace osuCrypto
 
     void IOService::dispatch(ChannelBase* socket, IOOperation& op)
     {
+#ifdef CHANNEL_LOGGING
+        op.mIdx = socket->mOpIdx++;
+#endif
+
         switch (op.mType)
         {
         case IOOperation::Type::RecvData:
@@ -376,7 +398,6 @@ namespace osuCrypto
             socket->mRecvStrand.post([this, socket, op]()
             {
                 // the queue must be guarded from concurrent access, so add the op within the strand
-
                 // queue up the operation.
                 socket->mRecvQueue.push_back(op);
 
@@ -384,7 +405,12 @@ namespace osuCrypto
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
                 bool startRecving = (socket->mRecvQueue.size() == 1) && (socket->mRecvSocketSet || op.mType == IOOperation::Type::CloseRecv);
 
-                //std::cout << " dis " << (op.mType == IOOperation::Type::RecvData ? "RecvData" : "CloseRecv") << "  " << startRecving << std::endl;
+#ifdef CHANNEL_LOGGING
+                if(op.mType == IOOperation::Type::RecvData)
+                    socket->mLog.push("queuing recv #"+ToString(op.mIdx )+ " " + ToString(socket->mRecvQueue.back().mIdx)+", size = " + ToString(op.mSize) + ", start = " + ToString(startRecving));
+                else
+                    socket->mLog.push("queuing recvClosing #" + ToString(op.mIdx) + ", start = " + ToString(startRecving));
+#endif
 
                 if (startRecving)
                 {
@@ -416,6 +442,13 @@ namespace osuCrypto
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
                 auto startSending = (socket->mSendQueue.size() == 1) && (socket->mSendSocketSet || op.mType == IOOperation::Type::CloseSend);
 
+#ifdef CHANNEL_LOGGING
+                if (op.mType == IOOperation::Type::SendData)
+                    socket->mLog.push("queuing send #" + ToString(op.mIdx) + " " + ToString(socket->mSendQueue.back().mIdx) +
+                        ", size = " + ToString(op.mSize) + ", start = " + ToString(startSending));
+                else
+                    socket->mLog.push("queuing sendClosing #" + ToString(op.mIdx) + ", start = " + ToString(startSending));
+#endif
                 if (startSending)
                 {
 
@@ -486,23 +519,29 @@ namespace osuCrypto
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         socket->mRecvStrand.post([this, socket]()
         {
-            // the queue must be guarded from concurrent access, so add the op within the strand
-            socket->mRecvSocketSet = true;
 
-            auto ii = ++socket->mOpenCount;
-            if (ii == 2) socket->mOpenProm.set_value();
+
+#ifdef CHANNEL_LOGGING
+            socket->mLog.push("initRecv , start = " + ToString(socket->mRecvQueue.size()));
+#endif
 
             // check to see if we should kick off a new set of recv operations. Since we are just now
             // starting the channel, its possible that the async connect call returned and the caller scheduled a receive 
             // operation. But since the channel handshake just finished, those operations didn't start. So if 
             // the queue has anything in it, we should actually start the operation now...
 
-            if (socket->mRecvQueue.size() && socket->mStatus == Channel::Status::Normal)
+            if (socket->mRecvQueue.size())
             {
                 // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
                 // will be kicked off at the completion of this operation.
                 receiveOne(socket);
             }
+
+
+            socket->mRecvSocketSet = true;
+
+            auto ii = ++socket->mOpenCount;
+            if (ii == 2) socket->mOpenProm.set_value();
         });
 
 
@@ -510,22 +549,28 @@ namespace osuCrypto
         socket->mSendStrand.post([this, socket]()
         {
             // the queue must be guarded from concurrent access, so add the op within the strand
-            socket->mSendSocketSet = true;
 
-            auto ii = ++socket->mOpenCount;
-            if (ii == 2) socket->mOpenProm.set_value();
-
+            auto start = socket->mSendQueue.size();
+#ifdef CHANNEL_LOGGING
+            socket->mLog.push("initSend , start = " + ToString(start) );
+#endif
             // check to see if we should kick off a new set of send operations. Since we are just now
             // starting the channel, its possible that the async connect call returned and the caller scheduled a send 
             // operation. But since the channel handshake just finished, those operations didn't start. So if 
             // the queue has anything in it, we should actually start the operation now...
 
-            if (socket->mSendQueue.size() && socket->mStatus == Channel::Status::Normal)
+            if (start)
             {
                 // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
                 // will be kicked off at the completion of this operation.
                 sendOne(socket);
             }
+
+            socket->mSendSocketSet = true;
+
+            auto ii = ++socket->mOpenCount;
+            if (ii == 2) socket->mOpenProm.set_value();
+
         });
     }
 

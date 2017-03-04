@@ -124,11 +124,13 @@ namespace osuCrypto {
             auto initialCallback = new std::function<void(const boost::system::error_code&)>();
             auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
 
-            *initialCallback = [&, base, timer, initialCallback, localName, remoteName](const boost::system::error_code& ec)
+            *initialCallback = 
+                [&, base, timer, initialCallback, localName, remoteName]
+                (const boost::system::error_code& ec)
             {
                 //std::cout << "Endpoint connect call back " << std::endl;
 
-                if (ec && base->mStatus != Channel::Status::Stopped && this->stopped() == false)
+                if (ec && base->stopped() == false && this->stopped() == false)
                 {
                     //std::cout << IoStream::lock << "        failed, retrying " << chl.mHandle.get() << std::endl << IoStream::unlock;
 
@@ -138,7 +140,7 @@ namespace osuCrypto {
                     // tell the io service to wait 10 ms and then try again...
                     timer->async_wait([&, base, timer, initialCallback](const boost::system::error_code& ec)
                     {
-                        if (base->mStatus != Channel::Status::Stopped)
+                        if (base->stopped() == false)
                         {
                             if (ec)
                             {
@@ -154,7 +156,7 @@ namespace osuCrypto {
                                 ss << val << std::endl;
 
                                 std::cout << ss.str() << std::flush;
-                                std::cout << "stopped: " << (base->mStatus == Channel::Status::Stopped) << " " << stopped() << std::endl;
+                                std::cout << "stopped: " << base->stopped() << " " << stopped() << std::endl;
 
                                 delete initialCallback;
                                 delete timer;
@@ -196,6 +198,10 @@ namespace osuCrypto {
                     op.mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
                     op.mContainer = (new MoveChannelBuff<ByteStream>(std::move(buff)));
 
+#ifdef CHANNEL_LOGGING
+                    op.mIdx = base->mOpIdx++;
+#endif
+
                     base->mSendStrand.post([this, base, op]()
                     {
                         base->mSendQueue.push_front(op);
@@ -204,6 +210,9 @@ namespace osuCrypto {
                         auto ii = ++base->mOpenCount;
                         if (ii == 2) base->mOpenProm.set_value();
 
+#ifdef CHANNEL_LOGGING
+                        base->mLog.push("initSend' #"+ToString(op.mIdx)+" , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
+#endif
                         getIOService().sendOne(base);
                     });
 
@@ -215,7 +224,12 @@ namespace osuCrypto {
                         auto ii = ++base->mOpenCount;
                         if (ii == 2) base->mOpenProm.set_value();
 
-                        if (base->mRecvQueue.size())
+                        auto startRecv = base->mRecvQueue.size() > 0;
+#ifdef CHANNEL_LOGGING
+                        base->mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
+#endif
+
+                        if (startRecv)
                         {
                             getIOService().receiveOne(base);
                         }
@@ -227,14 +241,22 @@ namespace osuCrypto {
                 else
                 {
                     std::stringstream ss;
-                    ss << "network error (init cb) \n  Location: " LOCATION "\n  message: "
+                    ss << "network error (init cb) " << (base) << "\n  Location: " LOCATION "\n  message: "
                         << ec.message() << "\n  value: " << ec.value() << std::endl;
 
-                    delete initialCallback;
-                    delete timer;
-
                     std::cout << ss.str() << std::flush;
-                    throw std::runtime_error(LOCATION);
+
+                    if (base->stopped() == false)
+                    {
+                        base->mHandle->async_connect(mRemoteAddr, *initialCallback);
+                    }
+                    else
+                    {
+                        std::cout << "stopping " << base  << "   " << base->mSendStatus << std::endl;
+                        delete initialCallback;
+                        delete timer;
+                        //throw std::runtime_error(LOCATION);
+                    }
                 }
             };
 

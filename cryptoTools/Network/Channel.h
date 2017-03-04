@@ -6,6 +6,7 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <future>
+#define CHANNEL_LOGGING
 
 namespace osuCrypto {
 
@@ -139,7 +140,7 @@ namespace osuCrypto {
 
 
         template <class Container>
-        typename std::enable_if_t<
+        typename std::enable_if_t< 
             is_container<Container>::value &&
             !has_resize<Container, void(typename Container::size_type)>::value, void>
             recv(Container & c)
@@ -190,6 +191,46 @@ namespace osuCrypto {
     };
 
 
+    inline std::ostream& operator<< (std::ostream& o,const Channel::Status& s)
+    {
+        switch (s)
+        {
+        case Channel::Status::Normal:
+            o << "Status::Normal";
+            break;
+        case Channel::Status::RecvSizeError:
+            o << "Status::RecvSizeError";
+            break;
+        case Channel::Status::FatalError:
+            o << "Status::FatalError";
+            break;
+        case Channel::Status::Stopped:
+            o << "Status::Stopped";
+            break;
+        default:
+            break;
+        }
+        return o;
+    }
+
+#ifdef CHANNEL_LOGGING
+    class ChannelLog
+    {
+    public:
+        std::vector<std::string> mMessages;
+        std::mutex mLock;
+
+        void push(const std::string& msg)
+        {
+            mLock.lock();
+            mMessages.emplace_back(msg);
+            mLock.unlock();
+        }
+
+
+    };
+#endif
+
     class ChannelBase
     {
     public:
@@ -202,9 +243,12 @@ namespace osuCrypto {
         Endpoint& mEndpoint;
         std::string mRemoteName, mLocalName;
         u64 mId;
-        Channel::Status mStatus;
 
+        Channel::Status mRecvStatus, mSendStatus;
         std::unique_ptr<boost::asio::ip::tcp::socket> mHandle;
+
+
+
         boost::asio::strand mSendStrand, mRecvStrand;
 
         std::deque<IOOperation> mSendQueue, mRecvQueue;
@@ -214,20 +258,31 @@ namespace osuCrypto {
         std::atomic<u8> mOpenCount;
         bool mRecvSocketSet, mSendSocketSet;
 
-        std::string mErrorMessage;
+        std::string mRecvErrorMessage, mSendErrorMessage;
         u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
 
         std::promise<u64> mSendQueueEmptyProm, mRecvQueueEmptyProm;
         std::future<u64> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
 
 
-        void setFatalError(std::string reason);
+        void setRecvFatalError(std::string reason);
+        void setSendFatalError(std::string reason);
+
         void setBadRecvErrorState(std::string reason);
         void clearBadRecvErrorState();
 
-        void cancelQueuedOperations();
+        void cancelRecvQueuedOperations();
+        void cancelSendQueuedOperations();
 
         void close();
+
+
+        bool stopped() { return mSendStatus == Channel::Status::Stopped; }
+
+#ifdef CHANNEL_LOGGING
+        std::atomic<u32> mOpIdx;
+        ChannelLog mLog;
+#endif
 
     };
 
@@ -235,7 +290,7 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::unique_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mBase->mStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
+        if (mBase->mSendStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         IOOperation op;
@@ -253,7 +308,7 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(std::shared_ptr<Container> c)
     {
         //asyncSend(std::move(*mH));
-        if (mBase->mStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
+        if (mBase->mSendStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         IOOperation op;
@@ -271,7 +326,7 @@ namespace osuCrypto {
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSend(Container && c)
     {
-        if (mBase->mStatus != Status::Normal || c.size() == 0 || c.size() > u32(-1))
+        if (mBase->mSendStatus != Status::Normal || c.size() == 0 || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
         IOOperation op;
@@ -291,7 +346,7 @@ namespace osuCrypto {
         !has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mBase->mStatus != Status::Normal)
+        if (mBase->mRecvStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
         IOOperation op;
@@ -321,7 +376,7 @@ namespace osuCrypto {
         has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
         Channel::asyncRecv(Container & c)
     {
-        if (mBase->mStatus != Status::Normal)
+        if (mBase->mRecvStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
         IOOperation op;

@@ -9,7 +9,7 @@
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 
-namespace osuCrypto_tests
+namespace tests_cryptoTools
 {
     TEST_CLASS(LocalChannel_Tests)
     {

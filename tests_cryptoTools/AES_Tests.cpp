@@ -11,9 +11,11 @@
 
 using namespace osuCrypto;
 
-//namespace osuCrypto_tests
+//namespace tests_cryptoTools
 //{
 
+namespace tests_cryptoTools
+{
 
     void AES_EncDec_Test()
     {
@@ -23,7 +25,7 @@ using namespace osuCrypto;
         AES encKey(userKey);
         AESDec decKey(userKey);
 
-        u64 length = 1<< 20;
+        u64 length = 1 << 20;
 
         std::vector<block> data(length);
         std::vector<block> cyphertext1(length);
@@ -62,4 +64,5 @@ using namespace osuCrypto;
     }
 
 
-//}
+    //}
+}
