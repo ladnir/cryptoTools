@@ -110,7 +110,7 @@ namespace osuCrypto
 
     }
 
-    void CuckooHasher::init(u64 n, u64 statSecParam, bool multiThreaded)
+    void CuckooHasher::init(u64 n, u64 statSecParam, bool multiThreaded, bool insecureNBins)
     {
         if (statSecParam != 40) throw std::runtime_error("not implemented");
 
@@ -159,7 +159,7 @@ namespace osuCrypto
 
         mHashesView = MatrixView<u64>(mHashes.begin(), mHashes.end(), mParams.mNumHashes);
 
-        u64 binCount = u64(mParams.mBinScaler * mParams.mN);
+        u64 binCount = u64(mParams.mBinScaler * (insecureNBins ? n : mParams.mN));
 
         mBins.resize(binCount);
         mStash.resize(mParams.mStashSize);
@@ -214,7 +214,7 @@ namespace osuCrypto
         while (remaining && tryCount++ < 100)
         {
 
-            // this data fetch can be slow (after the first loop). 
+            // this data fetch can be slow (after the first loop).
             // As such, lets do several fetches in parallel.
             for (u64 i = 0; i < remaining; ++i)
             {
@@ -248,9 +248,9 @@ namespace osuCrypto
 
             getIdx = putIdx + 1;
 
-            // Now we want an array that looks like 
-            //  |ABCD___________| but currently have 
-            //  |AB__Y_____Z____| so lets move them 
+            // Now we want an array that looks like
+            //  |ABCD___________| but currently have
+            //  |AB__Y_____Z____| so lets move them
             // forward and replace Y, Z with the values
             // they evicted.
             while (getIdx < remaining)
@@ -321,7 +321,7 @@ namespace osuCrypto
         if (inputIdx != u64(-1))
         {
 
-            // if idxItem is anything but -1, then we just exicted something. 
+            // if idxItem is anything but -1, then we just exicted something.
             if (numTries < 100)
             {
                 // lets try to insert it into its next location
