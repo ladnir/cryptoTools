@@ -5,6 +5,7 @@
 #include "tests_cryptoTools/BtChannel_Tests.h"
 #include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
+#include "tests_cryptoTools/Cuckoo_Tests.h"
 
 
 using namespace osuCrypto;
@@ -41,21 +42,13 @@ namespace tests_cryptoTools
         run("BtNetwork_Connect1_Boost_Test           ", BtNetwork_Connect1_Boost_Test);
         run("BtNetwork_OneMegabyteSend_Boost_Test    ", BtNetwork_OneMegabyteSend_Boost_Test);
         run("BtNetwork_ConnectMany_Boost_Test        ", BtNetwork_ConnectMany_Boost_Test);
-
         run("BtNetwork_CrossConnect_Test             ", BtNetwork_CrossConnect_Test);
-
-        for (u64 i = 0; i < 100; ++i)
-            run("BtNetwork_ManyEndpoints_Test            ", BtNetwork_ManyEndpoints_Test);
-
+        run("BtNetwork_ManyEndpoints_Test            ", BtNetwork_ManyEndpoints_Test);
         run("BtNetwork_bitVector_Test                ", BtNetwork_bitVector_Test);
-        for (u64 i = 0; i < 100; ++i)
-            run("BtNetwork_AsyncConnect_Boost_Test();    ", BtNetwork_AsyncConnect_Boost_Test);
-        for (u64 i = 0; i < 100; ++i)
-            run("BtNetwork_std_Containers_Test();        ", BtNetwork_std_Containers_Test);
-        for (u64 i = 0; i < 100; ++i)
-            run("BtNetwork_recvErrorHandler_Test();      ", BtNetwork_recvErrorHandler_Test);
-        for (u64 i = 0; i < 100; ++i)
-            run("BtNetwork_closeOnError_Test();          ", BtNetwork_closeOnError_Test);
+        run("BtNetwork_AsyncConnect_Boost_Test();    ", BtNetwork_AsyncConnect_Boost_Test);
+        run("BtNetwork_std_Containers_Test();        ", BtNetwork_std_Containers_Test);
+        run("BtNetwork_recvErrorHandler_Test();      ", BtNetwork_recvErrorHandler_Test);
+        run("BtNetwork_closeOnError_Test();          ", BtNetwork_closeOnError_Test);
     }
 
     void tests_bitVec_all()
@@ -68,6 +61,12 @@ namespace tests_cryptoTools
         run("BitVector_Parity                        ", BitVector_Parity_Test_Impl);
         run("BitVector_Append_Test                   ", BitVector_Append_Test_Impl);
         run("BitVector_Copy_Test                     ", BitVector_Copy_Test_Impl);
+
+        std::cout << std::endl;
+        run("CuckooHasher_many_Test_Impl             ", CuckooHasher_many_Test_Impl);
+        run("CuckooHasher_paramSweep_Test_Impl       ", CuckooHasher_paramSweep_Test_Impl);
+        run("CuckooHasher_parallel_Test_Impl         ", CuckooHasher_parallel_Test_Impl);
+        run("CuckooMap_Big_Test_Impl                  ", CuckooMap_Big_Test_Impl);
     }
 
 

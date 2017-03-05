@@ -3,7 +3,7 @@
 #include "cryptoTools/Common/Log.h"
 #include "cryptoTools/Common/BitVector.h"
 #include "cryptoTools/Common/ArrayView.h"
-#include "cryptoTools/Common/MatrixView.h"
+#include "cryptoTools/Common/Matrix.h"
 //#include <mutex>
 #include <atomic>
 
@@ -46,22 +46,38 @@ namespace osuCrypto
             u64 mVal;
 #endif
         };
-        struct Workspace
-        {
-            Workspace(u64 n)
-                : curAddrs(n)
-                , curHashIdxs(n)
-                , oldVals(n)
-                , findVal(n)
-            {}
 
-            std::vector<u64>
-                curAddrs,
-                curHashIdxs,
-                oldVals;
 
-            std::vector<std::array<u64, 2>> findVal;
-        };
+        void print() const;
+        
+        
+        void init(const u64& n, const u64& statSecParam, bool multiThreaded = 0);
+
+
+        // insert single index with pre hashed values with error checking
+        void insert(const u64& IdxItem, const block& hashes);
+
+        // insert several items with pre-hashed values with error checking
+        void insert(ArrayView<u64> itemIdxs, ArrayView<block> hashs);
+
+        // insert several items with pre-hashed values
+        void insert(const u64& numInserts, const u64* itemIdxs, const block* hashs);
+
+        // find a single item with pre-hashed values and error checking.
+        u64 find(const block& hash);
+
+        // find several items with pre hashed values, the indexes that are found are written to the idxs array. 
+        void find(ArrayView<block> hashes, ArrayView<u64> idxs);
+
+        // find several items with pre hashed values, the indexes that are found are written to the idxs array. 
+        void find(const u64& numItems, const  block* hashes, const u64* idxs);
+
+
+        std::vector<block> mHashes;
+
+        std::vector<Bin> mBins;
+        std::vector<Bin> mStash;
+
 
         u64 mTotalTries;
 
@@ -70,24 +86,11 @@ namespace osuCrypto
 
         CuckooParam mParams;
 
-        void print() const;
-        void init(u64 n, u64 statSecParam, bool multiThreaded = 0, bool insecureNBins = 0);
-        void insert(u64 IdxItem, ArrayView<u64> hashes);
-        void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
+    private:
+        u64 getHash(const u64& inputIdx, const u64& hashIdx);
+        u64 getHash(const block& hash, const u64& hashIdx);
 
-        void insertBatch(ArrayView<u64> itemIdxs, MatrixView<u64> hashs, Workspace& workspace);
-
-        u64 find(ArrayView<u64> hashes);
-        u64 findBatch(MatrixView<u64> hashes,
-            ArrayView<u64> idxs,
-            Workspace& wordkspace);
-
-
-        std::vector<u64> mHashes;
-        MatrixView<u64> mHashesView;
-
-        std::vector<Bin> mBins;
-        std::vector<Bin> mStash;
+        //void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
 
     };
 
