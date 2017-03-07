@@ -15,7 +15,7 @@ namespace tests_cryptoTools
         u64 stepSize = 18;
         u64 setSize = stepSize * base;
 
-        u64 h = 2;
+        //u64 h = 2;
         std::vector<block> hashes(setSize);
         PRNG prng(ZeroBlock);
 
@@ -119,7 +119,7 @@ namespace tests_cryptoTools
         u64 numThreads = 4;
         u64 step = 16;
         u64 setSize = u64(1) << 16;
-        u64 h = 2;
+        //u64 h = 2;
         CuckooIndex hashMap;
 
         hashMap.init(setSize, 40);

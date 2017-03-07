@@ -118,14 +118,14 @@ void cuckoo(u64 nn, u64 tt)
 
 int main(int argc, char** argv)
 {
-    for (auto p : { 16, 20, 24 })
-    {
-        for (auto t : { 1,4,16,64 })
-        {
-            auto n = 1 << p;
-            cuckoo(n, t);
-        }
-    }
+    //for (auto p : { 16, 20, 24 })
+    //{
+    //    for (auto t : { 1,4,16,64 })
+    //    {
+    //        auto n = 1 << p;
+    //        cuckoo(n, t);
+    //    }
+    //}
 
 
 
@@ -183,6 +183,7 @@ int main(int argc, char** argv)
         std::cout << "comm " << com.first << " " << com.second << "  " << diff(s, e) << std::endl;
     }
 */
-        //tests_cryptoTools::tests_all();
+       
+    tests_cryptoTools::tests_all();
 
 }

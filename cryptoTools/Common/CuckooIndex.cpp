@@ -192,7 +192,6 @@ namespace osuCrypto
 
         for (u64 step = 0; step < (sizeMaster + BATCH_SIZE - 1) / BATCH_SIZE; ++step)
         {
-            u64 width = mParams.mNumHashes;
             u64 size = std::min<u64>(sizeMaster - step * BATCH_SIZE, BATCH_SIZE);
             u64 remaining = size;
             u64 tryCount = 0;
@@ -202,7 +201,7 @@ namespace osuCrypto
 
             for (u64 i = 0; i < size; ++i)
             {
-
+                 
                 inputIdxs[i] = inputIdxsMaster[BATCH_SIZE * step + i];
 #ifndef NDEBUG
                 if (neq(mHashes[inputIdxs[i]], AllOneBlock))
