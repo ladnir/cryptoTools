@@ -1,8 +1,7 @@
 #include "Cuckoo_Tests.h"
 
 #include "Common.h"
-#include  "cryptoTools/Common/CuckooHasher.h"
-#include  "cryptoTools/Common/CuckooMap.h"
+#include  "cryptoTools/Common/CuckooIndex.h"
 
 #include  "cryptoTools/Common/Matrix.h"
 #include  "cryptoTools/Crypto/PRNG.h"
@@ -10,7 +9,7 @@ using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
-    void CuckooHasher_many_Test_Impl()
+    void CuckooIndex_many_Test_Impl()
     {
         u64 base = 200;
         u64 stepSize = 18;
@@ -25,11 +24,11 @@ namespace tests_cryptoTools
             hashes[i] = prng.get<block>();
         }
 
-        CuckooHasher hashMap0;
-        CuckooHasher hashMap1;
+        CuckooIndex hashMap0;
+        CuckooIndex hashMap1;
 
-        hashMap0.init(setSize, 40, true);
-        hashMap1.init(setSize, 40, true);
+        hashMap0.init(setSize, 40);
+        hashMap1.init(setSize, 40);
 
 
         for (u64 i = 0; i < base; ++i)
@@ -64,15 +63,6 @@ namespace tests_cryptoTools
                     throw UnitTestFail();
                 }
             }
-            //if (hashMap0 != hashMap1)
-            //{
-            //    std::cout << i << std::endl;
-
-            //    hashMap0.print();
-            //    hashMap1.print();
-
-            //    throw UnitTestFail();
-            //}
         }
 
         for (u64 i = 0; i < setSize; ++i)
@@ -90,13 +80,13 @@ namespace tests_cryptoTools
         }
     }
 
-    void CuckooHasher_paramSweep_Test_Impl()
+    void CuckooIndex_paramSweep_Test_Impl()
     {
         u64 maxPow = 16;
 
         for (u64 p = 0; p <= maxPow; ++p)
         {
-            u64 setSize = 1 << p;
+            u64 setSize = u64(1) << p;
             std::vector<block> hashes(setSize);
             std::vector<u64> idxs(setSize);
             PRNG prng(ZeroBlock);
@@ -107,8 +97,8 @@ namespace tests_cryptoTools
                 idxs[i] = i;
             }
 
-            CuckooHasher hashMap0;
-            hashMap0.init(setSize, 40, true);
+            CuckooIndex hashMap0;
+            hashMap0.init(setSize, 40);
             hashMap0.insert(idxs, hashes);
             hashMap0.find(hashes, idxs);
 
@@ -122,17 +112,17 @@ namespace tests_cryptoTools
         }
     }
 
-    void CuckooHasher_parallel_Test_Impl()
+    void CuckooIndex_parallel_Test_Impl()
     {
 #ifdef THREAD_SAFE_CUCKOO
 
         u64 numThreads = 4;
         u64 step = 16;
-        u64 setSize = 1 << 16;
+        u64 setSize = u64(1) << 16;
         u64 h = 2;
-        CuckooHasher hashMap;
+        CuckooIndex hashMap;
 
-        hashMap.init(setSize, 40, true);
+        hashMap.init(setSize, 40);
 
         std::vector<block> hashes(setSize);
         PRNG prng(ZeroBlock);
@@ -177,150 +167,5 @@ namespace tests_cryptoTools
 
     }
 
-    void CuckooMap_Big_Test_Impl()
-    {
 
-        u64 maxPow = 12;
-
-        for (u64 p = 0; p <= maxPow; ++p)
-        {
-            u64 n = 1 << p;
-
-            details::BigCuckooMap<u64, std::string> map(n);
-
-
-            for (u64 i = 0; i < n; ++i)
-            {
-                map.insert(i, ToString(i));
-            }
-
-            for (u64 j = 0; j < n; ++j)
-            {
-                auto ii = map.find(j);
-
-                if (!ii)
-                {
-                    throw UnitTestFail();
-                }
-                else
-                {
-                    auto ss = *ii;
-                    if (ss != ToString(j))
-                    {
-                        throw UnitTestFail();
-                    }
-                }
-            }
-        }
-    }
-
-    void CuckooMap_Small_Test_Impl()
-    {
-
-        u64 maxPow = 9;
-
-        for (u64 p = 0; p <= maxPow; ++p)
-        {
-            u64 n = 1 << p;
-
-            details::SmallCuckooMap<u64, std::string> map(n);
-
-
-            for (u64 i = 0; i < n; ++i)
-            {
-                map.insert(i, ToString(i));
-            }
-
-            for (u64 j = 0; j < n; ++j)
-            {
-                auto ii = map.find(j);
-
-                if (!ii)
-                {
-                    throw UnitTestFail();
-                }
-                else
-                {
-                    auto ss = *ii;
-                    if (ss != ToString(j))
-                    {
-                        throw UnitTestFail();
-                    }
-                }
-            }
-        }
-    }
-
-
-    void CuckooMap_Test_Impl()
-    {
-
-        u64 maxPow = 16;
-
-        for (u64 p = 0; p <= maxPow; p += 2)
-        {
-            u64 n = 1 << p;
-
-            CuckooMap2<u64, std::string> map(n);
-
-
-            for (u64 i = 0; i < n; ++i)
-            {
-                map.insert(i, ToString(i));
-            }
-
-            for (u64 j = 0; j < n; ++j)
-            {
-                auto ii = map.find(j);
-
-                if (!ii)
-                {
-                    throw UnitTestFail();
-                }
-                else
-                {
-                    auto ss = *ii;
-                    if (ss != ToString(j))
-                    {
-                        throw UnitTestFail();
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    void CuckooMap_old_Test_Impl()
-    {
-
-        u64 maxPow = 16;
-
-        for (u64 p = 0; p <= maxPow; p += 2)
-        {
-            u64 n = 1 << p;
-
-            CuckooMap<std::string> map(n);
-
-
-            for (u64 i = 0; i < n; ++i)
-            {
-                auto& ss = map[i];
-                if (ss != "")
-                    throw UnitTestFail();
-
-                map[i] = ToString(i);
-            }
-
-            for (u64 j = 0; j < n; ++j)
-            {
-                auto ii = map[j];
-
-                if (ii != ToString(j))
-                {
-                    throw UnitTestFail();
-                }
-            }
-        }
-    }
 }

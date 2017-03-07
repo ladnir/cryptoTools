@@ -63,10 +63,10 @@ namespace tests_cryptoTools
         run("BitVector_Copy_Test                     ", BitVector_Copy_Test_Impl);
 
         std::cout << std::endl;
-        run("CuckooHasher_many_Test_Impl             ", CuckooHasher_many_Test_Impl);
-        run("CuckooHasher_paramSweep_Test_Impl       ", CuckooHasher_paramSweep_Test_Impl);
-        run("CuckooHasher_parallel_Test_Impl         ", CuckooHasher_parallel_Test_Impl);
-        run("CuckooMap_Big_Test_Impl                  ", CuckooMap_Big_Test_Impl);
+        run("CuckooIndex_many_Test_Impl             ", CuckooIndex_many_Test_Impl);
+        run("CuckooIndex_paramSweep_Test_Impl       ", CuckooIndex_paramSweep_Test_Impl);
+        run("CuckooIndex_parallel_Test_Impl         ", CuckooIndex_parallel_Test_Impl);
+        //run("CuckooMap_Test_Impl                  ", CuckooMap_Test_Impl);
     }
 
 

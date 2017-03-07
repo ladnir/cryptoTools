@@ -1,19 +1,22 @@
 
 #include "../tests_cryptoTools/UnitTests.h"
 #include "Tutorials/Network.h"
-
+#include "cryptoTools/Network/Channel.h"
+#include "cryptoTools/Network/IOService.h"
 #include <cryptoTools/Common/Matrix.h>
+#include "cryptoTools/Common/CuckooIndex.h"
 using namespace osuCrypto;
-#include <cryptoTools/Common/CuckooMap.h>
 #include <sstream>
 
+
+
 template<typename T>
-std::string diff(T prior, T latter)
+std::string diff(T prior, T latter, i64 digits = 3)
 {
     std::stringstream out;
     namespace sc = std::chrono;
-    auto diff = sc::duration_cast<sc::microseconds>(latter - prior).count();
-
+    out << sc::duration_cast<sc::milliseconds>(latter - prior).count();
+/*
     auto const usecs = diff % 1000;
     diff /= 1000;
     auto const msecs = diff % 1000;
@@ -26,118 +29,160 @@ std::string diff(T prior, T latter)
     diff /= 24;
     auto const days = diff;
 
+
     bool printed_earlier = false;
     if (days >= 1) {
         printed_earlier = true;
         out << days << "d ";
+        persion -= std::log10(days);
     }
-    else if (hours >= 1) {
+    
+    if (persion > 0 && hours >= 1) {
         printed_earlier = true;
         out << hours << "h ";
+
+        persion -= std::log10(hours);
     }
-    else if (mins >= 1) {
+    
+    if (persion > 0 && mins >= 1) {
         printed_earlier = true;
         out << mins << "m ";
+        persion -= std::log10(mins);
     }
-    else if (secs >= 1) {
+    
+    
+    if (persion > 0 && secs >= 1) {
         printed_earlier = true;
         out << secs << "s ";
+        persion -= std::log10(secs);
     }
-    else if (msecs >= 1) {
+    
+    if (persion > 0 && msecs >= 1) {
         printed_earlier = true;
         out << msecs << "ms ";
-    }
-    else /*if (usecs >= 1)*/ {
-        printed_earlier = true;
-        out << usecs << "us ";
+        persion -= std::log10(msecs);
     }
 
+    if (persion > 0 ) {
+        printed_earlier = true;
+        out << usecs << "us ";
+        persion -= std::log10(usecs);
+    }
+*/
     return out.str();
 }
 
 
 
+void cuckoo(u64 nn, u64 tt)
+{
+    CuckooIndex ci;
+    ci.init(nn, 40);
+    std::vector<u64> idx(nn);
+    std::vector<block> hashes(nn);
+    PRNG prng(ZeroBlock);
+    
+
+    Timer t;
+    auto s = t.setTimePoint("s");
+    prng.mAes.ecbEncCounterMode(0, nn, hashes.data());
+    for (u64 i = 0; i < nn; ++i)
+    {
+        idx[i] = i;
+    }
+
+    std::vector<std::thread> thrds(tt);
+    for (u64 t = 0; t < tt; ++t)
+    {
+        thrds[t] = std::thread([&,t]()
+        {
+            auto s = nn * t / tt;
+            auto e = nn * (t+1) / tt;
+            ArrayView<u64> range(idx.data() + s, idx.data() + e);
+            ArrayView<block> rangeh(hashes.data() + s, hashes.data() + e);
+
+            ci.insert(range, rangeh);
+        });
+    }
+    for (u64 t = 0; t < tt; ++t)
+    {
+        thrds[t].join();
+    }
+
+    auto e = t.setTimePoint("s");
+
+
+    std::cout << "n" << nn << "  t" << tt <<"  "<< diff(s, e) << std::endl;
+}
+
+
 int main(int argc, char** argv)
 {
+    for (auto p : { 16, 20, 24 })
     {
-
-        u64 maxPow = 32;
-        PRNG prng(ZeroBlock);
-        for (u64 p = 0; p <= maxPow; ++p)
+        for (auto t : { 1,4,16,64 })
         {
-            u64 n = 1 << p;
-
-            std::vector<u64> idx(n);
-            std::vector<block> h(n);
-            prng.get(h.data(), h.size());
-            //std::vector<std::string> ss(n);
-            //std::vector<Optional<u64&>> f(n);
-            for (u64 i = 0; i < n; ++i)
-            {
-                idx[i] = i;
-            }
-
-            Timer t;
-            auto s = t.setTimePoint("s");
-            {
-                details::BigCuckooMap<u64, u64> map(n);
-                map.insert(idx, idx);
-                //map.find(idx, f);
-            }
-            auto e = t.setTimePoint("e");
-
-            //auto s2 = t.setTimePoint("s");
-            ////{
-            ////    details::SmallCuckooMap<u64, u64> map(n);
-            ////    map.insert(idx, idx);
-            ////    map.find(idx, f);
-            ////}
-            //auto e2 = t.setTimePoint("e");
-
-
-            auto s3 = t.setTimePoint("s");
-            {
-                //CuckooMap2<u64, u64> map(n);
-                CuckooHasher map;
-                map.init(n, 40);
-
-                map.insert(idx, h);
-                //map.find(idx, f);
-            }
-            auto e3 = t.setTimePoint("e");
-
-
-
-
-            auto s4 = t.setTimePoint("s");
-            {
-                //CuckooMap2<u64, u64> map(n);
-
-                CuckooHasher map;
-                map.init(n, 40);
-
-                for (u64 i = 0; i < n; ++i)
-                    map.insert(idx[i], h[i]);
-
-                //for (u64 i = 0; i < n; ++i)
-                //    map.find(idx[i]);
-            }
-
-            auto e4 = t.setTimePoint("e");
-
-            //auto tb = (e - s).count();
-            //auto ts = (e2 - s2).count();
-            auto tc = (e3 - s3).count();
-            auto td = (e4 - s4).count();
-
-            auto tBig = diff(s, e);
-            //auto tSmall = diff(s2, e2);
-            auto tC = diff(s3, e3);
-            auto tD = diff(s4, e4);
-            std::cout << "Big " << n << "  " << tBig << "  "/* << tSmall << "  "*/ << tC << "  " << tD /*<< "  " << (ts < tb ? "small" : "big") */ << std::endl;
-
+            auto n = 1 << p;
+            cuckoo(n, t);
         }
     }
-    //tests_cryptoTools::tests_all();
+
+
+
+/*
+    IOService ios;
+    Endpoint ep0(ios, "localhost", EpMode::Server, "s");
+    Endpoint ep1(ios, "localhost", EpMode::Client, "s");
+
+    Channel c0 = ep0.addChannel("c");
+    Channel c1 = ep1.addChannel("c");
+
+    std::vector<std::pair<double, double>> comms
+    {
+        {6804 ,9216  },
+        {7935 ,4608  },
+        {3402 ,9216  },
+        {1890 ,18432 },
+        {3016 ,18432 },
+        {750  ,8704  },
+        {1250 ,4352  },
+        {464  ,9216  },
+        {928  ,4608  },
+        {1856 ,2304  },
+        {3712 ,1152  },
+        {232  ,2304  },
+        {464  ,1152  },
+        {928  ,576   }
+
+    };
+
+
+
+    std::vector<u8> data(18432 * 1024);
+
+
+
+
+
+
+
+    c0.send(data.data(), 1);
+    c1.recv(data.data(), 1);
+
+
+    for (auto com : comms)
+    {
+        Timer t;
+        auto s = t.setTimePoint("s");
+        c0.asyncSend(data.data(), com.first * 1024);
+        c1.recv(data.data(), com.first * 1024);
+        c0.asyncSend(data.data(), com.second * 1024);
+        c1.recv(data.data(), com.second * 1024);
+        auto e = t.setTimePoint("e");
+
+        std::cout << "comm " << com.first << " " << com.second << "  " << diff(s, e) << std::endl;
+    }
+*/
+        //tests_cryptoTools::tests_all();
 
 }

@@ -14,42 +14,22 @@ namespace tests_cryptoTools
     {
     public:
 
-        TEST_METHOD(CuckooHasher_many_Test)
+        TEST_METHOD(CuckooIndex_many_Test)
         {
             InitDebugPrinting();
-            CuckooHasher_many_Test_Impl();
+            CuckooIndex_many_Test_Impl();
         }
         
-        TEST_METHOD(CuckooHasher_paramSweep_Test)
+        TEST_METHOD(CuckooIndex_paramSweep_Test)
         {
             InitDebugPrinting();
-            CuckooHasher_paramSweep_Test_Impl();
+            CuckooIndex_paramSweep_Test_Impl();
         }
 
-        TEST_METHOD(CuckooHasher_parallel_Test)
+        TEST_METHOD(CuckooIndex_parallel_Test)
         {
             InitDebugPrinting();
-            CuckooHasher_parallel_Test_Impl();
-        }
-        TEST_METHOD(CuckooMap_Big_Test)
-        {
-            InitDebugPrinting();
-            CuckooMap_Big_Test_Impl();
-        }
-        TEST_METHOD(CuckooMap_Small_Test)
-        {
-            InitDebugPrinting();
-            CuckooMap_Small_Test_Impl();
-        }        
-        TEST_METHOD(CuckooMap_Test)
-        {
-            InitDebugPrinting();
-            CuckooMap_Test_Impl();
-        }       
-        TEST_METHOD(CuckooMap_old_Test)
-        {
-            InitDebugPrinting();
-            CuckooMap_old_Test_Impl();
+            CuckooIndex_parallel_Test_Impl();
         }
 
     };
