@@ -49,8 +49,8 @@ namespace osuCrypto
 
 
         void print() const;
-        
-        
+
+
         void init(const u64& n, const u64& statSecParam);
         void init(const CuckooParam& params);
 
@@ -66,10 +66,10 @@ namespace osuCrypto
         // find a single item with pre-hashed values and error checking.
         u64 find(const block& hash);
 
-        // find several items with pre hashed values, the indexes that are found are written to the idxs array. 
+        // find several items with pre hashed values, the indexes that are found are written to the idxs array.
         void find(ArrayView<block> hashes, ArrayView<u64> idxs);
 
-        // find several items with pre hashed values, the indexes that are found are written to the idxs array. 
+        // find several items with pre hashed values, the indexes that are found are written to the idxs array.
         void find(const u64& numItems, const  block* hashes, const u64* idxs);
 
 
@@ -86,9 +86,9 @@ namespace osuCrypto
 
         CuckooParam mParams;
 
-    private:
         u64 getHash(const u64& inputIdx, const u64& hashIdx);
-        u64 getHash(const block& hash, const u64& hashIdx);
+
+        static u64 getHash(const block& hash, const u64& hashIdx, u64 num_bins);
 
         //void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
 

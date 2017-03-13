@@ -201,7 +201,7 @@ namespace osuCrypto
 
             for (u64 i = 0; i < size; ++i)
             {
-                 
+
                 inputIdxs[i] = inputIdxsMaster[BATCH_SIZE * step + i];
 #ifndef NDEBUG
                 if (neq(mHashes[inputIdxs[i]], AllOneBlock))
@@ -299,13 +299,13 @@ namespace osuCrypto
 
     u64 CuckooIndex::getHash(const u64& inputIdx, const u64& hashIdx)
     {
-        return getHash(mHashes[inputIdx], hashIdx);
+        return CuckooIndex::getHash(mHashes[inputIdx], hashIdx, mBins.size());
     }
 
-    u64 CuckooIndex::getHash(const block& hash, const u64& hashIdx)
+    u64 CuckooIndex::getHash(const block& hash, const u64& hashIdx, u64 num_bins)
     {
         // use the hash index as the byte offset into the block, then cast as u64 and return.
-        return *(u64*)(((u8*)&hash) + hashIdx) % mBins.size();
+        return *(u64*)(((u8*)&hash) + hashIdx) % num_bins;
     }
 //
 //    void CuckooIndex::insertHelper(const u64& inputIdx, const u64& hashIdx, u64 numTries)
@@ -353,7 +353,7 @@ namespace osuCrypto
 //                // put in stash
 //                for (u64 i = 0; inputIdx != u64(-1); ++i)
 //                {
-//                    if (i >= mStash.size()) 
+//                    if (i >= mStash.size())
 //                        throw std::runtime_error(LOCATION);
 //                    mStash[i].swap(inputIdx, hashIdx);
 //                }
@@ -370,8 +370,8 @@ namespace osuCrypto
         if (mParams.mNumHashes == 2)
         {
             std::array<u64, 2>  addr{
-                getHash(hashes, 0),
-                getHash(hashes, 1) };
+                getHash(hashes, 0, mBins.size()),
+                getHash(hashes, 1, mBins.size()) };
 
 #ifdef THREAD_SAFE_CUCKOO
             std::array<u64, 2> val{
@@ -433,7 +433,7 @@ namespace osuCrypto
 
             for (u64 i = 0; i < mParams.mNumHashes; ++i)
             {
-                u64 xrHashVal = getHash(hashes, i);
+                u64 xrHashVal = getHash(hashes, i, mBins.size());
                 auto addr = (xrHashVal) % mBins.size();
 
 
@@ -520,8 +520,8 @@ namespace osuCrypto
                 {
                     idxs[i] = -1;
 
-                    addr[0] = getHash(hashes[i], 0);
-                    addr[1] = getHash(hashes[i], 1);
+                    addr[0] = getHash(hashes[i], 0, mBins.size());
+                    addr[1] = getHash(hashes[i], 1, mBins.size());
 
 #ifdef THREAD_SAFE_CUCKOO
                     findVal[i][0] = mBins[addr[0]].mVal.load(std::memory_order::memory_order_relaxed);
