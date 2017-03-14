@@ -113,46 +113,51 @@ namespace osuCrypto
 
     }
 
-    void CuckooIndex::init(const u64& n, const u64& statSecParam)
+    const CuckooParam& CuckooIndex::selectParams(const u64& n, const u64& statSecParam)
     {
         if (statSecParam != 40) throw std::runtime_error("not implemented");
 
         if (n <= 1 << 1)
-            init(k2n01s40CuckooParam);
+            return k2n01s40CuckooParam;
         else if (n <= u64(1) << 2)
-            init(k2n02s40CuckooParam);
+            return k2n02s40CuckooParam;
         else if (n <= u64(1) << 3)
-            init(k2n03s40CuckooParam);
+            return k2n03s40CuckooParam;
         else if (n <= u64(1) << 4)
-            init(k2n04s40CuckooParam);
+            return k2n04s40CuckooParam;
         else if (n <= u64(1) << 5)
-            init(k2n05s40CuckooParam);
+            return k2n05s40CuckooParam;
         else if (n <= u64(1) << 6)
-            init(k2n06s40CuckooParam);
+            return k2n06s40CuckooParam;
         else if (n <= u64(1) << 7)
-            init(k2n07s40CuckooParam);
+            return k2n07s40CuckooParam;
         else if (n <= u64(1) << 8)
-            init(k2n08s40CuckooParam);
+            return k2n08s40CuckooParam;
         else if (n <= u64(1) << 12)
-            init(k2n12s40CuckooParam);
+            return k2n12s40CuckooParam;
         else if (n <= u64(1) << 16)
-            init(k2n16s40CuckooParam);
+            return k2n16s40CuckooParam;
         else if (n <= u64(1) << 20)
-            init(k2n20s40CuckooParam);
+            return k2n20s40CuckooParam;
         else if (n <= u64(1) << 24)
-            init(k2n24s40CuckooParam);
+            return k2n24s40CuckooParam;
         else if (n <= u64(1) << 28)
-            init(k2n28s40CuckooParam);
+            return k2n28s40CuckooParam;
         else if (n <= u64(1) << 30)
-            init(k2n30s40CuckooParam);
+            return k2n30s40CuckooParam;
         else if (n <= u64(1) << 32)
-            init(k2n32s40CuckooParam);
+            return k2n32s40CuckooParam;
         else
         {
             std::cout << "Failed to find cuckoo parameters large enough  " << n << " " << std::log2(n) << "\n" LOCATION << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
             throw std::runtime_error("not implemented " LOCATION);
         }
+    }
+
+    void CuckooIndex::init(const u64& n, const u64& statSecParam)
+    {
+        init(selectParams(n, statSecParam));
     }
 
     void CuckooIndex::init(const CuckooParam & params)
@@ -372,6 +377,9 @@ namespace osuCrypto
             std::array<u64, 2>  addr{
                 getHash(hashes, 0, mBins.size()),
                 getHash(hashes, 1, mBins.size()) };
+
+            std::cout << addr[0] << std::endl;
+            std::cout << addr[1] << std::endl;
 
 #ifdef THREAD_SAFE_CUCKOO
             std::array<u64, 2> val{
