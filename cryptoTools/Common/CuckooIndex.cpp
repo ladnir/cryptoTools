@@ -378,9 +378,6 @@ namespace osuCrypto
                 getHash(hashes, 0, mBins.size()),
                 getHash(hashes, 1, mBins.size()) };
 
-            std::cout << addr[0] << std::endl;
-            std::cout << addr[1] << std::endl;
-
 #ifdef THREAD_SAFE_CUCKOO
             std::array<u64, 2> val{
                 mBins[addr[0]].mVal.load(std::memory_order::memory_order_relaxed),
