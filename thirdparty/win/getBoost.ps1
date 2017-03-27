@@ -49,4 +49,6 @@ if(!(Test-Path "$PWD\b2.exe"))
 
 cd ..
 
-rm $destination
+If (Test-Path $destination){
+	Remove-Item $destination
+}
