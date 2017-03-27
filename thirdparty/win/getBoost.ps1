@@ -1,6 +1,8 @@
-﻿$uri = 'https://sourceforge.net/projects/boost/files/boost/1.60.0/boost_1_60_0.zip/download'
+﻿$ErrorActionPreference = "Stop"
 
-$destination = "$PWD\boost_1_60_0.zip" 
+$uri = 'https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.zip/download'
+
+$destination = "$PWD\boost_1_63_0.zip" 
 
 
 if(!(Test-Path "$PWD\boost"))
@@ -25,13 +27,13 @@ if(!(Test-Path "$PWD\boost"))
     }
 
 
-    Write-Host 'Extracting boost_1_60_0.zip to ' $PWD '. This will take a bit... So be patient.'
+    Write-Host 'Extracting '$destination' to ' $PWD '. This will take a bit... So be patient.'
 
 
     Add-Type -assembly “system.io.compression.filesystem”
     [io.compression.zipfile]::ExtractToDirectory($destination, $PWD)
 
-    mv "$PWD\boost_1_60_0" "$PWD\boost"
+    mv "$PWD\boost_1_63_0" "$PWD\boost"
 }
 
 cd "$PWD\boost"
