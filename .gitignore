@@ -6,9 +6,14 @@
 *.user
 *.sln.docstates
 
+
 CMakeFiles/*
-cmake_install.cmake
-Makefile
+*/CMakeFiles/*
+*cmake_install.cmake
+
+CMakeCache.txt
+*/CMakeCache.txt
+
 
 # Build results
 [Dd]ebug/

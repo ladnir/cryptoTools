@@ -11,7 +11,7 @@ else()
 	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
-	#add_definitions(-DSOLUTION_DIR=\"${CMAKE_SOURCE_DIR}\")
+	
 	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
@@ -41,20 +41,7 @@ else()
 	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb -rdynamic")
 	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb -rdynamic")
 	
-	#############################################
-	#       Library/includes locations          #
-	#############################################
-
-	# default location for miracl
-	set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/miracl/")
-	include_directories("${Miracl_Dirs}") 
-	link_directories("${Miracl_Dirs}/miracl/source/")
-	install(FILES "${Miracl_Dirs}/miracl/source/libmiracl.a" DESTINATION lib)
-
-	# default location for Boost
-	set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/linux/boost/")
-
-
+	
 endif() 
 
 
