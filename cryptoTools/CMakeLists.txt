@@ -94,7 +94,7 @@ target_link_libraries(cryptoTools ${MIRACL_LIB})
 ## Boost
 ###########################################################################
 
-set(BOOST_ROOT "${CMAKE_HOME_DIRECTORY}/cryptoTools/thirdparty/linux/boost/")
+set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
