@@ -42,9 +42,6 @@
     <ClInclude Include="Common\MatrixView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\mpsc_queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -85,6 +82,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\CuckooIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ThreadBarrier.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

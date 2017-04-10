@@ -16,6 +16,7 @@ namespace osuCrypto {
         void Update(const block& blk);
 
         void Final(u8* DataOut);
+        void Final(block& out);
         const SHA1& operator=(const SHA1& src);
 
     private:

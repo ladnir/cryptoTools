@@ -221,6 +221,17 @@ namespace osuCrypto
         memcpy(DataOut, state.data(), sizeof(u32) * 5);
         //mSha.Final(DataOut);
     }
+
+    void SHA1::Final(block&  dataOut)
+    {
+        if (idx)
+            sha1_compress(state.data(), buffer.data());
+
+        idx = 0;
+
+        dataOut = *(block*)state.data();
+    }
+
     const SHA1& SHA1::operator=(const SHA1& src)
     {
         state = src.state;

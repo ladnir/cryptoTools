@@ -85,7 +85,7 @@
     <ClInclude Include="Common\Finally.h" />
     <ClInclude Include="Common\Log.h" />
     <ClInclude Include="Common\MatrixView.h" />
-    <ClInclude Include="Common\mpsc_queue.h" />
+    <ClInclude Include="Common\ThreadBarrier.h" />
     <ClInclude Include="Common\Matrix.h" />
     <ClInclude Include="Common\Timer.h" />
     <ClInclude Include="Crypto\AES.h" />
