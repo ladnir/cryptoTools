@@ -27,6 +27,8 @@
 #include <stdint.h>
 #include <string>
 
+
+
 //#define NO_INTEL_ASM_SHA1
 extern "C" void sha1_update_intel(int *hash, const char* input);
 void sha1_compress(uint32_t state[5], const uint8_t block[64])
@@ -169,6 +171,9 @@ void sha1_compress(uint32_t state[5], const uint8_t block[64])
 }
 namespace osuCrypto
 {
+    const u64    SHA1::HashSize;
+
+
     SHA1::SHA1() { Reset(); }
     void SHA1::Reset()
     {
