@@ -8,7 +8,7 @@ namespace osuCrypto {
     class SHA1
     {
     public:
-        static const u64 HashSize = 20;
+        static const unsigned long long HashSize = 20;
         SHA1();
 
         void Reset();
