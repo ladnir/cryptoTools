@@ -17,7 +17,7 @@ namespace osuCrypto
         {
         }
 
-        void decremenetWait()
+        void decrementWait()
         {
             if (--mCount)
             {
@@ -32,7 +32,7 @@ namespace osuCrypto
 
         ThreadBarrier& operator--()
         {
-            decremenetWait();
+            decrementWait();
             return *this;
         }
 
