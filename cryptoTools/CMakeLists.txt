@@ -91,6 +91,15 @@ target_include_directories(cryptoTools PUBLIC "${Miracl_Dirs}")
 target_link_libraries(cryptoTools ${MIRACL_LIB})
 
 
+INSTALL(DIRECTORY "${Miracl_Dirs}/miracl/include/" DESTINATION include)
+INSTALL(FILES ${MIRACL_LIB} DESTINATION lib)
+
+#copy miracl to the lib directory for others to use/find
+#file(COPY ${MIRACL_LIB}  DESTINATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
+#file(GLOB_RECURSE miracl_headers "${Miracl_Dirs}/miracl/include/*.h")
+#file(COPY ${miracl_headers}  DESTINATION "${CMAKE_SOURCE_DIR}/include/")
+#MESSAGE(STATUS  " headers ${miracl_headers}")
+
 ## Boost
 ###########################################################################
 
@@ -106,9 +115,19 @@ if(NOT Boost_FOUND)
     message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
+
+#MESSAGE(STATUS "boost ---  ${Boost_LIBRARIES}")
 #include_directories(${Boost_INCLUDE_DIR}) 
 
 target_include_directories(cryptoTools PUBLIC ${Boost_INCLUDE_DIR}) 
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})
 
-message(STATUS "Boost_LIBS ${Boost_LIBRARIES}" )
+
+IF(INSTALL_BOOST)
+	INSTALL(DIRECTORY "${Boost_INCLUDE_DIR}/boost" DESTINATION include)
+	INSTALL(FILES ${Boost_LIBRARIES} DESTINATION lib)
+ENDIF(INSTALL_BOOST)
+
+#file(COPY ${Boost_LIBRARIES}  DESTINATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
+#FILE(COPY "${Boost_INCLUDE_DIR}/boost" DESTINATION "${CMAKE_SOURCE_DIR}/include/boost")
+message(STATUS "Boost_include  ${Boost_INCLUDE_DIR}" )

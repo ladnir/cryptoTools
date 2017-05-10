@@ -223,6 +223,11 @@ namespace osuCrypto {
             else
             {
                 //std::cout << "asyncGetSocket aquired socket " << tag << std::endl;
+				if (iter->second.first == nullptr)
+				{
+					std::cout << "netowrking error: channel " << tag << " already exists.";
+					std::terminate();
+				}
 
                 chl.mHandle.reset(iter->second.first);
                 chl.mRecvSocketSet = true;
