@@ -141,6 +141,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="gsl\span" />
+    <None Include="Network\gsl\span" />
+    <None Include="cryptoToolsconfig.cmake" />
   </ItemGroup>
 </Project>

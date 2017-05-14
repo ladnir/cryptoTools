@@ -128,7 +128,8 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="gsl\span" />
+    <None Include="cryptoToolsconfig.cmake" />
+    <None Include="Network\gsl\span" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

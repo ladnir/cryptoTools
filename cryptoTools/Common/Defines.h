@@ -24,10 +24,10 @@
 #define __STR2__(x) #x
 #define __STR1__(x) __STR2__(x)
 #define TODO(x) __pragma(message (__FILE__ ":"__STR1__(__LINE__) " Warning:TODO - " #x))
-#define ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
+#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
 #else
 #define TODO(x)
-#define ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
+#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
 #endif
 
 #define STRINGIZE_DETAIL(x) #x
