@@ -116,7 +116,7 @@ void networkTutorial()
     //        chl0.send(...);
     //
     // blocks until all of the data has been sent over the network. If data 
-    // is large, or if we send amny things, then this may take awhile.
+    // is large, or if we send many things, then this may take awhile.
 
 
 
@@ -297,7 +297,7 @@ void networkTutorial()
 	}
 
 	// If your Socket type does not have these methods a custom adapter
-	// will be required. The tamplate SocketAdapter<T> implements the 
+	// will be required. The template SocketAdapter<T> implements the 
 	// interface SocketInterface in the <cryptoTools/Network/SocketAdapter.h>
 	// file. You will also have to define a class that inherits the 
 	// SocketInterface class and implements:
@@ -326,20 +326,18 @@ void networkTutorial()
 
 
     /*#####################################################
-    ##                   Clean up                        ##
+    ##               OPTIONAL: Clean up                  ##
     #####################################################*/
 
 
-    // close everything down in this order. Must be done.
+    // close everything down in this order. 
     chl0.close();
     chl1.close();
 
     server.stop();
     client.stop();
 
-
     ios.stop();
-
 }
 
 
