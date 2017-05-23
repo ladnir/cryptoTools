@@ -187,7 +187,7 @@ namespace tests_cryptoTools
 
         std::thread serverThrd = std::thread([&]()
         {
-            IOService ioService(1);
+            IOService ioService;
             setThreadName("Test_client");
 
             Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
@@ -227,7 +227,7 @@ namespace tests_cryptoTools
             //std::cout << "server done" << std::endl;
         });
 
-        IOService ioService(1);
+        IOService ioService;
 
         Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
 
@@ -702,4 +702,37 @@ namespace tests_cryptoTools
         }
 
     }
+	 
+	void BtNetwork_SocketInterface_Test()
+	{
+		std::string channelName{ "TestChannel" }, msg{ "This is the message" };
+		IOService ioService;
+
+		ioService.printErrorMessages(false);
+
+		Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+		Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+
+		auto chl1 = ep1.addChannel(channelName, channelName);
+		auto chl2 = ep2.addChannel(channelName, channelName);
+		
+		//////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////
+		
+
+		Channel ichl1(ioService, new SocketAdapter<Channel>(chl1));
+		Channel ichl2(ioService, new SocketAdapter<Channel>(chl2));
+
+
+		ichl1.asyncSendCopy(msg);
+
+		std::string msg2;
+		ichl2.recv(msg2);
+
+		if (msg != msg2)
+		{
+			throw UnitTestFail(LOCATION);
+		}
+
+	}
 }

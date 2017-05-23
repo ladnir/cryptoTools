@@ -17,7 +17,6 @@ namespace osuCrypto {
     class ChannelBuffer;
 
 
-
     template<typename, typename T>
     struct has_resize {
         static_assert(
@@ -49,6 +48,8 @@ namespace osuCrypto {
 
 
 
+
+
     /// type trait that defines what is considered a STL like Container
     /// 
     /// Must have the following member types:  pointer, size_type, value_type
@@ -67,7 +68,8 @@ namespace osuCrypto {
         std::is_pod<typename Container::value_type>::value>
         ,
         void>;
-    
+   
+
 
     template<typename T>
     inline u8* channelBuffData(const T& container)

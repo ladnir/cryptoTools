@@ -2,6 +2,7 @@
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/ByteStream.h>
@@ -16,13 +17,18 @@ namespace osuCrypto {
         mBase(new ChannelBase(endpoint, localName, remoteName))
     {}
 
+	Channel::Channel(IOService& ios, SocketInterface * sock)
+		: mBase(new ChannelBase(ios, sock))
+	{}
+
 
     ChannelBase::ChannelBase(
         Endpoint& endpoint,
         std::string localName,
         std::string remoteName)
         :
-        mEndpoint(endpoint),
+		mIos(endpoint.getIOService()),
+        mEndpoint(&endpoint),
         mRemoteName(remoteName),
         mLocalName(localName),
         mId(0),
@@ -45,8 +51,34 @@ namespace osuCrypto {
         , mOpIdx(0)
 #endif
     {
-
     }
+
+	ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
+		:
+		mIos(ios),
+		mEndpoint(nullptr),
+		mId(0),
+		mRecvStatus(Channel::Status::Normal),
+		mSendStatus(Channel::Status::Normal),
+		mHandle(sock),
+		mSendStrand(ios.mIoService),
+		mRecvStrand(ios.mIoService),
+		mOpenProm(),
+		mOpenFut(mOpenProm.get_future()),
+		mOpenCount(0),
+		mRecvSocketSet(true),
+		mSendSocketSet(true),
+		mOutstandingSendData(0),
+		mMaxOutstandingSendData(0),
+		mTotalSentData(0),
+		mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+		mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
+#ifdef CHANNEL_LOGGING
+		, mOpIdx(0)
+#endif
+	{
+		mOpenProm.set_value();
+	}
 
     Channel::~Channel()
     {
@@ -54,7 +86,7 @@ namespace osuCrypto {
 
     Endpoint & Channel::getEndpoint()
     {
-        return mBase->mEndpoint;
+        return *mBase->mEndpoint;
     }
 
     std::string Channel::getName() const
@@ -86,7 +118,7 @@ namespace osuCrypto {
 
         op.mType = IOOperation::Type::SendData;
 
-        mBase->mEndpoint.getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), op);
     }
 
     void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
@@ -121,7 +153,7 @@ namespace osuCrypto {
         std::promise<u64> prom;
         op.mPromise = &prom;
 
-        mBase->mEndpoint.getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), op);
 
         prom.get_future().get();
     }
@@ -143,12 +175,12 @@ namespace osuCrypto {
         op.mPromise = new std::promise<u64>();
         auto future = op.mPromise->get_future();
 
-        mBase->mEndpoint.getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), op);
 
         return future;
     }
 
-    u64 Channel::recv(void * dest, u64 length)
+    void Channel::recv(void * dest, u64 length)
     {
         try {
             // schedule the recv.
@@ -156,7 +188,7 @@ namespace osuCrypto {
 
             // block until the receive has been completed. 
             // Could throw if the length is wrong.
-            return request.get();
+            request.get();
         }
         catch (BadReceiveBufferSize& bad)
         {
@@ -201,7 +233,7 @@ namespace osuCrypto {
                 IOOperation closeSend;
                 closeSend.mType = IOOperation::Type::CloseSend;
                 closeSend.mPromise = &mSendQueueEmptyProm;
-                mEndpoint.getIOService().dispatch(this, closeSend);
+                getIOService().dispatch(this, closeSend);
             }
             
             mSendQueueEmptyFuture.get();
@@ -219,7 +251,7 @@ namespace osuCrypto {
                 IOOperation closeRecv;
                 closeRecv.mType = IOOperation::Type::CloseRecv;
                 closeRecv.mPromise = &mRecvQueueEmptyProm;
-                mEndpoint.getIOService().dispatch(this, closeRecv);
+                getIOService().dispatch(this, closeRecv);
             }
             else if (mRecvStatus == Channel::Status::RecvSizeError)
             {
@@ -233,9 +265,9 @@ namespace osuCrypto {
         // ok, the send and recv queues are empty. Lets close the socket
         if (mHandle)
         {
-            mEndpoint.removeChannel(this);
+            if (mEndpoint) mEndpoint->removeChannel(this);
             mHandle->close();
-            mHandle = nullptr;
+            mHandle.reset(nullptr);
         }
 
 #ifdef CHANNEL_LOGGING
@@ -377,7 +409,7 @@ namespace osuCrypto {
 
     void Channel::dispatch(IOOperation & op)
     {
-        mBase->mEndpoint.getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), op);
     }
 
     void ChannelBase::setRecvFatalError(std::string reason)

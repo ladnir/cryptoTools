@@ -6,6 +6,7 @@
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/SocketAdapter.h>
 
 #include <stdio.h>
 #include <algorithm>
@@ -127,8 +128,10 @@ namespace osuCrypto
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
-            boost::asio::async_read(*channel->mHandle,
-                std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[0] },
+			std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[0] };
+            //boost::asio::async_read(*,
+			channel->mHandle->async_recv(
+                tt,
                 [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
             {
                 //////////////////////////////////////////////////////////////////////////
@@ -240,12 +243,14 @@ namespace osuCrypto
 
                         op.mBuffs[1] = boost::asio::buffer(dest, op.mSize);
 
-                        boost::system::error_code ec;
+						bool error;
+						u64 bytesTransfered;
 
-                        auto ss  = boost::asio::read(*channel->mHandle,
-                            std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, ec);
+						std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+						channel->mHandle->recv(tt, error, bytesTransfered);
+						auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
 
-                        recvMain(ec, ss);
+                        recvMain(ec, bytesTransfered);
                     }));
 
                     op.mPromise->set_exception(e_ptr);
@@ -254,8 +259,11 @@ namespace osuCrypto
                 }
                 else
                 {
-                    boost::asio::async_read(*channel->mHandle,
-                        std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, recvMain);
+					std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+					channel->mHandle->async_recv(tt, recvMain);
+
+                    //boost::asio::async_read(*channel->mHandle,
+                    //    std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, recvMain);
                 }
 
 
@@ -294,7 +302,8 @@ namespace osuCrypto
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, 4);
 
-            boost::asio::async_write(*socket->mHandle, op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
+			socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
+				//boost::asio::async_write(
             {
                 //////////////////////////////////////////////////////////////////////////
                 //// This is *** NOT *** within the stand. Dont touch the send queue! ////
@@ -541,7 +550,8 @@ namespace osuCrypto
             socket->mRecvSocketSet = true;
 
             auto ii = ++socket->mOpenCount;
-            if (ii == 2) socket->mOpenProm.set_value();
+            if (ii == 2)
+				socket->mOpenProm.set_value();
         });
 
 
@@ -569,7 +579,8 @@ namespace osuCrypto
             socket->mSendSocketSet = true;
 
             auto ii = ++socket->mOpenCount;
-            if (ii == 2) socket->mOpenProm.set_value();
+            if (ii == 2) 
+				socket->mOpenProm.set_value();
 
         });
     }

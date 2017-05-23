@@ -98,6 +98,7 @@
     <ClInclude Include="Network\Endpoint.h" />
     <ClInclude Include="Network\IOService.h" />
     <ClInclude Include="Network\IoBuffer.h" />
+    <ClInclude Include="Network\SocketAdapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp" />

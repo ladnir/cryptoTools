@@ -39,7 +39,8 @@ namespace tests_cryptoTools
     {
 
         std::cout << std::endl;
-        run("BtNetwork_Connect1_Boost_Test           ", BtNetwork_Connect1_Boost_Test);
+		run("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
+		run("BtNetwork_Connect1_Boost_Test           ", BtNetwork_Connect1_Boost_Test);
         run("BtNetwork_OneMegabyteSend_Boost_Test    ", BtNetwork_OneMegabyteSend_Boost_Test);
         run("BtNetwork_ConnectMany_Boost_Test        ", BtNetwork_ConnectMany_Boost_Test);
         run("BtNetwork_CrossConnect_Test             ", BtNetwork_CrossConnect_Test);

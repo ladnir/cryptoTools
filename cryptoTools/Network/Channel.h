@@ -2,11 +2,12 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 
 #include <cryptoTools/Common/Defines.h>
-#include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Common/ArrayView.h>
+#include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <future>
-#define CHANNEL_LOGGING
+//#define CHANNEL_LOGGING
 
 namespace osuCrypto {
 
@@ -18,13 +19,16 @@ namespace osuCrypto {
     class Endpoint;
     class Endpoint;
     class ChannelBase;
+	class SocketInterface;
+	class BoostSocketInterface;
 
     class Channel
     {
         friend class IOService;
-    public:
-
+		friend class Endpoint;
         Channel(Endpoint& endpoint, std::string localName, std::string remoteName);
+    public:
+		Channel(IOService& ios, SocketInterface* sock);
         Channel(Channel && move) = default;
         Channel(const Channel & copy) = default;
         Channel() = default;
@@ -150,7 +154,7 @@ namespace osuCrypto {
 
         /// <summary>Synchronous call to receive data over the network.
         /// WARNING: will through if received message length does not match.</summary>
-        u64 recv(void * dest, u64 length);
+        void recv(void * dest, u64 length);
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
         bool isConnected();
@@ -234,18 +238,20 @@ namespace osuCrypto {
     class ChannelBase
     {
     public:
-        ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
+		ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
+		ChannelBase(IOService& ios, SocketInterface* sock);
         ~ChannelBase()
         {
             close();
         }
 
-        Endpoint& mEndpoint;
+		IOService& mIos;
+        Endpoint* mEndpoint;
         std::string mRemoteName, mLocalName;
         u64 mId;
 
         Channel::Status mRecvStatus, mSendStatus;
-        std::unique_ptr<boost::asio::ip::tcp::socket> mHandle;
+		std::unique_ptr<SocketInterface> mHandle;
 
 
 
@@ -275,7 +281,7 @@ namespace osuCrypto {
         void cancelSendQueuedOperations();
 
         void close();
-
+		IOService& getIOService() { return mIos; }
 
         bool stopped() { return mSendStatus == Channel::Status::Stopped; }
 
@@ -395,23 +401,6 @@ namespace osuCrypto {
 
         return future;
     }
-
-    //template <class Container>
-    //typename std::enable_if_t<
-    //    is_resizable_container<Container>::value, void>
-    //    Channel::recv(Container & c)
-    //{
-    //    asyncRecv(c).get();
-    //}
-
-    //template <class Container>
-    //typename std::enable_if_t<
-    //    is_container<Container>::value &&
-    //    !is_resizable_container<Container>::value, void>
-    //    Channel::recv(Container & c)
-    //{
-    //    asyncRecv(c).get();
-    //}
 
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::send(const Container & buf)

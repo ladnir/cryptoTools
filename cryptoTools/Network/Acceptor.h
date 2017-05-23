@@ -14,6 +14,7 @@ namespace osuCrypto {
     class ChannelBase;
     class IOService;
     struct IOOperation;
+	class BoostSocketInterface;
 
     class Acceptor
     {
@@ -34,13 +35,13 @@ namespace osuCrypto {
 
         std::atomic<bool> mStopped;
         std::mutex mSocketChannelPairsMtx;
-        std::unordered_map<std::string, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>> mSocketChannelPairs;
+        std::unordered_map<std::string, std::pair<BoostSocketInterface*, ChannelBase*>> mSocketChannelPairs;
 
         void asyncSetSocket(
             std::string endpointName,
             std::string localChannelName,
             std::string remoteChannelName,
-            boost::asio::ip::tcp::socket* handel);
+			BoostSocketInterface* handel);
 
         void asyncGetSocket(ChannelBase& chl);
 

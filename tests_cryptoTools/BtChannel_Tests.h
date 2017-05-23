@@ -21,4 +21,6 @@ namespace tests_cryptoTools
     void BtNetwork_closeOnError_Test();
 
 
+	void BtNetwork_SocketInterface_Test();
+
 }

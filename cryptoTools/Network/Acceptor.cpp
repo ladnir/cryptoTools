@@ -1,6 +1,7 @@
 #include <cryptoTools/Network/Acceptor.h>
 #include <cryptoTools/Network/IOService.h>
 #include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/ByteStream.h>
@@ -73,8 +74,8 @@ namespace osuCrypto {
         {
 
 
-            boost::asio::ip::tcp::socket* newSocket = new boost::asio::ip::tcp::socket(mIOService.mIoService);
-            mHandle.async_accept(*newSocket, [newSocket, this](const boost::system::error_code& ec)
+            BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
+            mHandle.async_accept(newSocket->mSock, [newSocket, this](const boost::system::error_code& ec)
             {
                 start();
 
@@ -86,7 +87,7 @@ namespace osuCrypto {
                     buff->setp(buff->capacity());
 
                     boost::asio::ip::tcp::no_delay option(true);
-                    newSocket->set_option(option);
+                    newSocket->mSock.set_option(option);
 
                     //boost::asio::socket_base::receive_buffer_size option2(262144);
                     //newSocket->mHandle.set_option(option2);
@@ -99,7 +100,7 @@ namespace osuCrypto {
                     //newSocket->mHandle.get_option(option3);
                     //std::cout << option3.value() << std::endl;
 
-                    newSocket->async_receive(boost::asio::buffer(buff->data(), buff->size()),
+                    newSocket->mSock.async_receive(boost::asio::buffer(buff->data(), buff->size()),
                         [newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
                     {
                         if (!ec2 && bytesTransferred == 4)
@@ -112,7 +113,7 @@ namespace osuCrypto {
                             buff->reserve(size);
                             buff->setp(size);
 
-                            newSocket->async_receive(boost::asio::buffer(buff->data(), buff->size()),
+                            newSocket->mSock.async_receive(boost::asio::buffer(buff->data(), buff->size()),
                                 [newSocket, buff, size, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
                             {
                                 if (!ec3 && bytesTransferred2 == size)
@@ -120,7 +121,7 @@ namespace osuCrypto {
                                     // lets split it into pieces.
                                     auto str = std::string((char*)buff->data(), buff->size());
 
-                                    //std::cout << "async_accept new connection name: "<<str << std::endl;
+                                    //std::cout << IoStream::lock << "async_accept new connection name: "<<str << std::endl << IoStream::unlock;
 
 
                                     auto names = split(str, '`');
@@ -139,7 +140,7 @@ namespace osuCrypto {
 
                                     std::cout << "async_accept error, failed to receive first header on connection handshake."
                                         << " Other party may have closed the connection. "
-                                        << (bool(ec3) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
+                                        << ((ec3 != 0) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
 
                                     delete newSocket;
                                 }
@@ -152,7 +153,7 @@ namespace osuCrypto {
                         {
                             std::cout << "async_accept error, failed to receive first header on connection handshake."
                                 << " Other party may have closed the connection. "
-                                << (bool(ec2) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+                                << ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
 
                             delete newSocket;
                             delete buff;
@@ -162,7 +163,7 @@ namespace osuCrypto {
                 }
                 else
                 {
-                    //std::cout << "async_accept failed with error_code:" << ec.message() << std::endl;
+                    //std::cout << IoStream::lock<< "async_accept failed with error_code:" << ec.message() << std::endl << IoStream::unlock;
                     delete newSocket;
                 }
             });
@@ -206,30 +207,31 @@ namespace osuCrypto {
 
     void Acceptor::asyncGetSocket(ChannelBase & chl)
     {
-        std::string tag = chl.mEndpoint.getName() + ":" + chl.mLocalName+ ":" + chl.mRemoteName;
+        std::string tag = chl.mEndpoint->getName() + ":" + chl.mLocalName+ ":" + chl.mRemoteName;
 
         {
             //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
             mSocketChannelPairsMtx.lock();
-
+			 
             auto iter = mSocketChannelPairs.find(tag);
 
             if (iter == mSocketChannelPairs.end())
             {
 
-                //std::cout << "asyncGetSocket waiting on socket " << tag << std::endl;
-                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>(nullptr, &chl));
+                //std::cout << IoStream::lock << "asyncGetSocket waiting on socket " << tag << std::endl << IoStream::unlock;
+                mSocketChannelPairs.emplace(tag, std::pair<BoostSocketInterface*, ChannelBase*>(nullptr, &chl));
             }
             else
             {
-                //std::cout << "asyncGetSocket aquired socket " << tag << std::endl;
+               // std::cout <<IoStream::lock << "asyncGetSocket aquired socket " << tag << std::endl << IoStream::unlock;
 				if (iter->second.first == nullptr)
 				{
 					std::cout << "netowrking error: channel " << tag << " already exists.";
 					std::terminate();
 				}
 
-                chl.mHandle.reset(iter->second.first);
+				chl.mHandle.reset(iter->second.first);
+
                 chl.mRecvSocketSet = true;
                 chl.mSendSocketSet = true;
                 chl.mOpenProm.set_value();
@@ -290,7 +292,7 @@ namespace osuCrypto {
         std::string endpointName,
         std::string localChannelName,
         std::string remoteChannelName,
-        boost::asio::ip::tcp::socket* sock)
+		BoostSocketInterface* sock)
     {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
@@ -303,7 +305,7 @@ namespace osuCrypto {
             if (iter == mSocketChannelPairs.end())
             {
                 //std::cout << "asyncSetSocket created socket " << tag << std::endl;
-                mSocketChannelPairs.emplace(tag, std::pair<boost::asio::ip::tcp::socket*, ChannelBase*>(sock, nullptr));
+                mSocketChannelPairs.emplace(tag, std::pair<BoostSocketInterface*, ChannelBase*>(sock, nullptr));
             }
             else
             {
@@ -311,7 +313,7 @@ namespace osuCrypto {
                 if (iter->second.second == nullptr)
                 {
                     boost::system::error_code ec;
-                    sock->close(ec);
+                    sock->mSock.close(ec);
 
 
                     if (ec)
@@ -322,7 +324,8 @@ namespace osuCrypto {
                 else
                 {
                     iter->second.second->mHandle.reset(sock);
-                    mIOService.startSocket(iter->second.second);
+
+					mIOService.startSocket(iter->second.second);
                 }
 
                 mSocketChannelPairs.erase(iter);

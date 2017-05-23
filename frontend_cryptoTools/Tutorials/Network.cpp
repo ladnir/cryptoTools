@@ -6,6 +6,7 @@
 
 using namespace osuCrypto;
 
+
 void networkTutorial()
 {
     std::cout << "\n"
@@ -259,6 +260,55 @@ void networkTutorial()
     }
 
 
+	/*#####################################################
+	##              Using your own socket                ##
+	#####################################################*/
+
+	// It is also possible to use your own socket implementation
+	// with Channel. There are two methods for doing this. First, 
+	// the osuCrypto::SocketAdapter<T> class can be used with your 
+	// socket and then provided to a Channel with an osuCrypto::IOService
+	//
+	// SocketAdapter<T> requires that T implements
+	//
+	//    void send(const char* data, u64 size);
+	//    void recv(      char* data, u64 size);
+	//
+	// Or a signature that is convertable from those parameter.
+
+	{
+		// Lets say you have a socket type that implements send(...),
+		// recv(...) and that is called YourSocketType
+		typedef Channel YourSocketType;
+
+		// Assuming your socket meets these rquirements, then a Channel 
+		// can be constructed as follows. These Channels will function
+		// equivolently to the original ones. 
+		//
+		// WARNING: The lifetime of the SocketAdapter<T> is managed by 
+		//	        the Channel.
+		Channel aChl0(ios, new SocketAdapter<YourSocketType>(chl0));
+		Channel aChl1(ios, new SocketAdapter<YourSocketType>(chl1));
+
+		// We can now use the new channels
+		std::array<int, 4> data{ 0,1,2,3 };
+		aChl0.send(data);
+		aChl1.recv(data);
+	}
+
+	// If your Socket type does not have these methods a custom adapter
+	// will be required. The tamplate SocketAdapter<T> implements the 
+	// interface SocketInterface in the <cryptoTools/Network/SocketAdapter.h>
+	// file. You will also have to define a class that inherits the 
+	// SocketInterface class and implements:
+	//
+	//    void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
+	//    void recv(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
+	//    
+	// For an example on how to implement these functions, see the 
+	// defintion of SocketAdapter<T> in <cryptoTools/Network/SocketAdapter.h>
+
+
     /*#####################################################
     ##                   Statistics                      ##
     #####################################################*/
@@ -291,3 +341,5 @@ void networkTutorial()
     ios.stop();
 
 }
+
+

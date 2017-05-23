@@ -75,6 +75,12 @@ namespace tests_cryptoTools
             InitDebugPrinting();
             BtNetwork_bitVector_Test();
         }
+
+		TEST_METHOD(BtNetwork_SocketInterface_TestVS)
+		{
+			InitDebugPrinting();
+			BtNetwork_SocketInterface_Test();
+		}
     };
 }
 #endif

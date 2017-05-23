@@ -87,6 +87,9 @@
     <ClInclude Include="Common\ThreadBarrier.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Network\SocketAdapter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp">

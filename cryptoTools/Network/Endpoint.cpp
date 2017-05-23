@@ -2,6 +2,7 @@
 #include <cryptoTools/Network/IOService.h>
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Acceptor.h>
+#include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
@@ -111,7 +112,9 @@ namespace osuCrypto {
         }
         else
         {
-            base->mHandle.reset(new boost::asio::ip::tcp::socket(getIOService().mIoService));
+			auto sock = new BoostSocketInterface(getIOService().mIoService);
+            base->mHandle.reset(sock);
+
             //std::cout << IoStream::lock << "new socket: " << chl.mHandle.get() << std::endl << IoStream::unlock;
 
 
@@ -119,26 +122,26 @@ namespace osuCrypto {
 
             boost::system::error_code ec;
 
-            //std::cout << "Endpoint connect " << mName << " " << localName << " " << remoteName << std::endl;
+            //std::cout << IoStream::lock << "Endpoint connect " << mName << " " << localName << " " << remoteName << std::endl << IoStream::unlock;
 
             auto initialCallback = new std::function<void(const boost::system::error_code&)>();
             auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
 
             *initialCallback = 
-                [&, base, timer, initialCallback, localName, remoteName]
+                [&, base, timer, initialCallback, localName, remoteName, sock]
                 (const boost::system::error_code& ec)
             {
-                //std::cout << "Endpoint connect call back " << std::endl;
+                //std::cout << IoStream::lock << "Endpoint connect call back " << std::endl << IoStream::unlock;
 
                 if (ec && base->stopped() == false && this->stopped() == false)
                 {
-                    //std::cout << IoStream::lock << "        failed, retrying " << chl.mHandle.get() << std::endl << IoStream::unlock;
+                    //std::cout << IoStream::lock << "        failed, retrying " << localName << std::endl << IoStream::unlock;
 
                     //auto t = new boost::asio::deadline_timer (getIOService().mIoService, boost::posix_time::milliseconds(10));
 
 
                     // tell the io service to wait 10 ms and then try again...
-                    timer->async_wait([&, base, timer, initialCallback](const boost::system::error_code& ec)
+                    timer->async_wait([&, base, timer, initialCallback, sock](const boost::system::error_code& ec)
                     {
                         if (base->stopped() == false)
                         {
@@ -165,28 +168,29 @@ namespace osuCrypto {
                             else
                             {
 
-                                //std::cout << "        failed, retrying'" << std::endl;
+                                //std::cout << IoStream::lock << "        failed, retrying' " << localName << std::endl << IoStream::unlock;
 
                                 ////boost::asio::async_connect()
 
                                 //std::cout << IoStream::lock << "connect cb handle: " << chl.mHandle.get() << std::endl << IoStream::unlock;
                                 //std::cout << IoStream::lock << "initialCallback! = " << initialCallback << std::endl << IoStream::unlock;
 
-                                base->mHandle->async_connect(mRemoteAddr, *initialCallback);
+								sock->mSock.async_connect(mRemoteAddr, *initialCallback);
                             }
                         }
                     });
                 }
                 else if (!ec)
                 {
-                    //std::cout << "        connected" << std::endl;
+                    //std::cout << IoStream::lock << "        connected "<< localName  << std::endl << IoStream::unlock;
 
                     boost::asio::ip::tcp::no_delay option(true);
-                    base->mHandle->set_option(option);
+					sock->mSock.set_option(option);
 
 
                     std::stringstream ss;
                     ss << mName << char('`') << localName << char('`') << remoteName;
+					//std::cout <<IoStream::lock << "sending " << ss.str() <<std::endl << IoStream::unlock;
 
                     auto str = ss.str();
 
@@ -248,7 +252,7 @@ namespace osuCrypto {
 
                     if (base->stopped() == false)
                     {
-                        base->mHandle->async_connect(mRemoteAddr, *initialCallback);
+						sock->mSock.async_connect(mRemoteAddr, *initialCallback);
                     }
                     else
                     {
@@ -262,7 +266,7 @@ namespace osuCrypto {
 
 
             //std::cout << IoStream::lock << "initialCallback = " << initialCallback << std::endl << IoStream::unlock;
-            base->mHandle->async_connect(mRemoteAddr, *initialCallback);
+			sock->mSock.async_connect(mRemoteAddr, *initialCallback);
         }
 
         return (chl);
