@@ -51,7 +51,7 @@ namespace osuCrypto
         void print() const;
 
 
-        void init(const u64& n, const u64& statSecParam, bool noStash = true);
+        void init(const u64& n, const u64& statSecParam, bool noStash = false);
         void init(const CuckooParam& params);
 
         static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash);
