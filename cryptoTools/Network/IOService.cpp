@@ -206,6 +206,9 @@ namespace osuCrypto
                     if (op.mPromise)
                         op.mPromise->set_value(channel->mId);
 
+                    if (op.mCallback)
+                        op.mCallback();
+
                     delete op.mPromise;
                     delete op.mContainer;
 

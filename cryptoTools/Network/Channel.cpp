@@ -157,8 +157,9 @@ namespace osuCrypto {
 
         prom.get_future().get();
     }
+ 
 
-    std::future<u64> Channel::asyncRecv(void * buff, u64 size)
+    std::future<u64> Channel::asyncRecv(void * buff, u64 size, std::function<void()> fn)
     {
         if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
@@ -171,7 +172,7 @@ namespace osuCrypto {
         op.mType = IOOperation::Type::RecvData;
 
         op.mContainer = nullptr;
-
+        op.mCallback = fn;
         op.mPromise = new std::promise<u64>();
         auto future = op.mPromise->get_future();
 

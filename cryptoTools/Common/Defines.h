@@ -20,19 +20,20 @@
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 
-#ifdef _MSC_VER
-#define __STR2__(x) #x
-#define __STR1__(x) __STR2__(x)
-#define TODO(x) __pragma(message (__FILE__ ":"__STR1__(__LINE__) " Warning:TODO - " #x))
-#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
-#else
-#define TODO(x)
-#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
-#endif
-
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
+
+#ifdef _MSC_VER
+#define TODO(x) __pragma(message (__FILE__ ":"STRINGIZE(__LINE__) " Warning:TODO - " #x))
+#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
+#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __pragma(loop( ivdep )) 
+#else
+#define TODO(x)
+#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
+#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __attribute__((optimize("unroll-loops")))
+#endif
+
 #include <cryptoTools/gsl/span>
 #include <cryptoTools/gsl/multi_span>
 

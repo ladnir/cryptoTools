@@ -108,9 +108,8 @@ namespace osuCrypto {
             send(const Container& buf);
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
-        /// WARNING: return value will through if received message length does not match.
-        /// Returns: a void future that is fulfilled when all of the data has been written. </summary>
-        std::future<u64> asyncRecv(void* dest, u64 length);
+        /// WARNING: return value will through if received message length does not match. </summary>
+        std::future<u64> asyncRecv(void* dest, u64 length, std::function<void()> fn = {});
 
         /// <summary>Asynchronous call to receive data over the network.
         /// Note: Conatiner can be resizable. If received size does not match Container::size(),
