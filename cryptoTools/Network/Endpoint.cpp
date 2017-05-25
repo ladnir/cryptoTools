@@ -192,7 +192,7 @@ namespace osuCrypto {
                     ss << mName << char('`') << localName << char('`') << remoteName;
 					//std::cout <<IoStream::lock << "sending " << ss.str() <<std::endl << IoStream::unlock;
 
-                    auto str = ss.str();
+                    std::string str = ss.str();
 
 
 
@@ -200,14 +200,9 @@ namespace osuCrypto {
                     op.mIdx = base->mOpIdx++;
 #endif
 
-                    base->mSendStrand.post([this, base, str]()
+                    base->mSendStrand.post([this, base, str]() mutable
                     {
-                        auto op = IOOperation::newOp();
-                        ByteStream buff((u8*)str.data(), str.size());
-                        op->mSize = (u32)buff.size();
-                        op->mType = IOOperation::Type::SendData;
-                        op->mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
-                        op->mContainerPtr = (new MoveChannelBuff<ByteStream>(std::move(buff)));
+                        auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
                         base->mSendQueue.emplace_front(std::move(op));
                         base->mSendSocketSet = true;
 

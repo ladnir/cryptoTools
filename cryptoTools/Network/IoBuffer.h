@@ -13,7 +13,6 @@
 
 namespace osuCrypto { 
 
-    class WinNetIOService;
     class ChannelBuffer;
 
 
@@ -93,118 +92,13 @@ namespace osuCrypto {
     }
 
 
-    struct ChannelBuffBase
-    {
-        virtual u8* data() const = 0;
-        virtual u64 size() const = 0;
-        virtual bool resize(u64) { return false; };
-        virtual ~ChannelBuffBase() {}
-    };
-
-    template <typename F>
-    struct MoveChannelBuff : ChannelBuffBase {
-        F mObj;
-        MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
-
-        u8* data() const override { return channelBuffData(mObj); }
-        u64 size() const override { return channelBuffSize(mObj); }
-    };
-
-
-    template <typename T>
-    struct MoveChannelBuff<std::unique_ptr<T>> : ChannelBuffBase {
-
-        typedef std::unique_ptr<T> F;
-        F mObj;
-        MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
-
-        u8* data() const override { return channelBuffData(*mObj); }
-        u64 size() const override { return channelBuffSize(*mObj); }
-    };
-    
-
-    template <typename T>
-    struct MoveChannelBuff<std::shared_ptr<T>> : ChannelBuffBase {
-
-        typedef std::shared_ptr<T> F;
-        F mObj;
-        MoveChannelBuff(F&& obj) : mObj(std::move(obj)) {}
-
-        u8* data() const override { return channelBuffData(*mObj); }
-        u64 size() const override { return channelBuffSize(*mObj); }
-    };
-
-    template <typename F>
-    struct ChannelBuffRef : ChannelBuffBase {
-        const F& mObj;
-        ChannelBuffRef(const F& obj) : mObj(obj) {}
-
-        u8* data() const override { return channelBuffData(mObj); }
-        u64 size() const override { return channelBuffSize(mObj); }
-    };
-
-    template <typename F>
-    struct ResizableChannelBuffRef : ChannelBuffRef<F> {
-        ResizableChannelBuffRef(F& obj) 
-            : 
-            ChannelBuffRef<F>(obj)
-        {}
-
-        bool resize(u64 s) override { return channelBuffResize((F&)ChannelBuffRef<F>::mObj, s); }
-    };
-
-
-
     class IOOperation
     {
 
-        IOOperation()
-        {
-            clear();
-        }
-
         IOOperation(const IOOperation& copy) = delete;
         IOOperation(IOOperation&& copy) = delete;
-        //    :
-        //    mSize( copy.mSize),
-        //    mType(copy.mType),
-        //    mIdx(copy.mIdx),
-        //    mBuffs((copy.mBuffs)),
-        //    mContainer(copy.mContainer),
-        //    mPromise(copy.mPromise),
-        //    mCallback((copy.mCallback))
-        //{
-        //    mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
-        //}
-
-        void clear()
-        {
-            mType = (Type)0;
-            mSize = 0; 
-            mIdx = 0;
-            mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
-            mBuffs[1] = boost::asio::mutable_buffer();
-            mContainerPtr = nullptr;
-            mPromise;
-            mCallback;
-        } 
-
+     
     public:
-        //static std::unordered_map<void*, int> counts;
-        //static std::mutex mtx;
-
-        ~IOOperation()
-        {
-            //std::cout << (std::string(" delete ") + std::to_string((u64)this) + "  \n") << std::flush;
-            delete mContainerPtr;
-
-            //std::lock_guard<std::mutex> s(mtx);
-            //counts[this]--;
-            //if (counts[this] != 0)
-            //{
-            //    std::cout << "here " << std::endl;
-            //}
-        }
 
         enum class Type
         {
@@ -216,52 +110,131 @@ namespace osuCrypto {
             CloseThread
         };
 
-        static std::unique_ptr<IOOperation> newOp()
+        IOOperation(IOOperation::Type t)
         {
-            auto r = std::unique_ptr<IOOperation>(new IOOperation());
-            //std::cout << (std::string(" create ") + std::to_string((u64)r.get()) + "  \n") << std::flush;
-            //std::lock_guard<std::mutex> s(mtx);
-            //counts[r] = 1;
-            return r;
+            mType = t;
+            mSize = 0;
+            mIdx = 0;
+            mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
+            mBuffs[1] = boost::asio::mutable_buffer();
+            mPromise;
+            mCallback;
         }
+
+        virtual ~IOOperation() {}
+
+
 
 
         u32 mSize;
+    private:
         Type mType;
+    public:
+        const Type& type()const { return mType; }
+
         u32 mIdx;
         std::array<boost::asio::mutable_buffer,2> mBuffs;
-
-        ChannelBuffBase* mContainerPtr;
         std::promise<u64> mPromise;
         std::function<void()> mCallback;
+
+
+
+        virtual u8* data() const { return nullptr; };
+        virtual u64 size() const { return 0; };
+        virtual bool resize(u64) { return false; };
+    };
+
+
+    class PointerSizeBuff : public IOOperation {
+    public:
+        PointerSizeBuff() = delete;
+        PointerSizeBuff(const void* data, u64 size, IOOperation::Type t)
+            : IOOperation(t)
+        {
+            
+            mSize = u32(size);
+            mBuffs[1] = boost::asio::buffer((void*)data, size);
+        }
+
+        u8* data() const override { return (u8*)boost::asio::buffer_cast<u8*>(mBuffs[1]); }
+        u64 size() const override { return mSize; }
     };
 
 
 
-    //class Socket
-    //{
-    //public:
-    //    Socket(IOService& ios);
+    template <typename F>
+    class MoveChannelBuff :public IOOperation {
+    public:
+        MoveChannelBuff() = delete;
+        F mObj;
+        MoveChannelBuff(F&& obj)
+            : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
+        {
+            mSize = u32(channelBuffSize(mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(mObj), mSize);
+        }
 
-    //    boost::asio::ip::tcp::socket mHandle;
-    //    boost::asio::strand mSendStrand, mRecvStrand;
+        u8* data() const override { return channelBuffData(mObj); }
+        u64 size() const override { return channelBuffSize(mObj); }
+    };
 
-    //    std::deque<IOOperation> mSendQueue, mRecvQueue;
-    //    bool mStopped;
+    template <typename T>
+    class MoveChannelBuff<std::unique_ptr<T>> :public IOOperation {
+    public:
+        MoveChannelBuff() = delete;
+        typedef std::unique_ptr<T> F;
+        F mObj;
+        MoveChannelBuff(F&& obj)
+            : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
+        {
+            mSize = u32( channelBuffSize(*mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), mSize);
+        }
 
-    //    std::atomic<u64> mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
-    //};
+        u8* data() const override { return channelBuffData(*mObj); }
+        u64 size() const override { return channelBuffSize(*mObj); }
+    };
 
-    //inline Socket::Socket(IOService& ios) :
-    //    mHandle(ios.mIoService),
-    //    mSendStrand(ios.mIoService),
-    //    mRecvStrand(ios.mIoService),
-    //    mStopped(false),
-    //    mOutstandingSendData(0),
-    //    mMaxOutstandingSendData(0),
-    //    mTotalSentData(0),
-    //    mTotalRecvData(0)
-    //{}
+
+    template <typename T>
+    class  MoveChannelBuff<std::shared_ptr<T>> : public IOOperation {
+    public:
+        MoveChannelBuff() = delete;
+        typedef std::shared_ptr<T> F;
+        F mObj;
+        MoveChannelBuff(F&& obj)
+            : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
+        {
+            mSize = u32( channelBuffSize(*mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), mSize);
+        }
+
+        u8* data() const override { return channelBuffData(*mObj); }
+        u64 size() const override { return channelBuffSize(*mObj); }
+    };
+
+    template <typename F>
+    class  ChannelBuffRef :public IOOperation {
+    public:
+        ChannelBuffRef() = delete;
+        const F& mObj;
+        ChannelBuffRef(const F& obj, IOOperation::Type t) : IOOperation(t), mObj(obj) {}
+
+        u8* data() const override { return channelBuffData(mObj); }
+        u64 size() const override { return channelBuffSize(mObj); }
+    };
+
+    template <typename F>
+    class ResizableChannelBuffRef :public ChannelBuffRef<F> {
+    public:
+        ResizableChannelBuffRef() = delete;
+        ResizableChannelBuffRef(F& obj) 
+            : ChannelBuffRef<F>(obj, IOOperation::Type::RecvData)
+        {}
+
+        bool resize(u64 s) override { return channelBuffResize((F&)ChannelBuffRef<F>::mObj, s); }
+    };
+
 
 
 }

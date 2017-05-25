@@ -68,7 +68,7 @@ namespace osuCrypto
         //        std::cerr << "waiting for endpoint/channel to close " << std::endl;;
         //    }
         //});
-         
+
 
         std::lock_guard<std::mutex> lock(mMtx);
 
@@ -124,13 +124,13 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
         channel->mLog.push("starting recv #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
 #endif
-        if (op.mType == IOOperation::Type::RecvData)
+        if (op.type() == IOOperation::Type::RecvData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, sizeof(u32));
 
-			std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[0] };
+            std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[0] };
             //boost::asio::async_read(*,
-			channel->mHandle->async_recv(
+            channel->mHandle->async_recv(
                 tt,
                 [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
             {
@@ -141,10 +141,10 @@ namespace osuCrypto
 
                 if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[0]) || ec)
                 {
-                    auto reason = ("rt error at " LOCATION "\n  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0]))) 
+                    auto reason = ("rt error at " LOCATION "\n  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])))
                         + "\nThis could be from the other end closing too early or the connection being dropped.";
-                    
-                    if(mPrint) std::cout << reason << std::endl;
+
+                    if (mPrint) std::cout << reason << std::endl;
                     channel->setRecvFatalError(reason);
                     return;
                 }
@@ -154,31 +154,31 @@ namespace osuCrypto
                 // We support two types of receives. One where we provide the expected size of the message and one
                 // where we allow for variable length messages. op->other will be non null in the resize case and allow
                 // us to resize the ChannelBuffer which will hold the data.
-                if (op.mContainerPtr)
-                {
                     // resize it. This could throw is the channel buffer chooses to.
-                    if (op.mSize != op.mContainerPtr->size() && op.mContainerPtr->resize(op.mSize) == false)
-                    {
-                        msg = std::string() + "The provided buffer does not fit the received message. \n" +
-                            "   Expected: Container::size() * sizeof(Container::value_type) = " +
-                            std::to_string(op.mContainerPtr->size()) + " bytes\n"
-                            "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
-                            "If sizeof(Container::value_type) % Actual != 0, this will throw or ResizableChannelBuffRef<Container>::resize(...) returned false.";
-                    }
-
-                    // set the buffer to point into the channel buffer storage location.
-                    op.mBuffs[1] = boost::asio::buffer(op.mContainerPtr->data(), op.mSize);
+                if (op.mSize != op.size() && op.resize(op.mSize) == false)
+                {
+                    msg = std::string() + "The provided buffer does not fit the received message. \n" +
+                        "   Expected: Container::size() * sizeof(Container::value_type) = " +
+                        std::to_string(op.size()) + " bytes\n"
+                        "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
+                        "If sizeof(Container::value_type) % Actual != 0, this will throw or ResizableChannelBuffRef<Container>::resize(...) returned false.";
                 }
                 else
                 {
-                    // OK, this is the other type of recv where an expected size was provided.  op->mWSABufs[1].len
-                    // will contain the expected size and op->mSize contains the size reported in the header.
-                    if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
-                    {
-                        msg = "The provided buffer does not fit the received message. Expected: "
-                            + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes, actual: " + std::to_string(op.mSize);
-                    }
+                    // set the buffer to point into the channel buffer storage location.
+                    op.mBuffs[1] = boost::asio::buffer(op.data(), op.mSize);
                 }
+                //}
+                //else
+                //{
+                //    // OK, this is the other type of recv where an expected size was provided.  op->mWSABufs[1].len
+                //    // will contain the expected size and op->mSize contains the size reported in the header.
+                //    if (boost::asio::buffer_size(op.mBuffs[1]) != op.mSize)
+                //    {
+                //        msg = "The provided buffer does not fit the received message. Expected: "
+                //            + std::to_string(boost::asio::buffer_size(op.mBuffs[1])) + " bytes, actual: " + std::to_string(op.mSize);
+                //    }
+                //}
 
 
                 auto recvMain = [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
@@ -190,7 +190,7 @@ namespace osuCrypto
 
                     if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[1]) || ec)
                     {
-                        auto reason = ("Network error: " + ec.message() +"\nOther end may have crashed. Received incomplete message. at " LOCATION);
+                        auto reason = ("Network error: " + ec.message() + "\nOther end may have crashed. Received incomplete message. at " LOCATION);
                         if (mPrint) std::cout << reason << std::endl;
                         channel->setRecvFatalError(reason);
                         return;
@@ -247,12 +247,12 @@ namespace osuCrypto
 
                         op.mBuffs[1] = boost::asio::buffer(dest, op.mSize);
 
-						bool error;
-						u64 bytesTransfered;
+                        bool error;
+                        u64 bytesTransfered;
 
-						std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
-						channel->mHandle->recv(tt, error, bytesTransfered);
-						auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
+                        std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+                        channel->mHandle->recv(tt, error, bytesTransfered);
+                        auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
 
                         recvMain(ec, bytesTransfered);
                     }));
@@ -262,8 +262,8 @@ namespace osuCrypto
                 }
                 else
                 {
-					std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
-					channel->mHandle->async_recv(tt, recvMain);
+                    std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+                    channel->mHandle->async_recv(tt, recvMain);
 
                     //boost::asio::async_read(*channel->mHandle,
                     //    std::array<boost::asio::mutable_buffer, 1>{ op.mBuffs[1] }, recvMain);
@@ -272,7 +272,7 @@ namespace osuCrypto
 
             });
         }
-        else if (op.mType == IOOperation::Type::CloseRecv)
+        else if (op.type() == IOOperation::Type::CloseRecv)
         {
 #ifdef CHANNEL_LOGGING
             channel->mLog.push("recvClosed #" + ToString(op.mIdx));
@@ -280,13 +280,13 @@ namespace osuCrypto
             //delete channel->mRecvQueue.front();
             channel->mRecvQueue.pop_front();
             channel->mRecvQueueEmptyProm.set_value(0);
-        }
+    }
         else
         {
-            std::cout << "error, unknown operation " << int(u8(op.mType) ) << std::endl;
+            std::cout << "error, unknown operation " << int(u8(op.type())) << std::endl;
             std::terminate();
         }
-    }
+}
 
     void IOService::sendOne(ChannelBase* socket)
     {
@@ -300,12 +300,12 @@ namespace osuCrypto
         socket->mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
 #endif
 
-        if (op.mType == IOOperation::Type::SendData)
+        if (op.type() == IOOperation::Type::SendData)
         {
             op.mBuffs[0] = boost::asio::buffer(&op.mSize, 4);
 
-			socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
-				//boost::asio::async_write(
+            socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
+                //boost::asio::async_write(
             {
                 //////////////////////////////////////////////////////////////////////////
                 //// This is *** NOT *** within the stand. Dont touch the send queue! ////
@@ -314,7 +314,7 @@ namespace osuCrypto
 
                 if (ec)
                 {
-                    auto reason  = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
+                    auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
                     if (mPrint) std::cout << reason << std::endl;
 
                     socket->setSendFatalError(reason);
@@ -328,9 +328,9 @@ namespace osuCrypto
                 if (bytesTransferred !=
                     boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
                 {
-                    auto reason  = std::string("failed to send all data. Expected to send ")
+                    auto reason = std::string("failed to send all data. Expected to send ")
                         + ToString(boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
-                        + " bytes but transfered "  + ToString(bytesTransferred) + "\n"
+                        + " bytes but transfered " + ToString(bytesTransferred) + "\n"
                         + "  at  " + LOCATION;
 
                     if (mPrint) std::cout << reason << std::endl;
@@ -352,7 +352,7 @@ namespace osuCrypto
 
                 //delete op.mContainer;
 
-                socket->mSendStrand.dispatch([&op,socket, this]()
+                socket->mSendStrand.dispatch([&op, socket, this]()
                 {
                     ////////////////////////////////////////////////////////////////////////////////
                     //// This is within the stand. We have sequential access to the send queue. ////
@@ -375,7 +375,7 @@ namespace osuCrypto
             });
 
         }
-        else if (op.mType == IOOperation::Type::CloseSend)
+        else if (op.type() == IOOperation::Type::CloseSend)
         {
             // This is a special case which may happen if the channel calls stop() 
             // with async sends still queued up, we will get here after they get completes. fulfill the 
@@ -400,7 +400,7 @@ namespace osuCrypto
         op.mIdx = socket->mOpIdx++;
 #endif
 
-        switch (op->mType)
+        switch (op->type())
         {
         case IOOperation::Type::RecvData:
         case IOOperation::Type::CloseRecv:
@@ -415,11 +415,11 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool startRecving = (socket->mRecvQueue.size() == 0) && (socket->mRecvSocketSet || op->mType == IOOperation::Type::CloseRecv);
+                bool startRecving = (socket->mRecvQueue.size() == 0) && (socket->mRecvSocketSet || op->type() == IOOperation::Type::CloseRecv);
 
 #ifdef CHANNEL_LOGGING
-                if(op->mType == IOOperation::Type::RecvData)
-                    socket->mLog.push("queuing recv #"+ToString(op->mIdx )+ " " + ToString(socket->mRecvQueue.back().mIdx)+", size = " + ToString(op->mSize) + ", start = " + ToString(startRecving));
+                if (op->type() == IOOperation::Type::RecvData)
+                    socket->mLog.push("queuing recv #" + ToString(op->mIdx) + " " + ToString(socket->mRecvQueue.back().mIdx) + ", size = " + ToString(op->mSize) + ", start = " + ToString(startRecving));
                 else
                     socket->mLog.push("queuing recvClosing #" + ToString(op->mIdx) + ", start = " + ToString(startRecving));
 #endif
@@ -439,7 +439,7 @@ namespace osuCrypto
         case IOOperation::Type::SendData:
         case IOOperation::Type::CloseSend:
         {
-            //std::cout << " dis " << (op->mType == IOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
+            //std::cout << " dis " << (op->type() == IOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
 
             // boost complains if generalized move symantics are used with a post(...) callback
             auto opPtr = op.release();
@@ -456,10 +456,10 @@ namespace osuCrypto
 
                 // check to see if we should kick off a new set of send operations. If the size >= 1, then there
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-                auto startSending = (socket->mSendQueue.size() == 0) && (socket->mSendSocketSet || op->mType == IOOperation::Type::CloseSend);
+                auto startSending = (socket->mSendQueue.size() == 0) && (socket->mSendSocketSet || op->type() == IOOperation::Type::CloseSend);
 
 #ifdef CHANNEL_LOGGING
-                if (op->mType == IOOperation::Type::SendData)
+                if (op->type() == IOOperation::Type::SendData)
                     socket->mLog.push("queuing send #" + ToString(op->mIdx) + " " + ToString(socket->mSendQueue.back().mIdx) +
                         ", size = " + ToString(op->mSize) + ", start = " + ToString(startSending));
                 else
@@ -561,7 +561,7 @@ namespace osuCrypto
 
             auto ii = ++socket->mOpenCount;
             if (ii == 2)
-				socket->mOpenProm.set_value();
+                socket->mOpenProm.set_value();
         });
 
 
@@ -572,7 +572,7 @@ namespace osuCrypto
 
             auto start = socket->mSendQueue.size();
 #ifdef CHANNEL_LOGGING
-            socket->mLog.push("initSend , start = " + ToString(start) );
+            socket->mLog.push("initSend , start = " + ToString(start));
 #endif
             // check to see if we should kick off a new set of send operations. Since we are just now
             // starting the channel, its possible that the async connect call returned and the caller scheduled a send 
@@ -589,8 +589,8 @@ namespace osuCrypto
             socket->mSendSocketSet = true;
 
             auto ii = ++socket->mOpenCount;
-            if (ii == 2) 
-				socket->mOpenProm.set_value();
+            if (ii == 2)
+                socket->mOpenProm.set_value();
 
         });
     }

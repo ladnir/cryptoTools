@@ -108,28 +108,21 @@ namespace osuCrypto {
 
     void Channel::asyncSend(const void * buff, u64 size)
     {
-        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
-            throw std::runtime_error("rt error at " LOCATION);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-        auto op = IOOperation::newOp();
 
-        op->mSize = (u32)size;
-        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
-        op->mType = IOOperation::Type::SendData;
+        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
 
         mBase->getIOService().dispatch(mBase.get(), std::move(op));
     }
 
     void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
     {
-        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
-            throw std::runtime_error("rt error at " LOCATION);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-        auto op = IOOperation::newOp();
-
-        op->mSize = u32(size);
-        op->mBuffs[1] = boost::asio::buffer((char*)buff, size);
-        op->mType = IOOperation::Type::SendData;
+        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
         op->mCallback = callback;
 
         dispatch(std::move(op));
@@ -137,29 +130,24 @@ namespace osuCrypto {
 
     void Channel::send(const void * buff, u64 size)
     {
-        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
-            throw std::runtime_error("rt error at " LOCATION);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-        auto op = IOOperation::newOp();
-        op->mSize = (u32)size;
-        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
-        op->mType = IOOperation::Type::SendData;
+
+        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
         auto future = op->mPromise.get_future();
+
         mBase->getIOService().dispatch(mBase.get(), std::move(op));
         future.get();
     }
 
     std::future<u64> Channel::asyncRecv(void * buff, u64 size)
     {
-        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
-            throw std::runtime_error("rt error at " LOCATION);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
-        auto op = IOOperation::newOp();
+        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
 
-        op->mSize = (u32)size;
-        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
-        op->mType = IOOperation::Type::RecvData;
-        op->mContainerPtr = nullptr;
         auto future = op->mPromise.get_future();
 
         mBase->getIOService().dispatch(mBase.get(), std::move(op));
@@ -169,16 +157,13 @@ namespace osuCrypto {
 
     std::future<u64> Channel::asyncRecv(void * buff, u64 size, std::function<void()> fn)
     {
-        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
-            throw std::runtime_error("rt error at " LOCATION);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
-        auto op = IOOperation::newOp();
-
-        op->mSize = (u32)size;
-        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
-        op->mType = IOOperation::Type::RecvData;
-        op->mContainerPtr = nullptr;
+        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
+        
         op->mCallback = fn;
+
         auto future = op->mPromise.get_future();
 
         mBase->getIOService().dispatch(mBase.get(), std::move(op));
@@ -236,8 +221,7 @@ namespace osuCrypto {
 
             if (mSendStatus == Channel::Status::Normal)
             {
-                auto closeSend = IOOperation::newOp();
-                closeSend->mType = IOOperation::Type::CloseSend;
+                auto closeSend = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseSend));
                 getIOService().dispatch(this, std::move(closeSend));
             }
 
@@ -253,8 +237,7 @@ namespace osuCrypto {
 
             if (mRecvStatus == Channel::Status::Normal)
             {
-                auto closeRecv = IOOperation::newOp();
-                closeRecv->mType = IOOperation::Type::CloseRecv;
+                auto closeRecv = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseRecv));
                 getIOService().dispatch(this, std::move(closeRecv));
             }
             else if (mRecvStatus == Channel::Status::RecvSizeError)

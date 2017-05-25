@@ -146,7 +146,7 @@ namespace osuCrypto {
     template<>
     inline bool channelBuffResize<BitVector>(BitVector& container, u64 size)
     {
-        return size == container.size();
+        return size == container.sizeBytes();
     }
 
 }
