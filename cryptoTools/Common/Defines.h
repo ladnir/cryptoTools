@@ -31,7 +31,7 @@
 #else
 #define TODO(x)
 #define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
-#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __attribute__((optimize("unroll-loops")))
+#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
 #endif
 
 #include <cryptoTools/gsl/span>
