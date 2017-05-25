@@ -16,6 +16,8 @@ namespace osuCrypto
         u64 mStashSize;
         double mBinScaler;
         u64 mNumHashes, mN;
+
+        u64 numBins() { return mN * mBinScaler; }
     };
 
 

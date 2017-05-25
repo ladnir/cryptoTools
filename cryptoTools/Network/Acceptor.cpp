@@ -108,7 +108,7 @@ namespace osuCrypto {
 
                             //std::cout << "async_accept new connection size" << std::endl;
 
-                            u32 size = buff->getspan<u32>()[0];
+                            u32 size = buff->getSpan<u32>()[0];
 
                             buff->reserve(size);
                             buff->setp(size);
