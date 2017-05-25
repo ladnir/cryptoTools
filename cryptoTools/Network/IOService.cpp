@@ -119,7 +119,7 @@ namespace osuCrypto
         //// THis is within the stand. We have sequential access to the recv queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        IOOperation& op = channel->mRecvQueue.front();
+        IOOperation& op = *channel->mRecvQueue.front();
 
 #ifdef CHANNEL_LOGGING
         channel->mLog.push("starting recv #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
@@ -154,20 +154,20 @@ namespace osuCrypto
                 // We support two types of receives. One where we provide the expected size of the message and one
                 // where we allow for variable length messages. op->other will be non null in the resize case and allow
                 // us to resize the ChannelBuffer which will hold the data.
-                if (op.mContainer != nullptr)
+                if (op.mContainerPtr)
                 {
                     // resize it. This could throw is the channel buffer chooses to.
-                    if (op.mSize != op.mContainer->size() && op.mContainer->resize(op.mSize) == false)
+                    if (op.mSize != op.mContainerPtr->size() && op.mContainerPtr->resize(op.mSize) == false)
                     {
                         msg = std::string() + "The provided buffer does not fit the received message. \n" +
                             "   Expected: Container::size() * sizeof(Container::value_type) = " +
-                            std::to_string(op.mContainer->size()) + " bytes\n"
+                            std::to_string(op.mContainerPtr->size()) + " bytes\n"
                             "   Actual: " + std::to_string(op.mSize) + " bytes\n\n" +
                             "If sizeof(Container::value_type) % Actual != 0, this will throw or ResizableChannelBuffRef<Container>::resize(...) returned false.";
                     }
 
                     // set the buffer to point into the channel buffer storage location.
-                    op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mSize);
+                    op.mBuffs[1] = boost::asio::buffer(op.mContainerPtr->data(), op.mSize);
                 }
                 else
                 {
@@ -203,14 +203,14 @@ namespace osuCrypto
                     //    op.mPromise->set_exception(op.mException);
                     //else
 
-                    if (op.mPromise)
-                        op.mPromise->set_value(channel->mId);
+                    op.mPromise.set_value(channel->mId);
 
                     if (op.mCallback)
+                    {
                         op.mCallback();
+                    }
 
-                    delete op.mPromise;
-                    delete op.mContainer;
+                    //delete op.mContainer;
 
                     channel->mRecvStrand.dispatch([channel, this, &op]()
                     {
@@ -220,6 +220,7 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
                         channel->mLog.push("completed recv #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
 #endif
+                        //delete channel->mRecvQueue.front();
                         channel->mRecvQueue.pop_front();
 
                         // is there more messages to recv?
@@ -256,9 +257,8 @@ namespace osuCrypto
                         recvMain(ec, bytesTransfered);
                     }));
 
-                    op.mPromise->set_exception(e_ptr);
-                    delete op.mPromise;
-                    op.mPromise = nullptr;
+                    op.mPromise.set_exception(e_ptr);
+                    op.mPromise = std::promise<u64>();
                 }
                 else
                 {
@@ -277,10 +277,9 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
             channel->mLog.push("recvClosed #" + ToString(op.mIdx));
 #endif
-            auto prom = op.mPromise;
+            //delete channel->mRecvQueue.front();
             channel->mRecvQueue.pop_front();
-            prom->set_value(0);
-
+            channel->mRecvQueueEmptyProm.set_value(0);
         }
         else
         {
@@ -295,7 +294,7 @@ namespace osuCrypto
         //// This is within the stand. We have sequential access to the send queue. ////
         ////////////////////////////////////////////////////////////////////////////////
 
-        IOOperation& op = socket->mSendQueue.front();
+        IOOperation& op = *socket->mSendQueue.front();
 
 #ifdef CHANNEL_LOGGING
         socket->mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
@@ -343,14 +342,15 @@ namespace osuCrypto
                 socket->mOutstandingSendData -= op.mSize;
 
                 // if this was a synchronous send, fulfill the promise that the message was sent.
-                if (op.mPromise != nullptr)
-                    op.mPromise->set_value(socket->mId);
+                op.mPromise.set_value(socket->mId);
 
                 // if they provided a callback, execute it.
                 if (op.mCallback)
+                {
                     op.mCallback();
+                }
 
-                delete op.mContainer;
+                //delete op.mContainer;
 
                 socket->mSendStrand.dispatch([&op,socket, this]()
                 {
@@ -360,7 +360,7 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
                     socket->mLog.push("completed send #" + ToString(op.mIdx) + ", size = " + ToString(op.mSize));
 #endif
-
+                    //delete socket->mSendQueue.front();
                     socket->mSendQueue.pop_front();
 
                     // Do we have more messages to be sent?
@@ -383,9 +383,9 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
             socket->mLog.push("sendClosed #" + ToString(op.mIdx));
 #endif
-            auto prom = op.mPromise;
+            //delete socket->mSendQueue.front();
             socket->mSendQueue.pop_front();
-            prom->set_value(0);
+            socket->mSendQueueEmptyProm.set_value(0);
         }
         else
         {
@@ -394,36 +394,39 @@ namespace osuCrypto
         }
     }
 
-    void IOService::dispatch(ChannelBase* socket, IOOperation& op)
+    void IOService::dispatch(ChannelBase* socket, std::unique_ptr<IOOperation>op)
     {
 #ifdef CHANNEL_LOGGING
         op.mIdx = socket->mOpIdx++;
 #endif
 
-        switch (op.mType)
+        switch (op->mType)
         {
         case IOOperation::Type::RecvData:
         case IOOperation::Type::CloseRecv:
         {
+            // boost complains if generalized move symantics are used with a post(...) callback
+            auto opPtr = op.release();
 
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-            socket->mRecvStrand.post([this, socket, op]()
+            socket->mRecvStrand.post([this, socket, opPtr]()
             {
-                // the queue must be guarded from concurrent access, so add the op within the strand
-                // queue up the operation.
-                socket->mRecvQueue.push_back(op);
+                std::unique_ptr<IOOperation>op(opPtr);
 
-                // check to see if we should kick off a new set of recv operations. If the size > 1, then there
+                // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
                 // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool startRecving = (socket->mRecvQueue.size() == 1) && (socket->mRecvSocketSet || op.mType == IOOperation::Type::CloseRecv);
+                bool startRecving = (socket->mRecvQueue.size() == 0) && (socket->mRecvSocketSet || op->mType == IOOperation::Type::CloseRecv);
 
 #ifdef CHANNEL_LOGGING
-                if(op.mType == IOOperation::Type::RecvData)
-                    socket->mLog.push("queuing recv #"+ToString(op.mIdx )+ " " + ToString(socket->mRecvQueue.back().mIdx)+", size = " + ToString(op.mSize) + ", start = " + ToString(startRecving));
+                if(op->mType == IOOperation::Type::RecvData)
+                    socket->mLog.push("queuing recv #"+ToString(op->mIdx )+ " " + ToString(socket->mRecvQueue.back().mIdx)+", size = " + ToString(op->mSize) + ", start = " + ToString(startRecving));
                 else
-                    socket->mLog.push("queuing recvClosing #" + ToString(op.mIdx) + ", start = " + ToString(startRecving));
+                    socket->mLog.push("queuing recvClosing #" + ToString(op->mIdx) + ", start = " + ToString(startRecving));
 #endif
 
+                // the queue must be guarded from concurrent access, so add the op within the strand
+                // queue up the operation.
+                socket->mRecvQueue.emplace_back(std::move(op));
                 if (startRecving)
                 {
                     // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
@@ -436,31 +439,35 @@ namespace osuCrypto
         case IOOperation::Type::SendData:
         case IOOperation::Type::CloseSend:
         {
-            //std::cout << " dis " << (op.mType == IOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
+            //std::cout << " dis " << (op->mType == IOOperation::Type::SendData ? "SendData" : "CloseSend") << std::endl;
 
+            // boost complains if generalized move symantics are used with a post(...) callback
+            auto opPtr = op.release();
             // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-            socket->mSendStrand.post([this, socket, op]()
+            socket->mSendStrand.post([this, socket, opPtr]()
             {
+                std::unique_ptr<IOOperation>op(opPtr);
                 // the queue must be guarded from concurrent access, so add the op within the strand
 
-                // add the operation to the queue.
-                socket->mSendQueue.push_back(op);
 
-                socket->mTotalSentData += op.mSize;
-                socket->mOutstandingSendData += op.mSize;
+                socket->mTotalSentData += op->mSize;
+                socket->mOutstandingSendData += op->mSize;
                 socket->mMaxOutstandingSendData = std::max((u64)socket->mOutstandingSendData, (u64)socket->mMaxOutstandingSendData);
 
-                // check to see if we should kick off a new set of send operations. If the size > 1, then there
+                // check to see if we should kick off a new set of send operations. If the size >= 1, then there
                 // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-                auto startSending = (socket->mSendQueue.size() == 1) && (socket->mSendSocketSet || op.mType == IOOperation::Type::CloseSend);
+                auto startSending = (socket->mSendQueue.size() == 0) && (socket->mSendSocketSet || op->mType == IOOperation::Type::CloseSend);
 
 #ifdef CHANNEL_LOGGING
-                if (op.mType == IOOperation::Type::SendData)
-                    socket->mLog.push("queuing send #" + ToString(op.mIdx) + " " + ToString(socket->mSendQueue.back().mIdx) +
-                        ", size = " + ToString(op.mSize) + ", start = " + ToString(startSending));
+                if (op->mType == IOOperation::Type::SendData)
+                    socket->mLog.push("queuing send #" + ToString(op->mIdx) + " " + ToString(socket->mSendQueue.back().mIdx) +
+                        ", size = " + ToString(op->mSize) + ", start = " + ToString(startSending));
                 else
-                    socket->mLog.push("queuing sendClosing #" + ToString(op.mIdx) + ", start = " + ToString(startSending));
+                    socket->mLog.push("queuing sendClosing #" + ToString(op->mIdx) + ", start = " + ToString(startSending));
 #endif
+                // add the operation to the queue.
+                socket->mSendQueue.emplace_back(std::move(op));
+
                 if (startSending)
                 {
 

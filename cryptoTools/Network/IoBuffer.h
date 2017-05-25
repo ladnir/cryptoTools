@@ -155,8 +155,57 @@ namespace osuCrypto {
 
 
 
-    struct IOOperation
+    class IOOperation
     {
+
+        IOOperation()
+        {
+            clear();
+        }
+
+        IOOperation(const IOOperation& copy) = delete;
+        IOOperation(IOOperation&& copy) = delete;
+        //    :
+        //    mSize( copy.mSize),
+        //    mType(copy.mType),
+        //    mIdx(copy.mIdx),
+        //    mBuffs((copy.mBuffs)),
+        //    mContainer(copy.mContainer),
+        //    mPromise(copy.mPromise),
+        //    mCallback((copy.mCallback))
+        //{
+        //    mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
+        //}
+
+        void clear()
+        {
+            mType = (Type)0;
+            mSize = 0; 
+            mIdx = 0;
+            mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
+            mBuffs[1] = boost::asio::mutable_buffer();
+            mContainerPtr = nullptr;
+            mPromise;
+            mCallback;
+        } 
+
+    public:
+        //static std::unordered_map<void*, int> counts;
+        //static std::mutex mtx;
+
+        ~IOOperation()
+        {
+            //std::cout << (std::string(" delete ") + std::to_string((u64)this) + "  \n") << std::flush;
+            delete mContainerPtr;
+
+            //std::lock_guard<std::mutex> s(mtx);
+            //counts[this]--;
+            //if (counts[this] != 0)
+            //{
+            //    std::cout << "here " << std::endl;
+            //}
+        }
+
         enum class Type
         {
             RecvName,
@@ -167,42 +216,23 @@ namespace osuCrypto {
             CloseThread
         };
 
-        IOOperation()
+        static std::unique_ptr<IOOperation> newOp()
         {
-            clear();
+            auto r = std::unique_ptr<IOOperation>(new IOOperation());
+            //std::cout << (std::string(" create ") + std::to_string((u64)r.get()) + "  \n") << std::flush;
+            //std::lock_guard<std::mutex> s(mtx);
+            //counts[r] = 1;
+            return r;
         }
 
-        IOOperation(const IOOperation& copy) = default;
-        IOOperation(IOOperation&& copy) = default;
-        //    :
-        //    mMode(copy.mMode);
-        //    mSize = copy.mSize;
-        //    mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
-        //    mBuffs[1] = copy.mBuffs[1];
-        //    mContainer = std::move(copy.mContainer);
-        //    mPromise = std::move(copy.mPromise);
-        //{
-        //}
 
-        void clear()
-        {
-            mType = (Type)0;
-            mSize = 0; 
-            mIdx = 0;
-            mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
-            mBuffs[1] = boost::asio::mutable_buffer();
-            mContainer = nullptr;
-            mPromise = nullptr;
-        } 
-
-
-        std::array<boost::asio::mutable_buffer,2> mBuffs;
-        Type mType;
         u32 mSize;
+        Type mType;
         u32 mIdx;
+        std::array<boost::asio::mutable_buffer,2> mBuffs;
 
-        ChannelBuffBase* mContainer;
-        std::promise<u64>* mPromise;
+        ChannelBuffBase* mContainerPtr;
+        std::promise<u64> mPromise;
         std::function<void()> mCallback;
     };
 

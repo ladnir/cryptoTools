@@ -194,21 +194,21 @@ namespace osuCrypto {
 
                     auto str = ss.str();
 
-                    ByteStream buff((u8*)str.data(), str.size());
 
-                    IOOperation op;
-                    op.mSize = (u32)buff.size();
-                    op.mType = IOOperation::Type::SendData;
-                    op.mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
-                    op.mContainer = (new MoveChannelBuff<ByteStream>(std::move(buff)));
 
 #ifdef CHANNEL_LOGGING
                     op.mIdx = base->mOpIdx++;
 #endif
 
-                    base->mSendStrand.post([this, base, op]()
+                    base->mSendStrand.post([this, base, str]()
                     {
-                        base->mSendQueue.push_front(op);
+                        auto op = IOOperation::newOp();
+                        ByteStream buff((u8*)str.data(), str.size());
+                        op->mSize = (u32)buff.size();
+                        op->mType = IOOperation::Type::SendData;
+                        op->mBuffs[1] = boost::asio::buffer((char*)buff.data(), (u32)buff.size());
+                        op->mContainerPtr = (new MoveChannelBuff<ByteStream>(std::move(buff)));
+                        base->mSendQueue.emplace_front(std::move(op));
                         base->mSendSocketSet = true;
 
                         auto ii = ++base->mOpenCount;

@@ -17,9 +17,9 @@ namespace osuCrypto {
         mBase(new ChannelBase(endpoint, localName, remoteName))
     {}
 
-	Channel::Channel(IOService& ios, SocketInterface * sock)
-		: mBase(new ChannelBase(ios, sock))
-	{}
+    Channel::Channel(IOService& ios, SocketInterface * sock)
+        : mBase(new ChannelBase(ios, sock))
+    {}
 
 
     ChannelBase::ChannelBase(
@@ -27,7 +27,7 @@ namespace osuCrypto {
         std::string localName,
         std::string remoteName)
         :
-		mIos(endpoint.getIOService()),
+        mIos(endpoint.getIOService()),
         mEndpoint(&endpoint),
         mRemoteName(remoteName),
         mLocalName(localName),
@@ -53,32 +53,32 @@ namespace osuCrypto {
     {
     }
 
-	ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
-		:
-		mIos(ios),
-		mEndpoint(nullptr),
-		mId(0),
-		mRecvStatus(Channel::Status::Normal),
-		mSendStatus(Channel::Status::Normal),
-		mHandle(sock),
-		mSendStrand(ios.mIoService),
-		mRecvStrand(ios.mIoService),
-		mOpenProm(),
-		mOpenFut(mOpenProm.get_future()),
-		mOpenCount(0),
-		mRecvSocketSet(true),
-		mSendSocketSet(true),
-		mOutstandingSendData(0),
-		mMaxOutstandingSendData(0),
-		mTotalSentData(0),
-		mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
-		mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
+    ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
+        :
+        mIos(ios),
+        mEndpoint(nullptr),
+        mId(0),
+        mRecvStatus(Channel::Status::Normal),
+        mSendStatus(Channel::Status::Normal),
+        mHandle(sock),
+        mSendStrand(ios.mIoService),
+        mRecvStrand(ios.mIoService),
+        mOpenProm(),
+        mOpenFut(mOpenProm.get_future()),
+        mOpenCount(0),
+        mRecvSocketSet(true),
+        mSendSocketSet(true),
+        mOutstandingSendData(0),
+        mMaxOutstandingSendData(0),
+        mTotalSentData(0),
+        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
 #ifdef CHANNEL_LOGGING
-		, mOpIdx(0)
+        , mOpIdx(0)
 #endif
-	{
-		mOpenProm.set_value();
-	}
+    {
+        mOpenProm.set_value();
+    }
 
     Channel::~Channel()
     {
@@ -111,14 +111,13 @@ namespace osuCrypto {
         if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
+        auto op = IOOperation::newOp();
 
-        op.mSize = (u32)size;
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mSize = (u32)size;
+        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mType = IOOperation::Type::SendData;
 
-        op.mType = IOOperation::Type::SendData;
-
-        mBase->getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), std::move(op));
     }
 
     void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
@@ -126,15 +125,14 @@ namespace osuCrypto {
         if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
+        auto op = IOOperation::newOp();
 
-        op.mSize = u32(size);
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, size);
+        op->mSize = u32(size);
+        op->mBuffs[1] = boost::asio::buffer((char*)buff, size);
+        op->mType = IOOperation::Type::SendData;
+        op->mCallback = callback;
 
-        op.mType = IOOperation::Type::SendData;
-        op.mCallback = callback;
-
-        dispatch(op);
+        dispatch(std::move(op));
     }
 
     void Channel::send(const void * buff, u64 size)
@@ -142,41 +140,48 @@ namespace osuCrypto {
         if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
-
-        op.mSize = (u32)size;
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
-
-
-        op.mType = IOOperation::Type::SendData;
-
-        std::promise<u64> prom;
-        op.mPromise = &prom;
-
-        mBase->getIOService().dispatch(mBase.get(), op);
-
-        prom.get_future().get();
+        auto op = IOOperation::newOp();
+        op->mSize = (u32)size;
+        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mType = IOOperation::Type::SendData;
+        auto future = op->mPromise.get_future();
+        mBase->getIOService().dispatch(mBase.get(), std::move(op));
+        future.get();
     }
- 
+
+    std::future<u64> Channel::asyncRecv(void * buff, u64 size)
+    {
+        if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
+            throw std::runtime_error("rt error at " LOCATION);
+
+        auto op = IOOperation::newOp();
+
+        op->mSize = (u32)size;
+        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mType = IOOperation::Type::RecvData;
+        op->mContainerPtr = nullptr;
+        auto future = op->mPromise.get_future();
+
+        mBase->getIOService().dispatch(mBase.get(), std::move(op));
+
+        return future;
+    }
 
     std::future<u64> Channel::asyncRecv(void * buff, u64 size, std::function<void()> fn)
     {
         if (mBase->mSendStatus != Status::Normal || size == 0 || size > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
+        auto op = IOOperation::newOp();
 
-        op.mSize = (u32)size;
-        op.mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mSize = (u32)size;
+        op->mBuffs[1] = boost::asio::buffer((char*)buff, (u32)size);
+        op->mType = IOOperation::Type::RecvData;
+        op->mContainerPtr = nullptr;
+        op->mCallback = fn;
+        auto future = op->mPromise.get_future();
 
-        op.mType = IOOperation::Type::RecvData;
-
-        op.mContainer = nullptr;
-        op.mCallback = fn;
-        op.mPromise = new std::promise<u64>();
-        auto future = op.mPromise->get_future();
-
-        mBase->getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), std::move(op));
 
         return future;
     }
@@ -231,12 +236,11 @@ namespace osuCrypto {
 
             if (mSendStatus == Channel::Status::Normal)
             {
-                IOOperation closeSend;
-                closeSend.mType = IOOperation::Type::CloseSend;
-                closeSend.mPromise = &mSendQueueEmptyProm;
-                getIOService().dispatch(this, closeSend);
+                auto closeSend = IOOperation::newOp();
+                closeSend->mType = IOOperation::Type::CloseSend;
+                getIOService().dispatch(this, std::move(closeSend));
             }
-            
+
             mSendQueueEmptyFuture.get();
             mSendStatus = Channel::Status::Stopped;
         }
@@ -249,10 +253,9 @@ namespace osuCrypto {
 
             if (mRecvStatus == Channel::Status::Normal)
             {
-                IOOperation closeRecv;
-                closeRecv.mType = IOOperation::Type::CloseRecv;
-                closeRecv.mPromise = &mRecvQueueEmptyProm;
-                getIOService().dispatch(this, closeRecv);
+                auto closeRecv = IOOperation::newOp();
+                closeRecv->mType = IOOperation::Type::CloseRecv;
+                getIOService().dispatch(this, std::move(closeRecv));
             }
             else if (mRecvStatus == Channel::Status::RecvSizeError)
             {
@@ -289,14 +292,12 @@ namespace osuCrypto {
 #ifdef CHANNEL_LOGGING
             mLog.push("cancel send #" + ToString(front.mIdx));
 #endif
-            delete front.mContainer;
+            //delete front->mContainer;
 
-            if (front.mPromise)
-            {
-                auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mSendErrorMessage));
-                front.mPromise->set_exception(e_ptr);
-            }
+            auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mSendErrorMessage));
+            front->mPromise.set_exception(e_ptr);
 
+            //delete front;
             mSendQueue.pop_front();
         }
 
@@ -307,24 +308,24 @@ namespace osuCrypto {
 
 
 
-//        mRecvStrand.post([this]
-//        {
-//            if (mRecvQueue.size() == 0)
-//            {
-//
-//#ifdef CHANNEL_LOGGING
-//                mLog.push("recv queue empty");
-//#endif
-//                mRecvQueueEmptyProm.set_value(0);
-//            }
-//            else
-//            {
-//#ifdef CHANNEL_LOGGING
-//                mLog.push("recv queue size " + ToString(mRecvQueue.size()));
-//#endif
-//            }
-//
-//        });
+        //        mRecvStrand.post([this]
+        //        {
+        //            if (mRecvQueue.size() == 0)
+        //            {
+        //
+        //#ifdef CHANNEL_LOGGING
+        //                mLog.push("recv queue empty");
+        //#endif
+        //                mRecvQueueEmptyProm.set_value(0);
+        //            }
+        //            else
+        //            {
+        //#ifdef CHANNEL_LOGGING
+        //                mLog.push("recv queue size " + ToString(mRecvQueue.size()));
+        //#endif
+        //            }
+        //
+        //        });
     }
 
     void ChannelBase::cancelRecvQueuedOperations()
@@ -338,14 +339,12 @@ namespace osuCrypto {
 #ifdef CHANNEL_LOGGING
             mLog.push("cancel recv #" + ToString(front.mIdx));
 #endif
-            delete front.mContainer;
+            //delete front->mContainer;
 
-            if (front.mPromise)
-            {
-                auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mRecvErrorMessage));
-                front.mPromise->set_exception(e_ptr);
-            }
+            auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mRecvErrorMessage));
+            front->mPromise.set_exception(e_ptr);
 
+            //delete front;
             mRecvQueue.pop_front();
         }
 
@@ -355,23 +354,23 @@ namespace osuCrypto {
 #endif
         mRecvQueueEmptyProm.set_value(0);
 
-//        mSendStrand.post([this]
-//        {
-//            if (mSendQueue.size() == 0)
-//            {
-//
-//#ifdef CHANNEL_LOGGING
-//                mLog.push("send queue empty");
-//#endif
-//                mSendQueueEmptyProm.set_value(0);
-//            }
-//            else
-//            {
-//#ifdef CHANNEL_LOGGING
-//                mLog.push("send queue size " + ToString(mSendQueue.size()));
-//#endif
-//            }
-//        });
+        //        mSendStrand.post([this]
+        //        {
+        //            if (mSendQueue.size() == 0)
+        //            {
+        //
+        //#ifdef CHANNEL_LOGGING
+        //                mLog.push("send queue empty");
+        //#endif
+        //                mSendQueueEmptyProm.set_value(0);
+        //            }
+        //            else
+        //            {
+        //#ifdef CHANNEL_LOGGING
+        //                mLog.push("send queue size " + ToString(mSendQueue.size()));
+        //#endif
+        //            }
+        //        });
 
     }
 
@@ -408,9 +407,9 @@ namespace osuCrypto {
         asyncSend(std::move(bs));
     }
 
-    void Channel::dispatch(IOOperation & op)
+    void Channel::dispatch(std::unique_ptr<IOOperation> op)
     {
-        mBase->getIOService().dispatch(mBase.get(), op);
+        mBase->getIOService().dispatch(mBase.get(), std::move(op));
     }
 
     void ChannelBase::setRecvFatalError(std::string reason)

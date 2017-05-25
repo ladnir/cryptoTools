@@ -52,7 +52,7 @@ namespace osuCrypto
 
 
     class Acceptor;
-    struct IOOperation;
+    class IOOperation;
     class Endpoint;
     class Channel;
     class ChannelBase;
@@ -106,7 +106,7 @@ namespace osuCrypto
         /// <summary> Used to queue up asynchronous socket operations.</summary>
         /// <param name="socket">The socket that is being operated on.</param>
         /// <param name="op">The operation that should be queued up. </param>
-        void dispatch(ChannelBase* socket, IOOperation& op);
+        void dispatch(ChannelBase* socket, std::unique_ptr<IOOperation> op);
 
         /// <summary> Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         /// Needed since multiple endpoints with different names may listen on a single port.</summary>

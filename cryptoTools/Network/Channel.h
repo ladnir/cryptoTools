@@ -109,7 +109,12 @@ namespace osuCrypto {
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match. </summary>
-        std::future<u64> asyncRecv(void* dest, u64 length, std::function<void()> fn = {});
+        std::future<u64> asyncRecv(void* dest, u64 length, std::function<void()> fn);
+
+
+        /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
+        /// WARNING: return value will through if received message length does not match. </summary>
+        std::future<u64> asyncRecv(void* dest, u64 length);
 
         /// <summary>Asynchronous call to receive data over the network.
         /// Note: Conatiner can be resizable. If received size does not match Container::size(),
@@ -180,7 +185,7 @@ namespace osuCrypto {
 
 
 
-        void dispatch(IOOperation& op);
+        void dispatch(std::unique_ptr<IOOperation> op);
 
 
 
@@ -256,7 +261,7 @@ namespace osuCrypto {
 
         boost::asio::strand mSendStrand, mRecvStrand;
 
-        std::deque<IOOperation> mSendQueue, mRecvQueue;
+        std::deque<std::unique_ptr<IOOperation>> mSendQueue, mRecvQueue;
         std::promise<void> mOpenProm;
         std::shared_future<void> mOpenFut;
 
@@ -298,15 +303,13 @@ namespace osuCrypto {
         if (mBase->mSendStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
-        op.mContainer = (new MoveChannelBuff<std::unique_ptr<Container>>(std::move(c)));
+        auto op = IOOperation::newOp();
+        op->mContainerPtr = (new MoveChannelBuff<std::unique_ptr<Container>>(std::move(c)));
+        op->mSize = u32(op->mContainerPtr->size());
+        op->mBuffs[1] = boost::asio::buffer(op->mContainerPtr->data(), op->mContainerPtr->size());
+        op->mType = IOOperation::Type::SendData;
 
-        op.mSize = u32(op.mContainer->size());
-        op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
-
-        op.mType = IOOperation::Type::SendData;
-
-        dispatch(op);
+        dispatch(std::move(op));
     }
 
     template<class Container>
@@ -316,15 +319,15 @@ namespace osuCrypto {
         if (mBase->mSendStatus != Status::Normal || c->size() == 0 || c->size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
-        op.mContainer = (new MoveChannelBuff<std::shared_ptr<Container>>(std::move(c)));
+        auto op = IOOperation::newOp();
+        op->mContainerPtr = (new MoveChannelBuff<std::shared_ptr<Container>>(std::move(c)));
 
-        op.mSize = u32(op.mContainer->size());
-        op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
+        op->mSize = u32(op->mContainerPtr->size());
+        op->mBuffs[1] = boost::asio::buffer(op->mContainerPtr->data(), op->mContainerPtr->size());
 
-        op.mType = IOOperation::Type::SendData;
+        op->mType = IOOperation::Type::SendData;
 
-        dispatch(op);
+        dispatch(std::move(op));
     }
 
 
@@ -333,16 +336,15 @@ namespace osuCrypto {
     {
         if (mBase->mSendStatus != Status::Normal || c.size() == 0 || c.size() > u32(-1))
             throw std::runtime_error("rt error at " LOCATION);
+        auto op = IOOperation::newOp();
 
-        IOOperation op;
-        op.mContainer = (new MoveChannelBuff<Container>(std::move(c)));
+        op->mContainerPtr = (new MoveChannelBuff<Container>(std::move(c)));
+        op->mSize = u32(op->mContainerPtr->size());
+        op->mBuffs[1] = boost::asio::buffer(op->mContainerPtr->data(), op->mContainerPtr->size());
 
-        op.mSize = u32(op.mContainer->size());
-        op.mBuffs[1] = boost::asio::buffer(op.mContainer->data(), op.mContainer->size());
+        op->mType = IOOperation::Type::SendData;
 
-        op.mType = IOOperation::Type::SendData;
-
-        dispatch(op);
+        dispatch(std::move(op));
     }
 
     template <class Container>
@@ -354,21 +356,14 @@ namespace osuCrypto {
         if (mBase->mRecvStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
-        op.clear();
+        auto op = IOOperation::newOp();
+        op->mType = IOOperation::Type::RecvData;
+        op->mContainerPtr = nullptr;
+        op->mSize = u32(c.size());
+        op->mBuffs[1] = boost::asio::buffer(c.data(), c.size() * sizeof(typename Container::value_type));
+        auto future = op->mPromise.get_future();
 
-
-        op.mType = IOOperation::Type::RecvData;
-
-        //op.mContainer = (new ResizableChannelBuffRef<Container>(c));
-        op.mContainer = nullptr;
-
-        op.mSize = u32(c.size());
-        op.mBuffs[1] = boost::asio::buffer(c.data(), c.size() * sizeof(typename Container::value_type));
-        op.mPromise = new std::promise<u64>();
-        auto future = op.mPromise->get_future();
-
-        dispatch(op);
+        dispatch(std::move(op));
 
         return future;
     }
@@ -384,20 +379,11 @@ namespace osuCrypto {
         if (mBase->mRecvStatus != Status::Normal)
             throw std::runtime_error("rt error at " LOCATION);
 
-        IOOperation op;
-        op.clear();
-
-
-        op.mType = IOOperation::Type::RecvData;
-
-        op.mContainer = (new ResizableChannelBuffRef<Container>(c));
-        //op.mContainer = nullptr;//
-
-        op.mPromise = new std::promise<u64>();
-        auto future = op.mPromise->get_future();
-
-        dispatch(op);
-
+        auto op = IOOperation::newOp();
+        op->mType = IOOperation::Type::RecvData;
+        op->mContainerPtr = (new ResizableChannelBuffRef<Container>(c));
+        auto future = op->mPromise.get_future();
+        dispatch(std::move(op));
         return future;
     }
 

@@ -116,6 +116,7 @@
     <ClCompile Include="Network\Channel.cpp" />
     <ClCompile Include="Network\Endpoint.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
+    <ClCompile Include="Network\SocketAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

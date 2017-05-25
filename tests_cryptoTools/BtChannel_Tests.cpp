@@ -673,12 +673,12 @@ namespace tests_cryptoTools
             auto chl1 = ep1.addChannel(channelName, channelName);
             auto chl2 = ep2.addChannel(channelName, channelName);
 
-            Finally cleanup([&]() {
-                chl2.close();
-                ep1.stop();
-                ep2.stop();
-                ioService.stop();
-            });
+            //Finally cleanup([&]() {
+            //    chl2.close();
+            //    ep1.stop();
+            //    ep2.stop();
+            //    ioService.stop();
+            //});
 
 
             std::vector<u32> vec_u32{ 0,1,2,3,4,5,6,7,8,9 };
@@ -701,38 +701,63 @@ namespace tests_cryptoTools
             throw UnitTestFail("no throw");
         }
 
+
     }
-	 
-	void BtNetwork_SocketInterface_Test()
-	{
-		std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-		IOService ioService;
 
-		ioService.printErrorMessages(false);
+    void BtNetwork_SocketInterface_Test()
+    {
 
-		Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-		Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+        try {
+            //auto i = new std::future<int>();
+            //{
+            //    std::promise<int> p;
+            //}
+            //{
+            //    std::promise<int> p;
+            //    p.set_value(1);
+            //}
 
-		auto chl1 = ep1.addChannel(channelName, channelName);
-		auto chl2 = ep2.addChannel(channelName, channelName);
-		
-		//////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////////////////////////////////////////////
-		
+            //{
+            //    std::promise<int> p;
+            //    *i = p.get_future();
+            //    //p.set_value(1);
+            //}
+            //i->get();
+            //delete i;
+            //return;
 
-		Channel ichl1(ioService, new SocketAdapter<Channel>(chl1));
-		Channel ichl2(ioService, new SocketAdapter<Channel>(chl2));
+            std::string channelName{ "TestChannel" }, msg{ "This is the message" };
+            IOService ioService;
+
+            ioService.printErrorMessages(false);
+
+            Endpoint ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+            Endpoint ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+
+            auto chl1 = ep1.addChannel(channelName, channelName);
+            auto chl2 = ep2.addChannel(channelName, channelName);
+
+            //////////////////////////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////////////////////////
 
 
-		ichl1.asyncSendCopy(msg);
+            Channel ichl1(ioService, new SocketAdapter<Channel>(chl1));
+            Channel ichl2(ioService, new SocketAdapter<Channel>(chl2));
 
-		std::string msg2;
-		ichl2.recv(msg2);
 
-		if (msg != msg2)
-		{
-			throw UnitTestFail(LOCATION);
-		}
+            ichl1.asyncSendCopy(msg);
 
-	}
+            std::string msg2;
+            ichl2.recv(msg2);
+
+            if (msg != msg2)
+            {
+                throw UnitTestFail(LOCATION);
+            }
+        }
+        catch (std::exception e)
+        {
+            std::cout <<"sss" << e.what() << std::endl;
+        }
+    }
 }

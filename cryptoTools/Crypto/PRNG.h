@@ -44,6 +44,15 @@ namespace osuCrypto
             return ret;
         }
 
+        template<>
+        bool get<bool>()
+        {
+            u8 ret;
+            get((u8*)&ret, 1);
+            return ret & 1;
+        }
+
+
         template<typename T>
         void get(T* dest, u64 length)
         {
@@ -64,9 +73,15 @@ namespace osuCrypto
                     refillBuffer();
             }
         }
+        template<>
+        void get<bool>(bool* dest, u64 length)
+        {
+            get((u8*)dest, length);
+            for (u64 i = 0; i < length; ++i) dest[i] = ((u8*)dest)[i] & 1;
+        }
 
 
-        u8 getBit() { return get<u8>() & 1; }
+        u8 getBit() { return get<bool>(); }
         //void get(u8* ans, u64 len);
 
 

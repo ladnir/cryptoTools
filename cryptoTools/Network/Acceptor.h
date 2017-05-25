@@ -13,7 +13,7 @@ namespace osuCrypto {
     class Socket;
     class ChannelBase;
     class IOService;
-    struct IOOperation;
+    class IOOperation;
 	class BoostSocketInterface;
 
     class Acceptor

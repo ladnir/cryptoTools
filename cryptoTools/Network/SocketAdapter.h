@@ -11,7 +11,28 @@ namespace osuCrypto
 	{
 	public:
 
-		virtual ~SocketInterface() {}
+        //////////////////////////////////   REQUIRED //////////////////////////////////
+
+        // REQURIED: must implement a distructor as it will be called via the SocketInterface
+        virtual ~SocketInterface() = 0;
+
+
+        // REQURIED: Sends one or more buffers of data over the socket. See SocketAdapter<T> for an example.
+        // @buffers [input]: is the vector of buffers that should be sent.
+        // @error [output]:   indicates what soemthing went wrong.
+        // @bytesTransfered [output]: the number of bytes that were sent.
+        //         should be all the buffers sizes but is some cases it may not be.
+        virtual void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
+
+        // REQURIED: Receive one or more buffers of data over the socket. See SocketAdapter<T> for an example.
+        // @buffers [output]: is the vector of buffers that should be sent.
+        // @error [output]:   indicates what soemthing went wrong.
+        // @bytesTransfered [output]: the number of bytes that were sent.
+        //         should be all the buffers sizes but is some cases it may not be.
+        virtual void recv(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
+
+
+        //////////////////////////////////   OPTIONAL //////////////////////////////////
 
 		// OPTIONAL -- no-op close is default. Will be called when all Channels that refernece it are destructed/
 		virtual void close() {};
@@ -40,19 +61,6 @@ namespace osuCrypto
 			fn(ec, bytesTransfered);
 		};
 
-		// Sends one or more buffers of data over the socket. See SocketAdapter<T> for an example.
-		// @buffers [input]: is the vector of buffers that should be sent.
-		// @error [output]:   indicates what soemthing went wrong.
-		// @bytesTransfered [output]: the number of bytes that were sent.
-		//         should be all the buffers sizes but is some cases it may not be.
-		virtual void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
-
-		// Receive one or more buffers of data over the socket. See SocketAdapter<T> for an example.
-		// @buffers [output]: is the vector of buffers that should be sent.
-		// @error [output]:   indicates what soemthing went wrong.
-		// @bytesTransfered [output]: the number of bytes that were sent.
-		//         should be all the buffers sizes but is some cases it may not be.
-		virtual void recv(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
 
 	};
 
@@ -66,6 +74,10 @@ namespace osuCrypto
 		SocketAdapter(T& chl)
 			:mChl(chl)
 		{}
+
+        ~SocketAdapter() override
+        {
+        }
 
 		void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
 		{
@@ -124,7 +136,7 @@ namespace osuCrypto
 			//std::cout << IoStream::lock << "create " << this << std::endl << IoStream::unlock;
 		}
 
-		~BoostSocketInterface()
+		~BoostSocketInterface() override
 		{
 			//std::cout << IoStream::lock << "destoy " << this << std::endl << IoStream::unlock;
 
@@ -133,7 +145,7 @@ namespace osuCrypto
 
 		void close() override { mSock.close(); }
 
-		void async_receive(ArrayView<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn)
+		void async_recv(ArrayView<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn) override
 		{
 			boost::asio::async_read(mSock, buffers, fn);
 		}
