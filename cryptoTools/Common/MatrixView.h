@@ -74,7 +74,7 @@ namespace osuCrypto
             if (rows * columns != size())
                 throw std::runtime_error(LOCATION);
 
-            mView = ArrayView<T>(mView.data(), rows * columns);
+            mView = span<T>(mView.data(), rows * columns);
             mStride = columns;
         }
 
@@ -93,19 +93,19 @@ namespace osuCrypto
             return mView[rowIdx * stride() + colIdx];
         }
 
-        ArrayView<T> operator[](size_type rowIdx) const
+        span<T> operator[](size_type rowIdx) const
         {
 #ifndef NDEBUG
             if (rowIdx >= mView.size() / stride()) throw std::runtime_error(LOCATION);
 #endif
 
-            return ArrayView<T>(mView.data() + rowIdx * stride(), stride());
+            return span<T>(mView.data() + rowIdx * stride(), stride());
         }
 
 
 
     protected:
-        ArrayView<T> mView;
+        span<T> mView;
         size_type mStride;
 
 

@@ -107,7 +107,7 @@ namespace osuCrypto {
 
 
         template<class T>
-        ArrayView<T> getArrayView() const;
+        span<T> getArrayView() const;
 
         template<class T>
         gsl::span<T> getSpan() const;
@@ -117,9 +117,9 @@ namespace osuCrypto {
     };
 
     template<class T>
-    inline ArrayView<T> BitVector::getArrayView() const
+    inline span<T> BitVector::getArrayView() const
     {
-        return ArrayView<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
+        return span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
     }
 
     template<class T>

@@ -200,7 +200,7 @@ namespace osuCrypto {
 //        }
 //
 //
-//        const ArrayView<T>& operator=(const ArrayView<T>& copy)
+//        const span<T>& operator=(const span<T>& copy)
 //        {
 //            mData = copy.mData;
 //            mSize = copy.mSize;
@@ -244,8 +244,8 @@ namespace osuCrypto {
 //    };
 
     template<typename T>
-    ArrayView<T> makeArrayView(T* data, u64 size)
+    span<T> makeArrayView(T* data, u64 size)
     {
-        return ArrayView<T>(data, size);
+        return span<T>(data, size);
     }
 }

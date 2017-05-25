@@ -604,129 +604,129 @@ namespace osuCrypto {
 
     //void AES::ecbEncCounterMode(u64 baseIdx, u64 blockLength, block* cyphertext, const u64* destIdxs)
     //{
-    //	const u64 step = 8;
-    //	u64 idx = 0;
-    //	u64 length = blockLength - blockLength % step;
+    //    const u64 step = 8;
+    //    u64 idx = 0;
+    //    u64 length = blockLength - blockLength % step;
 
-    //	std::array<block, step> temp;
+    //    std::array<block, step> temp;
 
-    //	for (; idx < length; idx += step, baseIdx += step)
-    //	{
-    //		temp[0] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 0), mRoundKey[0]);
-    //		temp[1] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 1), mRoundKey[0]);
-    //		temp[2] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 2), mRoundKey[0]);
-    //		temp[3] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 3), mRoundKey[0]);
-    //		temp[4] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 4), mRoundKey[0]);
-    //		temp[5] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 5), mRoundKey[0]);
-    //		temp[6] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 6), mRoundKey[0]);
-    //		temp[7] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 7), mRoundKey[0]);
+    //    for (; idx < length; idx += step, baseIdx += step)
+    //    {
+    //        temp[0] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 0), mRoundKey[0]);
+    //        temp[1] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 1), mRoundKey[0]);
+    //        temp[2] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 2), mRoundKey[0]);
+    //        temp[3] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 3), mRoundKey[0]);
+    //        temp[4] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 4), mRoundKey[0]);
+    //        temp[5] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 5), mRoundKey[0]);
+    //        temp[6] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 6), mRoundKey[0]);
+    //        temp[7] = _mm_xor_si128(_mm_set1_epi64x(baseIdx + 7), mRoundKey[0]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[1]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[1]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[1]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[1]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[1]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[1]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[1]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[1]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[1]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[1]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[1]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[1]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[1]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[1]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[1]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[1]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[2]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[2]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[2]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[2]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[2]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[2]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[2]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[2]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[2]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[2]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[2]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[2]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[2]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[2]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[2]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[2]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[3]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[3]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[3]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[3]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[3]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[3]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[3]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[3]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[3]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[3]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[3]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[3]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[3]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[3]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[3]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[3]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[4]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[4]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[4]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[4]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[4]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[4]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[4]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[4]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[4]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[4]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[4]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[4]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[4]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[4]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[4]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[4]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[5]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[5]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[5]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[5]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[5]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[5]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[5]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[5]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[5]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[5]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[5]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[5]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[5]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[5]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[5]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[5]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[6]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[6]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[6]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[6]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[6]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[6]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[6]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[6]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[6]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[6]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[6]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[6]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[6]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[6]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[6]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[6]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[7]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[7]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[7]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[7]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[7]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[7]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[7]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[7]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[7]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[7]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[7]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[7]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[7]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[7]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[7]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[7]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[8]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[8]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[8]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[8]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[8]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[8]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[8]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[8]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[8]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[8]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[8]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[8]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[8]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[8]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[8]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[8]);
 
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[9]);
-    //		temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[9]);
-    //		temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[9]);
-    //		temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[9]);
-    //		temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[9]);
-    //		temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[9]);
-    //		temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[9]);
-    //		temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[9]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[9]);
+    //        temp[1] = _mm_aesenc_si128(temp[1], mRoundKey[9]);
+    //        temp[2] = _mm_aesenc_si128(temp[2], mRoundKey[9]);
+    //        temp[3] = _mm_aesenc_si128(temp[3], mRoundKey[9]);
+    //        temp[4] = _mm_aesenc_si128(temp[4], mRoundKey[9]);
+    //        temp[5] = _mm_aesenc_si128(temp[5], mRoundKey[9]);
+    //        temp[6] = _mm_aesenc_si128(temp[6], mRoundKey[9]);
+    //        temp[7] = _mm_aesenc_si128(temp[7], mRoundKey[9]);
 
-    //		cyphertext[destIdxs[idx + 0]] = _mm_aesenclast_si128(temp[0], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 1]] = _mm_aesenclast_si128(temp[1], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 2]] = _mm_aesenclast_si128(temp[2], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 3]] = _mm_aesenclast_si128(temp[3], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 4]] = _mm_aesenclast_si128(temp[4], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 5]] = _mm_aesenclast_si128(temp[5], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 6]] = _mm_aesenclast_si128(temp[6], mRoundKey[10]);
-    //		cyphertext[destIdxs[idx + 7]] = _mm_aesenclast_si128(temp[7], mRoundKey[10]);
-    //	}
+    //        cyphertext[destIdxs[idx + 0]] = _mm_aesenclast_si128(temp[0], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 1]] = _mm_aesenclast_si128(temp[1], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 2]] = _mm_aesenclast_si128(temp[2], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 3]] = _mm_aesenclast_si128(temp[3], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 4]] = _mm_aesenclast_si128(temp[4], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 5]] = _mm_aesenclast_si128(temp[5], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 6]] = _mm_aesenclast_si128(temp[6], mRoundKey[10]);
+    //        cyphertext[destIdxs[idx + 7]] = _mm_aesenclast_si128(temp[7], mRoundKey[10]);
+    //    }
 
 
-    //	for (; idx < blockLength; ++idx, ++baseIdx)
-    //	{
-    //		temp[0] = _mm_xor_si128(_mm_set1_epi64x(baseIdx), mRoundKey[0]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[1]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[2]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[3]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[4]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[5]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[6]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[7]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[8]);
-    //		temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[9]);
-    //		cyphertext[destIdxs[idx]] = _mm_aesenclast_si128(temp[0], mRoundKey[10]);
-    //	}
+    //    for (; idx < blockLength; ++idx, ++baseIdx)
+    //    {
+    //        temp[0] = _mm_xor_si128(_mm_set1_epi64x(baseIdx), mRoundKey[0]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[1]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[2]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[3]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[4]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[5]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[6]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[7]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[8]);
+    //        temp[0] = _mm_aesenc_si128(temp[0], mRoundKey[9]);
+    //        cyphertext[destIdxs[idx]] = _mm_aesenclast_si128(temp[0], mRoundKey[10]);
+    //    }
 
     //}
 

@@ -22,11 +22,11 @@ namespace osuCrypto {
             << std::setw(16) << std::setfill('0') << data[0];
 
         out << std::dec << std::setw(0);
-		//u64* data = (u64*)&blk;
-		//BitVector bv;// ((u8*)data, 64);
-		//bv.append((u8*)&data, 32, 2);
+        //u64* data = (u64*)&blk;
+        //BitVector bv;// ((u8*)data, 64);
+        //bv.append((u8*)&data, 32, 2);
 
-		//out << (*(u8*)&data & 1) << " " << (*(u8*)&data & 2) << " " << bv << _;
+        //out << (*(u8*)&data & 1) << " " << (*(u8*)&data & 2) << " " << bv << _;
         return out;
     }
 

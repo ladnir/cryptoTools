@@ -108,7 +108,7 @@ namespace osuCrypto {
 
                             //std::cout << "async_accept new connection size" << std::endl;
 
-                            u32 size = buff->getArrayView<u32>()[0];
+                            u32 size = buff->getspan<u32>()[0];
 
                             buff->reserve(size);
                             buff->setp(size);
@@ -212,7 +212,7 @@ namespace osuCrypto {
         {
             //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
             mSocketChannelPairsMtx.lock();
-			 
+             
             auto iter = mSocketChannelPairs.find(tag);
 
             if (iter == mSocketChannelPairs.end())
@@ -224,13 +224,13 @@ namespace osuCrypto {
             else
             {
                // std::cout <<IoStream::lock << "asyncGetSocket aquired socket " << tag << std::endl << IoStream::unlock;
-				if (iter->second.first == nullptr)
-				{
-					std::cout << "netowrking error: channel " << tag << " already exists.";
-					std::terminate();
-				}
+                if (iter->second.first == nullptr)
+                {
+                    std::cout << "netowrking error: channel " << tag << " already exists.";
+                    std::terminate();
+                }
 
-				chl.mHandle.reset(iter->second.first);
+                chl.mHandle.reset(iter->second.first);
 
                 chl.mRecvSocketSet = true;
                 chl.mSendSocketSet = true;
@@ -292,7 +292,7 @@ namespace osuCrypto {
         std::string endpointName,
         std::string localChannelName,
         std::string remoteChannelName,
-		BoostSocketInterface* sock)
+        BoostSocketInterface* sock)
     {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
@@ -325,7 +325,7 @@ namespace osuCrypto {
                 {
                     iter->second.second->mHandle.reset(sock);
 
-					mIOService.startSocket(iter->second.second);
+                    mIOService.startSocket(iter->second.second);
                 }
 
                 mSocketChannelPairs.erase(iter);

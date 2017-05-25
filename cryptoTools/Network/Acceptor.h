@@ -14,7 +14,7 @@ namespace osuCrypto {
     class ChannelBase;
     class IOService;
     class IOOperation;
-	class BoostSocketInterface;
+    class BoostSocketInterface;
 
     class Acceptor
     {
@@ -41,7 +41,7 @@ namespace osuCrypto {
             std::string endpointName,
             std::string localChannelName,
             std::string remoteChannelName,
-			BoostSocketInterface* handel);
+            BoostSocketInterface* handel);
 
         void asyncGetSocket(ChannelBase& chl);
 

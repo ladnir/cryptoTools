@@ -198,7 +198,7 @@ namespace osuCrypto {
         BSIterator<T>    end();
 
         template<class T>
-        ArrayView<T> getArrayView() const;
+        span<T> getArrayView() const;
 
         template<class T>
         gsl::span<T> getSpan() const;
@@ -245,9 +245,9 @@ namespace osuCrypto {
     }
 
     template<class T>
-    inline ArrayView<T> ByteStream::getArrayView() const
+    inline span<T> ByteStream::getArrayView() const
     {
-        return ArrayView<T>((T*)mData, mPutHead / sizeof(T));
+        return span<T>((T*)mData, mPutHead / sizeof(T));
     }
 
     template<class T>

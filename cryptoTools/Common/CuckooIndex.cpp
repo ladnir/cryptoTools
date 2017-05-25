@@ -10,15 +10,15 @@
 
 namespace osuCrypto
 {
-	// parameters for k=2 hash functions, 2^n items, and statistical security 40
-	//CuckooParam NoStash_k3n32s40CuckooParam{ 0, 2.4, 2, u64(1) << 32 };
-	//CuckooParam NoStash_k3n30s40CuckooParam{ 0, 2.4, 2, u64(1) << 30 };
-	//CuckooParam NoStash_k3n28s40CuckooParam{ 0, 2.4, 2, u64(1) << 28 };
-	//CuckooParam NoStash_k3n24s40CuckooParam{ 0, 2.4, 2, u64(1) << 24 };
-	//CuckooParam NoStash_k3n20s40CuckooParam{ 0, 2.4, 2, u64(1) << 20 };
-	//CuckooParam NoStash_k3n16s40CuckooParam{ 0, 2.4, 2, u64(1) << 16 };
-	//CuckooParam NoStash_k3n12s40CuckooParam{ 0, 2.4, 2, u64(1) << 12 };
-	//CuckooParam NoStash_k3n08s40CuckooParam{ 0, 2.4, 2, u64(1) << 8 };
+    // parameters for k=2 hash functions, 2^n items, and statistical security 40
+    //CuckooParam NoStash_k3n32s40CuckooParam{ 0, 2.4, 2, u64(1) << 32 };
+    //CuckooParam NoStash_k3n30s40CuckooParam{ 0, 2.4, 2, u64(1) << 30 };
+    //CuckooParam NoStash_k3n28s40CuckooParam{ 0, 2.4, 2, u64(1) << 28 };
+    //CuckooParam NoStash_k3n24s40CuckooParam{ 0, 2.4, 2, u64(1) << 24 };
+    //CuckooParam NoStash_k3n20s40CuckooParam{ 0, 2.4, 2, u64(1) << 20 };
+    //CuckooParam NoStash_k3n16s40CuckooParam{ 0, 2.4, 2, u64(1) << 16 };
+    //CuckooParam NoStash_k3n12s40CuckooParam{ 0, 2.4, 2, u64(1) << 12 };
+    //CuckooParam NoStash_k3n08s40CuckooParam{ 0, 2.4, 2, u64(1) << 8 };
 
     // parameters for k=2 hash functions, 2^n items, and statistical security 40
     CuckooParam k2n32s40CuckooParam{ 4, 2.4, 2, u64(1) << 32 };
@@ -124,51 +124,51 @@ namespace osuCrypto
 
     CuckooParam CuckooIndex::selectParams(const u64& n, const u64& statSecParam, bool noStash)
     {
-		if (noStash)
-		{
-			// no stash parameters
-			return CuckooParam{ 0,(145.0 + statSecParam) / 125.0, 3, n };
-		}
-		else
-		{
-			if (statSecParam != 40) throw std::runtime_error("not implemented");
-			if (n <= 1 << 1)
-				return k2n01s40CuckooParam;
-			else if (n <= u64(1) << 2)
-				return k2n02s40CuckooParam;
-			else if (n <= u64(1) << 3)
-				return k2n03s40CuckooParam;
-			else if (n <= u64(1) << 4)
-				return k2n04s40CuckooParam;
-			else if (n <= u64(1) << 5)
-				return k2n05s40CuckooParam;
-			else if (n <= u64(1) << 6)
-				return k2n06s40CuckooParam;
-			else if (n <= u64(1) << 7)
-				return k2n07s40CuckooParam;
-			else if (n <= u64(1) << 8)
-				return k2n08s40CuckooParam;
-			else if (n <= u64(1) << 12)
-				return k2n12s40CuckooParam;
-			else if (n <= u64(1) << 16)
-				return k2n16s40CuckooParam;
-			else if (n <= u64(1) << 20)
-				return k2n20s40CuckooParam;
-			else if (n <= u64(1) << 24)
-				return k2n24s40CuckooParam;
-			else if (n <= u64(1) << 28)
-				return k2n28s40CuckooParam;
-			else if (n <= u64(1) << 30)
-				return k2n30s40CuckooParam;
-			else if (n <= u64(1) << 32)
-				return k2n32s40CuckooParam;
-			else
-			{
-				std::cout << "Failed to find cuckoo parameters large enough  " << n << " " << std::log2(n) << "\n" LOCATION << std::endl;
-				std::this_thread::sleep_for(std::chrono::seconds(1));
-				throw std::runtime_error("not implemented " LOCATION);
-			}
-		}
+        if (noStash)
+        {
+            // no stash parameters
+            return CuckooParam{ 0,(145.0 + statSecParam) / 125.0, 3, n };
+        }
+        else
+        {
+            if (statSecParam != 40) throw std::runtime_error("not implemented");
+            if (n <= 1 << 1)
+                return k2n01s40CuckooParam;
+            else if (n <= u64(1) << 2)
+                return k2n02s40CuckooParam;
+            else if (n <= u64(1) << 3)
+                return k2n03s40CuckooParam;
+            else if (n <= u64(1) << 4)
+                return k2n04s40CuckooParam;
+            else if (n <= u64(1) << 5)
+                return k2n05s40CuckooParam;
+            else if (n <= u64(1) << 6)
+                return k2n06s40CuckooParam;
+            else if (n <= u64(1) << 7)
+                return k2n07s40CuckooParam;
+            else if (n <= u64(1) << 8)
+                return k2n08s40CuckooParam;
+            else if (n <= u64(1) << 12)
+                return k2n12s40CuckooParam;
+            else if (n <= u64(1) << 16)
+                return k2n16s40CuckooParam;
+            else if (n <= u64(1) << 20)
+                return k2n20s40CuckooParam;
+            else if (n <= u64(1) << 24)
+                return k2n24s40CuckooParam;
+            else if (n <= u64(1) << 28)
+                return k2n28s40CuckooParam;
+            else if (n <= u64(1) << 30)
+                return k2n30s40CuckooParam;
+            else if (n <= u64(1) << 32)
+                return k2n32s40CuckooParam;
+            else
+            {
+                std::cout << "Failed to find cuckoo parameters large enough  " << n << " " << std::log2(n) << "\n" LOCATION << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                throw std::runtime_error("not implemented " LOCATION);
+            }
+        }
     }
 
     void CuckooIndex::init(const u64& n, const u64& statSecParam, bool noStash)
@@ -186,6 +186,29 @@ namespace osuCrypto
         mStash.resize(mParams.mStashSize);
     }
 
+
+    void CuckooIndex::insert(span<block> items, block hashingSeed)
+    {
+        std::array<block, 16> hashs;
+        std::array<u64, 16> idxs;
+        AES hasher(hashingSeed);
+
+        for (u64 i = 0; i < items.size(); i += hashs.size())
+        {
+            auto min = std::min<u64>(items.size() - i, hashs.size());
+
+            hasher.ecbEncBlocks(items.data() + i, min, hashs.data());
+
+            for (u64 j = 0, jj = i; j < min; ++j, ++jj)
+            {
+                idxs[j] = jj;
+                hashs[j] = hashs[j] ^ items[jj];
+            }
+
+            insert(min, idxs.data(), hashs.data());
+        }
+    }
+
     void CuckooIndex::insert(const u64& inputIdx, const block& hashs)
     {
 
@@ -193,8 +216,8 @@ namespace osuCrypto
     }
 
     void CuckooIndex::insert(
-        ArrayView<u64> inputIdxs,
-        ArrayView<block> hashs)
+        span<u64> inputIdxs,
+        span<block> hashs)
     {
 #ifndef NDEBUG
         if (inputIdxs.size() != hashs.size())
@@ -507,8 +530,8 @@ namespace osuCrypto
 
 
     void CuckooIndex::find(
-        ArrayView<block> hashes,
-        ArrayView<u64> idxs)
+        span<block> hashes,
+        span<u64> idxs)
     {
 #ifndef NDEBUG
         if (hashes.size() != idxs.size())

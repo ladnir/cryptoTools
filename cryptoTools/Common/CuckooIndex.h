@@ -56,11 +56,13 @@ namespace osuCrypto
 
         static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash);
 
+        void insert(span<block> items, block hashingSeed);
+
         // insert single index with pre hashed values with error checking
         void insert(const u64& IdxItem, const block& hashes);
 
         // insert several items with pre-hashed values with error checking
-        void insert(ArrayView<u64> itemIdxs, ArrayView<block> hashs);
+        void insert(span<u64> itemIdxs, span<block> hashs);
 
         // insert several items with pre-hashed values
         void insert(const u64& numInserts, const u64* itemIdxs, const block* hashs);
@@ -69,7 +71,7 @@ namespace osuCrypto
         u64 find(const block& hash);
 
         // find several items with pre hashed values, the indexes that are found are written to the idxs array.
-        void find(ArrayView<block> hashes, ArrayView<u64> idxs);
+        void find(span<block> hashes, span<u64> idxs);
 
         // find several items with pre hashed values, the indexes that are found are written to the idxs array.
         void find(const u64& numItems, const  block* hashes, const u64* idxs);

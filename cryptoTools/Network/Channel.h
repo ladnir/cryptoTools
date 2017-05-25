@@ -19,16 +19,16 @@ namespace osuCrypto {
     class Endpoint;
     class Endpoint;
     class ChannelBase;
-	class SocketInterface;
-	class BoostSocketInterface;
+    class SocketInterface;
+    class BoostSocketInterface;
 
     class Channel
     {
         friend class IOService;
-		friend class Endpoint;
+        friend class Endpoint;
         Channel(Endpoint& endpoint, std::string localName, std::string remoteName);
     public:
-		Channel(IOService& ios, SocketInterface* sock);
+        Channel(IOService& ios, SocketInterface* sock);
         Channel(Channel && move) = default;
         Channel(const Channel & copy) = default;
         Channel() = default;
@@ -242,20 +242,20 @@ namespace osuCrypto {
     class ChannelBase
     {
     public:
-		ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
-		ChannelBase(IOService& ios, SocketInterface* sock);
+        ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
+        ChannelBase(IOService& ios, SocketInterface* sock);
         ~ChannelBase()
         {
             close();
         }
 
-		IOService& mIos;
+        IOService& mIos;
         Endpoint* mEndpoint;
         std::string mRemoteName, mLocalName;
         u64 mId;
 
         Channel::Status mRecvStatus, mSendStatus;
-		std::unique_ptr<SocketInterface> mHandle;
+        std::unique_ptr<SocketInterface> mHandle;
 
 
 
@@ -285,7 +285,7 @@ namespace osuCrypto {
         void cancelSendQueuedOperations();
 
         void close();
-		IOService& getIOService() { return mIos; }
+        IOService& getIOService() { return mIos; }
 
         bool stopped() { return mSendStatus == Channel::Status::Stopped; }
 

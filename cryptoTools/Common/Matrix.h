@@ -29,7 +29,7 @@ namespace osuCrypto
         {
             auto old = MatrixView<T>::mView;
             
-            MatrixView<T>::mView = ArrayView<T>(new T[rows * columns](), rows * columns);
+            MatrixView<T>::mView = span<T>(new T[rows * columns](), rows * columns);
 
             auto min = std::min<u64>(old.size(), rows * columns) * sizeof(T);
             memcpy(MatrixView<T>::mView.data(), old.data(), min);

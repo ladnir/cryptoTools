@@ -112,7 +112,7 @@ namespace osuCrypto {
         }
         else
         {
-			auto sock = new BoostSocketInterface(getIOService().mIoService);
+            auto sock = new BoostSocketInterface(getIOService().mIoService);
             base->mHandle.reset(sock);
 
             //std::cout << IoStream::lock << "new socket: " << chl.mHandle.get() << std::endl << IoStream::unlock;
@@ -175,7 +175,7 @@ namespace osuCrypto {
                                 //std::cout << IoStream::lock << "connect cb handle: " << chl.mHandle.get() << std::endl << IoStream::unlock;
                                 //std::cout << IoStream::lock << "initialCallback! = " << initialCallback << std::endl << IoStream::unlock;
 
-								sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+                                sock->mSock.async_connect(mRemoteAddr, *initialCallback);
                             }
                         }
                     });
@@ -185,12 +185,12 @@ namespace osuCrypto {
                     //std::cout << IoStream::lock << "        connected "<< localName  << std::endl << IoStream::unlock;
 
                     boost::asio::ip::tcp::no_delay option(true);
-					sock->mSock.set_option(option);
+                    sock->mSock.set_option(option);
 
 
                     std::stringstream ss;
                     ss << mName << char('`') << localName << char('`') << remoteName;
-					//std::cout <<IoStream::lock << "sending " << ss.str() <<std::endl << IoStream::unlock;
+                    //std::cout <<IoStream::lock << "sending " << ss.str() <<std::endl << IoStream::unlock;
 
                     std::string str = ss.str();
 
@@ -247,7 +247,7 @@ namespace osuCrypto {
 
                     if (base->stopped() == false)
                     {
-						sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+                        sock->mSock.async_connect(mRemoteAddr, *initialCallback);
                     }
                     else
                     {
@@ -261,7 +261,7 @@ namespace osuCrypto {
 
 
             //std::cout << IoStream::lock << "initialCallback = " << initialCallback << std::endl << IoStream::unlock;
-			sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+            sock->mSock.async_connect(mRemoteAddr, *initialCallback);
         }
 
         return (chl);
