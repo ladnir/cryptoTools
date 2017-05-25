@@ -117,8 +117,6 @@ namespace osuCrypto {
             mIdx = 0;
             mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
             mBuffs[1] = boost::asio::mutable_buffer();
-            mPromise;
-            mCallback;
         }
 
         virtual ~IOOperation() {}

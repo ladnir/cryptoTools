@@ -44,13 +44,6 @@ namespace osuCrypto
             return ret;
         }
 
-        template<>
-        bool get<bool>()
-        {
-            u8 ret;
-            get((u8*)&ret, 1);
-            return ret & 1;
-        }
 
 
         template<typename T>
@@ -73,15 +66,8 @@ namespace osuCrypto
                     refillBuffer();
             }
         }
-        template<>
-        void get<bool>(bool* dest, u64 length)
-        {
-            get((u8*)dest, length);
-            for (u64 i = 0; i < length; ++i) dest[i] = ((u8*)dest)[i] & 1;
-        }
 
-
-        u8 getBit() { return get<bool>(); }
+        u8 getBit();// { return get<bool>(); }
         //void get(u8* ans, u64 len);
 
 
@@ -97,4 +83,21 @@ namespace osuCrypto
             return get<result_type>() % mod;
         }
     };
+
+    template<>
+    inline void PRNG::get<bool>(bool* dest, u64 length)
+    {
+        get((u8*)dest, length);
+        for (u64 i = 0; i < length; ++i) dest[i] = ((u8*)dest)[i] & 1;
+    }
+
+    template<>
+    inline bool PRNG::get<bool>()
+    {
+        u8 ret;
+        get((u8*)&ret, 1);
+        return ret & 1;
+    }
+
+
 }

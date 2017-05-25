@@ -72,6 +72,7 @@ namespace osuCrypto {
 
         refillBuffer();
     }
+    u8 PRNG::getBit() { return get<bool>(); }
 
     const block PRNG::getSeed() const
     {
