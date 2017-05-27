@@ -21,6 +21,22 @@ namespace osuCrypto
     };
 
 
+   extern CuckooParam k2n32s40CuckooParam;
+   extern CuckooParam k2n30s40CuckooParam;
+   extern CuckooParam k2n28s40CuckooParam;
+   extern CuckooParam k2n24s40CuckooParam;
+   extern CuckooParam k2n20s40CuckooParam;
+   extern CuckooParam k2n16s40CuckooParam;
+   extern CuckooParam k2n12s40CuckooParam;
+   extern CuckooParam k2n08s40CuckooParam;
+   extern CuckooParam k2n07s40CuckooParam;
+   extern CuckooParam k2n06s40CuckooParam;
+   extern CuckooParam k2n05s40CuckooParam;
+   extern CuckooParam k2n04s40CuckooParam;
+   extern CuckooParam k2n03s40CuckooParam;
+   extern CuckooParam k2n02s40CuckooParam;
+   extern CuckooParam k2n01s40CuckooParam;
+
 
     class CuckooIndex
     {
@@ -95,7 +111,7 @@ namespace osuCrypto
         u64 getHash(const u64& inputIdx, const u64& hashIdx);
 
         static u64 getHash(const block& hash, const u64& hashIdx, u64 num_bins);
-
+        static u8 minCollidingHashIdx(u64 target, block& hashes, u8 numHashFunctions, u64 numBins);
         //void insertHelper(u64 IdxItem, u64 hashIdx, u64 numTries);
 
     };

@@ -7,7 +7,7 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <future>
-//#define CHANNEL_LOGGING
+#define CHANNEL_LOGGING
 
 namespace osuCrypto {
 
@@ -253,6 +253,8 @@ namespace osuCrypto {
         Endpoint* mEndpoint;
         std::string mRemoteName, mLocalName;
         u64 mId;
+
+        u32 mRecvSizeBuff, mSendSizeBuff;
 
         Channel::Status mRecvStatus, mSendStatus;
         std::unique_ptr<SocketInterface> mHandle;

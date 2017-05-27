@@ -113,10 +113,7 @@ namespace osuCrypto {
         IOOperation(IOOperation::Type t)
         {
             mType = t;
-            mSize = 0;
             mIdx = 0;
-            mBuffs[0] = boost::asio::buffer(&mSize, sizeof(u32));
-            mBuffs[1] = boost::asio::mutable_buffer();
         }
 
         virtual ~IOOperation() {}
@@ -124,7 +121,7 @@ namespace osuCrypto {
 
 
 
-        u32 mSize;
+        //u32 mSize;
     private:
         Type mType;
     public:
@@ -150,12 +147,12 @@ namespace osuCrypto {
             : IOOperation(t)
         {
             
-            mSize = u32(size);
+            //mSize = u32(size);
             mBuffs[1] = boost::asio::buffer((void*)data, size);
         }
 
         u8* data() const override { return (u8*)boost::asio::buffer_cast<u8*>(mBuffs[1]); }
-        u64 size() const override { return mSize; }
+        u64 size() const override { return boost::asio::buffer_size(mBuffs[1]); }
     };
 
 
@@ -168,8 +165,8 @@ namespace osuCrypto {
         MoveChannelBuff(F&& obj)
             : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
         {
-            mSize = u32(channelBuffSize(mObj));
-            mBuffs[1] = boost::asio::buffer(channelBuffData(mObj), mSize);
+            //mSize = u32(channelBuffSize(mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(mObj), channelBuffSize(mObj));
         }
 
         u8* data() const override { return channelBuffData(mObj); }
@@ -185,8 +182,8 @@ namespace osuCrypto {
         MoveChannelBuff(F&& obj)
             : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
         {
-            mSize = u32( channelBuffSize(*mObj));
-            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), mSize);
+            //mSize = u32( channelBuffSize(*mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), channelBuffSize(*mObj));
         }
 
         u8* data() const override { return channelBuffData(*mObj); }
@@ -203,8 +200,8 @@ namespace osuCrypto {
         MoveChannelBuff(F&& obj)
             : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
         {
-            mSize = u32( channelBuffSize(*mObj));
-            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), mSize);
+            //mSize = u32( channelBuffSize(*mObj));
+            mBuffs[1] = boost::asio::buffer(channelBuffData(*mObj), channelBuffSize(*mObj));
         }
 
         u8* data() const override { return channelBuffData(*mObj); }

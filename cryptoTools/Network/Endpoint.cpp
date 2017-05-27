@@ -196,22 +196,22 @@ namespace osuCrypto {
 
 
 
-#ifdef CHANNEL_LOGGING
-                    op.mIdx = base->mOpIdx++;
-#endif
 
                     base->mSendStrand.post([this, base, str]() mutable
                     {
                         auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
+#ifdef CHANNEL_LOGGING
+                        auto idx = op->mIdx = base->mOpIdx++;
+#endif
                         base->mSendQueue.emplace_front(std::move(op));
                         base->mSendSocketSet = true;
 
                         auto ii = ++base->mOpenCount;
                         if (ii == 2) base->mOpenProm.set_value();
-
 #ifdef CHANNEL_LOGGING
-                        base->mLog.push("initSend' #"+ToString(op.mIdx)+" , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
+                        base->mLog.push("initSend' #"+ToString(idx)+" , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
 #endif
+
                         getIOService().sendOne(base);
                     });
 

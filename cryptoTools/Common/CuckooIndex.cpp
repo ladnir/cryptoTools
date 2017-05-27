@@ -227,6 +227,16 @@ namespace osuCrypto
         insert(inputIdxs.size(), inputIdxs.data(), hashs.data());
     }
 
+    u8 CuckooIndex::minCollidingHashIdx(u64 target, block& hashes, u8 numHashFunctions, u64 numBins)
+    {
+        for (u64 i = 0; i < numHashFunctions; ++i)
+        {
+            if (target == getHash(hashes, i, numBins))
+                return i;
+        }
+        return -1;
+    }
+
     void CuckooIndex::insert(
         const u64& sizeMaster,
         const u64* inputIdxsMaster,
@@ -281,7 +291,7 @@ namespace osuCrypto
                     oldVals[i] = mBins[curAddrs[i]].mVal;
                     mBins[curAddrs[i]].mVal = newVal;
 #endif
-            }
+                }
                 // this loop will update the items that were just evicted. The main
                 // idea of that our array looks like
                 //     |XW__Y____Z __|
@@ -321,7 +331,7 @@ namespace osuCrypto
                 }
 
                 remaining = putIdx;
-        }
+            }
 
             // put any that remain in the stash.
             for (u64 i = 0, j = 0; i < remaining; ++j)
@@ -337,6 +347,7 @@ namespace osuCrypto
                 if (inputIdxs[i] == u64(-1))
                     ++i;
             }
+
         }
 
     }
@@ -351,62 +362,62 @@ namespace osuCrypto
         // use the hash index as the byte offset into the block, then cast as u64 and return.
         return *(u64*)(((u8*)&hash) + hashIdx) % num_bins;
     }
-//
-//    void CuckooIndex::insertHelper(const u64& inputIdx, const u64& hashIdx, u64 numTries)
-//    {
-//        //++mTotalTries;
-//
-//        u64 xrHashVal = getHash(inputIdx, hashIdx);//mHashes[inputIdx][hashIdx];
-//
-//        auto addr = (xrHashVal) % mBins.size();
-//
-//        // replaces whatever was in this bin with our new item
-//        //mBins[addr].swap(inputIdx, hashIdx);
-//        {
-//
-//            u64 newVal = inputIdx | (hashIdx << 56);
-//#ifdef THREAD_SAFE_CUCKOO
-//            u64 oldVal = mBins[addr].mVal.exchange(newVal, std::memory_order_relaxed);
-//#else
-//            u64 oldVal = mBins[addr].mVal;
-//            mBins[addr].mVal = newVal;
-//#endif
-//
-//            if (oldVal == u64(-1))
-//            {
-//                inputIdx = u64(-1);
-//            }
-//            else
-//            {
-//                inputIdx = oldVal & (u64(-1) >> 8);
-//                hashIdx = oldVal >> 56;
-//            }
-//        }
-//
-//        if (inputIdx != u64(-1))
-//        {
-//
-//            // if idxItem is anything but -1, then we just exicted something.
-//            if (numTries < 100)
-//            {
-//                // lets try to insert it into its next location
-//                insertHelper(inputIdx, (hashIdx + 1) % mParams.mNumHashes, numTries + 1);
-//            }
-//            else
-//            {
-//                // put in stash
-//                for (u64 i = 0; inputIdx != u64(-1); ++i)
-//                {
-//                    if (i >= mStash.size())
-//                        throw std::runtime_error(LOCATION);
-//                    mStash[i].swap(inputIdx, hashIdx);
-//                }
-//
-//            }
-//        }
-//
-//    }
-//
+    //
+    //    void CuckooIndex::insertHelper(const u64& inputIdx, const u64& hashIdx, u64 numTries)
+    //    {
+    //        //++mTotalTries;
+    //
+    //        u64 xrHashVal = getHash(inputIdx, hashIdx);//mHashes[inputIdx][hashIdx];
+    //
+    //        auto addr = (xrHashVal) % mBins.size();
+    //
+    //        // replaces whatever was in this bin with our new item
+    //        //mBins[addr].swap(inputIdx, hashIdx);
+    //        {
+    //
+    //            u64 newVal = inputIdx | (hashIdx << 56);
+    //#ifdef THREAD_SAFE_CUCKOO
+    //            u64 oldVal = mBins[addr].mVal.exchange(newVal, std::memory_order_relaxed);
+    //#else
+    //            u64 oldVal = mBins[addr].mVal;
+    //            mBins[addr].mVal = newVal;
+    //#endif
+    //
+    //            if (oldVal == u64(-1))
+    //            {
+    //                inputIdx = u64(-1);
+    //            }
+    //            else
+    //            {
+    //                inputIdx = oldVal & (u64(-1) >> 8);
+    //                hashIdx = oldVal >> 56;
+    //            }
+    //        }
+    //
+    //        if (inputIdx != u64(-1))
+    //        {
+    //
+    //            // if idxItem is anything but -1, then we just exicted something.
+    //            if (numTries < 100)
+    //            {
+    //                // lets try to insert it into its next location
+    //                insertHelper(inputIdx, (hashIdx + 1) % mParams.mNumHashes, numTries + 1);
+    //            }
+    //            else
+    //            {
+    //                // put in stash
+    //                for (u64 i = 0; inputIdx != u64(-1); ++i)
+    //                {
+    //                    if (i >= mStash.size())
+    //                        throw std::runtime_error(LOCATION);
+    //                    mStash[i].swap(inputIdx, hashIdx);
+    //                }
+    //
+    //            }
+    //        }
+    //
+    //    }
+    //
 
 
     u64 CuckooIndex::find(const block& hashes)
@@ -469,9 +480,9 @@ namespace osuCrypto
                 }
 
                 ++i;
-        }
+            }
 
-    }
+        }
         else
         {
 
@@ -522,7 +533,7 @@ namespace osuCrypto
                 }
 
                 ++i;
-        }
+            }
         }
 
         return u64(-1);
@@ -615,13 +626,13 @@ namespace osuCrypto
                     }
 
                     ++i;
+                }
             }
-        }
             else
             {
                 throw std::runtime_error("not implemented");
             }
-    }
+        }
 
     }
 

@@ -273,7 +273,7 @@ namespace osuCrypto {
             auto& front = mSendQueue.front();
 
 #ifdef CHANNEL_LOGGING
-            mLog.push("cancel send #" + ToString(front.mIdx));
+            mLog.push("cancel send #" + ToString(front->mIdx));
 #endif
             //delete front->mContainer;
 
@@ -320,7 +320,7 @@ namespace osuCrypto {
             auto& front = mRecvQueue.front();
 
 #ifdef CHANNEL_LOGGING
-            mLog.push("cancel recv #" + ToString(front.mIdx));
+            mLog.push("cancel recv #" + ToString(front->mIdx));
 #endif
             //delete front->mContainer;
 
