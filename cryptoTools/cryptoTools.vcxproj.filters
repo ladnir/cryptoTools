@@ -90,6 +90,9 @@
     <ClInclude Include="Network\SocketAdapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\CLP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitIterator.cpp">
@@ -138,6 +141,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Network\SocketAdapter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\CLP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

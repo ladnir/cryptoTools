@@ -81,6 +81,7 @@
     <ClInclude Include="Common\BitIterator.h" />
     <ClInclude Include="Common\BitVector.h" />
     <ClInclude Include="Common\ByteStream.h" />
+    <ClInclude Include="Common\CLP.h" />
     <ClInclude Include="Common\CuckooIndex.h" />
     <ClInclude Include="Common\Defines.h" />
     <ClInclude Include="Common\Exceptions.h" />
@@ -106,6 +107,7 @@
     <ClCompile Include="Common\BitIterator.cpp" />
     <ClCompile Include="Common\BitVector.cpp" />
     <ClCompile Include="Common\ByteStream.cpp" />
+    <ClCompile Include="Common\CLP.cpp" />
     <ClCompile Include="Common\CuckooIndex.cpp" />
     <ClCompile Include="Common\Defines.cpp" />
     <ClCompile Include="Common\Log.cpp" />
