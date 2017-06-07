@@ -10,6 +10,7 @@ namespace osuCrypto {
     const block ZeroBlock = _mm_set_epi64x(0, 0);
     const block OneBlock = _mm_set_epi64x(0, 1);
     const block AllOneBlock = _mm_set_epi64x(u64(-1), u64(-1));
+    const std::array<block, 2> zeroAndAllOne = { { ZeroBlock, AllOneBlock } };
     const block CCBlock = ([]() {block cc; memset(&cc, 0xcc, sizeof(block)); return cc; })();
 
 

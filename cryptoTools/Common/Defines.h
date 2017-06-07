@@ -140,6 +140,7 @@ namespace osuCrypto {
     extern const block OneBlock;
     extern const block AllOneBlock;
     extern const block CCBlock;
+    extern const std::array<block, 2> zeroAndAllOne;
 
     inline u64 roundUpTo(u64 val, u64 step)
     {
