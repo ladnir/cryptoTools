@@ -20,6 +20,11 @@
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 
+// add instrinsics names that intel knows but clang doesn't…
+#ifdef __clang__
+#define _mm_cvtsi128_si64x _mm_cvtsi128_si64
+#endif
+
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
