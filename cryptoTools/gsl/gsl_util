@@ -20,28 +20,29 @@
 #define GSL_UTIL_H
 
 #include <cryptoTools/gsl/gsl_assert> // Ensures/Expects
+
 #include <array>
 #include <exception>
 #include <type_traits>
 #include <utility>
 
 #if defined(_MSC_VER)
- #pragma warning(push)
- #pragma warning(disable : 4127) // conditional expression is constant
+#pragma warning(push)
+#pragma warning(disable : 4127) // conditional expression is constant
 
- #if _MSC_VER < 1910
-  #pragma push_macro("constexpr")
-  #define constexpr /*constexpr*/
-  // MSVC 2013 workarounds
-  #if _MSC_VER <= 1800
-   // noexcept is not understood
-   #pragma push_macro("noexcept")
-   #define noexcept /*noexcept*/
-   // turn off some misguided warnings
-   #pragma warning(disable : 4351) // warns about newly introduced aggregate initializer behavior
-  #endif // _MSC_VER <= 1800
- #endif // _MSC_VER < 1910
-#endif // _MSC_VER
+#if _MSC_VER < 1910
+#pragma push_macro("constexpr")
+#define constexpr /*constexpr*/
+// MSVC 2013 workarounds
+#if _MSC_VER <= 1800
+// noexcept is not understood
+#pragma push_macro("noexcept")
+#define noexcept /*noexcept*/
+// turn off some misguided warnings
+#pragma warning(disable : 4351) // warns about newly introduced aggregate initializer behavior
+#endif                          // _MSC_VER <= 1800
+#endif                          // _MSC_VER < 1910
+#endif                          // _MSC_VER
 
 namespace gsl
 {
@@ -127,31 +128,25 @@ inline T narrow(U u)
 }
 
 //
-// at() - Bounds-checked way of accessing static arrays, std::array, std::vector
+// at() - Bounds-checked way of accessing builtin arrays, std::array, std::vector
 //
 template <class T, std::size_t N>
-inline constexpr T& at(T (&arr)[N], std::ptrdiff_t index)
-{
-    Expects(index >= 0 && index < narrow_cast<std::ptrdiff_t>(N));
-    return arr[static_cast<std::size_t>(index)];
-}
-
-template <class T, std::size_t N>
-inline constexpr T& at(std::array<T, N>& arr, std::ptrdiff_t index)
+inline constexpr T& at(T (&arr)[N], const std::ptrdiff_t index)
 {
     Expects(index >= 0 && index < narrow_cast<std::ptrdiff_t>(N));
     return arr[static_cast<std::size_t>(index)];
 }
 
 template <class Cont>
-inline constexpr typename Cont::value_type& at(Cont& cont, std::ptrdiff_t index)
+inline constexpr auto at(Cont& cont, const std::ptrdiff_t index) -> decltype(cont[cont.size()])
 {
     Expects(index >= 0 && index < narrow_cast<std::ptrdiff_t>(cont.size()));
-    return cont[static_cast<typename Cont::size_type>(index)];
+    using size_type = decltype(cont.size());
+    return cont[static_cast<size_type>(index)];
 }
 
 template <class T>
-inline constexpr const T& at(std::initializer_list<T> cont, std::ptrdiff_t index)
+inline constexpr T at(const std::initializer_list<T> cont, const std::ptrdiff_t index)
 {
     Expects(index >= 0 && index < narrow_cast<std::ptrdiff_t>(cont.size()));
     return *(cont.begin() + index);
@@ -160,16 +155,16 @@ inline constexpr const T& at(std::initializer_list<T> cont, std::ptrdiff_t index
 } // namespace gsl
 
 #if defined(_MSC_VER)
- #if _MSC_VER < 1910
-  #undef constexpr
-  #pragma pop_macro("constexpr")
+#if _MSC_VER < 1910
+#undef constexpr
+#pragma pop_macro("constexpr")
 
-  #if _MSC_VER <= 1800
-   #undef noexcept
-   #pragma pop_macro("noexcept")
-  #endif // _MSC_VER <= 1800
- #endif // _MSC_VER < 1910
- #pragma warning(pop)
+#if _MSC_VER <= 1800
+#undef noexcept
+#pragma pop_macro("noexcept")
+#endif // _MSC_VER <= 1800
+#endif // _MSC_VER < 1910
+#pragma warning(pop)
 #endif // _MSC_VER
 
 #endif // GSL_UTIL_H
