@@ -45,7 +45,7 @@ git clone --recursive https://github.com/ladnir/cryptoTools
 cd cryptoTools/thirdparty/linux
 bash all.get
 cd ../..
-CMake  -G "Unix Makefiles"
+cmake  .
 make
 ```
 
