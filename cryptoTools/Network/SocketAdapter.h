@@ -82,7 +82,7 @@ namespace osuCrypto
         void send(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
         {
             bytesTransfered = 0;
-            for (u64 i = 0; i < buffers.size(); ++i) {
+            for (u64 i = 0; i < u64( buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
                     auto data = boost::asio::buffer_cast<char*>(buffers[i]);
@@ -92,7 +92,7 @@ namespace osuCrypto
                     mChl.send(data, size);
                     bytesTransfered += size;
                 }
-                catch (std::exception& e) {
+                catch (...) {
                     error = true;
                     return;
                 }
@@ -103,7 +103,7 @@ namespace osuCrypto
         void recv(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
         {
             bytesTransfered = 0;
-            for (u64 i = 0; i < buffers.size(); ++i) {
+            for (u64 i = 0; i < u64(buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
                     auto data = boost::asio::buffer_cast<char*>(buffers[i]);
@@ -113,7 +113,7 @@ namespace osuCrypto
                     mChl.recv(data, size);
                     bytesTransfered += size;
                 }
-                catch (std::exception& e) {
+                catch (...) {
                     error = true;
                     return;
                 }

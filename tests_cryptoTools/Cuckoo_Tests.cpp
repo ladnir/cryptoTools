@@ -24,8 +24,8 @@ namespace tests_cryptoTools
             hashes[i] = prng.get<block>();
         }
 
-        CuckooIndex hashMap0;
-        CuckooIndex hashMap1;
+        CuckooIndex<ThreadSafe> hashMap0;
+        CuckooIndex<ThreadSafe> hashMap1;
 
         hashMap0.init(setSize, 40);
         hashMap1.init(setSize, 40);
@@ -33,7 +33,7 @@ namespace tests_cryptoTools
 
         for (u64 i = 0; i < base; ++i)
         {
-            std::vector<u64> tt(stepSize);
+            std::vector<u64> tt(stepSize); 
             std::vector<block> mm(stepSize);
 
 
@@ -90,14 +90,14 @@ namespace tests_cryptoTools
             std::vector<block> hashes(setSize);
             std::vector<u64> idxs(setSize);
             PRNG prng(ZeroBlock);
-
+			 
             for (u64 i = 0; i < hashes.size(); ++i)
             {
                 hashes[i] = prng.get<block>();
                 idxs[i] = i;
             }
 
-            CuckooIndex hashMap0;
+            CuckooIndex<NotThreadSafe> hashMap0;
             hashMap0.init(setSize, 40);
             hashMap0.insert(idxs, hashes);
             hashMap0.find(hashes, idxs);
@@ -114,13 +114,12 @@ namespace tests_cryptoTools
 
     void CuckooIndex_parallel_Test_Impl()
     {
-#ifdef THREAD_SAFE_CUCKOO
 
         u64 numThreads = 4;
         u64 step = 16;
         u64 setSize = u64(1) << 16;
         //u64 h = 2;
-        CuckooIndex hashMap;
+        CuckooIndex<ThreadSafe> hashMap;
 
         hashMap.init(setSize, 40);
 
@@ -162,8 +161,6 @@ namespace tests_cryptoTools
             if (hashMap.find(hashes[i]) != i)
                 throw UnitTestFail();
         }
-
-#endif
 
     }
 

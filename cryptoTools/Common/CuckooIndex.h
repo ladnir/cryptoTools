@@ -7,7 +7,11 @@
 //#include <mutex>
 #include <atomic>
 
-#define THREAD_SAFE_CUCKOO
+
+//#pragma warning( push )
+//#pragma warning( disable : 4661)
+// Your function
+//#define THREAD_SAFE_CUCKOO
 
 namespace osuCrypto
 {
@@ -17,7 +21,7 @@ namespace osuCrypto
         double mBinScaler;
         u64 mNumHashes, mN;
 
-        u64 numBins() { return mN * mBinScaler; }
+        u64 numBins() { return static_cast<u64>(mN * mBinScaler); }
     };
 
 
@@ -37,32 +41,60 @@ namespace osuCrypto
    extern CuckooParam k2n02s40CuckooParam;
    extern CuckooParam k2n01s40CuckooParam;
 
+   enum CuckooTypes
+   {
+	   ThreadSafe,
+	   NotThreadSafe
+   };
 
-    class CuckooIndex
+   template<CuckooTypes M> struct Storage;
+   template<> struct Storage<ThreadSafe> { std::atomic<u64> mVal; };
+   template<> struct Storage<NotThreadSafe> { u64 mVal; };
+
+   template<CuckooTypes Mode = ThreadSafe>
+   class CuckooIndex
     {
+
     public:
         CuckooIndex();
         ~CuckooIndex();
 
+
+		//template<CuckooTypes Mode2>
         struct Bin
         {
-            Bin() :mVal(-1) {}
-            Bin(u64 idx, u64 hashIdx) : mVal(idx | (hashIdx << 56)) {}
 
-            bool isEmpty() const;
-            u64 idx() const;
-            u64 hashIdx() const;
+			Storage<Mode> mS;
+			Bin() {
+				mS.mVal = (-1);}
+			Bin(u64 idx, u64 hashIdx) { mS.mVal = (idx | (hashIdx << 56)); }
+			Bin(const Bin& b) { mS.mVal = (b.load()); }
+            //Bin(Bin<Mode>&& b) : mS.mVal(b.load()) {}
 
-            void swap(u64& idx, u64& hashIdx);
-#ifdef THREAD_SAFE_CUCKOO
-            Bin(const Bin& b) : mVal(b.mVal.load(std::memory_order_relaxed)) {}
-            Bin(Bin&& b) : mVal(b.mVal.load(std::memory_order_relaxed)) {}
-            std::atomic<u64> mVal;
-#else
-            Bin(const Bin& b) : mVal(b.mVal) {}
-            Bin(Bin&& b) : mVal(b.mVal) {}
-            u64 mVal;
-#endif
+			bool isEmpty() const { return  mS.mVal == u64(-1); }
+			u64 idx() const { return  mS.mVal  & (u64(-1) >> 8); }
+			u64 hashIdx() const { return  mS.mVal >> 56; }
+
+			void swap(u64& idx, u64& hashIdx)
+			{
+				u64 newVal = idx | (hashIdx << 56);
+				auto oldVal = exchange(newVal);
+				idx = oldVal & (u64(-1) >> 8);
+				hashIdx = (oldVal >> 56);
+			}
+			
+			//template<typename R  = typename std::enable_if< Mode == ThreadSafe, u64>::type>
+			template<CuckooTypes M = Mode>
+			typename std::enable_if< M == ThreadSafe, u64>::type exchange(u64 newVal) { return mS.mVal.exchange(newVal); }
+			template<CuckooTypes M = Mode>
+			typename std::enable_if< M == ThreadSafe, u64>::type load() const { return mS.mVal.load(std::memory_order_relaxed); }
+
+
+			template<CuckooTypes M = Mode>
+			typename std::enable_if< M == NotThreadSafe, u64>::type exchange(u64 newVal) { auto v = mS.mVal; mS.mVal = newVal;  return v; }
+			template<CuckooTypes M = Mode>
+			typename std::enable_if< M == NotThreadSafe, u64>::type load() const { return mS.mVal; }
+
         };
 
 
@@ -116,4 +148,8 @@ namespace osuCrypto
 
     };
 
+
+   //template class CuckooIndex<ThreadSafe>;
+   //template class CuckooIndex<NotThreadSafe>;
 }
+//#pragma warning( pop ) 

@@ -292,7 +292,7 @@ namespace osuCrypto
 
         if (op.type() == IOOperation::Type::SendData)
         {
-            socket->mSendSizeBuff = op.size();
+            socket->mSendSizeBuff = u32(op.size());
             op.mBuffs[0] = boost::asio::buffer(&socket->mSendSizeBuff, sizeof(u32));
 
             socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)

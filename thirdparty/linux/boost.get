@@ -3,10 +3,10 @@
 set -e
 
 if [ ! -d boost ]; then
-    wget -c 'http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.bz2/download' -O ./boost_1_63_0.tar.bz2
-    tar xfj boost_1_63_0.tar.bz2
-    mv boost_1_63_0 boost
-    rm  boost_1_63_0.tar.bz2
+    wget -c 'http://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.tar.bz2/download' -O ./boost_1_64_0.tar.bz2
+    tar xfj boost_1_64_0.tar.bz2
+    mv boost_1_64_0 boost
+    rm  boost_1_64_0.tar.bz2
 fi
 
 cd ./boost

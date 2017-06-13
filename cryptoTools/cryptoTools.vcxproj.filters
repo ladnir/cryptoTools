@@ -156,4 +156,7 @@
     <None Include="Network\gsl\span" />
     <None Include="cryptoToolsconfig.cmake" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="gsl\GSL.natvis" />
+  </ItemGroup>
 </Project>

@@ -25,6 +25,7 @@
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
 
 #ifdef _MSC_VER
+#pragma warning( disable : 4018) // signed unsigned comparison warning
 #define TODO(x) __pragma(message (__FILE__ ":"STRINGIZE(__LINE__) " Warning:TODO - " #x))
 #define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
 #define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __pragma(loop( ivdep )) 
@@ -97,6 +98,10 @@ namespace osuCrypto {
         return _mm_and_si128(lhs, rhs);
     }
 
+    inline block operator|(const block& lhs, const block& rhs)
+    {
+        return _mm_or_si128(lhs, rhs);
+    }
     inline block operator<<(const block& lhs, const u8& rhs)
     {
         return _mm_slli_epi64(lhs, rhs);

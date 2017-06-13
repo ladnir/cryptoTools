@@ -76,7 +76,7 @@ std::string diff(T prior, T latter, i64 digits = 3)
 
 void cuckoo(u64 nn, u64 tt)
 {
-    CuckooIndex ci;
+    CuckooIndex<> ci;
     ci.init(nn, 40);
     std::vector<u64> idx(nn);
     std::vector<block> hashes(nn);
