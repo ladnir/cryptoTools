@@ -85,7 +85,7 @@ namespace osuCrypto
 			
 			//template<typename R  = typename std::enable_if< Mode == ThreadSafe, u64>::type>
 			template<CuckooTypes M = Mode>
-			typename std::enable_if< M == ThreadSafe, u64>::type exchange(u64 newVal) { return mS.mVal.exchange(newVal); }
+			typename std::enable_if< M == ThreadSafe, u64>::type exchange(u64 newVal) { return mS.mVal.exchange(newVal, std::memory_order_relaxed); }
 			template<CuckooTypes M = Mode>
 			typename std::enable_if< M == ThreadSafe, u64>::type load() const { return mS.mVal.load(std::memory_order_relaxed); }
 
@@ -106,7 +106,7 @@ namespace osuCrypto
 
         static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash);
 
-        void insert(span<block> items, block hashingSeed);
+        void insert(span<block> items, block hashingSeed, u64 startIdx = 0);
 
         // insert single index with pre hashed values with error checking
         void insert(const u64& IdxItem, const block& hashes);
@@ -126,6 +126,8 @@ namespace osuCrypto
         // find several items with pre hashed values, the indexes that are found are written to the idxs array.
         void find(const u64& numItems, const  block* hashes, const u64* idxs);
 
+		// checks that the cuckoo index is correct
+		void validate();
 
         std::vector<block> mHashes;
 

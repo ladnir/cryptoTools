@@ -79,7 +79,7 @@ namespace osuCrypto
 		return true;
 	}
 
-	template<CuckooTypes Mode> 
+	template<CuckooTypes Mode>
 	bool CuckooIndex<Mode>::operator!=(const CuckooIndex & cmp) const
 	{
 		return !(*this == cmp);
@@ -195,8 +195,11 @@ namespace osuCrypto
 
 
 	template<CuckooTypes Mode>
-	void CuckooIndex<Mode>::insert(span<block> items, block hashingSeed)
+	void CuckooIndex<Mode>::insert(span<block> items, block hashingSeed, u64 startIdx)
 	{
+		if (Mode == CuckooTypes::ThreadSafe) std::cout << "ThreadSafe" << std::endl;
+		if (Mode == CuckooTypes::NotThreadSafe) std::cout << "NotThreadSafe" << std::endl;
+
 		std::array<block, 16> hashs;
 		std::array<u64, 16> idxs;
 		AES hasher(hashingSeed);
@@ -209,7 +212,7 @@ namespace osuCrypto
 
 			for (u64 j = 0, jj = i; j < min; ++j, ++jj)
 			{
-				idxs[j] = jj;
+				idxs[j] = jj + startIdx;
 				hashs[j] = hashs[j] ^ items[jj];
 
 				//if(jj < 1) std::cout<< IoStream::lock << "item[" << jj << "] = " <<items[jj]<<" -> " << hashs[j] << std::endl << IoStream::unlock;
@@ -222,7 +225,6 @@ namespace osuCrypto
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::insert(const u64& inputIdx, const block& hashs)
 	{
-
 		insert(1, &inputIdx, &hashs);
 	}
 
@@ -232,7 +234,7 @@ namespace osuCrypto
 		span<block> hashs)
 	{
 #ifndef NDEBUG
-		if (inputIdxs.size() != hashs.size()) 
+		if (inputIdxs.size() != hashs.size())
 			throw std::runtime_error("" LOCATION);
 #endif
 
@@ -622,9 +624,41 @@ namespace osuCrypto
 		}
 
 	}
+	 
 
+	template<CuckooTypes Mode>
+	void CuckooIndex<Mode>::validate()
+	{
+		u64 insertCount = 0;
+		for (u64 i = 0; i < mHashes.size(); ++i)
+		{
+			if (neq(mHashes[i], AllOneBlock))
+			{
+				++insertCount;
+				u64 matches(0);
+				for (u64 j = 0; j < mParams.mNumHashes; ++j)
+				{
+					auto h = getHash(i, j);
+					if (mBins[h].isEmpty() == false && mBins[h].idx() == i)
+					{
+						++matches;
+					}
+				}
 
+				if (matches != 1)throw std::runtime_error(LOCATION);
+			}
+		}
 
+		u64 nonEmptyCount(0);
+		for (u64 i = 0; i < mBins.size(); ++i)
+		{
+			if (mBins[i].isEmpty() == false)
+				++nonEmptyCount;
+		}
+
+		if (nonEmptyCount != insertCount)
+			throw std::runtime_error(LOCATION);
+	}
 
 
 	//    bool CuckooIndex<Mode>::Bin::isEmpty() const
