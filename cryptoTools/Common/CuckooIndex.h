@@ -71,9 +71,9 @@ namespace osuCrypto
 			Bin(const Bin& b) { mS.mVal = (b.load()); }
             //Bin(Bin<Mode>&& b) : mS.mVal(b.load()) {}
 
-			bool isEmpty() const { return  mS.mVal == u64(-1); }
-			u64 idx() const { return  mS.mVal  & (u64(-1) >> 8); }
-			u64 hashIdx() const { return  mS.mVal >> 56; }
+			bool isEmpty() const { return  load() == u64(-1); }
+			u64 idx() const { return  load()  & (u64(-1) >> 8); }
+			u64 hashIdx() const { return  load() >> 56; }
 
 			void swap(u64& idx, u64& hashIdx)
 			{
@@ -127,7 +127,7 @@ namespace osuCrypto
         void find(const u64& numItems, const  block* hashes, const u64* idxs);
 
 		// checks that the cuckoo index is correct
-		void validate();
+		void validate(span<block> inputs, block hashingSeed);
 
         std::vector<block> mHashes;
 

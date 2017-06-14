@@ -197,8 +197,8 @@ namespace osuCrypto
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::insert(span<block> items, block hashingSeed, u64 startIdx)
 	{
-		if (Mode == CuckooTypes::ThreadSafe) std::cout << "ThreadSafe" << std::endl;
-		if (Mode == CuckooTypes::NotThreadSafe) std::cout << "NotThreadSafe" << std::endl;
+		//if (Mode == CuckooTypes::ThreadSafe) std::cout << "ThreadSafe" << std::endl;
+		//if (Mode == CuckooTypes::NotThreadSafe) std::cout << "NotThreadSafe" << std::endl;
 
 		std::array<block, 16> hashs;
 		std::array<u64, 16> idxs;
@@ -627,25 +627,36 @@ namespace osuCrypto
 	 
 
 	template<CuckooTypes Mode>
-	void CuckooIndex<Mode>::validate()
+	void CuckooIndex<Mode>::validate(span<block> inputs, block hashingSeed)
 	{
+        AES hasher(hashingSeed);
 		u64 insertCount = 0;
 		for (u64 i = 0; i < mHashes.size(); ++i)
 		{
+
+            block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];
+
+            if (neq(hash, mHashes[i]))
+                throw std::runtime_error(LOCATION);
+
 			if (neq(mHashes[i], AllOneBlock))
 			{
 				++insertCount;
 				u64 matches(0);
+                std::vector<u64> hashes(mParams.mNumHashes);
 				for (u64 j = 0; j < mParams.mNumHashes; ++j)
 				{
-					auto h = getHash(i, j);
-					if (mBins[h].isEmpty() == false && mBins[h].idx() == i)
+					auto h = hashes[j] = getHash(i, j);
+                    auto duplicate = (std::find(hashes.begin(), hashes.begin() + j, h) != (hashes.begin() + j));
+
+					if (duplicate == false && mBins[h].isEmpty() == false && mBins[h].idx() == i)
 					{
 						++matches;
 					}
 				}
 
-				if (matches != 1)throw std::runtime_error(LOCATION);
+				if (matches != 1)
+                    throw std::runtime_error(LOCATION);
 			}
 		}
 

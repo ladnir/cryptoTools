@@ -143,7 +143,7 @@ namespace tests_cryptoTools
 		for (u64 t = 0; t < numThreads; ++t)
 			thrds[t].join();
 
-		hashMap.validate();
+		hashMap.validate(items, ZeroBlock);
 		//for (u64 i = 0; i < setSize; ++i)
 		//{  
 		//    if (hashMap.find() != i)
