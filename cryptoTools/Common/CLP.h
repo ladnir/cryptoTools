@@ -28,7 +28,7 @@ namespace osuCrypto
         std::string mProgramName;
         std::unordered_map<std::string, std::list<std::string>> mKeyValues;
 
-        void parse(int argc, char** argv);
+        void parse(int argc, char const*const* argv);
 
         void setDefault(std::string key, std::string value);
         void setDefault(std::vector<std::string> keys, std::string value);

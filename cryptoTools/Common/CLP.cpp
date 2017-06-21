@@ -6,43 +6,47 @@
 namespace osuCrypto
 {
 
-    void CLP::parse(int argc, char** argv)
+    void CLP::parse(int argc, char const*const* argv)
     {
         if (argc > 0)
         {
             std::stringstream ss;
-            while (*argv[0] != 0)
-                ss << *argv[0]++;
+            auto ptr = argv[0];
+            while (*ptr != 0)
+                ss << *ptr++;
             mProgramName = ss.str();
         }
 
         for (int i = 1; i < argc;)
         {
-            if (*argv[i]++ != '-')
+            auto ptr = argv[i];
+            if (*ptr++ != '-')
             {
                 throw CommandLineParserError();
             }
 
             std::stringstream ss;
 
-            while (*argv[i] != 0)
-                ss << *argv[i]++;
+            while (*ptr != 0)
+                ss << *ptr++;
 
             ++i;
+            ptr = argv[i];
 
             std::pair<std::string, std::list<std::string>> keyValues;
             keyValues.first = ss.str();;
 
-            while (i < argc && (argv[i][0] != '-' || (argv[i][0] == '-' && argv[i][1] >= '0' && argv[i][1] <= '9')))
+            while (i < argc && (ptr[0] != '-' || (ptr[0] == '-' && ptr[1] >= '0' && ptr[1] <= '9')))
             {
                 ss.str("");
 
-                while (*argv[i] != 0)
-                    ss << *argv[i]++;
+                while (*ptr != 0)
+                    ss << *ptr++;
 
                 keyValues.second.push_back(ss.str());
 
                 ++i;
+                ptr = argv[i];
             }
 
             mKeyValues.emplace(keyValues);
