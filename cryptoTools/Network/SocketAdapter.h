@@ -85,7 +85,7 @@ namespace osuCrypto
             for (u64 i = 0; i < u64( buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
-                    auto data = boost::asio::buffer_cast<char*>(buffers[i]);
+                    auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
                     auto size = boost::asio::buffer_size(buffers[i]);
 
                     // may throw
@@ -106,7 +106,7 @@ namespace osuCrypto
             for (u64 i = 0; i < u64(buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
-                    auto data = boost::asio::buffer_cast<char*>(buffers[i]);
+                    auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
                     auto size = boost::asio::buffer_size(buffers[i]);
 
                     // may throw

@@ -145,7 +145,7 @@ namespace tests_cryptoTools
 
 		hashMap.validate(items, ZeroBlock);
 		//for (u64 i = 0; i < setSize; ++i)
-		//{  
+		//{
 		//    if (hashMap.find() != i)
 		//        throw UnitTestFail();
 		//}

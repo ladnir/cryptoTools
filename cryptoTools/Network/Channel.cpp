@@ -106,7 +106,7 @@ namespace osuCrypto {
         return *this;
     }
 
-    void Channel::asyncSend(const void * buff, u64 size)
+    void Channel::asyncSend(const u8 * buff, u64 size)
     {
         // not zero and less that 32 bits
         Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
@@ -117,7 +117,7 @@ namespace osuCrypto {
         mBase->getIOService().dispatch(mBase.get(), std::move(op));
     }
 
-    void Channel::asyncSend(const void * buff, u64 size, std::function<void()> callback)
+    void Channel::asyncSend(const u8 * buff, u64 size, std::function<void()> callback)
     {
         // not zero and less that 32 bits
         Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
@@ -128,7 +128,7 @@ namespace osuCrypto {
         dispatch(std::move(op));
     }
 
-    void Channel::send(const void * buff, u64 size)
+    void Channel::send(const u8 * buff, u64 size)
     {
         // not zero and less that 32 bits
         Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
@@ -161,7 +161,7 @@ namespace osuCrypto {
         Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
         auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
-        
+
         op->mCallback = fn;
 
         auto future = op->mPromise.get_future();
@@ -171,13 +171,13 @@ namespace osuCrypto {
         return future;
     }
 
-    void Channel::recv(void * dest, u64 length)
+    void Channel::recv(u8 * dest, u64 length)
     {
         try {
             // schedule the recv.
             auto request = asyncRecv(dest, length);
 
-            // block until the receive has been completed. 
+            // block until the receive has been completed.
             // Could throw if the length is wrong.
             request.get();
         }
@@ -384,7 +384,7 @@ namespace osuCrypto {
         return (u64)mBase->mMaxOutstandingSendData;
     }
 
-    void Channel::asyncSendCopy(const void * bufferPtr, u64 length)
+    void Channel::asyncSendCopy(const u8 * bufferPtr, u64 length)
     {
         ByteStream bs((u8*)bufferPtr, length);
         asyncSend(std::move(bs));

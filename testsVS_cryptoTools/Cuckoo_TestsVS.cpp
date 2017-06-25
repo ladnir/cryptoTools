@@ -19,7 +19,7 @@ namespace tests_cryptoTools
             InitDebugPrinting();
             CuckooIndex_many_Test_Impl();
         }
-        
+
         TEST_METHOD(CuckooIndex_paramSweep_Test)
         {
             InitDebugPrinting();
@@ -35,4 +35,3 @@ namespace tests_cryptoTools
     };
 }
 #endif
- 

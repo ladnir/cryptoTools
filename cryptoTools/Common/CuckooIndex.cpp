@@ -624,14 +624,15 @@ namespace osuCrypto
 		}
 
 	}
-	 
+
 
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::validate(span<block> inputs, block hashingSeed)
 	{
         AES hasher(hashingSeed);
 		u64 insertCount = 0;
-		for (u64 i = 0; i < mHashes.size(); ++i)
+
+		for (u64 i = 0; i < inputs.size(); ++i)
 		{
 
             block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];

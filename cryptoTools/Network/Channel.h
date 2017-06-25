@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/ArrayView.h>
@@ -60,10 +60,10 @@ namespace osuCrypto {
         u64 getMaxOutstandingSendData() const;
 
         /// <summary>length bytes starting at data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
-        void asyncSend(const void * data, u64 length);
+        void asyncSend(const u8 * data, u64 length);
 
         /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
-        void asyncSend(const void * bufferPtr, u64 length, std::function<void()> callback);
+        void asyncSend(const u8 * bufferPtr, u64 length, std::function<void()> callback);
 
         /// <summary>buffer will be MOVED and then sent over the network asynchronously.
         /// Note: The type within the unique_ptr must be a container type, see is_container for requirements.
@@ -95,10 +95,10 @@ namespace osuCrypto {
             asyncSendCopy(const Container& buf);
 
         /// <summary>Performs a data copy and then sends the result over the network asynchronously. </summary>
-        void asyncSendCopy(const void * bufferPtr, u64 length);
+        void asyncSendCopy(const u8 * bufferPtr, u64 length);
 
         /// <summary>Synchronous call to send length bytes starting at data over the network. </summary>
-        void send(const void * bufferPtr, u64 length);
+        void send(const u8 * bufferPtr, u64 length);
 
         /// <summary> Synchronous call to send the data in Container over the network.
         /// Note: The type of Container must be a container type, see is_container for requirements.
@@ -148,7 +148,7 @@ namespace osuCrypto {
 
 
         template <class Container>
-        typename std::enable_if_t< 
+        typename std::enable_if_t<
             is_container<Container>::value &&
             !has_resize<Container, void(typename Container::size_type)>::value, void>
             recv(Container & c)
@@ -158,7 +158,7 @@ namespace osuCrypto {
 
         /// <summary>Synchronous call to receive data over the network.
         /// WARNING: will through if received message length does not match.</summary>
-        void recv(void * dest, u64 length);
+        void recv(u8 * dest, u64 length);
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
         bool isConnected();
@@ -371,7 +371,7 @@ namespace osuCrypto {
     typename std::enable_if_t<is_container<Container>::value, void> Channel::send(const Container & buf)
     {
         send(channelBuffData(buf), channelBuffSize(buf));
-    }        
+    }
 
     template<typename Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::asyncSendCopy(const Container & buf)
