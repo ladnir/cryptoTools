@@ -33,6 +33,9 @@ namespace osuCrypto
         void setDefault(std::string key, std::string value);
         void setDefault(std::vector<std::string> keys, std::string value);
 
+		void setDefault(std::string key, i64 value) { setDefault(key, std::to_string(value)); }
+		void setDefault(std::vector<std::string> keys, i64 value) { setDefault(keys, std::to_string(value)); }
+
         bool isSet(std::string name);
         bool isSet(std::vector<std::string> names);
 

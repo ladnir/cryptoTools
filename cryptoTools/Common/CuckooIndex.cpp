@@ -131,6 +131,7 @@ namespace osuCrypto
 	{
 		if (noStash)
 		{
+			if(n > ull<<19)
 			// no stash parameters
 			return CuckooParam{ 0,(145.0 + statSecParam) / 125.0, 3, n };
 		}

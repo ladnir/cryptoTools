@@ -19,7 +19,7 @@ void networkTutorial()
     ##                      Setup                        ##
     #####################################################*/
 
-    // create network I/O service with 4 background threads. 
+    // create network I/O service with 4 background threads.
     // This object must stay in scope until everything is cleaned up.
     IOService ios(4);
 
@@ -32,7 +32,7 @@ void networkTutorial()
     std::string connectionName = "party0_party1";
 
 
-    // connectionName denotes an identifier that both people on either side 
+    // connectionName denotes an identifier that both people on either side
     // of this connection will use. If a server connects to several clients,
     // they should all use different connection names.
     Endpoint server(ios, serversIpAddress, EpMode::Server, connectionName);
@@ -49,7 +49,7 @@ void networkTutorial()
     Channel chl1 = server.addChannel(channelName);
 
     // we now have a pair of channels, but it is possible that they have yet
-    // to actually connect to each other in the background. To test that the 
+    // to actually connect to each other in the background. To test that the
     // channel has a completed the connection, we can do
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
 
@@ -81,9 +81,9 @@ void networkTutorial()
 
     // It is now the case that data == dest. When data is received,
     // the Channel will call dest.resize(8)
-    
-    // In the example above, 
-    // the Channel can tell that data is an STL like container. 
+
+    // In the example above,
+    // the Channel can tell that data is an STL like container.
     // That is, it has member functions and types:
     //
     //   Container<T>::data() -> Container<T>::pointer
@@ -103,19 +103,19 @@ void networkTutorial()
     // In the case that the data being recieved is the wrong size,
     // Channel::recv(...) will throw.
     {
-        std::array<int, 4> data{ 0,1,2,3 };
+        std::array<u8, 4> data{ 0,1,2,3 };
         chl0.send(data.data(), data.size());
 
 
-        std::array<int, 4> dest;
+        std::array<u8, 4> dest;
         chl1.recv(dest.data(), dest.size()); // may throw
     }
 
-    // One issue with this approach is that the call 
+    // One issue with this approach is that the call
     //
     //        chl0.send(...);
     //
-    // blocks until all of the data has been sent over the network. If data 
+    // blocks until all of the data has been sent over the network. If data
     // is large, or if we send many things, then this may take awhile.
 
 
@@ -141,9 +141,9 @@ void networkTutorial()
     //
     // does not block. Instead, it "steals" the data contained inside
     // the vector. As a result, data is empty after this call.
-    
+
     // When move semantics are not supported by Container or if you want to
-    // share ownership of the data, we can use a unique/shared pointer. 
+    // share ownership of the data, we can use a unique/shared pointer.
     {
         std::unique_ptr<std::array<int, 8>> unique{ new std::array<int,8>{0,1,2,3,4,5,6,7 } };
         chl0.asyncSend(std::move(unique)); // will not block.
@@ -161,8 +161,8 @@ void networkTutorial()
 
         // shared's refernce counter = 1.
     }
-    
-    
+
+
     // We can also perform asynchronous receive. In this case, we will tell the channel
     // where to store data in the future...
     {
@@ -181,32 +181,32 @@ void networkTutorial()
 
         // dest == {0,1,...,7}
     }
-    // The above asyncRecv(...) is not often used, but it has at least one  
-    // advantage. The implementation of Channel is optimize to store the 
-    // data directly into dest. As opposed to buffering it interally, and 
+    // The above asyncRecv(...) is not often used, but it has at least one
+    // advantage. The implementation of Channel is optimize to store the
+    // data directly into dest. As opposed to buffering it interally, and
     // the later copying it to dest when Channel::recv(...) is called.
 
 
     // Channel::asyncSend(...) also support the pointer length interface.
-    // In this case, it is up to the user to ensure that the lifetime 
+    // In this case, it is up to the user to ensure that the lifetime
     // of data is larger than the time required to send. In this case, we are
     // ok since chl1.recv(...) will block until this condition is true.
     {
-        std::array<int, 4> data{ 0,1,2,3 };
+        std::array<u8, 4> data{ 0,1,2,3 };
         chl0.asyncSend(data.data(), data.size());
 
 
         std::vector<int> dest;
-        chl1.recv(dest); 
+        chl1.recv(dest);
     }
 
 
-    // As an additional option for this interface, a call back 
+    // As an additional option for this interface, a call back
     // function can be provided. This call back will be called
     // once the data has been sent.
     {
         int size = 4;
-        int* data = new int[size]();
+        u8* data = new u8[size]();
 
         chl0.asyncSend(data, size, [data]()
         {
@@ -215,7 +215,7 @@ void networkTutorial()
         });
 
 
-        std::vector<int> dest;
+        std::vector<u8> dest;
         chl1.recv(dest);
     }
 
@@ -236,15 +236,15 @@ void networkTutorial()
     ##                 Error Handling                    ##
     #####################################################*/
 
-    // While not required, it is possible to recover from errors that 
-    // are thrown when the receive buffer does not match the incoming 
+    // While not required, it is possible to recover from errors that
+    // are thrown when the receive buffer does not match the incoming
     // data and can not be resized. Consider the following example
     {
         std::array<int, 4> data{ 0,1,2,3 };
         chl0.send(data);
 
         std::array<int, 2> dest;
-        try 
+        try
         {
             // will throw, dest.size() != dat.size(); and no resize() member.
             chl1.recv(dest);
@@ -254,7 +254,7 @@ void networkTutorial()
             // catch the error, creat a new dest in bytes.
             std::vector<u8> backup(b.mSize);
 
-            // tell the 
+            // tell the
             b.mRescheduler(backup.data());
         }
     }
@@ -265,8 +265,8 @@ void networkTutorial()
 	#####################################################*/
 
 	// It is also possible to use your own socket implementation
-	// with Channel. There are two methods for doing this. First, 
-	// the osuCrypto::SocketAdapter<T> class can be used with your 
+	// with Channel. There are two methods for doing this. First,
+	// the osuCrypto::SocketAdapter<T> class can be used with your
 	// socket and then provided to a Channel with an osuCrypto::IOService
 	//
 	// SocketAdapter<T> requires that T implements
@@ -281,11 +281,11 @@ void networkTutorial()
 		// recv(...) and that is called YourSocketType
 		typedef Channel YourSocketType;
 
-		// Assuming your socket meets these rquirements, then a Channel 
+		// Assuming your socket meets these rquirements, then a Channel
 		// can be constructed as follows. These Channels will function
-		// equivolently to the original ones. 
+		// equivolently to the original ones.
 		//
-		// WARNING: The lifetime of the SocketAdapter<T> is managed by 
+		// WARNING: The lifetime of the SocketAdapter<T> is managed by
 		//	        the Channel.
 		Channel aChl0(ios, new SocketAdapter<YourSocketType>(chl0));
 		Channel aChl1(ios, new SocketAdapter<YourSocketType>(chl1));
@@ -297,15 +297,15 @@ void networkTutorial()
 	}
 
 	// If your Socket type does not have these methods a custom adapter
-	// will be required. The template SocketAdapter<T> implements the 
+	// will be required. The template SocketAdapter<T> implements the
 	// interface SocketInterface in the <cryptoTools/Network/SocketAdapter.h>
-	// file. You will also have to define a class that inherits the 
+	// file. You will also have to define a class that inherits the
 	// SocketInterface class and implements:
 	//
 	//    void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
 	//    void recv(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
-	//    
-	// For an example on how to implement these functions, see the 
+	//
+	// For an example on how to implement these functions, see the
 	// defintion of SocketAdapter<T> in <cryptoTools/Network/SocketAdapter.h>
 
 
@@ -330,7 +330,7 @@ void networkTutorial()
     #####################################################*/
 
 
-    // close everything down in this order. 
+    // close everything down in this order.
     chl0.close();
     chl1.close();
 
