@@ -127,17 +127,68 @@ namespace osuCrypto
 	}
 
 	template<CuckooTypes Mode>
-	CuckooParam CuckooIndex<Mode>::selectParams(const u64& n, const u64& statSecParam, bool noStash)
+	CuckooParam CuckooIndex<Mode>::selectParams(const u64& n, const u64& statSecParam, bool noStash, u64 h)
 	{
 		if (noStash)
 		{
-			//if(n > ull<<19)
-			// no stash parameters
-			return CuckooParam{ 0,(145.0 + statSecParam) / 125.0, 3, n };
+			double nn = std::log2(n);
+
+			if (h == 3 || h == 0)
+			{
+				// parameters that have been experimentally determined.
+				double aMax = 123.5;
+				double bMax = -130;
+				double aSD = 2.3;
+				double bSD = 2.18;
+				double aMean = 6.3;
+				double bMean = 6.45;
+
+				// slope = 123.5 - some small terms when nn < 12.
+				double a = aMax / 2 * (1 + erf((nn - aMean) / (aSD * std::sqrt(2))));
+				// y-intercept = -130 - nn + some small terms when nn < 12.
+				double b = bMax / 2 * (1 + erf((nn - bMean) / (bSD * std::sqrt(2)))) - nn;
+				// small terms follow the integrel of the normal distribution.
+
+				// we have the statSecParam = a e + b, where e = |cuckoo|/|set| is the expenation factor
+				// therefore we have that
+				//
+				//   e = (statSecParam - b) / a
+				//
+				return CuckooParam{ 0,(statSecParam - b) / a, 3, n };
+			}
+			else if( h ==2)
+			{
+				// parameters that have been experimentally determined.
+				double
+					a = -0.8,
+					b = 3.3,
+					c = 2.5,
+					d = 14,
+					f = 5;
+
+				// for e > 8,   statSecParam = b * std::log2(e) + a + nn.
+				// for e < 8,   statSecParam -> 0 at e = 2. This is what the pow(...) does...
+				auto sec = [&](double e) { return b * std::log2(e) + a + nn - (f * nn + d) * std::pow(e, -c); };
+
+				// increase e util we have large enough security.
+				double e = 1;
+				double s = 0;
+				while (s < statSecParam)
+				{
+					e += 1;
+					s = sec(e);
+				}
+
+				return CuckooParam{ 0, e, 2, n };
+			}
+
+			throw std::runtime_error(LOCATION);
 		}
 		else
 		{
-			if (statSecParam != 40) throw std::runtime_error("not implemented");
+			if (h != 0 && h != 2) throw std::runtime_error(LOCATION);
+			if (statSecParam != 40) throw std::runtime_error("not implemented " LOCATION);
+
 			if (n <= 1 << 1)
 				return k2n01s40CuckooParam;
 			else if (n <= u64(1) << 2)
@@ -630,26 +681,26 @@ namespace osuCrypto
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::validate(span<block> inputs, block hashingSeed)
 	{
-        AES hasher(hashingSeed);
+		AES hasher(hashingSeed);
 		u64 insertCount = 0;
 
 		for (u64 i = 0; i < inputs.size(); ++i)
 		{
 
-            block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];
+			block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];
 
-            if (neq(hash, mHashes[i]))
-                throw std::runtime_error(LOCATION);
+			if (neq(hash, mHashes[i]))
+				throw std::runtime_error(LOCATION);
 
 			if (neq(mHashes[i], AllOneBlock))
 			{
 				++insertCount;
 				u64 matches(0);
-                std::vector<u64> hashes(mParams.mNumHashes);
+				std::vector<u64> hashes(mParams.mNumHashes);
 				for (u64 j = 0; j < mParams.mNumHashes; ++j)
 				{
 					auto h = hashes[j] = getHash(i, j);
-                    auto duplicate = (std::find(hashes.begin(), hashes.begin() + j, h) != (hashes.begin() + j));
+					auto duplicate = (std::find(hashes.begin(), hashes.begin() + j, h) != (hashes.begin() + j));
 
 					if (duplicate == false && mBins[h].isEmpty() == false && mBins[h].idx() == i)
 					{
@@ -658,7 +709,7 @@ namespace osuCrypto
 				}
 
 				if (matches != 1)
-                    throw std::runtime_error(LOCATION);
+					throw std::runtime_error(LOCATION);
 			}
 		}
 

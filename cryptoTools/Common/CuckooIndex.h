@@ -82,7 +82,7 @@ namespace osuCrypto
 				idx = oldVal & (u64(-1) >> 8);
 				hashIdx = (oldVal >> 56);
 			}
-			
+
 			//template<typename R  = typename std::enable_if< Mode == ThreadSafe, u64>::type>
 			template<CuckooTypes M = Mode>
 			typename std::enable_if< M == ThreadSafe, u64>::type exchange(u64 newVal) { return mS.mVal.exchange(newVal, std::memory_order_relaxed); }
@@ -104,7 +104,7 @@ namespace osuCrypto
         void init(const u64& n, const u64& statSecParam, bool noStash = false);
         void init(const CuckooParam& params);
 
-        static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash);
+        static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash, u64 h = 0);
 
         void insert(span<block> items, block hashingSeed, u64 startIdx = 0);
 
@@ -154,4 +154,4 @@ namespace osuCrypto
    //template class CuckooIndex<ThreadSafe>;
    //template class CuckooIndex<NotThreadSafe>;
 }
-//#pragma warning( pop ) 
+//#pragma warning( pop )
