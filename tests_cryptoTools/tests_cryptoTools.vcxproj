@@ -78,6 +78,7 @@
     <ClInclude Include="Cuckoo_Tests.h" />
     <ClInclude Include="Ecc_Tests.h" />
     <ClInclude Include="Misc_Tests.h" />
+    <ClInclude Include="SimpleCuckoo.h" />
     <ClInclude Include="UnitTests.h" />
   </ItemGroup>
   <ItemGroup>
@@ -87,6 +88,7 @@
     <ClCompile Include="Cuckoo_Tests.cpp" />
     <ClCompile Include="Ecc_Tests.cpp" />
     <ClCompile Include="Misc_Tests.cpp" />
+    <ClCompile Include="SimpleCuckoo.cpp" />
     <ClCompile Include="UnitTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

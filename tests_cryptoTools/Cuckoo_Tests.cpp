@@ -5,6 +5,8 @@
 
 #include  "cryptoTools/Common/Matrix.h"
 #include  "cryptoTools/Crypto/PRNG.h"
+#include "SimpleCuckoo.h"
+
 using namespace osuCrypto;
 
 namespace tests_cryptoTools
@@ -27,8 +29,8 @@ namespace tests_cryptoTools
 		CuckooIndex<ThreadSafe> hashMap0;
 		CuckooIndex<ThreadSafe> hashMap1;
 
-		hashMap0.init(setSize, 40);
-		hashMap1.init(setSize, 40);
+		hashMap0.init(setSize, 40, 5, 2);
+		hashMap1.init(setSize, 40, 5, 2);
 
 
 		for (u64 i = 0; i < base; ++i)
@@ -98,7 +100,7 @@ namespace tests_cryptoTools
 			}
 
 			CuckooIndex<NotThreadSafe> hashMap0;
-			hashMap0.init(setSize, 40);
+			hashMap0.init(setSize, 40, 5, 2);
 			hashMap0.insert(idxs, hashes);
 			hashMap0.find(hashes, idxs);
 
@@ -121,7 +123,7 @@ namespace tests_cryptoTools
 		//u64 h = 2;
 		CuckooIndex<ThreadSafe> hashMap;
 
-		hashMap.init(setSize, 40);
+		hashMap.init(setSize, 40, 5, 3);
 
 		std::vector<block> items(setSize);
 		PRNG prng(ZeroBlock);
@@ -135,7 +137,7 @@ namespace tests_cryptoTools
 			{
 				u64 start = t * setSize / numThreads;
 				u64 end = (t + 1) * setSize / numThreads;
-				span<block> region(items.data() +start, items.data() + end);
+				span<block> region(items.data() + start, items.data() + end);
 				hashMap.insert(region, ZeroBlock, start);
 			});
 		}
@@ -151,6 +153,71 @@ namespace tests_cryptoTools
 		//}
 
 	}
+
+	//void CuckooIndexVsCuckooHasher()
+	//{
+	//	u64 /*setSize = 8, */count = 1000;
+	//	PRNG prng(_mm_set1_epi64x(0));
+
+	//	double e = 3;
+	//	u64 h = 2;
+
+	//	for (auto setSize : { 1 << 8})
+	//	{
+
+	//		std::vector<block> hashs(setSize);
+	//		std::vector<u64> idxs(setSize);
+
+
+
+
+	//		for (u64 t = 0; t < count; ++t)
+	//		{
+	//			//if (i % step == 0)std::cout << "\r" << (i / step) << "%" << flush;
+	//			prng.mAes.ecbEncCounterMode(prng.mBlockIdx, setSize, (block*)hashs.data());
+	//			prng.mBlockIdx += setSize;
+
+	//			//if (t != 14) continue;
+
+
+	//			CuckooIndex<> c;
+	//			SimpleCuckoo cc;
+	//			cc.mParams.mBinScaler = c.mParams.mBinScaler = e;
+	//			cc.mParams.mNumHashes = c.mParams.mNumHashes = h;
+	//			cc.mParams.mStashSize = c.mParams.mStashSize = 400;
+	//			cc.mParams.mN = c.mParams.mN = setSize;
+
+	//			u64 stashSize;
+
+	//			for (u64 i = 0; i < setSize; ++i) idxs[i] = i;
+	//			cc.init();
+	//			c.init(c.mParams);
+	//			auto ss = c.mBins.size();
+
+
+	//			cc.insert(idxs, hashs);
+	//			stashSize = cc.stashUtilization();
+
+	//			for (u64 i = 0; i < setSize; ++i) idxs[i] = i;
+	//			c.insert(idxs, hashs);
+	//			stashSize = c.stashUtilization();
+
+
+	//			for (u64 i = 0; i < c.mBins.size(); ++i)
+	//			{
+	//				if (c.mBins[i].mS.mVal != cc.mBins[i].mVal)
+	//				{
+	//					std::cout << i << " @ " << setSize <<" " << t<< std::endl;
+
+	//					std::cout << "CuckooIndex "; c.print(); std::cout << std::endl;
+	//					std::cout << "CuckooSimple "; cc.print(); std::cout << std::endl;
+
+	//					throw std::runtime_error(LOCATION);
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
 
 }

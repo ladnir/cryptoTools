@@ -368,8 +368,8 @@ namespace osuCrypto
         }
         else if (op.type() == IOOperation::Type::CloseSend)
         {
-            // This is a special case which may happen if the channel calls stop() 
-            // with async sends still queued up, we will get here after they get completes. fulfill the 
+            // This is a special case which may happen if the channel calls stop()
+            // with async sends still queued up, we will get here after they get completes. fulfill the
             // promise that all async send operations have been completed.
 #ifdef CHANNEL_LOGGING
             socket->mLog.push("sendClosed #" + ToString(op.mIdx));
@@ -504,10 +504,17 @@ namespace osuCrypto
                 auto port = endpoint.port();
                 auto ip = endpoint.IP();
 
-                acceptor.bind(port, ip);
+				try {
+
+					acceptor.bind(port, ip);
+				}
+				catch (...)
+				{
+					mAcceptors.pop_back();
+					throw;
+				}
 
                 acceptor.start();
-
                 return &acceptor;
             }
             else
@@ -518,7 +525,7 @@ namespace osuCrypto
         }
         else
         {
-            // client end points dont need acceptors since they initiate the connection. 
+            // client end points dont need acceptors since they initiate the connection.
             throw std::runtime_error("rt error at " LOCATION);
         }
     }
@@ -536,8 +543,8 @@ namespace osuCrypto
 #endif
 
             // check to see if we should kick off a new set of recv operations. Since we are just now
-            // starting the channel, its possible that the async connect call returned and the caller scheduled a receive 
-            // operation. But since the channel handshake just finished, those operations didn't start. So if 
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a receive
+            // operation. But since the channel handshake just finished, those operations didn't start. So if
             // the queue has anything in it, we should actually start the operation now...
 
             if (socket->mRecvQueue.size())
@@ -566,8 +573,8 @@ namespace osuCrypto
             socket->mLog.push("initSend , start = " + ToString(start));
 #endif
             // check to see if we should kick off a new set of send operations. Since we are just now
-            // starting the channel, its possible that the async connect call returned and the caller scheduled a send 
-            // operation. But since the channel handshake just finished, those operations didn't start. So if 
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a send
+            // operation. But since the channel handshake just finished, those operations didn't start. So if
             // the queue has anything in it, we should actually start the operation now...
 
             if (start)

@@ -13,7 +13,7 @@ namespace osuCrypto {
 
     Acceptor::Acceptor(IOService& ioService)
         :
-        mStoppedListeningFuture(mStoppedListeningPromise.get_future()),
+        //mStoppedListeningFuture(mStoppedListeningPromise.get_future()),
         mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
         mIOService(ioService),
         mHandle(ioService.mIoService),
@@ -46,12 +46,21 @@ namespace osuCrypto {
         boost::asio::ip::tcp::resolver::query
             query(ip, pStr);
 
-        mAddress = *resolver.resolve(query);
+        boost::system::error_code ec;
+        auto addrIter = resolver.resolve(query, ec);
+
+		if (ec)
+		{
+			std::cout<<"network address resolve error: " << ec.message() << std::endl;
+
+			throw std::runtime_error(ec.message());
+		}
+
+		mAddress = *addrIter;
 
         mHandle.open(mAddress.protocol());
         mHandle.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
 
-        boost::system::error_code ec;
         mHandle.bind(mAddress, ec);
 
         if (mAddress.port() != port)
@@ -59,12 +68,15 @@ namespace osuCrypto {
 
         if (ec)
         {
-            std::cout << ec.message() << std::endl;
+            std::cout << "network address bind error: " << ec.message() << std::endl;
 
             throw std::runtime_error(ec.message());
         }
 
 
+		//std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
+		//std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
+		mStoppedListeningFuture = (mStoppedListeningPromise.get_future());
         mHandle.listen(boost::asio::socket_base::max_connections);
     }
 
@@ -182,20 +194,21 @@ namespace osuCrypto {
         {
 
             {
-                mSocketChannelPairsMtx.lock();
-                mStopped = true;
+				std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+				mStopped = true;
 
                 if (mSocketChannelPairs.size() == 0)
                     mSocketChannelPairsRemovedProm.set_value();
 
-                mSocketChannelPairsMtx.unlock();
             }
 
-            mSocketChannelPairsRemovedFuture.get();
+			if(mSocketChannelPairsRemovedFuture.valid())
+				mSocketChannelPairsRemovedFuture.get();
 
             mHandle.close();
 
-            mStoppedListeningFuture.get();
+			if(mStoppedListeningFuture.valid())
+	            mStoppedListeningFuture.get();
         }
 
     }
@@ -210,9 +223,9 @@ namespace osuCrypto {
         std::string tag = chl.mEndpoint->getName() + ":" + chl.mLocalName+ ":" + chl.mRemoteName;
 
         {
-            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
-            mSocketChannelPairsMtx.lock();
-             
+            std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            //mSocketChannelPairsMtx.lock();
+
             auto iter = mSocketChannelPairs.find(tag);
 
             if (iter == mSocketChannelPairs.end())
@@ -245,7 +258,7 @@ namespace osuCrypto {
                     mSocketChannelPairsRemovedProm.set_value();
                 }
             }
-            mSocketChannelPairsMtx.unlock();
+            //mSocketChannelPairsMtx.unlock();
         }
     }
 
@@ -257,8 +270,8 @@ namespace osuCrypto {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
         {
-            mSocketChannelPairsMtx.lock();
-            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            //mSocketChannelPairsMtx.lock();
+            std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
             auto iter = mSocketChannelPairs.find(tag);
 
             if (iter != mSocketChannelPairs.end())
@@ -283,7 +296,7 @@ namespace osuCrypto {
                     iter->second.second = nullptr;
                 }
             }
-            mSocketChannelPairsMtx.unlock();
+            //mSocketChannelPairsMtx.unlock();
         }
     }
 
@@ -297,8 +310,8 @@ namespace osuCrypto {
         std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
 
         {
-            //std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
-            mSocketChannelPairsMtx.lock();
+            std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+            //mSocketChannelPairsMtx.lock();
 
             const auto iter = mSocketChannelPairs.find(tag);
 
@@ -336,7 +349,7 @@ namespace osuCrypto {
                     mSocketChannelPairsRemovedProm.set_value();
                 }
             }
-            mSocketChannelPairsMtx.unlock();
+            //mSocketChannelPairsMtx.unlock();
         }
 
     }

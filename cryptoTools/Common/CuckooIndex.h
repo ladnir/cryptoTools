@@ -59,6 +59,8 @@ namespace osuCrypto
         CuckooIndex();
         ~CuckooIndex();
 
+		// the maximum number of hash functions that are allowed.
+		#define CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT 4
 
 		//template<CuckooTypes Mode2>
         struct Bin
@@ -101,10 +103,10 @@ namespace osuCrypto
         void print() const;
 
 
-        void init(const u64& n, const u64& statSecParam, bool noStash = false);
+        void init(const u64& n, const u64& statSecParam, u64 stashSize, u64 h);
         void init(const CuckooParam& params);
 
-        static CuckooParam selectParams(const u64& n, const u64& statSecParam, bool noStash, u64 h = 0);
+		static CuckooParam selectParams(const u64& n, const u64& statSecParam, const u64& stashSize, const u64& h = 0);
 
         void insert(span<block> items, block hashingSeed, u64 startIdx = 0);
 
@@ -128,6 +130,8 @@ namespace osuCrypto
 
 		// checks that the cuckoo index is correct
 		void validate(span<block> inputs, block hashingSeed);
+
+		u64 stashUtilization() const;
 
         std::vector<block> mHashes;
 

@@ -106,17 +106,6 @@ namespace osuCrypto {
         return *this;
     }
 
-    void Channel::asyncSend(const u8 * buff, u64 size)
-    {
-        // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
-
-
-        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
-
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-    }
-
     void Channel::asyncSend(const u8 * buff, u64 size, std::function<void()> callback)
     {
         // not zero and less that 32 bits
@@ -128,65 +117,8 @@ namespace osuCrypto {
         dispatch(std::move(op));
     }
 
-    void Channel::send(const u8 * buff, u64 size)
-    {
-        // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
 
-        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
-        auto future = op->mPromise.get_future();
-
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-        future.get();
-    }
-
-    std::future<u64> Channel::asyncRecv(void * buff, u64 size)
-    {
-        // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
-
-        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
-
-        auto future = op->mPromise.get_future();
-
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-
-        return future;
-    }
-
-    std::future<u64> Channel::asyncRecv(void * buff, u64 size, std::function<void()> fn)
-    {
-        // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
-
-        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
-
-        op->mCallback = fn;
-
-        auto future = op->mPromise.get_future();
-
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-
-        return future;
-    }
-
-    void Channel::recv(u8 * dest, u64 length)
-    {
-        try {
-            // schedule the recv.
-            auto request = asyncRecv(dest, length);
-
-            // block until the receive has been completed.
-            // Could throw if the length is wrong.
-            request.get();
-        }
-        catch (BadReceiveBufferSize& bad)
-        {
-            std::cout << bad.mWhat << std::endl;
-            throw;
-        }
-    }
 
     bool Channel::isConnected()
     {
@@ -384,11 +316,6 @@ namespace osuCrypto {
         return (u64)mBase->mMaxOutstandingSendData;
     }
 
-    void Channel::asyncSendCopy(const u8 * bufferPtr, u64 length)
-    {
-        ByteStream bs((u8*)bufferPtr, length);
-        asyncSend(std::move(bs));
-    }
 
     void Channel::dispatch(std::unique_ptr<IOOperation> op)
     {

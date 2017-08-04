@@ -103,11 +103,11 @@ void networkTutorial()
     // In the case that the data being recieved is the wrong size,
     // Channel::recv(...) will throw.
     {
-        std::array<u8, 4> data{ 0,1,2,3 };
+        std::array<int, 4> data{ 0,1,2,3 };
         chl0.send(data.data(), data.size());
 
 
-        std::array<u8, 4> dest;
+        std::array<int, 4> dest;
         chl1.recv(dest.data(), dest.size()); // may throw
     }
 
@@ -192,7 +192,7 @@ void networkTutorial()
     // of data is larger than the time required to send. In this case, we are
     // ok since chl1.recv(...) will block until this condition is true.
     {
-        std::array<u8, 4> data{ 0,1,2,3 };
+        std::array<int, 4> data{ 0,1,2,3 };
         chl0.asyncSend(data.data(), data.size());
 
 

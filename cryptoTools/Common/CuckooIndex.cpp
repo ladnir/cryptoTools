@@ -39,6 +39,7 @@ namespace osuCrypto
 	CuckooParam k2n02s40CuckooParam{ 40, 2.4, 2, 1 << 2 };
 	CuckooParam k2n01s40CuckooParam{ 40, 2.4, 2, 1 << 1 };
 
+
 	template<CuckooTypes Mode>
 	CuckooIndex<Mode>::CuckooIndex()
 		:mTotalTries(0)
@@ -127,117 +128,79 @@ namespace osuCrypto
 	}
 
 	template<CuckooTypes Mode>
-	CuckooParam CuckooIndex<Mode>::selectParams(const u64& n, const u64& statSecParam, bool noStash, u64 h)
+	CuckooParam CuckooIndex<Mode>::selectParams(const u64& n, const u64& statSecParam, const u64& stashSize, const u64& hh)
 	{
-		if (noStash)
+		double nn = std::log2(n);
+
+		auto h = hh ? hh : 3;
+
+		if (stashSize == 0 && h == 3)
 		{
-			double nn = std::log2(n);
+			// parameters that have been experimentally determined.
+			double aMax = 123.5;
+			double bMax = -130;
+			double aSD = 2.3;
+			double bSD = 2.18;
+			double aMean = 6.3;
+			double bMean = 6.45;
 
-			if (h == 3 || h == 0)
-			{
-				// parameters that have been experimentally determined.
-				double aMax = 123.5;
-				double bMax = -130;
-				double aSD = 2.3;
-				double bSD = 2.18;
-				double aMean = 6.3;
-				double bMean = 6.45;
+			// slope = 123.5 - some small terms when nn < 12.
+			double a = aMax / 2 * (1 + erf((nn - aMean) / (aSD * std::sqrt(2))));
+			// y-intercept = -130 - nn + some small terms when nn < 12.
+			double b = bMax / 2 * (1 + erf((nn - bMean) / (bSD * std::sqrt(2)))) - nn;
+			// small terms follow the integrel of the normal distribution.
 
-				// slope = 123.5 - some small terms when nn < 12.
-				double a = aMax / 2 * (1 + erf((nn - aMean) / (aSD * std::sqrt(2))));
-				// y-intercept = -130 - nn + some small terms when nn < 12.
-				double b = bMax / 2 * (1 + erf((nn - bMean) / (bSD * std::sqrt(2)))) - nn;
-				// small terms follow the integrel of the normal distribution.
-
-				// we have the statSecParam = a e + b, where e = |cuckoo|/|set| is the expenation factor
-				// therefore we have that
-				//
-				//   e = (statSecParam - b) / a
-				//
-				return CuckooParam{ 0,(statSecParam - b) / a, 3, n };
-			}
-			else if( h ==2)
-			{
-				// parameters that have been experimentally determined.
-				double
-					a = -0.8,
-					b = 3.3,
-					c = 2.5,
-					d = 14,
-					f = 5;
-
-				// for e > 8,   statSecParam = b * std::log2(e) + a + nn.
-				// for e < 8,   statSecParam -> 0 at e = 2. This is what the pow(...) does...
-				auto sec = [&](double e) { return b * std::log2(e) + a + nn - (f * nn + d) * std::pow(e, -c); };
-
-				// increase e util we have large enough security.
-				double e = 1;
-				double s = 0;
-				while (s < statSecParam)
-				{
-					e += 1;
-					s = sec(e);
-				}
-
-				return CuckooParam{ 0, e, 2, n };
-			}
-
-			throw std::runtime_error(LOCATION);
+			// we have the statSecParam = a e + b, where e = |cuckoo|/|set| is the expenation factor
+			// therefore we have that
+			//
+			//   e = (statSecParam - b) / a
+			//
+			return CuckooParam{ 0,(statSecParam - b) / a, 3, n };
 		}
-		else
+		else if (h == 2)
 		{
-			if (h != 0 && h != 2) throw std::runtime_error(LOCATION);
-			if (statSecParam != 40) throw std::runtime_error("not implemented " LOCATION);
+			// parameters that have been experimentally determined.
+			double
+				a = -0.8,
+				b = 3.3,
+				c = 2.5,
+				d = 14,
+				f = 5,
+				g = 0.65;
 
-			if (n <= 1 << 1)
-				return k2n01s40CuckooParam;
-			else if (n <= u64(1) << 2)
-				return k2n02s40CuckooParam;
-			else if (n <= u64(1) << 3)
-				return k2n03s40CuckooParam;
-			else if (n <= u64(1) << 4)
-				return k2n04s40CuckooParam;
-			else if (n <= u64(1) << 5)
-				return k2n05s40CuckooParam;
-			else if (n <= u64(1) << 6)
-				return k2n06s40CuckooParam;
-			else if (n <= u64(1) << 7)
-				return k2n07s40CuckooParam;
-			else if (n <= u64(1) << 8)
-				return k2n08s40CuckooParam;
-			else if (n <= u64(1) << 12)
-				return k2n12s40CuckooParam;
-			else if (n <= u64(1) << 16)
-				return k2n16s40CuckooParam;
-			else if (n <= u64(1) << 20)
-				return k2n20s40CuckooParam;
-			else if (n <= u64(1) << 24)
-				return k2n24s40CuckooParam;
-			else if (n <= u64(1) << 28)
-				return k2n28s40CuckooParam;
-			else if (n <= u64(1) << 30)
-				return k2n30s40CuckooParam;
-			else if (n <= u64(1) << 32)
-				return k2n32s40CuckooParam;
-			else
+			// for e > 8,   statSecParam = (1 + 0.65 * stashSize) (b * std::log2(e) + a + nn).
+			// for e < 8,   statSecParam -> 0 at e = 2. This is what the pow(...) does...
+			auto sec = [&](double e) { return (1 + g * stashSize)*(b * std::log2(e) + a + nn - (f * nn + d) * std::pow(e, -c)); };
+
+			// increase e util we have large enough security.
+			double e = 1;
+			double s = 0;
+			while (s < statSecParam)
 			{
-				std::cout << "Failed to find cuckoo parameters large enough  " << n << " " << std::log2(n) << "\n" LOCATION << std::endl;
-				std::this_thread::sleep_for(std::chrono::seconds(1));
-				throw std::runtime_error("not implemented " LOCATION);
+				e += 1;
+				s = sec(e);
 			}
+
+			return CuckooParam{ 0, e, 2, n };
 		}
+
+		throw std::runtime_error(LOCATION);
+
 	}
 
 	template<CuckooTypes Mode>
-	void CuckooIndex<Mode>::init(const u64& n, const u64& statSecParam, bool noStash)
+	void CuckooIndex<Mode>::init(const u64& n, const u64& statSecParam, u64 stashSize, u64 h)
 	{
-		init(selectParams(n, statSecParam, noStash));
+		init(selectParams(n, statSecParam, 0, h));
 	}
 
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::init(const CuckooParam & params)
 	{
 		mParams = params;
+
+		if (CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < params.mNumHashes)
+			throw std::runtime_error("parameters exceeded the maximum number of hash functions are are supported. see getHash(...); " LOCATION);
 
 		mHashes.resize(mParams.mN, AllOneBlock);
 		u64 binCount = u64(mParams.mBinScaler * mParams.mN);
@@ -311,20 +274,23 @@ namespace osuCrypto
 		const block* hashsMaster)
 	{
 		std::array<u64, BATCH_SIZE> curHashIdxs, curAddrs, oldVals, inputIdxs;
+		auto stepSize = BATCH_SIZE;
+		//std::vector<u64> curHashIdxs(sizeMaster), curAddrs(sizeMaster), oldVals(sizeMaster), inputIdxs(sizeMaster);
+		//auto stepSize = sizeMaster;
 
-		for (u64 step = 0; step < (sizeMaster + BATCH_SIZE - 1) / BATCH_SIZE; ++step)
+		for (u64 step = 0; step < (sizeMaster + stepSize - 1) / stepSize; ++step)
 		{
-			u64 size = std::min<u64>(sizeMaster - step * BATCH_SIZE, BATCH_SIZE);
+			u64 size = std::min<u64>(sizeMaster - step * stepSize, stepSize);
 			u64 remaining = size;
 			u64 tryCount = 0;
 
-			//auto inputIdxs = inputIdxsMaster + BATCH_SIZE * step;
-			auto hashs = hashsMaster + BATCH_SIZE * step;
+			//auto inputIdxs = inputIdxsMaster + stepSize * step;
+			auto hashs = hashsMaster + stepSize * step;
 
 			for (u64 i = 0; i < size; ++i)
 			{
 
-				inputIdxs[i] = inputIdxsMaster[BATCH_SIZE * step + i];
+				inputIdxs[i] = inputIdxsMaster[stepSize * step + i];
 #ifndef NDEBUG
 				if (neq(mHashes[inputIdxs[i]], AllOneBlock))
 				{
@@ -347,6 +313,9 @@ namespace osuCrypto
 				{
 					//curAddrs[i] = mHashes[inputIdxs[i]][curHashIdxs[i]] % mBins.size();
 					curAddrs[i] = getHash(inputIdxs[i], curHashIdxs[i]);// (mHashes.data() + inputIdxs[i] * width)[curHashIdxs[i]] % mBins.size();
+
+					//if (inputIdxs[i] == 8)
+						//std::cout << i << " * idx " << inputIdxs[i] << "  addr " << curAddrs[i] << std::endl;
 				}
 
 				// same thing here, this fetch is slow. Do them in parallel.
@@ -354,6 +323,17 @@ namespace osuCrypto
 				{
 					u64 newVal = inputIdxs[i] | (curHashIdxs[i] << 56);
 					oldVals[i] = mBins[curAddrs[i]].exchange(newVal);
+
+					//if (inputIdxs[i] == 8)
+					//{
+
+					//	u64 oldIdx = oldVals[i] & (u64(-1) >> 8);
+					//	u64 oldHash = (oldVals[i] >> 56);
+					//	std::cout
+					//		<< i << " * bin[" << curAddrs[i] << "]  "
+					//		<< " gets (" << inputIdxs[i] << ", " << curHashIdxs[i] << "),"
+					//		<< " evicts (" << oldIdx << ", " << oldHash << ")" << std::endl;
+					//}
 				}
 				// this loop will update the items that were just evicted. The main
 				// idea of that our array looks like
@@ -387,7 +367,7 @@ namespace osuCrypto
 					curHashIdxs[putIdx] = (1 + (oldVals[getIdx] >> 56)) % mParams.mNumHashes;
 
 					// not needed. debug only
-					std::swap(oldVals[putIdx], oldVals[getIdx]);
+					//std::swap(oldVals[putIdx], oldVals[getIdx]);
 
 					++putIdx;
 					++getIdx;
@@ -402,6 +382,13 @@ namespace osuCrypto
 				if (j >= mStash.size())
 				{
 					std::cout << "cuckoo stash overflow" << std::endl;
+
+					auto jj = find(mHashes[inputIdxs[i]]);
+					if (jj != -1)
+					{
+						std::cout << "already inserted." << std::endl;
+					}
+
 					throw std::runtime_error(LOCATION);
 				}
 
@@ -421,11 +408,22 @@ namespace osuCrypto
 		return CuckooIndex<Mode>::getHash(mHashes[inputIdx], hashIdx, mBins.size());
 	}
 
+
 	template<CuckooTypes Mode>
 	u64 CuckooIndex<Mode>::getHash(const block& hash, const u64& hashIdx, u64 num_bins)
 	{
+
+
+
 		// use the hash index as the byte offset into the block, then cast as u64 and return.
-		return *(u64*)(((u8*)&hash) + hashIdx) % num_bins;
+		//auto b = (AES(toBlock(hashIdx)).ecbEncBlock(hash));
+		//auto s = *(u64*)&b;
+		//return s %  num_bins;
+
+		static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 5,
+			"here we assume that we dont overflow the 16 byte 'block hash'. "
+			"To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
+		return *(u64*)(((u8*)&hash) + (2 * hashIdx)) % num_bins;
 	}
 	//
 	//    void CuckooIndex<Mode>::insertHelper(const u64& inputIdx, const u64& hashIdx, u64 numTries)
@@ -722,6 +720,18 @@ namespace osuCrypto
 
 		if (nonEmptyCount != insertCount)
 			throw std::runtime_error(LOCATION);
+	}
+
+	template<CuckooTypes Mode>
+	u64 CuckooIndex<Mode>::stashUtilization() const
+	{
+		u64 i = 0;
+		while (i < mStash.size() && mStash[i].isEmpty() == false)
+		{
+			++i;
+		}
+
+		return i;
 	}
 
 

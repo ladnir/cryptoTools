@@ -7,7 +7,7 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <future>
-#define CHANNEL_LOGGING
+//#define CHANNEL_LOGGING
 
 namespace osuCrypto {
 
@@ -60,7 +60,9 @@ namespace osuCrypto {
         u64 getMaxOutstandingSendData() const;
 
         /// <summary>length bytes starting at data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
-        void asyncSend(const u8 * data, u64 length);
+        template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, void>
+			asyncSend(const T* data, u64 length);
 
         /// <summary>Data will be sent over the network asynchronously. WARNING: data lifetime must be handled by caller.</summary>
         void asyncSend(const u8 * bufferPtr, u64 length, std::function<void()> callback);
@@ -95,10 +97,14 @@ namespace osuCrypto {
             asyncSendCopy(const Container& buf);
 
         /// <summary>Performs a data copy and then sends the result over the network asynchronously. </summary>
-        void asyncSendCopy(const u8 * bufferPtr, u64 length);
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, void>
+			asyncSendCopy(const T * bufferPtr, u64 length);
 
         /// <summary>Synchronous call to send length bytes starting at data over the network. </summary>
-        void send(const u8 * bufferPtr, u64 length);
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, void>
+			send(const T* bufferPtr, u64 length);
 
         /// <summary> Synchronous call to send the data in Container over the network.
         /// Note: The type of Container must be a container type, see is_container for requirements.
@@ -109,12 +115,17 @@ namespace osuCrypto {
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match. </summary>
-        std::future<u64> asyncRecv(void* dest, u64 length, std::function<void()> fn);
+		//template<typename T>
+		//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+			std::future<u64>	asyncRecv(u8* dest, u64 length, std::function<void()> fn);
 
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match. </summary>
-        std::future<u64> asyncRecv(void* dest, u64 length);
+		//template<typename T>
+		//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+			std::future<u64>
+			asyncRecv(u8* dest, u64 length);
 
         /// <summary>Asynchronous call to receive data over the network.
         /// Note: Conatiner can be resizable. If received size does not match Container::size(),
@@ -158,7 +169,9 @@ namespace osuCrypto {
 
         /// <summary>Synchronous call to receive data over the network.
         /// WARNING: will through if received message length does not match.</summary>
-        void recv(u8 * dest, u64 length);
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, void>
+			recv(T * dest, u64 length);
 
         /// <summary>Returns whether this channel is open in that it can send/receive data</summary>
         bool isConnected();
@@ -378,4 +391,107 @@ namespace osuCrypto {
     {
         asyncSend(std::move(Container(buf)));
     }
+
+
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, void>
+		Channel::send(const T* buffT, u64 sizeT)
+	{
+		u8* buff = (u8*)buffT;
+		auto size = sizeT * sizeof(T);
+
+		// not zero and less that 32 bits
+		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
+
+		auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
+		auto future = op->mPromise.get_future();
+		mBase->getIOService().dispatch(mBase.get(), std::move(op));
+		future.get();
+	}
+
+	//template<typename T>
+	//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+	inline std::future<u64>
+		Channel::asyncRecv(u8* buffT, u64 sizeT)
+	{
+		u8* buff = (u8*)buffT;
+		auto size = sizeT * sizeof(u8);
+
+		// not zero and less that 32 bits
+		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
+
+		auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
+		auto future = op->mPromise.get_future();
+		mBase->getIOService().dispatch(mBase.get(), std::move(op));
+		return future;
+	}
+
+
+
+	//template<typename T>
+	//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+	inline  std::future<u64>
+		Channel::asyncRecv(u8 * buffT, u64 sizeT, std::function<void()> fn)
+	{
+		u8* buff = (u8*)buffT;
+		auto size = sizeT * sizeof(u8);
+
+		// not zero and less that 32 bits
+		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
+
+		auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
+		op->mCallback = fn;
+		auto future = op->mPromise.get_future();
+		mBase->getIOService().dispatch(mBase.get(), std::move(op));
+		return future;
+	}
+
+
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, void>
+		Channel::asyncSend(const T * buffT, u64 sizeT)
+	{
+		u8* buff = (u8*)buffT;
+		auto size = sizeT * sizeof(T);
+
+		// not zero and less that 32 bits
+		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
+
+		auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
+		mBase->getIOService().dispatch(mBase.get(), std::move(op));
+	}
+
+
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, void>
+		Channel::recv(T* buffT, u64 sizeT)
+	{
+		u8* buff = (u8*)buffT;
+		auto size = sizeT * sizeof(T);
+
+		try {
+			// schedule the recv.
+			auto request = asyncRecv(buff, size);
+
+			// block until the receive has been completed.
+			// Could throw if the length is wrong.
+			request.get();
+		}
+		catch (BadReceiveBufferSize& bad)
+		{
+			std::cout << bad.mWhat << std::endl;
+			throw;
+		}
+	}
+
+
+
+
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, void>
+		Channel::asyncSendCopy(const T* bufferPtr, u64 length)
+	{
+		std::vector<u8> bs((u8*)bufferPtr, (u8*)bufferPtr + length * sizeof(T));
+		asyncSend(std::move(bs));
+	}
 }
