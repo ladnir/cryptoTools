@@ -297,6 +297,7 @@ namespace osuCrypto {
     void Channel::resetStats()
     {
         mBase->mTotalSentData = 0;
+		mBase->mTotalRecvData = 0;
         mBase->mMaxOutstandingSendData = 0;
         mBase->mOutstandingSendData = 0;
     }
