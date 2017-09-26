@@ -1,12 +1,12 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/AES.h>
 #include <cryptoTools/Crypto/sha1.h>
 #include <vector>
 
-#define SEED_SIZE   AES_BLK_SIZE
-#define RAND_SIZE   AES_BLK_SIZE
+//#define SEED_SIZE   AES_BLK_SIZE
+//#define RAND_SIZE   AES_BLK_SIZE
 
 
 namespace osuCrypto
@@ -16,8 +16,7 @@ namespace osuCrypto
     {
     public:
 
-        block mSeed;
-        std::vector<block> mBuffer, mIndexArray;
+        std::vector<block> mBuffer;
         AES mAes;
         u64 mBytesIdx, mBlockIdx, mBufferByteCapacity;
         void refillBuffer();
@@ -25,13 +24,13 @@ namespace osuCrypto
 
 
         PRNG();
-        PRNG(const block& seed);
+        PRNG(const block& seed, u64 bufferSize = 64);
         PRNG(const PRNG&) = delete;
         PRNG(PRNG&& s);
 
 
         // Set seed from array
-        void SetSeed(const block& b);
+        void SetSeed(const block& b, u64 bufferSize = 64);
         const block getSeed() const;
 
 
@@ -67,10 +66,7 @@ namespace osuCrypto
             }
         }
 
-        u8 getBit();// { return get<bool>(); }
-        //void get(u8* ans, u64 len);
-
-
+        u8 getBit();
 
 
         typedef u32 result_type;

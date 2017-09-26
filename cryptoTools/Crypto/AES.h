@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #define AES_DECRYPTION
 #include <wmmintrin.h>
@@ -64,7 +64,7 @@ namespace osuCrypto {
             OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
                 for (int i = 0; i < N; ++i) cyphertext[i] = _mm_xor_si128(plaintext[i], mAESs[i].mRoundKey[0]);
             OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
-                for (int i = 0; i < N; ++i) cyphertext[i] = _mm_aesenc_si128(cyphertext[1], mAESs[i].mRoundKey[1]);
+                for (int i = 0; i < N; ++i) cyphertext[i] = _mm_aesenc_si128(cyphertext[i], mAESs[i].mRoundKey[1]);
             OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
                 for (int i = 0; i < N; ++i) cyphertext[i] = _mm_aesenc_si128(cyphertext[i], mAESs[i].mRoundKey[2]);
             OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT

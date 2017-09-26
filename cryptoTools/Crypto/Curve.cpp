@@ -71,6 +71,11 @@ namespace osuCrypto
 
         mOrder.reset(new EccNumber(*this));
         mOrder->fromHex((char*)params.n);
+		mIsPrimeOrder = ::isprime(mMiracl, mOrder->mVal);
+
+		if (mIsPrimeOrder) {
+			prepare_monty(mMiracl, mOrder->mVal);
+		}
 
         mFieldPrime.reset(new EccNumber(*this));
         mFieldPrime->fromHex((char*)params.p);
@@ -142,7 +147,11 @@ namespace osuCrypto
 
         mOrder.reset(new EccNumber(*this));
         mOrder->fromHex((char*)(params.order));
+		mIsPrimeOrder = ::isprime(mMiracl, mOrder->mVal);
 
+		if (mIsPrimeOrder) {
+			prepare_monty(mMiracl, mOrder->mVal);
+		}
 
         ecurve2_init(
             mMiracl,
@@ -722,11 +731,7 @@ namespace osuCrypto
     }
     EccNumber& EccNumber::operator/=(const EccNumber& b)
     {
-        divide(mCurve->mMiracl, mVal, mCurve->getOrder().mVal, mVal);
-
-        //toNres();
-        //b.toNres();
-        //nres_moddiv(mCurve->mMiracl, mVal, b.mVal, mVal);
+		*this *= b.inverse();
         return *this;
     }
     EccNumber& EccNumber::operator/=(int i)
@@ -751,6 +756,21 @@ namespace osuCrypto
         //nres_negate(mCurve->mMiracl, mVal, mVal);
         return *this;
     }
+
+
+	EccNumber EccNumber::inverse() const
+	{
+		if (mCurve->mIsPrimeOrder == false)
+			throw std::runtime_error(LOCATION);
+
+		EccNumber ret(*this);
+
+		// ret = ret ^ -1 mod order
+		xgcd(mCurve->mMiracl, ret.mVal, mCurve->mOrder->mVal, ret.mVal, ret.mVal, ret.mVal);
+
+		return ret;
+	}
+
 
     bool EccNumber::operator==(const EccNumber & cmp) const
     {

@@ -106,7 +106,7 @@ namespace osuCrypto
         void init(const u64& n, const u64& statSecParam, u64 stashSize, u64 h);
         void init(const CuckooParam& params);
 
-		static CuckooParam selectParams(const u64& n, const u64& statSecParam, const u64& stashSize, const u64& h = 0);
+		static CuckooParam selectParams(const u64& n, const u64& statSecParam, const u64& stashSize, const u64& h);
 
         void insert(span<block> items, block hashingSeed, u64 startIdx = 0);
 

@@ -93,35 +93,7 @@ namespace osuCrypto {
     template <size_t N>
     using  MultiBlock = std::array<block, N>;
 
-#ifdef _MSC_VER
-    inline block operator^(const block& lhs, const block& rhs)
-    {
-        return _mm_xor_si128(lhs, rhs);
-    }
-    inline block operator&(const block& lhs, const block& rhs)
-    {
-        return _mm_and_si128(lhs, rhs);
-    }
 
-    inline block operator|(const block& lhs, const block& rhs)
-    {
-        return _mm_or_si128(lhs, rhs);
-    }
-    inline block operator<<(const block& lhs, const u8& rhs)
-    {
-        return _mm_slli_epi64(lhs, rhs);
-    }
-    inline block operator>>(const block& lhs, const u8& rhs)
-    {
-        return _mm_srli_epi64(lhs, rhs);
-    }
-    inline block operator+(const block& lhs, const block& rhs)
-    {
-        return _mm_add_epi64(lhs, rhs);
-    }
-
-
-#endif
 
     template <size_t N>
     inline MultiBlock<N> operator^(const MultiBlock<N>& lhs, const MultiBlock<N>& rhs)
@@ -168,7 +140,6 @@ namespace osuCrypto {
         return ((u8 *)(&b));
     }
 
-    std::ostream& operator<<(std::ostream& out, const block& block);
 
     template <size_t N>
     std::ostream& operator<<(std::ostream& out, const MultiBlock<N>& block);
@@ -190,6 +161,11 @@ namespace osuCrypto {
     u64 log2floor(u64);
 
     block sysRandomSeed();
+}
+std::ostream& operator<<(std::ostream& out, const osuCrypto::block& block);
+namespace osuCrypto
+{
+	using ::operator<<;
 }
 
 inline bool eq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
@@ -235,10 +211,34 @@ inline bool operator<(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
     return lhs.m128i_u64[1] < rhs.m128i_u64[1] || (eq(lhs, rhs) && lhs.m128i_u64[0] < rhs.m128i_u64[0]);
 }
 
+inline osuCrypto::block operator^(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+{
+	return _mm_xor_si128(lhs, rhs);
+}
+inline osuCrypto::block operator&(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+{
+	return _mm_and_si128(lhs, rhs);
+}
+
+inline osuCrypto::block operator|(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+{
+	return _mm_or_si128(lhs, rhs);
+}
+inline osuCrypto::block operator<<(const osuCrypto::block& lhs, const osuCrypto::u8& rhs)
+{
+	return _mm_slli_epi64(lhs, rhs);
+}
+inline osuCrypto::block operator>>(const osuCrypto::block& lhs, const osuCrypto::u8& rhs)
+{
+	return _mm_srli_epi64(lhs, rhs);
+}
+inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+{
+	return _mm_add_epi64(lhs, rhs);
+}
+
 
 #endif
-
-
 namespace oc = osuCrypto;
 
 //typedef struct largeBlock {

@@ -115,17 +115,18 @@ namespace osuCrypto {
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match. </summary>
-		//template<typename T>
-		//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
-			std::future<u64>	asyncRecv(u8* dest, u64 length, std::function<void()> fn);
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+			//std::future<u64>
+			asyncRecv(T* dest, u64 length, std::function<void()> fn);
 
 
         /// <summary>Asynchronous call to recv length bytes of data over the network. The data will be written at dest.
         /// WARNING: return value will through if received message length does not match. </summary>
-		//template<typename T>
-		//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
-			std::future<u64>
-			asyncRecv(u8* dest, u64 length);
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+		//	std::future<u64>
+			asyncRecv(T* dest, u64 length);
 
         /// <summary>Asynchronous call to receive data over the network.
         /// Note: Conatiner can be resizable. If received size does not match Container::size(),
@@ -147,6 +148,16 @@ namespace osuCrypto {
             is_container<Container>::value &&
             has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
             asyncRecv(Container& c);
+
+		/// <summary>Asynchronous call to receive data over the network.
+		/// Note: Conatiner can be resizable. If received size does not match Container::size(),
+		///       Container::resize(Container::size_type newSize) will be called if avaliable.
+		/// Returns: a void future that is fulfilled when all of the data has been written. </summary>
+		template <class Container>
+		typename std::enable_if_t<
+			is_container<Container>::value &&
+			has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
+			asyncRecv(Container& c, std::function<void()> fn);
 
         template <class Container>
         typename std::enable_if_t<
@@ -181,7 +192,6 @@ namespace osuCrypto {
 
         /// <summary>Close this channel to denote that no more data will be sent or received.</summary>
         void close();
-
 
         enum class Status
         {
@@ -380,6 +390,24 @@ namespace osuCrypto {
         return future;
     }
 
+
+	template <class Container>
+	typename std::enable_if_t<
+		is_container<Container>::value &&
+		has_resize<Container, void(typename Container::size_type)>::value, std::future<u64>>
+		Channel::asyncRecv(Container & c, std::function<void()> fn)
+	{
+		// not zero and less that 32 bits
+		Expects(mBase->mRecvStatus == Status::Normal);
+
+		auto op = std::unique_ptr<IOOperation>(new ResizableChannelBuffRef<Container>(c));
+		op->mCallback = std::move(fn);
+
+		auto future = op->mPromise.get_future();
+		dispatch(std::move(op));
+		return future;
+	}
+
     template<class Container>
     typename std::enable_if_t<is_container<Container>::value, void> Channel::send(const Container & buf)
     {
@@ -409,13 +437,13 @@ namespace osuCrypto {
 		future.get();
 	}
 
-	//template<typename T>
-	//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
-	inline std::future<u64>
-		Channel::asyncRecv(u8* buffT, u64 sizeT)
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+	//inline std::future<u64>
+		Channel::asyncRecv(T* buffT, u64 sizeT)
 	{
 		u8* buff = (u8*)buffT;
-		auto size = sizeT * sizeof(u8);
+		auto size = sizeT * sizeof(T);
 
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
@@ -428,19 +456,19 @@ namespace osuCrypto {
 
 
 
-	//template<typename T>
-	//typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
-	inline  std::future<u64>
-		Channel::asyncRecv(u8 * buffT, u64 sizeT, std::function<void()> fn)
+	template<typename T>
+	typename std::enable_if_t<std::is_pod<T>::value, std::future<u64>>
+	//inline  std::future<u64>
+		Channel::asyncRecv(T * buffT, u64 sizeT, std::function<void()> fn)
 	{
 		u8* buff = (u8*)buffT;
-		auto size = sizeT * sizeof(u8);
+		auto size = sizeT * sizeof(T);
 
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
 		auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::RecvData));
-		op->mCallback = fn;
+		op->mCallback = std::move(fn);
 		auto future = op->mPromise.get_future();
 		mBase->getIOService().dispatch(mBase.get(), std::move(op));
 		return future;

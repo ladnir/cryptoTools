@@ -100,7 +100,8 @@ namespace osuCrypto
                 }
             }
 
-            throw CommandLineParserError();
+			return {};
+            //throw CommandLineParserError();
         }
 
 

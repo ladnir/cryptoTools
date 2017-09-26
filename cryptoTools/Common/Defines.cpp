@@ -14,23 +14,6 @@ namespace osuCrypto {
     const block CCBlock = ([]() {block cc; memset(&cc, 0xcc, sizeof(block)); return cc; })();
 
 
-    std::ostream& operator<<(std::ostream& out, const block& blk)
-    {
-        out << std::hex;
-        u64* data = (u64*)&blk;
-
-        out << std::setw(16) << std::setfill('0') << data[1]
-            << std::setw(16) << std::setfill('0') << data[0];
-
-        out << std::dec << std::setw(0);
-        //u64* data = (u64*)&blk;
-        //BitVector bv;// ((u8*)data, 64);
-        //bv.append((u8*)&data, 32, 2);
-
-        //out << (*(u8*)&data & 1) << " " << (*(u8*)&data & 2) << " " << bv << _;
-        return out;
-    }
-
     template<size_t N>
     std::ostream& operator<<(std::ostream& out, const MultiBlock<N>& blk)
     {
@@ -142,3 +125,22 @@ namespace osuCrypto {
 }
 
 
+
+
+std::ostream& operator<<(std::ostream& out, const oc::block& blk)
+{
+	using namespace oc;
+	out << std::hex;
+	u64* data = (u64*)&blk;
+
+	out << std::setw(16) << std::setfill('0') << data[1]
+		<< std::setw(16) << std::setfill('0') << data[0];
+
+	out << std::dec << std::setw(0);
+	//u64* data = (u64*)&blk;
+	//BitVector bv;// ((u8*)data, 64);
+	//bv.append((u8*)&data, 32, 2);
+
+	//out << (*(u8*)&data & 1) << " " << (*(u8*)&data & 2) << " " << bv << _;
+	return out;
+}
