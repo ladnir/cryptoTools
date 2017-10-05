@@ -22,7 +22,7 @@
     <ProjectGuid>{E0912377-D59C-4B08-B397-A7209C04B966}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>cryptoTools_TestsVS</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

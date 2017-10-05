@@ -237,6 +237,16 @@ namespace osuCrypto
         *this = copy;
     }
 
+	EccPoint::EccPoint(EllipticCurve & curve, PRNG & prng)
+		:
+		mVal(nullptr),
+		mMem(nullptr),
+		mCurve(&curve)
+	{
+		init();
+		randomize(prng);
+	}
+
     EccPoint::EccPoint(
         const EccPoint & copy)
         :
@@ -500,14 +510,16 @@ namespace osuCrypto
 
 
         big var = mirvar(mCurve->mMiracl, 0);
+		u64 tries = 100;
+		prng.get(buff, byteSize);
+		buff[byteSize - 1] &= mask;
 
-        //do
+        do
         {
             //TODO("replace bigdig with our PRNG");
 
             //bigdig(mCurve->mMiracl, mCurve->mParams.bitCount, 2, var);
-            prng.get(buff, byteSize);
-            buff[byteSize - 1] &= mask;
+
 
             bytes_to_big(mCurve->mMiracl, static_cast<int>(byteSize), (char*)buff, var);
             if (mCurve->mIsPrimeField)
@@ -518,9 +530,11 @@ namespace osuCrypto
             {
                 epoint2_set(mCurve->mMiracl, var, var, 0, mVal);
             }
-            //toBytes(buff2);
-            //fromBytes(buff2);
-        }
+
+			// increment the bottom work if we failed
+			(*(u64*)buff)++;
+
+		} while (tries-- && point_at_infinity(mVal));
 
         if (point_at_infinity(mVal))
         {
