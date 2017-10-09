@@ -24,13 +24,13 @@ namespace osuCrypto
 
 
         PRNG();
-        PRNG(const block& seed, u64 bufferSize = 64);
+        PRNG(const block& seed, u64 bufferSize = 256);
         PRNG(const PRNG&) = delete;
         PRNG(PRNG&& s);
 
 
         // Set seed from array
-        void SetSeed(const block& b, u64 bufferSize = 64);
+        void SetSeed(const block& b, u64 bufferSize = 256);
         const block getSeed() const;
 
 

@@ -93,6 +93,11 @@ namespace osuCrypto
             return mView[rowIdx * stride() + colIdx];
         }
 
+		const T& operator()(size_type rowIdx, size_type colIdx) const
+		{
+			return mView[rowIdx * stride() + colIdx];
+		}
+
         span<T> operator[](size_type rowIdx) const
         {
 #ifndef NDEBUG
