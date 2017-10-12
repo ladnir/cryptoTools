@@ -1,7 +1,6 @@
 #pragma once
 #include <boost/asio.hpp>
-#include <cryptoTools/Common/ArrayView.h>
-#include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/Defines.h>
 
 namespace osuCrypto
 {

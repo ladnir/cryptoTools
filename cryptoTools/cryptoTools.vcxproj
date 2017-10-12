@@ -140,14 +140,11 @@
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\ArrayView.h" />
     <ClInclude Include="Common\BitIterator.h" />
     <ClInclude Include="Common\BitVector.h" />
-    <ClInclude Include="Common\ByteStream.h" />
     <ClInclude Include="Common\CLP.h" />
     <ClInclude Include="Common\CuckooIndex.h" />
     <ClInclude Include="Common\Defines.h" />
-    <ClInclude Include="Common\Exceptions.h" />
     <ClInclude Include="Common\Finally.h" />
     <ClInclude Include="Common\Log.h" />
     <ClInclude Include="Common\MatrixView.h" />
@@ -159,7 +156,6 @@
     <ClInclude Include="Crypto\Curve.h" />
     <ClInclude Include="Crypto\PRNG.h" />
     <ClInclude Include="Crypto\sha1.h" />
-    <ClInclude Include="Network\Acceptor.h" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
     <ClInclude Include="Network\IOService.h" />
@@ -167,9 +163,7 @@
     <ClInclude Include="Network\SocketAdapter.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\BitIterator.cpp" />
     <ClCompile Include="Common\BitVector.cpp" />
-    <ClCompile Include="Common\ByteStream.cpp" />
     <ClCompile Include="Common\CLP.cpp" />
     <ClCompile Include="Common\CuckooIndex.cpp" />
     <ClCompile Include="Common\Defines.cpp" />
@@ -179,7 +173,6 @@
     <ClCompile Include="Crypto\Curve.cpp" />
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\sha1.cpp" />
-    <ClCompile Include="Network\Acceptor.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
     <ClCompile Include="Network\Endpoint.cpp" />
     <ClCompile Include="Network\IOService.cpp" />

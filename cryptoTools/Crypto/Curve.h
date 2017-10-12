@@ -386,6 +386,9 @@ namespace osuCrypto
 		const EccNumber& getOrder() const;
 		const EccNumber& getFieldPrime() const;
 
+
+		u64 bitCount()const;
+
 	private:
 		// A **non-thread safe** member variable which acts as a memory pool and
 		// determines the byte/bit size of the variables within this curve.

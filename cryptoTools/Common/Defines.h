@@ -2,22 +2,34 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 
 #include <cinttypes>
-#include <iomanip>
 #include <vector>
-#include <emmintrin.h>
-#include <smmintrin.h>
 #include <sstream>
 #include <iostream>
-#include <boost/lexical_cast.hpp>
 #include <memory>
-#include <cryptoTools/Common/Timer.h>
+#include <iomanip>
 
-#ifdef GetMessage
-#undef GetMessage
-#endif
+#include <emmintrin.h>
+#include <smmintrin.h>
 
-#ifndef _MSC_VER
-#pragma GCC diagnostic ignored "-Wignored-attributes"
+#include <boost/lexical_cast.hpp>
+
+#include <cryptoTools/gsl/span>
+
+
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
+#define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
+
+#ifdef _MSC_VER
+	#pragma warning( disable : 4018) // signed unsigned comparison warning
+	#define TODO(x) __pragma(message (__FILE__ ":"STRINGIZE(__LINE__) " Warning:TODO - " #x))
+	#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
+	#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __pragma(loop( ivdep ))
+#else
+	#pragma GCC diagnostic ignored "-Wignored-attributes"
+	#define TODO(x)
+	#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
+	#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
 #endif
 
 // add instrinsics names that intel knows but clang doesn't…
@@ -25,40 +37,12 @@
 #define _mm_cvtsi128_si64x _mm_cvtsi128_si64
 #endif
 
-#define STRINGIZE_DETAIL(x) #x
-#define STRINGIZE(x) STRINGIZE_DETAIL(x)
-#define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
-
-#ifdef _MSC_VER
-#pragma warning( disable : 4018) // signed unsigned comparison warning
-#define TODO(x) __pragma(message (__FILE__ ":"STRINGIZE(__LINE__) " Warning:TODO - " #x))
-#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
-#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __pragma(loop( ivdep ))
-#else
-#define TODO(x)
-#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
-#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
-#endif
-
-#include <cryptoTools/gsl/span>
-#include <cryptoTools/gsl/multi_span>
 
 namespace osuCrypto {
     template<typename T> using ptr = T*;
     template<typename T> using uPtr = std::unique_ptr<T>;
     template<typename T> using sPtr = std::shared_ptr<T>;
     template<typename T> using span = gsl::span<T>;
-
-    //template<typename T, std::ptrdiff_t FirstDimension, std::ptrdiff_t... RestDimensions>
-    //using multi_span = gsl::multi_span<T, FirstDimension, RestDimensions...>;
-
-    const std::ptrdiff_t dyn = gsl::dynamic_range;
-
-    //template <typename T>
-    //using MatrixSpan = multi_span<T, dyn, dyn>;
-
-    //template <typename T>
-    //using MatrixSpan = multi_span<T, dyn, dyn>;
 
     typedef uint64_t u64;
     typedef int64_t i64;
@@ -69,54 +53,14 @@ namespace osuCrypto {
     typedef uint8_t u8;
     typedef int8_t i8;
 
-    enum Role
-    {
-        First = 0,
-        Second = 1
-    };
-
-    extern Timer gTimer;
 
     template<typename T>
-    static std::string ToString(const T& t)
-    {
-        return boost::lexical_cast<std::string>(t);
-    }
+    static std::string ToString(const T& t) { return boost::lexical_cast<std::string>(t); }
 
     typedef  __m128i block;
-
     inline block toBlock(u8*data) { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
-
     inline block toBlock(u64 x)        { return _mm_set_epi64x(0,x); }
     inline block toBlock(u64 x, u64 y) { return _mm_set_epi64x(x,y); }
-
-    template <size_t N>
-    using  MultiBlock = std::array<block, N>;
-
-
-
-    template <size_t N>
-    inline MultiBlock<N> operator^(const MultiBlock<N>& lhs, const MultiBlock<N>& rhs)
-    {
-        MultiBlock<N> rs;
-
-        for (u64 i = 0; i < N; ++i)
-        {
-            rs[i] = lhs[i] ^ rhs[i];
-        }
-        return rs;
-    }
-    template <size_t N>
-    inline MultiBlock<N> operator&(const MultiBlock<N>& lhs, const MultiBlock<N>& rhs)
-    {
-        MultiBlock<N> rs;
-
-        for (u64 i = 0; i < N; ++i)
-        {
-            rs[i] = lhs[i] & rhs[i];
-        }
-        return rs;
-    }
 
     extern const block ZeroBlock;
     extern const block OneBlock;
@@ -124,44 +68,22 @@ namespace osuCrypto {
     extern const block CCBlock;
     extern const std::array<block, 2> zeroAndAllOne;
 
-    inline u64 roundUpTo(u64 val, u64 step)
-    {
-        return ((val + step - 1) / step) * step;
-    }
+    inline u64 roundUpTo(u64 val, u64 step) { return ((val + step - 1) / step) * step; }
 
-    inline u8* ByteArray(const block& b)
-    {
-        return ((u8 *)(&b));
-    }
-
-    template <size_t N>
-    inline u8* ByteArray(const MultiBlock<N>& b)
-    {
-        return ((u8 *)(&b));
-    }
-
-
-    template <size_t N>
-    std::ostream& operator<<(std::ostream& out, const MultiBlock<N>& block);
-
-    class Commit;
-    class BitVector;
-
-    std::ostream& operator<<(std::ostream& out, const Commit& comm);
-    //std::ostream& operator<<(std::ostream& out, const BitVector& vec);
-    //typedef block block;
+    inline u8* ByteArray(const block& b) { return ((u8 *)(&b)); }
 
     block PRF(const block& b, u64 i);
 
     void split(const std::string &s, char delim, std::vector<std::string> &elems);
     std::vector<std::string> split(const std::string &s, char delim);
 
-
     u64 log2ceil(u64);
     u64 log2floor(u64);
 
     block sysRandomSeed();
 }
+
+
 std::ostream& operator<<(std::ostream& out, const osuCrypto::block& block);
 namespace osuCrypto
 {
@@ -180,32 +102,7 @@ inline bool neq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
     return _mm_test_all_zeros(neq, neq) == 0;
 }
 
-template<size_t N>
-inline bool neq(const osuCrypto::MultiBlock<N>& lhs, const osuCrypto::MultiBlock<N>& rhs)
-{
-    osuCrypto::MultiBlock<N> neq = lhs^ rhs;
-
-    using namespace osuCrypto;
-
-    int ret = 0;
-    for (u64 i = 0; i < N; ++i)
-    {
-        ret |= _mm_test_all_zeros(neq[i], neq[i]);
-    }
-    return ret;
-}
-
-
 #ifdef _MSC_VER
-inline bool operator==(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
-{
-    return eq(lhs, rhs);
-}
-
-inline bool operator!=(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
-{
-    return neq(lhs, rhs);
-}
 inline bool operator<(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
 {
     return lhs.m128i_u64[1] < rhs.m128i_u64[1] || (eq(lhs, rhs) && lhs.m128i_u64[0] < rhs.m128i_u64[0]);
@@ -236,25 +133,6 @@ inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::
 {
 	return _mm_add_epi64(lhs, rhs);
 }
-
-
 #endif
+
 namespace oc = osuCrypto;
-
-//typedef struct largeBlock {
-//
-//} largeBlock;
-//typedef  std::array<block, 4>  blockRIOT;
-
-//
-//#ifdef _MSC_VER // if Visual C/C++
-//__inline __m64 _mm_set_pi64x(const __int64 i) {
-//    union {
-//        __int64 i;
-//        __m64 v;
-//    } u;
-//
-//    u.i = i;
-//    return u.v;
-//}
-//#endif

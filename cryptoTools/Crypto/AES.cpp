@@ -15,10 +15,6 @@ namespace osuCrypto {
         return _mm_xor_si128(key, keyRcon);
     }
 
-    AES::AES()
-    {
-    }
-
     AES::AES(const block & userKey)
     {
         setKey(userKey);

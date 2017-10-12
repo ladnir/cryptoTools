@@ -1,6 +1,7 @@
 #include "Network.h"
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/IOService.h>
 
 
@@ -145,12 +146,12 @@ void networkTutorial()
     // When move semantics are not supported by Container or if you want to
     // share ownership of the data, we can use a unique/shared pointer.
     {
-        std::unique_ptr<std::array<int, 8>> unique{ new std::array<int,8>{0,1,2,3,4,5,6,7 } };
+        std::unique_ptr<std::vector<int>> unique{ new std::vector<int>{0,1,2,3,4,5,6,7 } };
         chl0.asyncSend(std::move(unique)); // will not block.
 
         // unique = empty
 
-        std::shared_ptr<std::array<int, 8>> shared{ new std::array<int,8>{0,1,2,3,4,5,6,7 } };
+        std::shared_ptr<std::vector<int>> shared{ new std::vector<int>{0,1,2,3,4,5,6,7 } };
         chl0.asyncSend(std::move(shared)); // will not block.
 
         // shared's refernce counter = 2.

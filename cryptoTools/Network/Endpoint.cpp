@@ -1,9 +1,7 @@
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/IOService.h>
 #include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/Acceptor.h>
 #include <cryptoTools/Network/SocketAdapter.h>
-#include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
 

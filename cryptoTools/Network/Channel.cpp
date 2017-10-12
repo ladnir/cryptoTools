@@ -1,12 +1,8 @@
 #include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/SocketAdapter.h>
-#include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Common/ByteStream.h>
-
+#include <cryptoTools/Network/IOService.h>
 namespace osuCrypto {
 
     Channel::Channel(
@@ -106,16 +102,6 @@ namespace osuCrypto {
         return *this;
     }
 
-    void Channel::asyncSend(const u8 * buff, u64 size, std::function<void()> callback)
-    {
-        // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
-
-        auto op = std::unique_ptr<IOOperation>(new PointerSizeBuff(buff, size, IOOperation::Type::SendData));
-        op->mCallback = callback;
-
-        dispatch(std::move(op));
-    }
 
 
 
@@ -209,7 +195,7 @@ namespace osuCrypto {
 #endif
             //delete front->mContainer;
 
-            auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mSendErrorMessage));
+            auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
             front->mPromise.set_exception(e_ptr);
 
             //delete front;
@@ -219,29 +205,9 @@ namespace osuCrypto {
 #ifdef CHANNEL_LOGGING
         mLog.push("send queue empty");
 #endif
-        mSendQueueEmptyProm.set_value(0);
-
-
-
-        //        mRecvStrand.post([this]
-        //        {
-        //            if (mRecvQueue.size() == 0)
-        //            {
-        //
-        //#ifdef CHANNEL_LOGGING
-        //                mLog.push("recv queue empty");
-        //#endif
-        //                mRecvQueueEmptyProm.set_value(0);
-        //            }
-        //            else
-        //            {
-        //#ifdef CHANNEL_LOGGING
-        //                mLog.push("recv queue size " + ToString(mRecvQueue.size()));
-        //#endif
-        //            }
-        //
-        //        });
+        mSendQueueEmptyProm.set_value();
     }
+
 
     void ChannelBase::cancelRecvQueuedOperations()
     {
@@ -256,7 +222,7 @@ namespace osuCrypto {
 #endif
             //delete front->mContainer;
 
-            auto e_ptr = std::make_exception_ptr(NetworkError("Channel Error: " + mRecvErrorMessage));
+            auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
             front->mPromise.set_exception(e_ptr);
 
             //delete front;
@@ -267,26 +233,7 @@ namespace osuCrypto {
 #ifdef CHANNEL_LOGGING
         mLog.push("recv queue empty");
 #endif
-        mRecvQueueEmptyProm.set_value(0);
-
-        //        mSendStrand.post([this]
-        //        {
-        //            if (mSendQueue.size() == 0)
-        //            {
-        //
-        //#ifdef CHANNEL_LOGGING
-        //                mLog.push("send queue empty");
-        //#endif
-        //                mSendQueueEmptyProm.set_value(0);
-        //            }
-        //            else
-        //            {
-        //#ifdef CHANNEL_LOGGING
-        //                mLog.push("send queue size " + ToString(mSendQueue.size()));
-        //#endif
-        //            }
-        //        });
-
+        mRecvQueueEmptyProm.set_value();
     }
 
     std::string Channel::getRemoteName() const

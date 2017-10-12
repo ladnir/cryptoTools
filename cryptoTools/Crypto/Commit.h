@@ -1,11 +1,8 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 
-/* Define the hash based commitment scheme */
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/PRNG.h>
-#include <cryptoTools/Common/ByteStream.h>
-//#include <cryptoTools/Common/Exceptions.h>
 #include <cryptoTools/Crypto/sha1.h>
 #include <iostream>
 
@@ -13,56 +10,72 @@ namespace osuCrypto {
 
 #define COMMIT_BUFF_u32_SIZE  5
 static_assert(SHA1::HashSize == sizeof(u32) * COMMIT_BUFF_u32_SIZE, "buffer need to be the same size as hash size");
-class Commit //:  public ChannelBuffer
+
+
+class Commit 
     {
-        u32 buff[COMMIT_BUFF_u32_SIZE];
-
     public:
-        Commit(const block& in)
-        {
-            hash(ByteArray(in), sizeof(block));
-        }
-        Commit(const std::array<block,3>& in)
-        {
-            hash(ByteArray(in[0]), sizeof(block));
-            hash(ByteArray(in[1]), sizeof(block));
-            hash(ByteArray(in[2]), sizeof(block));
-        }
 
-        Commit(const block& in, PRNG& prng)
+		// Default constructor of a Commitment. The state is undefined.
+		Commit() = default;
+
+		// Compute a randomized commitment of input. 
+		Commit(const block& in, PRNG& prng)
         {
             block rand = prng.get<block>();
             hash(ByteArray(in), sizeof(block), rand);
         }
+
+		// Compute a randomized commitment of input. 
         Commit(const block& in, block& rand)
         {
              hash(ByteArray(in), sizeof(block), rand);
         }
 
-        Commit(const ByteStream& in, PRNG& prng)
+		// Compute a randomized commitment of input. 
+		Commit(const span<u8> in, PRNG& prng)
         {
             block rand = prng.get<block>();
              hash(in.data(), in.size(), rand);
         }
-        Commit(const ByteStream& in, block& rand)
+		
+		// Compute a randomized commitment of input. 
+		Commit(const span<u8> in, block& rand)
         {
              hash(in.data(), in.size(), rand);
         }
 
-        Commit(const ByteStream& in)
+
+
+		// Compute a non-randomized commitment of input. 
+		// Note: insecure if input has low entropy. 
+		Commit(const block& input) { hash(ByteArray(input), sizeof(block)); }
+
+		// Compute a non-randomized commitment of input. 
+		// Note: insecure if input has low entropy. 
+		Commit(const std::array<block, 3>& input)
+		{
+			hash(ByteArray(input[0]), sizeof(block));
+			hash(ByteArray(input[1]), sizeof(block));
+			hash(ByteArray(input[2]), sizeof(block));
+		}
+
+		// Compute a non-randomized commitment of input. 
+		// Note: insecure if input has low entropy. 
+		Commit(const span<u8> in)
         {
             hash(in.data(), in.size());
         }
 
 
+		// Compute a non-randomized commitment of input. 
+		// Note: insecure if input has low entropy. 
         Commit(u8* d, u64 s)
         {
             hash(d, s);
         }
 
-        Commit()
-        {}
-
+		// Utility function to test if two commitments are equal.
         bool operator==(const Commit& rhs)
         {
             for (u64 i = 0; i < COMMIT_BUFF_u32_SIZE; ++i)
@@ -73,22 +86,26 @@ class Commit //:  public ChannelBuffer
             return true;
         }
 
-        bool operator!=(const Commit& rhs)
+		// Utility function to test if two commitments are not equal.
+		bool operator!=(const Commit& rhs)
         {
             return !(*this == rhs);
         }
 
+		// Returns a pointer to the commitment value.
         u8* data() const
         {
             return (u8*)buff;
         }
 
-        static u64 size()
+		// Returns the size of the commitment in bytes.
+		static u64 size()
         {
             return SHA1::HashSize;
         }
 
     private:
+		u32 buff[COMMIT_BUFF_u32_SIZE];
 
         void hash(u8* data, u64 size)
         {
@@ -105,33 +122,10 @@ class Commit //:  public ChannelBuffer
               sha.Final((u8*)buff);
          }
 
-
-    
-    protected:
-
-
-        //u8* CBData() const override
-        //{
-        //    return (u8*)buff;
-        //}
-        //u64 CBSize() const override
-        //{
-        //    return SHA1::HashSize;
-        //}
-        //void CBResize(u64 length) override
-        //{
-        //    if (length != SHA1::HashSize)
-        //        throw std::invalid_argument("Resize size can only be SHA1::HashSize i.e. 20 bytes");
-        //}
-
-
     };
 
     static_assert(sizeof(Commit) == SHA1::HashSize, "needs to be Pod type");
 
-    //void CommitComm(ByteStream& comm, ByteStream& open, const ByteStream& data, PRNG& prng);
-    //bool CommitOpen(ByteStream& data, const ByteStream& comm, const ByteStream& open);
-    //void CommitComm(ByteStream& comm, const block& rand, const block& data);
-    //bool Commitopen(const ByteStream& comm, const block& rand, const block& data);
 
+	std::ostream& operator<<(std::ostream& out, const Commit& comm);
 }

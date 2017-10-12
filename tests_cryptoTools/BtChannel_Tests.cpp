@@ -9,7 +9,6 @@
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/Channel.h>
 
-#include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/Finally.h>
@@ -26,99 +25,49 @@ namespace tests_cryptoTools
 {
     void BtNetwork_Connect1_Boost_Test()
     {
-
         setThreadName("Test_Host");
 
         std::string channelName{ "TestChannel" };
         std::string msg{ "This is the message" };
-        ByteStream msgBuff((u8*)msg.data(), msg.size());
 
         IOService ioService(0);
         auto thrd = std::thread([&]()
         {
             setThreadName("Test_Client");
 
-            //std::cout << "client ep start" << std::endl;
             Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-            //std::cout << "client ep done" << std::endl;
-
             Channel chl = endpoint.addChannel(channelName, channelName);
-            //std::cout << "client chl1 done" << std::endl;
 
+			std::string recvMsg;
+            chl.recv(recvMsg);
 
-            std::unique_ptr<ByteStream> srvRecv(new ByteStream());
+            if (recvMsg != msg) throw UnitTestFail();
 
-            chl.recv(*srvRecv);
-
-
-            if (*srvRecv != msgBuff)
-            {
-
-                throw UnitTestFail();
-            }
-
-
-            chl.asyncSend(std::move(srvRecv));
-
-            //std::cout << " server closing" << std::endl;
-
-            chl.close();
-
-            //std::cout << " server nm closing" << std::endl;
-
-            //netServer.CloseChannel(chl1.Name());
-            endpoint.stop();
-            //std::cout << " server closed" << std::endl;
-
+            chl.asyncSend(std::move(recvMsg));
         });
 
-        //IOService ioService;
-
-        //std::cout << "host ep start" << std::endl;
-
         Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
-
-        //std::cout << "host ep done" << std::endl;
-
         auto chl = endpoint.addChannel(channelName, channelName);
-        //std::cout << "host chl1 done" << std::endl;
 
-        //std::cout << " client channel added" << std::endl;
+		chl.asyncSend(msg);
 
-        chl.asyncSend(msgBuff.begin(), msgBuff.size());
-
-        ByteStream clientRecv;
+        std::string clientRecv;
         chl.recv(clientRecv);
 
-        if (clientRecv != msgBuff)
-            throw UnitTestFail();
-        //std::cout << " client closing" << std::endl;
-
-
-        chl.close();
-        //netClient.CloseChannel(channelName);
-        endpoint.stop();
-        //std::cout << " client closed" << std::endl;
-
+        if (clientRecv != msg) throw UnitTestFail();
 
         thrd.join();
-
-        ioService.stop();
-
     }
 
 
     void BtNetwork_OneMegabyteSend_Boost_Test()
     {
-        //InitDebugPrinting();
-
         setThreadName("Test_Host");
 
         std::string channelName{ "TestChannel" };
         std::string msg{ "This is the message" };
-        ByteStream oneMegabyte((u8*)msg.data(), msg.size());
-        oneMegabyte.reserve(1000000);
-        oneMegabyte.setp(1000000);
+        std::vector<u8> oneMegabyte((u8*)msg.data(), (u8*)msg.data()+msg.size());
+        oneMegabyte.resize(1000000);
 
         memset(oneMegabyte.data() + 100, 0xcc, 1000000 - 100);
 
@@ -131,37 +80,25 @@ namespace tests_cryptoTools
             Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
             Channel chl = endpoint.addChannel(channelName, channelName);
 
-            std::unique_ptr<ByteStream> srvRecv(new ByteStream());
-            chl.recv(*srvRecv);
-
-            if ((*srvRecv) != oneMegabyte)
-                throw UnitTestFail();
-
+			std::vector<u8> srvRecv;
+            chl.recv(srvRecv);
+            if (srvRecv != oneMegabyte) throw UnitTestFail();
             chl.asyncSend(std::move(srvRecv));
-
-            chl.close();
-
-            endpoint.stop();
-
         });
 
 
         Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
         auto chl = endpoint.addChannel(channelName, channelName);
 
-        chl.asyncSend(oneMegabyte.begin(), oneMegabyte.size());
+        chl.asyncSend(oneMegabyte);
 
-        ByteStream clientRecv;
+        std::vector<u8> clientRecv;
         chl.recv(clientRecv);
 
-        if (clientRecv != oneMegabyte)
-            throw UnitTestFail();
-
-        chl.close();
-        endpoint.stop();
         thrd.join();
 
-        ioService.stop();
+		if (clientRecv != oneMegabyte)
+            throw UnitTestFail();
     }
 
 
@@ -177,8 +114,7 @@ namespace tests_cryptoTools
 
         bool print(false);
 
-        ByteStream buff(64);
-        buff.setp(64);
+        std::vector<u8> buff(64);
 
         buff.data()[14] = 3;
         buff.data()[24] = 6;
@@ -200,31 +136,21 @@ namespace tests_cryptoTools
                 {
                     setThreadName("Test_client_" + std::to_string(i));
                     auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
-                    ByteStream mH;
+                    std::vector<u8> mH;
 
                     for (u64 j = 0; j < messageCount; j++)
                     {
                         chl.recv(mH);
                         if (buff != mH)throw UnitTestFail();
-                        chl.asyncSend(buff.begin(), buff.size());
+                        chl.asyncSend(std::move(mH));
                     }
 
-                    chl.close();
-
-                    //std::stringstream ss;
-                    //ss << "server" << i << " done\n";
-                    //std::cout << ss.str();
                 });
             }
 
 
             for (auto& thread : threads)
                 thread.join();
-
-
-            endpoint.stop();
-            ioService.stop();
-            //std::cout << "server done" << std::endl;
         });
 
         IOService ioService;
@@ -239,7 +165,7 @@ namespace tests_cryptoTools
             {
                 setThreadName("Test_Host_" + std::to_string(i));
                 auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
-                ByteStream mH(buff);
+                std::vector<u8> mH(buff);
 
                 for (u64 j = 0; j < messageCount; j++)
                 {
@@ -248,9 +174,6 @@ namespace tests_cryptoTools
 
                     if (buff != mH)throw UnitTestFail();
                 }
-
-
-                chl.close();
             });
         }
 
@@ -259,12 +182,7 @@ namespace tests_cryptoTools
         for (auto& thread : threads)
             thread.join();
 
-        endpoint.stop();
-
         serverThrd.join();
-
-        ioService.stop();
-
     }
 
 
@@ -275,32 +193,22 @@ namespace tests_cryptoTools
 
         auto thrd = std::thread([&]() {
             IOService ioService(0);
-            //setThreadName("Net_Cross1_Thread");
             Endpoint endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
 
 
             auto sendChl1 = endpoint.addChannel("send", "recv");
             auto recvChl1 = endpoint.addChannel("recv", "send");
 
-            ByteStream buff;
-            buff.append(send);
-
-            sendChl1.asyncSendCopy(buff);
             block temp;
 
-            recvChl1.recv(buff);
-            buff.consume((u8*)&temp, 16);
+			sendChl1.asyncSendCopy(send);
+            recvChl1.recv(temp);
 
             if (neq(temp, send))
                 throw UnitTestFail();
 
-            buff.setp(0);
-            buff.append(recv);
-            recvChl1.asyncSendCopy(buff);
-
-            sendChl1.recv(buff);
-
-            buff.consume((u8*)&temp, 16);
+            recvChl1.asyncSendCopy(recv);
+            sendChl1.recv(temp);
 
             if (neq(temp, recv))
                 throw UnitTestFail();
@@ -319,36 +227,22 @@ namespace tests_cryptoTools
         auto recvChl0 = endpoint.addChannel("recv", "send");
         auto sendChl0 = endpoint.addChannel("send", "recv");
 
-        ByteStream buff;
-        buff.append(send);
-
-        sendChl0.asyncSendCopy(buff);
         block temp;
 
-        recvChl0.recv(buff);
-        buff.consume((u8*)&temp, 16);
+        sendChl0.asyncSendCopy(send);
+        recvChl0.recv(temp);
 
         if (neq(temp, send))
             throw UnitTestFail();
 
-        buff.setp(0);
-        buff.append(recv);
-        recvChl0.asyncSendCopy(buff);
-
-        sendChl0.recv(buff);
-
-        buff.consume((u8*)&temp, 16);
+        recvChl0.asyncSendCopy(recv);
+        sendChl0.recv(temp);
 
         if (neq(temp, recv))
             throw UnitTestFail();
 
-        sendChl0.close();
-        recvChl0.close();
 
         thrd.join();
-        endpoint.stop();
-        ioService.stop();
-
     }
 
 
@@ -409,17 +303,15 @@ namespace tests_cryptoTools
                     }
 
                     std::string msg = "hello" + std::to_string(idx);
-                    channels[j].asyncSend(std::move(std::unique_ptr<ByteStream>(new ByteStream((u8*)msg.data(), msg.size()))));
+                    channels[j].asyncSend(std::move(msg));
                 }
 
                 std::string expected = "hello" + std::to_string(i);
 
                 for (auto& chl : channels)
                 {
-                    ByteStream recv;
-                    chl.recv(recv);
-                    std::string msg((char*)recv.data(), recv.size());
-
+                    std::string msg;
+                    chl.recv(msg);
 
                     if (msg != expected)
                         throw UnitTestFail();
@@ -647,7 +539,7 @@ namespace tests_cryptoTools
             chl1.recv(vec_u32);
 
         }
-        catch (NetworkError e)
+        catch (std::runtime_error e)
         {
             throws = true;
         }
@@ -690,7 +582,7 @@ namespace tests_cryptoTools
             chl2.recv(vec_u32);
 
         }
-        catch (NetworkError e)
+        catch (std::runtime_error e)
         {
             throws = true;
         }

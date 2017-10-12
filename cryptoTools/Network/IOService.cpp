@@ -1,8 +1,6 @@
 #include <cryptoTools/Network/IOService.h>
-#include <cryptoTools/Common/ByteStream.h>
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Network/Acceptor.h>
 #include <cryptoTools/Network/Endpoint.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Channel.h>
@@ -15,6 +13,304 @@
 namespace osuCrypto
 {
 
+
+	Acceptor::Acceptor(IOService& ioService)
+		:
+		mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
+		mIOService(ioService),
+		mHandle(ioService.mIoService),
+		mStopped(false),
+		mPort(0)
+	{
+	}
+
+	Acceptor::~Acceptor()
+	{
+		stop();
+	}
+
+	void Acceptor::bind(u32 port, std::string ip)
+	{
+		auto pStr = std::to_string(port);
+		mPort = port;
+
+		boost::asio::ip::tcp::resolver resolver(mIOService.mIoService);
+		boost::asio::ip::tcp::resolver::query
+			query(ip, pStr);
+
+		boost::system::error_code ec;
+		auto addrIter = resolver.resolve(query, ec);
+
+		if (ec)
+		{
+			std::cout << "network address resolve error: " << ec.message() << std::endl;
+
+			throw std::runtime_error(ec.message());
+		}
+
+		mAddress = *addrIter;
+
+		mHandle.open(mAddress.protocol());
+		mHandle.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+
+		mHandle.bind(mAddress, ec);
+
+		if (mAddress.port() != port)
+			throw std::runtime_error("rt error at " LOCATION);
+
+		if (ec)
+		{
+			std::cout << "network address bind error: " << ec.message() << std::endl;
+
+			throw std::runtime_error(ec.message());
+		}
+
+
+		//std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
+		//std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
+		mStoppedListeningFuture = (mStoppedListeningPromise.get_future());
+		mHandle.listen(boost::asio::socket_base::max_connections);
+	}
+
+	void Acceptor::start()
+	{
+		if (stopped() == false)
+		{
+
+
+			BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
+			mHandle.async_accept(newSocket->mSock, [newSocket, this](const boost::system::error_code& ec)
+			{
+				start();
+
+				if (!ec)
+				{
+					boost::asio::ip::tcp::no_delay option(true);
+					newSocket->mSock.set_option(option);
+					auto buff = new std::string(sizeof(u32), '\0');
+
+					newSocket->mSock.async_receive(boost::asio::buffer((char*)buff->data(), buff->size()),
+						[newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
+					{
+						if (!ec2 && bytesTransferred == 4)
+						{
+							auto size = *(u32*)buff->data();
+							buff->resize(size);
+
+							newSocket->mSock.async_receive(boost::asio::buffer((char*)buff->data(), buff->size()),
+								[newSocket, buff, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
+							{
+								if (!ec3 && bytesTransferred2 == buff->size())
+								{
+									auto names = split(*buff, '`');
+									if (buff->back() == '`' && names.size() == 2) names.emplace_back("");
+									asyncSetSocket(names[0], names[2], names[1], newSocket);
+								}
+								else
+								{
+									std::cout << "async_accept error, failed to receive first header on connection handshake."
+										<< " Other party may have closed the connection. "
+										<< ((ec3 != 0) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
+
+									delete newSocket;
+								}
+
+								delete buff;
+							});
+
+						}
+						else
+						{
+							std::cout << "async_accept error, failed to receive first header on connection handshake."
+								<< " Other party may have closed the connection. "
+								<< ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+
+							delete newSocket;
+							delete buff;
+						}
+
+					});
+				}
+				else
+				{
+					//std::cout << IoStream::lock<< "async_accept failed with error_code:" << ec.message() << std::endl << IoStream::unlock;
+					delete newSocket;
+				}
+			});
+		}
+		else
+		{
+			mStoppedListeningPromise.set_value();
+		}
+	}
+
+	void Acceptor::stop()
+	{
+		//std::cout << "\n#################################### acceptor stop ################################" << std::endl;
+
+		if (mStopped == false)
+		{
+
+			{
+				std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+				mStopped = true;
+
+				if (mSocketChannelPairs.size() == 0)
+					mSocketChannelPairsRemovedProm.set_value();
+
+			}
+
+			if (mSocketChannelPairsRemovedFuture.valid())
+				mSocketChannelPairsRemovedFuture.get();
+
+			mHandle.close();
+
+			if (mStoppedListeningFuture.valid())
+				mStoppedListeningFuture.get();
+		}
+
+	}
+
+	bool Acceptor::stopped() const
+	{
+		return mStopped;
+	}
+
+	void Acceptor::asyncGetSocket(ChannelBase & chl)
+	{
+		std::string tag = chl.mEndpoint->getName() + ":" + chl.mLocalName + ":" + chl.mRemoteName;
+
+		{
+			std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+			//mSocketChannelPairsMtx.lock();
+
+			auto iter = mSocketChannelPairs.find(tag);
+
+			if (iter == mSocketChannelPairs.end())
+			{
+
+				//std::cout << IoStream::lock << "asyncGetSocket waiting on socket " << tag << std::endl << IoStream::unlock;
+				mSocketChannelPairs.emplace(tag, std::pair<BoostSocketInterface*, ChannelBase*>(nullptr, &chl));
+			}
+			else
+			{
+				// std::cout <<IoStream::lock << "asyncGetSocket aquired socket " << tag << std::endl << IoStream::unlock;
+				if (iter->second.first == nullptr)
+				{
+					std::cout << "netowrking error: channel " << tag << " already exists.";
+					std::terminate();
+				}
+
+				chl.mHandle.reset(iter->second.first);
+
+				chl.mRecvSocketSet = true;
+				chl.mSendSocketSet = true;
+				chl.mOpenProm.set_value();
+
+				//std::cout << "erase1   " << iter->first << std::endl;
+				mSocketChannelPairs.erase(iter);
+
+
+				if (mStopped == true && mSocketChannelPairs.size() == 0)
+				{
+					mSocketChannelPairsRemovedProm.set_value();
+				}
+			}
+			//mSocketChannelPairsMtx.unlock();
+		}
+	}
+
+	void Acceptor::remove(
+		std::string endpointName,
+		std::string localChannelName,
+		std::string remoteChannelName)
+	{
+		std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
+
+		{
+			//mSocketChannelPairsMtx.lock();
+			std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+			auto iter = mSocketChannelPairs.find(tag);
+
+			if (iter != mSocketChannelPairs.end())
+			{
+
+				if (iter->second.first)
+				{
+					iter->second.first->close();
+					delete iter->second.first;
+
+					//std::cout << "erase2   " << iter->first << std::endl;
+					mSocketChannelPairs.erase(iter);
+
+
+					if (mStopped == true && mSocketChannelPairs.size() == 0)
+					{
+						mSocketChannelPairsRemovedProm.set_value();
+					}
+				}
+				else
+				{
+					iter->second.second = nullptr;
+				}
+			}
+			//mSocketChannelPairsMtx.unlock();
+		}
+	}
+
+
+	void Acceptor::asyncSetSocket(
+		std::string endpointName,
+		std::string localChannelName,
+		std::string remoteChannelName,
+		BoostSocketInterface* sock)
+	{
+		std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
+
+		{
+			std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+			//mSocketChannelPairsMtx.lock();
+
+			const auto iter = mSocketChannelPairs.find(tag);
+
+			if (iter == mSocketChannelPairs.end())
+			{
+				//std::cout << "asyncSetSocket created socket " << tag << std::endl;
+				mSocketChannelPairs.emplace(tag, std::pair<BoostSocketInterface*, ChannelBase*>(sock, nullptr));
+			}
+			else
+			{
+
+				if (iter->second.second == nullptr)
+				{
+					boost::system::error_code ec;
+					sock->mSock.close(ec);
+
+
+					if (ec)
+					{
+						std::cout << ec.message() << std::endl;
+					}
+				}
+				else
+				{
+					iter->second.second->mHandle.reset(sock);
+
+					mIOService.startSocket(iter->second.second);
+				}
+
+				mSocketChannelPairs.erase(iter);
+
+
+				if (mStopped == true && mSocketChannelPairs.size() == 0)
+				{
+					mSocketChannelPairsRemovedProm.set_value();
+				}
+			}
+			//mSocketChannelPairsMtx.unlock();
+		}
+
+	}
     extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
     extern std::vector<std::string> split(const std::string &s, char delim);
 
@@ -193,7 +489,7 @@ namespace osuCrypto
                     //    op.mPromise->set_exception(op.mException);
                     //else
 
-                    op.mPromise.set_value(channel->mId);
+                    op.mPromise.set_value();
 
                     if (op.mCallback)
                     {
@@ -248,7 +544,7 @@ namespace osuCrypto
                     }));
 
                     op.mPromise.set_exception(e_ptr);
-                    op.mPromise = std::promise<u64>();
+                    op.mPromise = std::promise<void>();
                 }
                 else
                 {
@@ -269,7 +565,7 @@ namespace osuCrypto
 #endif
             //delete channel->mRecvQueue.front();
             channel->mRecvQueue.pop_front();
-            channel->mRecvQueueEmptyProm.set_value(0);
+            channel->mRecvQueueEmptyProm.set_value();
     }
         else
         {
@@ -333,7 +629,7 @@ namespace osuCrypto
                 socket->mOutstandingSendData -= socket->mSendSizeBuff;
 
                 // if this was a synchronous send, fulfill the promise that the message was sent.
-                op.mPromise.set_value(socket->mId);
+                op.mPromise.set_value();
 
                 // if they provided a callback, execute it.
                 if (op.mCallback)
@@ -376,7 +672,7 @@ namespace osuCrypto
 #endif
             //delete socket->mSendQueue.front();
             socket->mSendQueue.pop_front();
-            socket->mSendQueueEmptyProm.set_value(0);
+            socket->mSendQueueEmptyProm.set_value();
         }
         else
         {

@@ -2,19 +2,12 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 #include <cryptoTools/Common/Defines.h>
 
-
-#include <deque>
-#include <mutex>
 #include <future> 
 #include <functional> 
 #include <memory> 
-
-#include <cryptoTools/Network/IOService.h>
+#include <boost/asio.hpp>
 
 namespace osuCrypto { 
-
-    class ChannelBuffer;
-
 
     template<typename, typename T>
     struct has_resize {
@@ -24,7 +17,6 @@ namespace osuCrypto {
     };
 
     // specialization that does the checking
-
     template<typename C, typename Ret, typename... Args>
     struct has_resize<C, Ret(Args...)> {
     private:
@@ -46,9 +38,6 @@ namespace osuCrypto {
     };
 
 
-
-
-
     /// type trait that defines what is considered a STL like Container
     /// 
     /// Must have the following member types:  pointer, size_type, value_type
@@ -56,31 +45,26 @@ namespace osuCrypto {
     ///    * Container::pointer Container::data();
     ///    * Container::size_type Container::size();
     /// Must contain Plain Old Data:
-    ///    * std::is_pod<Container>::value == true
+    ///    * std::is_pod<Container::value_type>::value == true
     template<typename Container>
     using is_container =
         std::is_same<std::enable_if_t<
-        std::is_convertible<typename Container::pointer,
-        decltype(std::declval<Container>().data())>::value &&
-        std::is_convertible<typename Container::size_type,
-        decltype(std::declval<Container>().size())>::value &&
-        std::is_pod<typename Container::value_type>::value>
+        std::is_convertible<
+			typename Container::pointer,
+            decltype(std::declval<Container>().data())>::value &&
+        std::is_convertible<
+			typename Container::size_type,
+			decltype(std::declval<Container>().size())>::value &&
+		std::is_pod<typename Container::value_type>::value &&
+		std::is_pod<Container>::value == false>
         ,
         void>;
    
-
+    template<typename T>
+    inline u8* channelBuffData(const T& container) { return (u8*)container.data(); }
 
     template<typename T>
-    inline u8* channelBuffData(const T& container)
-    {
-        return (u8*)container.data();
-    }
-
-    template<typename T>
-    inline u64 channelBuffSize(const T& container)
-    {
-        return container.size() * sizeof(typename  T::value_type);
-    }
+    inline u64 channelBuffSize(const T& container) { return container.size() * sizeof(typename  T::value_type); }
 
     template<typename T>
     inline bool channelBuffResize(T& container, u64 size)
@@ -118,10 +102,6 @@ namespace osuCrypto {
 
         virtual ~IOOperation() {}
 
-
-
-
-        //u32 mSize;
     private:
         Type mType;
     public:
@@ -129,7 +109,7 @@ namespace osuCrypto {
 
         u32 mIdx;
         std::array<boost::asio::mutable_buffer,2> mBuffs;
-        std::promise<u64> mPromise;
+        std::promise<void> mPromise;
         std::function<void()> mCallback;
 
 
@@ -146,8 +126,6 @@ namespace osuCrypto {
         PointerSizeBuff(const void* data, u64 size, IOOperation::Type t)
             : IOOperation(t)
         {
-            
-            //mSize = u32(size);
             mBuffs[1] = boost::asio::buffer((void*)data, size);
         }
 
@@ -155,6 +133,24 @@ namespace osuCrypto {
         u64 size() const override { return boost::asio::buffer_size(mBuffs[1]); }
     };
 
+
+	class BadReceiveBufferSize : public std::exception
+	{
+	public:
+		std::string mWhat;
+		u64 mSize;
+		std::function<void(u8*)> mRescheduler;
+
+		BadReceiveBufferSize(std::string what, u64 length, std::function<void(u8*)> rescheduler)
+			:
+			mWhat(std::move(what)),
+			mSize(length),
+			mRescheduler(std::move(rescheduler))
+		{ }
+
+		BadReceiveBufferSize(const BadReceiveBufferSize& src) = default;
+		BadReceiveBufferSize(BadReceiveBufferSize&& src) = default;
+	};
 
 
     template <typename F>
@@ -165,7 +161,6 @@ namespace osuCrypto {
         MoveChannelBuff(F&& obj)
             : IOOperation(IOOperation::Type::SendData), mObj(std::move(obj))
         {
-            //mSize = u32(channelBuffSize(mObj));
             mBuffs[1] = boost::asio::buffer(channelBuffData(mObj), channelBuffSize(mObj));
         }
 

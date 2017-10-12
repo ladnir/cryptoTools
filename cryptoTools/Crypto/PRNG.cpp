@@ -5,20 +5,6 @@
 
 namespace osuCrypto {
 
-
-    //block mSeed;
-    //std::vector<block> mBuffer, mIndexArray;
-    //AES mAes;
-    //u64 mBytesIdx, mBlockIdx, mBufferByteCapacity;
-
-    PRNG::PRNG() :
-        mBytesIdx(0),
-        mBlockIdx(0),
-        mBufferByteCapacity(0)//sizeof(block) * DEFAULT_BUFF_SIZE)
-    {
-    }
-
-
     PRNG::PRNG(const block& seed, u64 bufferSize)
         :
         mBytesIdx(0),

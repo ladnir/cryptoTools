@@ -8,7 +8,6 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/Curve.h>
 #include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Common/ByteStream.h>
 
 using namespace osuCrypto;
 
@@ -163,7 +162,7 @@ namespace tests_cryptoTools
 
 			EccNumber rand(curve, prng), r(curve);
 
-			ByteStream buff(rand.sizeBytes());
+			std::vector<u8> buff(rand.sizeBytes());
 
 			rand.toBytes(buff.data());
 
@@ -445,7 +444,7 @@ namespace tests_cryptoTools
 
 		EccNumber rand(curve, prng), r(curve);
 
-		ByteStream buff(rand.sizeBytes());
+		std::vector<u8>  buff(rand.sizeBytes());
 
 		rand.toBytes(buff.data());
 

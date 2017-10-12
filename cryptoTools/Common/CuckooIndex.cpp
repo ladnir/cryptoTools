@@ -10,15 +10,6 @@
 
 namespace osuCrypto
 {
-	// parameters for k=2 hash functions, 2^n items, and statistical security 40
-	//CuckooParam NoStash_k3n32s40CuckooParam{ 0, 2.4, 2, u64(1) << 32 };
-	//CuckooParam NoStash_k3n30s40CuckooParam{ 0, 2.4, 2, u64(1) << 30 };
-	//CuckooParam NoStash_k3n28s40CuckooParam{ 0, 2.4, 2, u64(1) << 28 };
-	//CuckooParam NoStash_k3n24s40CuckooParam{ 0, 2.4, 2, u64(1) << 24 };
-	//CuckooParam NoStash_k3n20s40CuckooParam{ 0, 2.4, 2, u64(1) << 20 };
-	//CuckooParam NoStash_k3n16s40CuckooParam{ 0, 2.4, 2, u64(1) << 16 };
-	//CuckooParam NoStash_k3n12s40CuckooParam{ 0, 2.4, 2, u64(1) << 12 };
-	//CuckooParam NoStash_k3n08s40CuckooParam{ 0, 2.4, 2, u64(1) << 8 };
 
 	// parameters for k=2 hash functions, 2^n items, and statistical security 40
 	CuckooParam k2n32s40CuckooParam{ 4, 2.4, 2, u64(1) << 32 };
@@ -413,74 +404,11 @@ namespace osuCrypto
 	u64 CuckooIndex<Mode>::getHash(const block& hash, const u64& hashIdx, u64 num_bins)
 	{
 
-
-
-		// use the hash index as the byte offset into the block, then cast as u64 and return.
-		//auto b = (AES(toBlock(hashIdx)).ecbEncBlock(hash));
-		//auto s = *(u64*)&b;
-		//return s %  num_bins;
-
 		static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 5,
 			"here we assume that we dont overflow the 16 byte 'block hash'. "
 			"To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
 		return *(u64*)(((u8*)&hash) + (2 * hashIdx)) % num_bins;
 	}
-	//
-	//    void CuckooIndex<Mode>::insertHelper(const u64& inputIdx, const u64& hashIdx, u64 numTries)
-	//    {
-	//        //++mTotalTries;
-	//
-	//        u64 xrHashVal = getHash(inputIdx, hashIdx);//mHashes[inputIdx][hashIdx];
-	//
-	//        auto addr = (xrHashVal) % mBins.size();
-	//
-	//        // replaces whatever was in this bin with our new item
-	//        //mBins[addr].swap(inputIdx, hashIdx);
-	//        {
-	//
-	//            u64 newVal = inputIdx | (hashIdx << 56);
-	//#ifdef THREAD_SAFE_CUCKOO
-	//            u64 oldVal = mBins[addr].mVal.exchange(newVal, std::memory_order_relaxed);
-	//#else
-	//            u64 oldVal = mBins[addr].mVal;
-	//            mBins[addr].mVal = newVal;
-	//#endif
-	//
-	//            if (oldVal == u64(-1))
-	//            {
-	//                inputIdx = u64(-1);
-	//            }
-	//            else
-	//            {
-	//                inputIdx = oldVal & (u64(-1) >> 8);
-	//                hashIdx = oldVal >> 56;
-	//            }
-	//        }
-	//
-	//        if (inputIdx != u64(-1))
-	//        {
-	//
-	//            // if idxItem is anything but -1, then we just exicted something.
-	//            if (numTries < 100)
-	//            {
-	//                // lets try to insert it into its next location
-	//                insertHelper(inputIdx, (hashIdx + 1) % mParams.mNumHashes, numTries + 1);
-	//            }
-	//            else
-	//            {
-	//                // put in stash
-	//                for (u64 i = 0; inputIdx != u64(-1); ++i)
-	//                {
-	//                    if (i >= mStash.size())
-	//                        throw std::runtime_error(LOCATION);
-	//                    mStash[i].swap(inputIdx, hashIdx);
-	//                }
-	//
-	//            }
-	//        }
-	//
-	//    }
-	//
 
 
 	template<CuckooTypes Mode>
@@ -516,7 +444,6 @@ namespace osuCrypto
 
 
 			// stash
-
 			u64 i = 0;
 			while (i < mStash.size() && mStash[i].isEmpty() == false)
 			{
