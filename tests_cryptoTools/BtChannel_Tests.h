@@ -5,14 +5,14 @@ namespace tests_cryptoTools
 {
 
 
-    void BtNetwork_Connect1_Boost_Test();
-    void BtNetwork_OneMegabyteSend_Boost_Test();
-    void BtNetwork_ConnectMany_Boost_Test();
+    void BtNetwork_Connect1_Test();
+    void BtNetwork_OneMegabyteSend_Test();
+    void BtNetwork_ConnectMany_Test();
     void BtNetwork_CrossConnect_Test();
     void BtNetwork_ManyEndpoints_Test();
 
 
-    void BtNetwork_AsyncConnect_Boost_Test();
+    void BtNetwork_AsyncConnect_Test();
     void BtNetwork_std_Containers_Test();
     void BtNetwork_bitVector_Test();
 
@@ -22,5 +22,8 @@ namespace tests_cryptoTools
 
 
 	void BtNetwork_SocketInterface_Test();
+
+	void BtNetwork_AnonymousMode_Test();
+	void BtNetwork_ServerMode_Test();
 
 }

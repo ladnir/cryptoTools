@@ -40,16 +40,17 @@ namespace tests_cryptoTools
 
         std::cout << std::endl;
 		run("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
-		run("BtNetwork_Connect1_Boost_Test           ", BtNetwork_Connect1_Boost_Test);
-        run("BtNetwork_OneMegabyteSend_Boost_Test    ", BtNetwork_OneMegabyteSend_Boost_Test);
-        run("BtNetwork_ConnectMany_Boost_Test        ", BtNetwork_ConnectMany_Boost_Test);
+		run("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
+        run("BtNetwork_OneMegabyteSend_Test          ", BtNetwork_OneMegabyteSend_Test);
+        run("BtNetwork_ConnectMany_Test              ", BtNetwork_ConnectMany_Test);
         run("BtNetwork_CrossConnect_Test             ", BtNetwork_CrossConnect_Test);
         run("BtNetwork_ManyEndpoints_Test            ", BtNetwork_ManyEndpoints_Test);
         run("BtNetwork_bitVector_Test                ", BtNetwork_bitVector_Test);
-        run("BtNetwork_AsyncConnect_Boost_Test();    ", BtNetwork_AsyncConnect_Boost_Test);
+        run("BtNetwork_AsyncConnect_Test();          ", BtNetwork_AsyncConnect_Test);
         run("BtNetwork_std_Containers_Test();        ", BtNetwork_std_Containers_Test);
         run("BtNetwork_recvErrorHandler_Test();      ", BtNetwork_recvErrorHandler_Test);
-        run("BtNetwork_closeOnError_Test();          ", BtNetwork_closeOnError_Test);
+		run("BtNetwork_closeOnError_Test();          ", BtNetwork_closeOnError_Test);
+		run("BtNetwork_AnonymousMode_Test();         ", BtNetwork_AnonymousMode_Test);
     }
 
     void tests_bitVec_all()

@@ -130,7 +130,7 @@ namespace osuCrypto
         boost::asio::ip::tcp::socket mSock;
 
         BoostSocketInterface(boost::asio::io_service& ios)
-            :mSock(ios)
+            : mSock(ios)
         {
             //std::cout << IoStream::lock << "create " << this << std::endl << IoStream::unlock;
         }
@@ -142,7 +142,11 @@ namespace osuCrypto
             close();
         }
 
-        void close() override { mSock.close(); }
+        void close() override {
+			boost::system::error_code ec;
+			mSock.close(ec);
+			if (ec) std::cout <<"BoostSocketInterface::close() error: "<< ec.message() << std::endl; 
+		}
 
         void async_recv(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn) override
         {

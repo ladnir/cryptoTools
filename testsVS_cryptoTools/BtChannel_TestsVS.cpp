@@ -13,25 +13,36 @@ namespace tests_cryptoTools
     TEST_CLASS(BtNetworking_Tests)
     {
     public:
+		TEST_METHOD(BtNetwork_ServerMode_TestVS)
+		{
+			InitDebugPrinting();
+			BtNetwork_ServerMode_Test();
+		}
 
-        TEST_METHOD(BtNetwork_Connect1_Boost_TestVS)
+		TEST_METHOD(BtNetwork_AnonymousMode_TestVS)
+		{
+			InitDebugPrinting();
+			BtNetwork_AnonymousMode_Test();
+		}
+
+        TEST_METHOD(BtNetwork_Connect1_TestVS)
         {
             InitDebugPrinting();
-            BtNetwork_Connect1_Boost_Test();
+            BtNetwork_Connect1_Test();
         }
 
 
-        TEST_METHOD(BtNetwork_OneMegabyteSend_Boost_TestVS)
+        TEST_METHOD(BtNetwork_OneMegabyteSend_TestVS)
         {
             InitDebugPrinting();
-            BtNetwork_OneMegabyteSend_Boost_Test();
+            BtNetwork_OneMegabyteSend_Test();
         }
 
-
-        TEST_METHOD(BtNetwork_ConnectMany_Boost_TestVS)
+		 
+        TEST_METHOD(BtNetwork_ConnectMany_TestVS)
         {
             InitDebugPrinting();
-            BtNetwork_ConnectMany_Boost_Test();
+            BtNetwork_ConnectMany_Test();
         }
 
 
@@ -48,10 +59,10 @@ namespace tests_cryptoTools
             BtNetwork_ManyEndpoints_Test();
         }
 
-        TEST_METHOD(BtNetwork_AsyncConnect_Boost_TestVS)
+        TEST_METHOD(BtNetwork_AsyncConnect_TestVS)
         {
             InitDebugPrinting();
-            BtNetwork_AsyncConnect_Boost_Test();
+            BtNetwork_AsyncConnect_Test();
         }
         TEST_METHOD(BtNetwork_std_Containers_TestVS)
         {

@@ -226,7 +226,7 @@ namespace osuCrypto {
 		//////////////////////////////////////////////////////////////////////////////
 
 		// Get the local endpoint for this channel.
-		Endpoint& getEndpoint();
+		//Endpoint& getEndpoint();
 
 		// The handle for this channel. Both ends will always have the same name.
 		std::string getName() const;
@@ -306,6 +306,7 @@ namespace osuCrypto {
     };
 #endif
 
+	struct EndpointBase;
 
 	// The Channel base class the actually holds a socket. 
     class ChannelBase
@@ -319,9 +320,10 @@ namespace osuCrypto {
         }
 
         IOService& mIos;
-        Endpoint* mEndpoint;
+		boost::asio::io_service::work mWork;
+
+		std::shared_ptr<EndpointBase> mEndpoint;
         std::string mRemoteName, mLocalName;
-        u64 mId;
 
         u32 mRecvSizeBuff, mSendSizeBuff;
 

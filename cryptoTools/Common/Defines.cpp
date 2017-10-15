@@ -1,7 +1,8 @@
 #include <cryptoTools/Common/Defines.h>
-#include <cryptoTools/Crypto/Commit.h>
-#include <cryptoTools/Common/BitVector.h>
+#include <cryptoTools/Crypto/AES.h>
 #include <random>
+#include <sstream>
+#include <iomanip>
 
 namespace osuCrypto {
 
@@ -12,22 +13,7 @@ namespace osuCrypto {
     const block CCBlock = ([]() {block cc; memset(&cc, 0xcc, sizeof(block)); return cc; })();
 
 
-    std::ostream& operator<<(std::ostream& out, const Commit& comm)
-    {
-        out << std::hex;
 
-        u32* data = (u32*)comm.data();
-
-        out << std::setw(8) << std::setfill('0') << data[0]
-            << std::setw(8) << std::setfill('0') << data[1]
-            << std::setw(8) << std::setfill('0') << data[2]
-            << std::setw(8) << std::setfill('0') << data[3]
-            << std::setw(8) << std::setfill('0') << data[4];
-
-        out << std::dec << std::setw(0);
-
-        return out;
-    }
     block PRF(const block& b, u64 i)
     {
 		return AES(b).ecbEncBlock(toBlock(i));

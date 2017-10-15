@@ -5,8 +5,10 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
 
+#include <boost/lexical_cast.hpp>
 
 #include <sstream>
+#include <random>
 
 namespace osuCrypto {
 
@@ -15,29 +17,30 @@ namespace osuCrypto {
 
     void Endpoint::start(IOService& ioService, std::string remoteIP, u32 port, EpMode type, std::string name)
     {
-        if (mStopped == false)
+        if (mBase && mBase->mStopped == false)
             throw std::runtime_error("rt error at " LOCATION);
 
-        mIP = (remoteIP);
-        mPort = (port);
-        mMode = (type);
-        mIOService = &(ioService);
-        mStopped = (false);
-        mName = (name);
+		mBase.reset(new EndpointBase);
+        mBase->mIP = (remoteIP);
+        mBase->mPort = (port);
+        mBase->mMode = (type);
+        mBase->mIOService = &(ioService);
+        mBase->mStopped = (false);
+        mBase->mName = (name);
 
         if (type == EpMode::Server)
         {
-            mAcceptor = (ioService.getAcceptor(*this));
+			mBase->mAcceptor = ioService.getAcceptor(remoteIP, port);
         }
         else
         {
-            boost::asio::ip::tcp::resolver resolver(mIOService->mIoService);
+            boost::asio::ip::tcp::resolver resolver(ioService.mIoService);
             boost::asio::ip::tcp::resolver::query query(remoteIP, boost::lexical_cast<std::string>(port));
-            mRemoteAddr = *resolver.resolve(query);
+			mBase->mRemoteAddr = *resolver.resolve(query);
         }
 
-        std::lock_guard<std::mutex> lock(ioService.mMtx);
-        ioService.mEndpointStopFutures.push_back(mDoneFuture);
+        //std::lock_guard<std::mutex> lock(ioService.mMtx);
+        //ioService.mEndpointStopFutures.push_back(mBase->mDoneFuture);
 
     }
 
@@ -57,91 +60,110 @@ namespace osuCrypto {
 
     }
 
-    Endpoint::~Endpoint()
+	// See start(...)
+
+	Endpoint::Endpoint(IOService & ioService, std::string address, EpMode type, std::string name)
+	{
+		start(ioService, address, type, name);
+	}
+
+	// See start(...)
+
+	Endpoint::Endpoint(IOService & ioService, std::string remoteIP, u32 port, EpMode type, std::string name)
+	{
+		start(ioService, remoteIP, port, type, name);
+	}
+
+
+	// Default constructor
+
+	Endpoint::Endpoint()
+	{ }
+
+	Endpoint::Endpoint(std::shared_ptr<EndpointBase>& c)
+		: mBase(c)
+	{ }
+
+	Endpoint::~Endpoint()
     {
-        stop();
+        //stop();
     }
 
     std::string Endpoint::getName() const
     {
-        return mName;
+		if (mBase)
+			return mBase->mName;
+		else
+			throw std::runtime_error(LOCATION);
     }
+
+	IOService & Endpoint::getIOService() { 
+		if(mBase)
+			return *mBase->mIOService;
+		else
+			throw std::runtime_error(LOCATION);
+	}
 
 
     Channel Endpoint::addChannel(std::string localName, std::string remoteName)
     {
+		bool firstAnonymousChl = false;
+		{
+			std::lock_guard<std::mutex> lock(mBase->mAddChannelMtx);
+			if (mBase->mName == "" && isHost() == false)
+			{
+				// pick a random endpoint name...
+				firstAnonymousChl = true;
+				std::random_device rd;
+				mBase->mName = "ep_" + std::to_string(rd()) + std::to_string(rd());
+			}
+
+			// if the user does not provide a local name, use the following.
+			if (localName == "") {
+				if (remoteName != "") throw std::runtime_error("remote name must be empty is local name is empty. " LOCATION);
+				localName = "_autoName_" + std::to_string(mBase->mAnonymousChannelIdx++);
+			}
+		}
+
+
+		// make the remote name match the local name if empty
         if (remoteName == "") remoteName = localName;
-
-        Channel chl(*this, localName, remoteName);
-
-        auto base = chl.mBase.get();
+		
+		if (mBase->mStopped == true) throw std::runtime_error("rt error at " LOCATION);
 
 
-        // first, add the channel to the endpoint.
-        {
-            std::lock_guard<std::mutex> lock(mAddChannelMtx);
+		// construct the basic channel. Has no socket.
+		Channel chl(*this, localName, remoteName);
+		auto chlBase = chl.mBase.get();
+		auto epBase = mBase;
 
-            if (mStopped == true)
-            {
-                throw std::runtime_error("rt error at " LOCATION);
-            }
-
-            auto iter = mChannels.begin();
-            while (iter != mChannels.end())
-            {
-                if ((*iter)->mLocalName == localName)
-                    throw std::runtime_error("Error: channel name already exists.\n   " LOCATION);
-
-                ++iter;
-            }
-
-            mChannels.emplace_back(base);
-        }
-
-
-        if (mMode == EpMode::Server)
+        if (mBase->mMode == EpMode::Server)
         {
             // the acceptor will do the handshake, set chl.mHandel and
             // kick off any send and receives which may happen after this
             // call but before the handshake completes
-            mAcceptor->asyncGetSocket(*base);
-            base->mId = 0;
-
+			mBase->mAcceptor->asyncGetSocket(chl.mBase);
         }
         else
         {
-            auto sock = new BoostSocketInterface(getIOService().mIoService);
-            base->mHandle.reset(sock);
-
-            //std::cout << IoStream::lock << "new socket: " << chl.mHandle.get() << std::endl << IoStream::unlock;
-
-
-            base->mId = 1;
-
-            boost::system::error_code ec;
-
-            //std::cout << IoStream::lock << "Endpoint connect " << mName << " " << localName << " " << remoteName << std::endl << IoStream::unlock;
+            chlBase->mHandle.reset(new BoostSocketInterface(getIOService().mIoService));
 
             auto initialCallback = new std::function<void(const boost::system::error_code&)>();
             auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
 
+
+
+
             *initialCallback = 
-                [&, base, timer, initialCallback, localName, remoteName, sock]
+                [epBase, chlBase, timer, initialCallback, localName, remoteName, firstAnonymousChl]
                 (const boost::system::error_code& ec)
             {
-                //std::cout << IoStream::lock << "Endpoint connect call back " << std::endl << IoStream::unlock;
-
-                if (ec && base->stopped() == false && this->stopped() == false)
+                if (ec && chlBase->stopped() == false && epBase->mStopped == false)
                 {
-                    //std::cout << IoStream::lock << "        failed, retrying " << localName << std::endl << IoStream::unlock;
-
-                    //auto t = new boost::asio::deadline_timer (getIOService().mIoService, boost::posix_time::milliseconds(10));
-
-
                     // tell the io service to wait 10 ms and then try again...
-                    timer->async_wait([&, base, timer, initialCallback, sock](const boost::system::error_code& ec)
+                    timer->async_wait([epBase, chlBase, timer, initialCallback](const boost::system::error_code& ec)
                     {
-                        if (base->stopped() == false)
+                        if (chlBase->stopped() == false)
                         {
                             if (ec)
                             {
@@ -149,15 +171,12 @@ namespace osuCrypto {
                                 auto val = ec.value();
 
                                 std::stringstream ss;
-
                                 ss << "network error (wait) " << std::this_thread::get_id() << " \n  Location: " LOCATION "\n  message: ";
-
                                 ss << message << "\n  value: ";
-
                                 ss << val << std::endl;
 
-                                std::cout << ss.str() << std::flush;
-                                std::cout << "stopped: " << base->stopped() << " " << stopped() << std::endl;
+								std::cout << ss.str() << std::flush;
+                                std::cout << "stopped: " << chlBase->stopped() << " " << epBase->mStopped << std::endl;
 
                                 delete initialCallback;
                                 delete timer;
@@ -165,15 +184,7 @@ namespace osuCrypto {
                             }
                             else
                             {
-
-                                //std::cout << IoStream::lock << "        failed, retrying' " << localName << std::endl << IoStream::unlock;
-
-                                ////boost::asio::async_connect()
-
-                                //std::cout << IoStream::lock << "connect cb handle: " << chl.mHandle.get() << std::endl << IoStream::unlock;
-                                //std::cout << IoStream::lock << "initialCallback! = " << initialCallback << std::endl << IoStream::unlock;
-
-                                sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+								((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
                             }
                         }
                     });
@@ -183,52 +194,50 @@ namespace osuCrypto {
                     //std::cout << IoStream::lock << "        connected "<< localName  << std::endl << IoStream::unlock;
 
                     boost::asio::ip::tcp::no_delay option(true);
-                    sock->mSock.set_option(option);
-
+					((BoostSocketInterface*)chlBase->mHandle.get())->mSock.set_option(option);
 
                     std::stringstream ss;
-                    ss << mName << char('`') << localName << char('`') << remoteName;
-                    //std::cout <<IoStream::lock << "sending " << ss.str() <<std::endl << IoStream::unlock;
+                    ss << epBase->mName << char('`') << localName << char('`') << remoteName;
 
-                    std::string str = ss.str();
+					// append a special symbol to denote that this EP name was chosen at random.
+					if(firstAnonymousChl) ss << "`#";
 
+					//if (firstAnonymousChl)
+					//	std::this_thread::sleep_for(std::chrono::microseconds(100));
 
-
-
-                    base->mSendStrand.post([this, base, str]() mutable
+                    chlBase->mSendStrand.post([epBase, chlBase, str = ss.str()]() mutable
                     {
                         auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
 #ifdef CHANNEL_LOGGING
                         auto idx = op->mIdx = base->mOpIdx++;
 #endif
-                        base->mSendQueue.emplace_front(std::move(op));
-                        base->mSendSocketSet = true;
+                        chlBase->mSendQueue.emplace_front(std::move(op));
+                        chlBase->mSendSocketSet = true;
 
-                        auto ii = ++base->mOpenCount;
-                        if (ii == 2) base->mOpenProm.set_value();
+                        auto ii = ++chlBase->mOpenCount;
+                        if (ii == 2) chlBase->mOpenProm.set_value();
 #ifdef CHANNEL_LOGGING
                         base->mLog.push("initSend' #"+ToString(idx)+" , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
 #endif
-
-                        getIOService().sendOne(base);
+						epBase->mIOService->sendOne(chlBase);
                     });
 
 
-                    base->mRecvStrand.post([this, base]()
+                    chlBase->mRecvStrand.post([epBase, chlBase]()
                     {
-                        base->mRecvSocketSet = true;
+                        chlBase->mRecvSocketSet = true;
 
-                        auto ii = ++base->mOpenCount;
-                        if (ii == 2) base->mOpenProm.set_value();
+                        auto ii = ++chlBase->mOpenCount;
+                        if (ii == 2) chlBase->mOpenProm.set_value();
 
-                        auto startRecv = base->mRecvQueue.size() > 0;
+                        auto startRecv = chlBase->mRecvQueue.size() > 0;
 #ifdef CHANNEL_LOGGING
                         base->mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
 #endif
 
                         if (startRecv)
                         {
-                            getIOService().receiveOne(base);
+							epBase->mIOService->receiveOne(chlBase);
                         }
                     });
 
@@ -238,28 +247,24 @@ namespace osuCrypto {
                 else
                 {
                     std::stringstream ss;
-                    ss << "network error (init cb) " << (base) << "\n  Location: " LOCATION "\n  message: "
+                    ss << "network error (init cb) " << (chlBase) << "\n  Location: " LOCATION "\n  message: "
                         << ec.message() << "\n  value: " << ec.value() << std::endl;
 
                     std::cout << ss.str() << std::flush;
 
-                    if (base->stopped() == false)
-                    {
-                        sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+                    if (chlBase->stopped() == false) {
+						((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
                     }
                     else
                     {
-                        std::cout << "stopping " << base  << "   " << base->mSendStatus << std::endl;
+                        std::cout << "stopping " << chlBase  << "   " << chlBase->mSendStatus << std::endl;
                         delete initialCallback;
                         delete timer;
-                        //throw std::runtime_error(LOCATION);
                     }
                 }
             };
 
-
-            //std::cout << IoStream::lock << "initialCallback = " << initialCallback << std::endl << IoStream::unlock;
-            sock->mSock.async_connect(mRemoteAddr, *initialCallback);
+			((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
         }
 
         return (chl);
@@ -270,54 +275,59 @@ namespace osuCrypto {
     {
         if (stopped() == false)
         {
-
-            {
-                std::lock_guard<std::mutex> lock(mAddChannelMtx);
-                if (mStopped == false)
-                {
-                    mStopped = true;
-
-                    if (mChannels.size() == 0)
-                    {
-                        mDoneProm.set_value();
-                    }
-                }
-            }
-            mDoneFuture.get();
+			mBase->mStopped = true;
+			//if (isHost())
+			//{
+			//	mBase->mAcceptor->removeEndpoint(this->mBase.get());
+			//}
         }
     }
 
     bool Endpoint::stopped() const
     {
-        return mStopped;
+        return mBase->mStopped;
     }
-    void Endpoint::removeChannel(ChannelBase* base)
-    {
-        {
-            std::lock_guard<std::mutex> lock(mAddChannelMtx);
+    //void EndpointBase::removeChannel(ChannelBase* base)
+    //{
+    //    {
+    //        std::lock_guard<std::mutex> lock(mAddChannelMtx);
 
-            auto iter = mChannels.begin();
+    //        auto iter = mChannels.begin();
 
-            while (iter != mChannels.end())
-            {
-                auto baseIter = *iter;
-                if (baseIter == base)
-                {
-                    //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
-                    if (mAcceptor)
-                        mAcceptor->remove(mName, base->mLocalName, base->mRemoteName);
+    //        while (iter != mChannels.end())
+    //        {
+    //            auto baseIter = *iter;
+    //            if (baseIter == base)
+    //            {
+    //                //std::cout << IoStream::lock << "removing " << getName() << " "<< name << " = " << chlName << IoStream::unlock << std::endl;
+    //  //              if (mAcceptor)
+				//		//mAcceptor->remove(mName, base->mLocalName, base->mRemoteName);
 
-                    mChannels.erase(iter);
-                    break;
-                }
-                ++iter;
-            }
+				//	mChannels.erase(iter);
+    //                break;
+    //            }
+    //            ++iter;
+    //        }
 
-            // if there are no more channels and the send point has stopped, signal that the last one was just removed.
-            if (mStopped && mChannels.size() == 0)
-            {
-                mDoneProm.set_value();
-            }
-        }
-    }
+    //        // if there are no more channels and the send point has stopped, signal that the last one was just removed.
+    //        if (mStopped && mChannels.size() == 0)
+    //        {
+				//mDoneProm.set_value();
+    //        }
+    //    }
+    //}
+	u32 Endpoint::port() const
+	{
+		return mBase->mPort;
+	}
+	std::string Endpoint::IP() const
+	{
+		return mBase->mIP;
+	}
+	bool Endpoint::isHost() const { return mBase->mMode == EpMode::Server; }
+	
+	//EndpointBase::EndpointBase()
+	//	:mDoneFuture(mDoneProm.get_future())
+	//{ 
+	//}
 }

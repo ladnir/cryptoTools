@@ -7,6 +7,7 @@
 #include <cryptoTools/Network/IOService.h>
 
 #include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/IOService.h>
 #include <cryptoTools/Network/Channel.h>
 
 #include <cryptoTools/Common/Log.h>
@@ -23,7 +24,138 @@ using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
-    void BtNetwork_Connect1_Boost_Test()
+	void BtNetwork_AnonymousMode_Test()
+	{
+		IOService ioService(0);
+		Endpoint s1(ioService, "127.0.0.1", 1212, EpMode::Server);
+		Endpoint s2(ioService, "127.0.0.1", 1212, EpMode::Server);
+
+		Endpoint c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+		Endpoint c2(ioService, "127.0.0.1", 1212, EpMode::Client);
+
+		auto ch1 = c1.addChannel();
+		auto ch2 = c2.addChannel();
+
+		auto sch1 = s1.addChannel();
+		auto sch2 = s2.addChannel();
+
+		std::string m1 = "m1";
+		std::string m2 = "m2";
+
+
+		ch1.send(m1);
+		ch2.send(m2);
+
+		std::string t;
+		sch1.recv(t);
+
+		if (m1 != t)
+			throw UnitTestFail();
+
+		sch2.recv(t);
+
+		if (m2 != t)
+			throw UnitTestFail();
+
+		if (ch1.getName() != sch1.getName())
+			throw UnitTestFail();
+
+		if (ch2.getName() != sch2.getName())
+			throw UnitTestFail();
+
+		if (s1.getName() != c1.getName())
+			throw UnitTestFail();
+
+		if (s2.getName() != c2.getName())
+			throw UnitTestFail();
+
+	}
+
+	void BtNetwork_ServerMode_Test()
+	{
+		u64 numConnect = 128;
+		IOService ioService(0);
+		std::vector<std::array<Channel,2>> srvChls(numConnect), clientChls(numConnect);
+		
+		for (u64 i = 0; i < numConnect; ++i)
+		{
+			Endpoint s1(ioService, "127.0.0.1", 1212, EpMode::Server);
+			Endpoint c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+			srvChls[i][0] = s1.addChannel();
+			srvChls[i][1] = s1.addChannel();
+			clientChls[i][0] = c1.addChannel();
+			clientChls[i][1] = c1.addChannel();
+
+			std::string m0("c0");
+			clientChls[i][0].asyncSend(std::move(m0));
+			std::string m1("c1");
+			clientChls[i][1].asyncSend(std::move(m1));
+		}
+		
+		for (u64 i = 0; i < numConnect; ++i)
+		{
+			std::string m;
+			srvChls[i][0].recv(m);
+			if (m != "c0") throw UnitTestFail();
+			srvChls[i][1].recv(m);
+			if (m != "c1") throw UnitTestFail();
+		}
+		/////////////////////////////////////////////////////////////////////////////
+
+		for (u64 i = 0; i < numConnect; ++i)
+		{
+			Endpoint s1(ioService, "127.0.0.1", 1212, EpMode::Server);
+			Endpoint c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+			clientChls[i][0] = c1.addChannel();
+			clientChls[i][1] = c1.addChannel();
+
+			srvChls[i][0] = s1.addChannel();
+			srvChls[i][1] = s1.addChannel();
+
+			std::string m0("c0");
+			srvChls[i][0].asyncSend(std::move(m0));
+			std::string m1("c1");
+			srvChls[i][1].asyncSend(std::move(m1));
+
+		}
+		//auto s = ioService.mAcceptors.size();
+		//auto& a = ioService.mAcceptors.front();
+		//auto thrd = std::thread([&]() {
+		//	//while (stop == false)
+		//	//{
+		//		std::this_thread::sleep_for(std::chrono::seconds(1));
+		//		for (auto& group : a.mAnonymousClientEps)
+		//		{
+		//			std::cout << "anClient: ";
+		//			group.print();
+		//		}
+		//		for (auto& group : a.mAnonymousServerEps)
+		//		{
+		//			std::cout << "anServer: ";
+		//			group.print();
+		//		}
+		//		for (auto& group : a.mEndpointGroups)
+		//		{
+		//			std::cout << "Group: ";
+		//			group.second.print();
+		//		}
+		//	//}
+		//});
+
+		for (u64 i = 0; i < numConnect; ++i)
+		{
+			std::string m;
+			clientChls[i][0].recv(m);
+			if (m != "c0") throw UnitTestFail();
+			clientChls[i][1].recv(m);
+			if (m != "c1") throw UnitTestFail();
+
+		}
+
+		//thrd.join();
+	}
+
+    void BtNetwork_Connect1_Test()
     {
         setThreadName("Test_Host");
 
@@ -60,7 +192,7 @@ namespace tests_cryptoTools
     }
 
 
-    void BtNetwork_OneMegabyteSend_Boost_Test()
+    void BtNetwork_OneMegabyteSend_Test()
     {
         setThreadName("Test_Host");
 
@@ -102,7 +234,7 @@ namespace tests_cryptoTools
     }
 
 
-    void BtNetwork_ConnectMany_Boost_Test()
+    void BtNetwork_ConnectMany_Test()
     {
         //InitDebugPrinting();
         setThreadName("Test_Host");
@@ -333,7 +465,7 @@ namespace tests_cryptoTools
             nodeThreads[i].join();
     }
 
-    void BtNetwork_AsyncConnect_Boost_Test()
+    void BtNetwork_AsyncConnect_Test()
     {
         setThreadName("Test_Host");
 

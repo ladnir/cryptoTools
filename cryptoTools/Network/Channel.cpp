@@ -24,10 +24,10 @@ namespace osuCrypto {
         std::string remoteName)
         :
         mIos(endpoint.getIOService()),
-        mEndpoint(&endpoint),
+		mWork(endpoint.getIOService().mIoService),
+        mEndpoint(endpoint.mBase),
         mRemoteName(remoteName),
         mLocalName(localName),
-        mId(0),
         mRecvStatus(Channel::Status::Normal),
         mSendStatus(Channel::Status::Normal),
         mHandle(nullptr),
@@ -52,9 +52,8 @@ namespace osuCrypto {
     ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
         :
         mIos(ios),
-        mEndpoint(nullptr),
-        mId(0),
-        mRecvStatus(Channel::Status::Normal),
+		mWork(ios.mIoService),
+		mRecvStatus(Channel::Status::Normal),
         mSendStatus(Channel::Status::Normal),
         mHandle(sock),
         mSendStrand(ios.mIoService),
@@ -80,10 +79,10 @@ namespace osuCrypto {
     {
     }
 
-    Endpoint & Channel::getEndpoint()
-    {
-        return *mBase->mEndpoint;
-    }
+    //Endpoint Channel::getEndpoint()
+    //{
+    //    return mBase->mEndpoint;
+    //}
 
     std::string Channel::getName() const
     {
@@ -121,9 +120,10 @@ namespace osuCrypto {
         // the mSocket->mDone* promised.
         if (mBase)
         {
-
             mBase->close();
         }
+
+		mBase = nullptr;
     }
     void ChannelBase::close()
     {
@@ -170,7 +170,7 @@ namespace osuCrypto {
         // ok, the send and recv queues are empty. Lets close the socket
         if (mHandle)
         {
-            if (mEndpoint) mEndpoint->removeChannel(this);
+            //if (mEndpoint) mEndpoint->removeChannel(this);
             mHandle->close();
             mHandle.reset(nullptr);
         }

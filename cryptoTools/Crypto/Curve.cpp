@@ -1,6 +1,7 @@
 #include <cryptoTools/Crypto/Curve.h>
 #include <cryptoTools/Common/Log.h>
 #include <miracl/include/miracl.h>
+#include <sstream>
 
 namespace osuCrypto
 {
