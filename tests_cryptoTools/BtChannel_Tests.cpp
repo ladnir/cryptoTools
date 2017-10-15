@@ -27,11 +27,11 @@ namespace tests_cryptoTools
 	void BtNetwork_AnonymousMode_Test()
 	{
 		IOService ioService(0);
-		Session s1(ioService, "127.0.0.1", 1212, EpMode::Server);
-		Session s2(ioService, "127.0.0.1", 1212, EpMode::Server);
+		Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
+		Session s2(ioService, "127.0.0.1", 1212, SessionMode::Server);
 
-		Session c1(ioService, "127.0.0.1", 1212, EpMode::Client);
-		Session c2(ioService, "127.0.0.1", 1212, EpMode::Client);
+		Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
+		Session c2(ioService, "127.0.0.1", 1212, SessionMode::Client);
 
 		auto ch1 = c1.addChannel();
 		auto ch2 = c2.addChannel();
@@ -80,7 +80,7 @@ namespace tests_cryptoTools
 			IOService ioService(0);
 
 			{
-				Session c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 				auto ch1 = c1.addChannel();
 
 				ch1.cancel();
@@ -95,7 +95,7 @@ namespace tests_cryptoTools
 			}
 
 			{
-				Session c1(ioService, "127.0.0.1", 1212, EpMode::Server);
+				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
 				auto ch1 = c1.addChannel();
 
 				ch1.cancel();
@@ -112,8 +112,8 @@ namespace tests_cryptoTools
 
 
 			{
-				Session c1(ioService, "127.0.0.1", 1212, EpMode::Server);
-				Session s1(ioService, "127.0.0.1", 1212, EpMode::Client);
+				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
+				Session s1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 				auto ch1 = c1.addChannel();
 				auto ch0 = s1.addChannel();
 
@@ -136,7 +136,7 @@ namespace tests_cryptoTools
 
 
 			{
-				Session c1(ioService, "127.0.0.1", 1212, EpMode::Server);
+				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
 				auto ch1 = c1.addChannel();
 
 
@@ -168,8 +168,8 @@ namespace tests_cryptoTools
 
 		for (u64 i = 0; i < numConnect; ++i)
 		{
-			Session s1(ioService, "127.0.0.1", 1212, EpMode::Server);
-			Session c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+			Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
+			Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 			srvChls[i][0] = s1.addChannel();
 			srvChls[i][1] = s1.addChannel();
 			clientChls[i][0] = c1.addChannel();
@@ -193,8 +193,8 @@ namespace tests_cryptoTools
 
 		for (u64 i = 0; i < numConnect; ++i)
 		{
-			Session s1(ioService, "127.0.0.1", 1212, EpMode::Server);
-			Session c1(ioService, "127.0.0.1", 1212, EpMode::Client);
+			Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
+			Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 			clientChls[i][0] = c1.addChannel();
 			clientChls[i][1] = c1.addChannel();
 
@@ -256,7 +256,7 @@ namespace tests_cryptoTools
 		{
 			setThreadName("Test_Client");
 
-			Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+			Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
 			Channel chl = endpoint.addChannel(channelName, channelName);
 
 			std::string recvMsg;
@@ -267,7 +267,7 @@ namespace tests_cryptoTools
 			chl.asyncSend(std::move(recvMsg));
 		});
 
-		Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 		auto chl = endpoint.addChannel(channelName, channelName);
 
 		chl.asyncSend(msg);
@@ -298,7 +298,7 @@ namespace tests_cryptoTools
 		{
 			setThreadName("Test_Client");
 
-			Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+			Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
 			Channel chl = endpoint.addChannel(channelName, channelName);
 
 			std::vector<u8> srvRecv;
@@ -308,7 +308,7 @@ namespace tests_cryptoTools
 		});
 
 
-		Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 		auto chl = endpoint.addChannel(channelName, channelName);
 
 		chl.asyncSend(oneMegabyte);
@@ -347,7 +347,7 @@ namespace tests_cryptoTools
 			IOService ioService;
 			setThreadName("Test_client");
 
-			Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+			Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
 
 			std::vector<std::thread> threads;
 
@@ -376,7 +376,7 @@ namespace tests_cryptoTools
 
 		IOService ioService;
 
-		Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 		std::vector<std::thread> threads;
 
@@ -414,7 +414,7 @@ namespace tests_cryptoTools
 
 		auto thrd = std::thread([&]() {
 			IOService ioService(0);
-			Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+			Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
 
 
 			auto sendChl1 = endpoint.addChannel("send", "recv");
@@ -442,7 +442,7 @@ namespace tests_cryptoTools
 			ioService.stop();
 		});
 		IOService ioService(0);
-		Session endpoint(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 
 		auto recvChl0 = endpoint.addChannel("recv", "send");
@@ -496,9 +496,9 @@ namespace tests_cryptoTools
 				{
 					if (j != i)
 					{
-						EpMode host = i > j ? EpMode::Server : EpMode::Client;
+						SessionMode host = i > j ? SessionMode::Server : SessionMode::Client;
 						std::string name("endpoint:");
-						if (host == EpMode::Server)
+						if (host == SessionMode::Server)
 						{
 							name += std::to_string(i) + "->" + std::to_string(j);
 							port = basePort + (u32)i;
@@ -564,14 +564,14 @@ namespace tests_cryptoTools
 
 		IOService ioService(4);
 
-		Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
+		Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
 		auto chl1 = ep1.addChannel(channelName, channelName);
 		Finally cleanup1([&]() { chl1.close(); ep1.stop(); ioService.stop(); });
 
 		if (chl1.isConnected() == true) throw UnitTestFail();
 
 
-		Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 		Finally cleanup2([&]() { ep2.stop(); });
 
 		if (chl1.isConnected() == true) throw UnitTestFail();
@@ -591,8 +591,8 @@ namespace tests_cryptoTools
 		std::string channelName{ "TestChannel" }, msg{ "This is the message" };
 		IOService ioService;
 
-		Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-		Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+		Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 		auto chl1 = ep1.addChannel(channelName, channelName);
 		auto chl2 = ep2.addChannel(channelName, channelName);
@@ -641,8 +641,8 @@ namespace tests_cryptoTools
 		std::string channelName{ "TestChannel" }, msg{ "This is the message" };
 		IOService ioService;
 
-		Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-		Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+		Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 		auto chl1 = ep1.addChannel(channelName, channelName);
 		auto chl2 = ep2.addChannel(channelName, channelName);
@@ -674,8 +674,8 @@ namespace tests_cryptoTools
 
 		ioService.printErrorMessages(false);
 
-		Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-		Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+		Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+		Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 		auto chl1 = ep1.addChannel(channelName, channelName);
 		auto chl2 = ep2.addChannel(channelName, channelName);
@@ -738,8 +738,8 @@ namespace tests_cryptoTools
 
 			ioService.printErrorMessages(false);
 
-			Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-			Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+			Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+			Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 			auto chl1 = ep1.addChannel(channelName, channelName);
 
@@ -780,8 +780,8 @@ namespace tests_cryptoTools
 			IOService ioService;
 			ioService.printErrorMessages(false);
 
-			Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-			Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+			Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+			Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 			auto chl1 = ep1.addChannel(channelName, channelName);
 			auto chl2 = ep2.addChannel(channelName, channelName);
@@ -844,8 +844,8 @@ namespace tests_cryptoTools
 
 			ioService.printErrorMessages(false);
 
-			Session ep1(ioService, "127.0.0.1", 1212, EpMode::Client, "endpoint");
-			Session ep2(ioService, "127.0.0.1", 1212, EpMode::Server, "endpoint");
+			Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+			Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
 			auto chl1 = ep1.addChannel(channelName, channelName);
 			auto chl2 = ep2.addChannel(channelName, channelName);

@@ -36,8 +36,8 @@ void networkTutorial()
     // connectionName denotes an identifier that both people on either side
     // of this connection will use. If a server connects to several clients,
     // they should all use different connection names.
-    Session server(ios, serversIpAddress, EpMode::Server, connectionName);
-    Session client(ios, serversIpAddress, EpMode::Client, connectionName);
+    Session server(ios, serversIpAddress, SessionMode::Server, connectionName);
+    Session client(ios, serversIpAddress, SessionMode::Client, connectionName);
 
 
     // Actually get the channel that can be used to communicate on.

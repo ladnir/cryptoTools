@@ -15,7 +15,7 @@ namespace osuCrypto {
 	//extern std::vector<std::string> split(const std::string &s, char delim);
 
 
-	void Session::start(IOService& ioService, std::string remoteIP, u32 port, EpMode type, std::string name)
+	void Session::start(IOService& ioService, std::string remoteIP, u32 port, SessionMode type, std::string name)
 	{
 		if (mBase && mBase->mStopped == false)
 			throw std::runtime_error("rt error at " LOCATION);
@@ -28,7 +28,7 @@ namespace osuCrypto {
 		mBase->mStopped = (false);
 		mBase->mName = (name);
 
-		if (type == EpMode::Server)
+		if (type == SessionMode::Server)
 		{
 			mBase->mAcceptor = ioService.getAcceptor(remoteIP, port);
 		}
@@ -44,7 +44,7 @@ namespace osuCrypto {
 
 	}
 
-	void Session::start(IOService& ioService, std::string address, EpMode host, std::string name)
+	void Session::start(IOService& ioService, std::string address, SessionMode host, std::string name)
 	{
 		auto vec = split(address, ':');
 
@@ -62,14 +62,14 @@ namespace osuCrypto {
 
 	// See start(...)
 
-	Session::Session(IOService & ioService, std::string address, EpMode type, std::string name)
+	Session::Session(IOService & ioService, std::string address, SessionMode type, std::string name)
 	{
 		start(ioService, address, type, name);
 	}
 
 	// See start(...)
 
-	Session::Session(IOService & ioService, std::string remoteIP, u32 port, EpMode type, std::string name)
+	Session::Session(IOService & ioService, std::string remoteIP, u32 port, SessionMode type, std::string name)
 	{
 		start(ioService, remoteIP, port, type, name);
 	}
@@ -137,7 +137,7 @@ namespace osuCrypto {
 		auto chlBase = chl.mBase;
 		auto epBase = mBase;
 
-		if (mBase->mMode == EpMode::Server)
+		if (mBase->mMode == SessionMode::Server)
 		{
 			// the acceptor will do the handshake, set chl.mHandel and
 			// kick off any send and receives which may happen after this
@@ -269,6 +269,6 @@ namespace osuCrypto {
 	{
 		return mBase->mIP;
 	}
-	bool Session::isHost() const { return mBase->mMode == EpMode::Server; }
+	bool Session::isHost() const { return mBase->mMode == SessionMode::Server; }
 
 }
