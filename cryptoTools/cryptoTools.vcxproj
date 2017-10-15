@@ -162,6 +162,7 @@
     <ClInclude Include="Crypto\sha1.h" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
+    <ClInclude Include="Network\Session.h" />
     <ClInclude Include="Network\IOService.h" />
     <ClInclude Include="Network\IoBuffer.h" />
     <ClInclude Include="Network\SocketAdapter.h" />
@@ -178,7 +179,7 @@
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\sha1.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
-    <ClCompile Include="Network\Endpoint.cpp" />
+    <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
     <ClCompile Include="Network\SocketAdapter.cpp" />
   </ItemGroup>

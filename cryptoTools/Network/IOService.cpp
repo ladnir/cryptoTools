@@ -2,7 +2,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Finally.h>
 #include <cryptoTools/Common/Log.h>
-#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/SocketAdapter.h>
@@ -109,9 +109,9 @@ namespace osuCrypto
 								{
 									std::cout << "async_accept error, failed to receive first header on connection handshake."
 										<< " Other party may have closed the connection. "
-										<< ((ec3 != 0) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
+<< ((ec3 != 0) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
 
-									delete newSocket;
+delete newSocket;
 								}
 
 								delete buff;
@@ -120,12 +120,12 @@ namespace osuCrypto
 						}
 						else
 						{
-							std::cout << "async_accept error, failed to receive first header on connection handshake."
-								<< " Other party may have closed the connection. "
-								<< ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+std::cout << "async_accept error, failed to receive first header on connection handshake."
+<< " Other party may have closed the connection. "
+<< ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
 
-							delete newSocket;
-							delete buff;
+delete newSocket;
+delete buff;
 						}
 
 					});
@@ -145,33 +145,86 @@ namespace osuCrypto
 
 	void Acceptor::stop()
 	{
-		//std::cout << "\n#################################### acceptor stop ################################" << std::endl;
-
-		if (mStopped == false)
-		{
-
+		if (mStopped == false) {
 			{
 				std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
 				mStopped = true;
-
-				if (hasPendingsChannels() == false)
+				if (hasPendingChannels() == false)
 					mSocketChannelPairsRemovedProm.set_value();
 			}
 
 			if (mSocketChannelPairsRemovedFuture.valid())
 				mSocketChannelPairsRemovedFuture.get();
 
-
 			mHandle.close();
 
 			if (mStoppedListeningFuture.valid())
 				mStoppedListeningFuture.get();
 
-
-			removePendingSockets();
-
+			mAnonymousClientEps.clear();
+			mAnonymousServerEps.clear();
+			mSessionGroups.clear();
 		}
+	}
 
+	bool Acceptor::hasPendingChannels() const
+	{
+		for (auto& a : mAnonymousServerEps)
+			if (a.hasPendingChannels())
+				return true;
+
+		for (auto& a : mSessionGroups)
+			if (a.second.hasPendingChannels())
+				return true;
+
+		return false;
+	}
+
+	bool Acceptor::isEmpty() const
+	{
+		for (auto& a : mAnonymousServerEps)
+			if (!a.isEmpty())
+				return false;
+
+		for (auto& a : mAnonymousClientEps)
+			if (!a.isEmpty())
+				return false;
+
+		for (auto& a : mSessionGroups)
+			if (!a.second.isEmpty())
+				return false;
+
+		return true;
+	}
+
+
+	void Acceptor::removeSession(const std::shared_ptr<SessionBase>& ep)
+	{
+		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+
+		auto iter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
+			[&](const SessionGroup& epg) {
+			return epg.mBase == ep;
+		});
+
+		if (iter != mAnonymousServerEps.end())
+		{
+			if (iter->isEmpty())
+				mAnonymousServerEps.erase(iter);
+			else
+				iter->mRemoveWhenEmptry = true;
+		}
+		else
+		{
+			auto iter = mSessionGroups.find(ep->mName);
+			if (iter != mSessionGroups.end())
+			{
+				if (iter->second.isEmpty())
+					mSessionGroups.erase(iter);
+				else
+					iter->second.mRemoveWhenEmptry = true;
+			}
+		}
 	}
 
 	bool Acceptor::stopped() const
@@ -184,17 +237,19 @@ namespace osuCrypto
 	{
 		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
 
-		auto& endpointName = chl->mEndpoint->mName;
+		if (stopped()) throw std::runtime_error(LOCATION);
+
+		auto& endpointName = chl->mSession->mName;
 		auto& localName = chl->mLocalName;
 		auto& remoteName = chl->mRemoteName;
 
 		if (endpointName == "")
 		{
-			// anonymous Endpoint. Lets try and match the channel name with
+			// anonymous Session. Lets try and match the channel name with
 			// the first socket name.
 
 			auto anIter = std::find_if(mAnonymousClientEps.begin(), mAnonymousClientEps.end(),
-				[&](const EndpointGroup& epg) {
+				[&](const SessionGroup& epg) {
 				return epg.mSockets.front().mLocalName == localName &&
 					epg.mSockets.front().mRemoteName == remoteName;
 			});
@@ -209,22 +264,22 @@ namespace osuCrypto
 				// we found a match. Lets rename this endpoint to match the 
 				// client's random name
 				endpointName = group.mName;
-				group.mBase = chl->mEndpoint;
+				group.mBase = chl->mSession;
 				//group.mComment += " .normal case. channel found anGroup. " + std::to_string(ccc++) + " ";
-					
+
 				// start the socket.
 				mIOService.startSocket(chl.get(), std::move(socket.mSocket));
 				group.mSuccessfulConnections++;
 				sockets.pop_front();
 
 				// move the endpoint group to the named list
-				mEndpointGroups.emplace(endpointName, std::move(group));
+				mSessionGroups.emplace(endpointName, std::move(group));
 
 				// remove the old copy
 				mAnonymousClientEps.erase(anIter);
 
 				// check if we are all done
-				if (stopped() && isEmpty())
+				if (stopped() && hasPendingChannels() == false)
 					mSocketChannelPairsRemovedProm.set_value();
 			}
 			else
@@ -233,8 +288,8 @@ namespace osuCrypto
 				// channel with an anonymous endpoint. Lets check if
 				// we have created a group to store these channel.
 				anIter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-					[&](const EndpointGroup& epg) {
-					return epg.mBase == chl->mEndpoint;
+					[&](const SessionGroup& epg) {
+					return epg.mBase == chl->mSession;
 				});
 
 				if (anIter == mAnonymousServerEps.end())
@@ -246,7 +301,7 @@ namespace osuCrypto
 					anIter = mAnonymousServerEps.end();
 					--anIter;
 
-					anIter->mBase = chl->mEndpoint;
+					anIter->mBase = chl->mSession;
 				}
 
 				// store this channel in this group until
@@ -259,22 +314,22 @@ namespace osuCrypto
 		else
 		{
 			// check if the corresponding group exists
-			auto iter = mEndpointGroups.find(endpointName);
-			if (iter == mEndpointGroups.end())
+			auto iter = mSessionGroups.find(endpointName);
+			if (iter == mSessionGroups.end())
 			{
 				// no group exists. This is the first channel for the endpoint and
 				// the client has yet to connect a socket with this endpoint name. 
 				// Create a new group to store the channel in.
-				iter = mEndpointGroups.emplace(endpointName, EndpointGroup()).first;
+				iter = mSessionGroups.emplace(endpointName, SessionGroup()).first;
 				iter->second.mName = endpointName;
-				iter->second.mBase = chl->mEndpoint;
+				iter->second.mBase = chl->mSession;
 			}
 
 			auto& group = iter->second;
 
 			// check if there is a socket that matches this channel's name
 			auto sockIter = std::find_if(group.mSockets.begin(), group.mSockets.end(),
-				[&](const EndpointGroup::NamedSocket& sock)
+				[&](const SessionGroup::NamedSocket& sock)
 			{
 				return sock.mLocalName == localName &&
 					sock.mRemoteName == remoteName;
@@ -288,7 +343,7 @@ namespace osuCrypto
 				group.mSockets.erase(sockIter);
 
 				// check if we are all done
-				if (stopped() && isEmpty())
+				if (stopped() && hasPendingChannels() == false)
 					mSocketChannelPairsRemovedProm.set_value();
 			}
 			else
@@ -299,105 +354,27 @@ namespace osuCrypto
 		}
 	}
 
-	bool Acceptor::isEmpty() const
-	{
-		for (auto& ep : mAnonymousClientEps)
-			if (ep.isEmpty() == false)
-				return false;
-		for (auto& ep : mAnonymousServerEps)
-			if (ep.isEmpty() == false)
-				return false;
-		for (auto& ep : mEndpointGroups)
-			if (ep.second.isEmpty() == false)
-				return false;
-
-		return true;
-	}
-
-	bool Acceptor::hasPendingsChannels() const
-	{
-		for (auto& ep : mAnonymousClientEps)
-			if (ep.hasPendingChannels())
-				return true;
-		for (auto& ep : mAnonymousServerEps)
-			if (ep.hasPendingChannels())
-				return true;
-		for (auto& ep : mEndpointGroups)
-			if (ep.second.hasPendingChannels())
-				return true;
-
-		return false;
-	}
-
-	void Acceptor::removePendingSockets()
+	void Acceptor::removePendingChannel(ChannelBase* chl)
 	{
 		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+		for (auto& a : mAnonymousServerEps)
+			if (a.erase(chl)) return;
 
-		for (auto& ep : mAnonymousClientEps)
-			ep.mSockets.clear();
+		if (chl->mSession->mName == "") throw std::runtime_error("logic error " LOCATION);
 
-		for (auto& ep : mAnonymousServerEps)
-			ep.mSockets.clear();
-
-		for (auto& ep : mEndpointGroups)
-			ep.second.mSockets.clear();
+		auto iter = mSessionGroups.find(chl->mSession->mName);
+		if (iter != mSessionGroups.end())
+			iter->second.erase(chl);
 	}
-
-	//void Acceptor::removeEndpoint(const EndpointBase* ep, const std::optional<std::chrono::milliseconds>& waitTime)
-	//{
-	//	//auto anIter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-	//	//	[&](const EndpointGroup& epg) {
-	//	//	return epg.mBase.get() == ep;
-	//	//});
-	//	//if (anIter != mAnonymousServerEps.end())
-	//	//{
-	//	//	anIter->waitForChannels(mSocketChannelPairsMtx, waitTime);
-	//	//	//std::lock_guard<std::mutex> lock(mSocketChannelPairsMtx);
-	//	//	//anIter->
-	//	//}
-	//	//else
-	//	//{
-	//	//	auto iter = mEndpointGroups.find(ep->mName);
-	//	//	if (iter != mEndpointGroups.end())
-	//	//	{
-	//	//		iter->second.waitForChannels(mSocketChannelPairsMtx, waitTime);
-	//	//	}
-	//	//}
-	//}
-
-
-	//void Acceptor::EndpointGroup::waitForChannels(std::mutex & mtx, const std::optional<std::chrono::milliseconds>& waitTime)
-	//{
-	//	bool wait = false;
-	//	{
-	//		std::lock_guard<std::mutex> lock(mtx);
-	//		if (mChannels.size())
-	//		{
-	//			wait = true;
-	//			mFuture = mProm.get_future();
-	//		}
-	//	}
-
-	//	if (wait)
-	//	{
-	//		if (waitTime)
-	//		{
-	//			auto status = mFuture.wait_for(*waitTime);
-	//			if (status == std::future_status::ready)
-	//				mFuture.get();
-	//		}
-	//		else
-	//			mFuture.get();
-	//	}
-	//}
 
 
 	void Acceptor::asyncSetSocket(
 		std::string name,
 		std::unique_ptr<BoostSocketInterface> sock)
 	{
-
 		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+
+		if (stopped()) return;
 
 		auto names = split(name, '`');
 
@@ -426,7 +403,7 @@ namespace osuCrypto
 				// the endpoint with the name provided by the client
 				// and forward the new sock onto the existing channel.
 				auto anIter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-					[&](const EndpointGroup& epg) {
+					[&](const SessionGroup& epg) {
 					return epg.mChannels.size() &&
 						epg.mChannels.front()->mLocalName == localName &&
 						epg.mChannels.front()->mRemoteName == remoteName;
@@ -435,8 +412,8 @@ namespace osuCrypto
 				// SPECIAL CASE: check if by some random chance other (named) connections have been
 				// made ahead of this one with the proposed endpoint name. This can happen 
 				// if messages are delayed/reordered over the network...
-				auto epIter = mEndpointGroups.find(endpointName);
-				if (epIter != mEndpointGroups.end())
+				auto epIter = mSessionGroups.find(endpointName);
+				if (epIter != mSessionGroups.end())
 				{
 					auto& namedGroup = epIter->second;
 					if (namedGroup.mSuccessfulConnections || namedGroup.mChannels.size())
@@ -483,7 +460,7 @@ namespace osuCrypto
 
 							// see if there exists a socket with chl2's name.
 							auto sockIter = std::find_if(namedGroup.mSockets.begin(), namedGroup.mSockets.end(),
-								[&](const Acceptor::EndpointGroup::NamedSocket& sock2) {
+								[&](const Acceptor::SessionGroup::NamedSocket& sock2) {
 								return sock2.mLocalName == chl2->mLocalName &&
 									sock2.mRemoteName == chl2->mRemoteName;
 							});
@@ -518,6 +495,10 @@ namespace osuCrypto
 
 						// removed the anGroup
 						mAnonymousServerEps.erase(anIter);
+
+						// check if we are all done
+						if (stopped() && hasPendingChannels() == false)
+							mSocketChannelPairsRemovedProm.set_value();
 						return;
 					}
 				}
@@ -545,13 +526,13 @@ namespace osuCrypto
 					group.mChannels.pop_front();
 
 					// move the group into the list of named endpoints
-					mEndpointGroups.emplace(endpointName, std::move(*anIter));
-					
+					mSessionGroups.emplace(endpointName, std::move(*anIter));
+
 					// remove this endpoint from the mAnonymousEps list
 					mAnonymousServerEps.erase(anIter);
 
 					// check if we are all done
-					if (stopped() && isEmpty())
+					if (stopped() && hasPendingChannels() == false)
 						mSocketChannelPairsRemovedProm.set_value();
 				}
 				else
@@ -562,7 +543,7 @@ namespace osuCrypto
 					// will be able to find the socket here.
 
 					auto iter = std::find_if(mAnonymousClientEps.begin(), mAnonymousClientEps.end(),
-						[&](const EndpointGroup& epg) {
+						[&](const SessionGroup& epg) {
 						return epg.mName == endpointName;
 					});
 
@@ -590,14 +571,14 @@ namespace osuCrypto
 				// the socket onto that channel. Otherwise we need to create 
 				// a new endpoint group and store the socket there.
 
-				auto iter = mEndpointGroups.find(endpointName);
+				auto iter = mSessionGroups.find(endpointName);
 
-				if (iter == mEndpointGroups.end())
+				if (iter == mSessionGroups.end())
 				{
 					// The endpoint has not been created/used yet. Lets create a 
-					// new EndpointGroup and store the socket there. A channel
+					// new SessionGroup and store the socket there. A channel
 					// will (maybe) come along later and aquire the socket.
-					iter = mEndpointGroups.insert({ endpointName, EndpointGroup() }).first;
+					iter = mSessionGroups.insert({ endpointName, SessionGroup() }).first;
 					iter->second.mName = endpointName;
 				}
 
@@ -621,7 +602,7 @@ namespace osuCrypto
 
 					// check if this accepter has completed all its work. If so and 
 					// stop has been called, make the all connections have been made
-					if (stopped() && isEmpty())
+					if (stopped() && hasPendingChannels() == false)
 						mSocketChannelPairsRemovedProm.set_value();
 				}
 				else
@@ -641,44 +622,6 @@ namespace osuCrypto
 				<< "Dropping the connection" << std::endl;;
 		}
 	}
-
-	//void Acceptor::remove(
-	//	std::string endpointName,
-	//	std::string localChannelName,
-	//	std::string remoteChannelName)
-	//{
-	//	std::string tag = endpointName + ":" + localChannelName + ":" + remoteChannelName;
-
-	//	{
-	//		//mSocketChannelPairsMtx.lock();
-	//		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
-	//		auto iter = mSocketChannelPairs.find(tag);
-
-	//		if (iter != mSocketChannelPairs.end())
-	//		{
-
-	//			if (iter->second.first)
-	//			{
-	//				iter->second.first->close();
-	//				delete iter->second.first;
-
-	//				//std::cout << "erase2   " << iter->first << std::endl;
-	//				mSocketChannelPairs.erase(iter);
-
-
-	//				if (mStopped == true && mSocketChannelPairs.size() == 0)
-	//				{
-	//					mSocketChannelPairsRemovedProm.set_value();
-	//				}
-	//			}
-	//			else
-	//			{
-	//				iter->second.second = nullptr;
-	//			}
-	//		}
-	//		//mSocketChannelPairsMtx.unlock();
-	//	}
-	//}
 
 
 	extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
@@ -805,7 +748,10 @@ namespace osuCrypto
 						+ "\nThis could be from the other end closing too early or the connection being dropped.";
 
 					if (mPrint) std::cout << reason << std::endl;
-					channel->setRecvFatalError(reason);
+
+					if(channel->mRecvStatus != Channel::Status::Stopped)
+						channel->setRecvFatalError(reason);
+
 					return;
 				}
 
@@ -930,13 +876,13 @@ namespace osuCrypto
 			//delete channel->mRecvQueue.front();
 			channel->mRecvQueue.pop_front();
 			channel->mRecvQueueEmptyProm.set_value();
-	}
+		}
 		else
 		{
 			std::cout << "error, unknown operation " << int(u8(op.type())) << std::endl;
 			std::terminate();
 		}
-}
+		}
 
 	void IOService::sendOne(ChannelBase* socket)
 	{
@@ -968,7 +914,8 @@ namespace osuCrypto
 					auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
 					if (mPrint) std::cout << reason << std::endl;
 
-					socket->setSendFatalError(reason);
+					if(socket->mSendStatus != Channel::Status::Stopped)
+						socket->setSendFatalError(reason);
 					return;
 				}
 
@@ -986,7 +933,8 @@ namespace osuCrypto
 
 					if (mPrint) std::cout << reason << std::endl;
 
-					socket->setSendFatalError(reason);
+					if (socket->mSendStatus != Channel::Status::Stopped)
+						socket->setSendFatalError(reason);
 					return;
 				}
 
@@ -1208,7 +1156,7 @@ namespace osuCrypto
 			auto ii = ++chl->mOpenCount;
 			if (ii == 2)
 				chl->mOpenProm.set_value();
-		});
+	});
 
 
 		// a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -1242,11 +1190,27 @@ namespace osuCrypto
 	}
 
 
-
-
-	void Acceptor::EndpointGroup::print()
+	bool Acceptor::SessionGroup::erase(ChannelBase* chl)
 	{
-		
+		auto iter = std::find_if(mChannels.begin(), mChannels.end(),
+			[&](const std::shared_ptr<ChannelBase>& c2) {
+			return c2.get() == chl;
+		});
+
+		if (iter != mChannels.end())
+		{
+			auto e_ptr = std::make_exception_ptr(std::runtime_error("connect aborted"));
+			(*iter)->mOpenProm.set_exception(e_ptr);
+			mChannels.erase(iter);
+			return true;
+		}
+
+		return false;
+	}
+
+	void Acceptor::SessionGroup::print()
+	{
+
 		std::cout << "name: " << mName << " " << mBase.get() << std::endl;
 
 

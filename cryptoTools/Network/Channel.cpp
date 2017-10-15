@@ -1,316 +1,357 @@
 #include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Network/IOService.h>
 namespace osuCrypto {
 
-    Channel::Channel(
-        Endpoint& endpoint,
-        std::string localName,
-        std::string remoteName)
-        :
-        mBase(new ChannelBase(endpoint, localName, remoteName))
-    {}
+	Channel::Channel(
+		Session& endpoint,
+		std::string localName,
+		std::string remoteName)
+		:
+		mBase(new ChannelBase(endpoint, localName, remoteName))
+	{}
 
-    Channel::Channel(IOService& ios, SocketInterface * sock)
-        : mBase(new ChannelBase(ios, sock))
-    {}
+	Channel::Channel(IOService& ios, SocketInterface * sock)
+		: mBase(new ChannelBase(ios, sock))
+	{}
 
 
-    ChannelBase::ChannelBase(
-        Endpoint& endpoint,
-        std::string localName,
-        std::string remoteName)
-        :
-        mIos(endpoint.getIOService()),
+	ChannelBase::ChannelBase(
+		Session& endpoint,
+		std::string localName,
+		std::string remoteName)
+		:
+		mIos(endpoint.getIOService()),
 		mWork(endpoint.getIOService().mIoService),
-        mEndpoint(endpoint.mBase),
-        mRemoteName(remoteName),
-        mLocalName(localName),
-        mRecvStatus(Channel::Status::Normal),
-        mSendStatus(Channel::Status::Normal),
-        mHandle(nullptr),
-        mSendStrand(endpoint.getIOService().mIoService),
-        mRecvStrand(endpoint.getIOService().mIoService),
-        mOpenProm(),
-        mOpenFut(mOpenProm.get_future()),
-        mOpenCount(0),
-        mRecvSocketSet(false),
-        mSendSocketSet(false),
-        mOutstandingSendData(0),
-        mMaxOutstandingSendData(0),
-        mTotalSentData(0),
-        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
-        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
+		mSession(endpoint.mBase),
+		mRemoteName(remoteName),
+		mLocalName(localName),
+		mRecvStatus(Channel::Status::Normal),
+		mSendStatus(Channel::Status::Normal),
+		mHandle(nullptr),
+		mSendStrand(endpoint.getIOService().mIoService),
+		mRecvStrand(endpoint.getIOService().mIoService),
+		mOpenProm(),
+		mOpenFut(mOpenProm.get_future()),
+		mOpenCount(0),
+		mRecvSocketSet(false),
+		mSendSocketSet(false),
+		mOutstandingSendData(0),
+		mMaxOutstandingSendData(0),
+		mTotalSentData(0),
+		mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+		mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
 #ifdef CHANNEL_LOGGING
-        , mOpIdx(0)
+		, mOpIdx(0)
 #endif
-    {
-    }
+	{
+	}
 
-    ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
-        :
-        mIos(ios),
+	ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
+		:
+		mIos(ios),
 		mWork(ios.mIoService),
 		mRecvStatus(Channel::Status::Normal),
-        mSendStatus(Channel::Status::Normal),
-        mHandle(sock),
-        mSendStrand(ios.mIoService),
-        mRecvStrand(ios.mIoService),
-        mOpenProm(),
-        mOpenFut(mOpenProm.get_future()),
-        mOpenCount(0),
-        mRecvSocketSet(true),
-        mSendSocketSet(true),
-        mOutstandingSendData(0),
-        mMaxOutstandingSendData(0),
-        mTotalSentData(0),
-        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
-        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
+		mSendStatus(Channel::Status::Normal),
+		mHandle(sock),
+		mSendStrand(ios.mIoService),
+		mRecvStrand(ios.mIoService),
+		mOpenProm(),
+		mOpenFut(mOpenProm.get_future()),
+		mOpenCount(0),
+		mRecvSocketSet(true),
+		mSendSocketSet(true),
+		mOutstandingSendData(0),
+		mMaxOutstandingSendData(0),
+		mTotalSentData(0),
+		mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+		mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
 #ifdef CHANNEL_LOGGING
-        , mOpIdx(0)
+		, mOpIdx(0)
 #endif
-    {
-        mOpenProm.set_value();
-    }
+	{
+		mOpenProm.set_value();
+	}
 
-    Channel::~Channel()
-    {
-    }
+	Channel::~Channel()
+	{
+	}
 
-    //Endpoint Channel::getEndpoint()
-    //{
-    //    return mBase->mEndpoint;
-    //}
+	//Session Channel::getSession()
+	//{
+	//    return mBase->mSession;
+	//}
 
-    std::string Channel::getName() const
-    {
-        return mBase->mLocalName;
-    }
+	std::string Channel::getName() const
+	{
+		return mBase->mLocalName;
+	}
 
-    Channel & Channel::operator=(Channel && move)
-    {
-        mBase = std::move(move.mBase);
-        return *this;
-    }
+	Channel & Channel::operator=(Channel && move)
+	{
+		mBase = std::move(move.mBase);
+		return *this;
+	}
 
-    Channel & Channel::operator=(const Channel & copy)
-    {
-        mBase = copy.mBase;
-        return *this;
-    }
+	Channel & Channel::operator=(const Channel & copy)
+	{
+		mBase = copy.mBase;
+		return *this;
+	}
 
+	bool Channel::isConnected()
+	{
+		return mBase->mSendSocketSet  && mBase->mRecvSocketSet;
+	}
 
+	bool Channel::waitForConnection(std::chrono::milliseconds* timeout)
+	{
+		if (timeout)
+		{
+			auto status = mBase->mOpenFut.wait_for(*timeout);
+			if (status != std::future_status::ready)
+				return false;
+		}
 
+		mBase->mOpenFut.get();
+		return true;
+	}
 
-
-    bool Channel::isConnected()
-    {
-        return mBase->mSendSocketSet  && mBase->mRecvSocketSet;
-    }
-    void Channel::waitForConnection()
-    {
-        return mBase->mOpenFut.get();
-    }
-
-    void Channel::close()
-    {
-        // indicate that no more messages should be queued and to fulfill
-        // the mSocket->mDone* promised.
-        if (mBase)
-        {
-            mBase->close();
-        }
-
+	void Channel::close()
+	{
+		if (mBase) mBase->close();
 		mBase = nullptr;
-    }
-    void ChannelBase::close()
-    {
+	}
 
+	void Channel::cancel()
+	{
+		if (mBase) mBase->cancel();
+	}
 
-        mOpenFut.get();
+	void ChannelBase::cancel()
+	{
 
-        if (mSendStatus != Channel::Status::Stopped)
-        {
+		mSendStatus = Channel::Status::Stopped;
+		mRecvStatus = Channel::Status::Stopped;
+
+		if (mSession && mSession->mAcceptor)
+		{
+			// if we are still waiting on a connection, cancel it.
+			mSession->mAcceptor->removePendingChannel(this);
+		}
+		try {
+			mOpenFut.get();
+		} catch (...) {}
+
+		cancelRecvQueuedOperations();
+		cancelSendQueuedOperations();
+
+		if(mHandle) mHandle->close();
+		mHandle.reset(nullptr);
+	}
+
+	void ChannelBase::close()
+	{
+		if (stopped() == false)
+		{
+
+			mOpenFut.get();
+
+			if (mSendStatus != Channel::Status::Stopped)
+			{
 #ifdef CHANNEL_LOGGING
-            mLog.push("Closing send");
+				mLog.push("Closing send");
 #endif
 
-            if (mSendStatus == Channel::Status::Normal)
-            {
-                auto closeSend = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseSend));
-                getIOService().dispatch(this, std::move(closeSend));
-            }
+				if (mSendStatus == Channel::Status::Normal)
+				{
+					auto closeSend = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseSend));
+					getIOService().dispatch(this, std::move(closeSend));
+				}
 
-            mSendQueueEmptyFuture.get();
-            mSendStatus = Channel::Status::Stopped;
-        }
+				mSendQueueEmptyFuture.get();
+				mSendStatus = Channel::Status::Stopped;
+			}
 
-        if (mRecvStatus != Channel::Status::Stopped)
-        {
+			if (mRecvStatus != Channel::Status::Stopped)
+			{
 #ifdef CHANNEL_LOGGING
-            mLog.push("Closing recv");
+				mLog.push("Closing recv");
 #endif
 
-            if (mRecvStatus == Channel::Status::Normal)
-            {
-                auto closeRecv = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseRecv));
-                getIOService().dispatch(this, std::move(closeRecv));
-            }
-            else if (mRecvStatus == Channel::Status::RecvSizeError)
-            {
-                cancelRecvQueuedOperations();
-            }
+				if (mRecvStatus == Channel::Status::Normal)
+				{
+					auto closeRecv = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseRecv));
+					getIOService().dispatch(this, std::move(closeRecv));
+				}
+				else if (mRecvStatus == Channel::Status::RecvSizeError)
+				{
+					cancelRecvQueuedOperations();
+				}
 
-            mRecvQueueEmptyFuture.get();
-            mRecvStatus = Channel::Status::Stopped;
-        }
+				mRecvQueueEmptyFuture.get();
+				mRecvStatus = Channel::Status::Stopped;
+			}
 
-        // ok, the send and recv queues are empty. Lets close the socket
-        if (mHandle)
-        {
-            //if (mEndpoint) mEndpoint->removeChannel(this);
-            mHandle->close();
-            mHandle.reset(nullptr);
-        }
-
-#ifdef CHANNEL_LOGGING
-        mLog.push("Closed");
-#endif
-    }
-
-
-    void ChannelBase::cancelSendQueuedOperations()
-    {
-
-        mHandle->close();
-
-        while (mSendQueue.size())
-        {
-            auto& front = mSendQueue.front();
+			// ok, the send and recv queues are empty. Lets close the socket
+			if (mHandle)
+			{
+				//if (mSession) mSession->removeChannel(this);
+				mHandle->close();
+				mHandle.reset(nullptr);
+			}
 
 #ifdef CHANNEL_LOGGING
-            mLog.push("cancel send #" + ToString(front->mIdx));
+			mLog.push("Closed");
 #endif
-            //delete front->mContainer;
 
-            auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
-            front->mPromise.set_exception(e_ptr);
+		}
+	}
 
-            //delete front;
-            mSendQueue.pop_front();
-        }
+
+	void ChannelBase::cancelSendQueuedOperations()
+	{
+		if(mHandle)
+			mHandle->close();
+
+		while (mSendQueue.size())
+		{
+			auto& front = mSendQueue.front();
 
 #ifdef CHANNEL_LOGGING
-        mLog.push("send queue empty");
+			mLog.push("cancel send #" + ToString(front->mIdx));
 #endif
-        mSendQueueEmptyProm.set_value();
-    }
+			//delete front->mContainer;
 
+			auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
+			front->mPromise.set_exception(e_ptr);
 
-    void ChannelBase::cancelRecvQueuedOperations()
-    {
-        mHandle->close();
-
-        while (mRecvQueue.size())
-        {
-            auto& front = mRecvQueue.front();
+			//delete front;
+			mSendQueue.pop_front();
+		}
 
 #ifdef CHANNEL_LOGGING
-            mLog.push("cancel recv #" + ToString(front->mIdx));
+		mLog.push("send queue empty");
 #endif
-            //delete front->mContainer;
+		mSendQueueEmptyProm.set_value();
+	}
 
-            auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
-            front->mPromise.set_exception(e_ptr);
 
-            //delete front;
-            mRecvQueue.pop_front();
-        }
+	void ChannelBase::cancelRecvQueuedOperations()
+	{
+		if(mHandle)
+			mHandle->close();
+
+		while (mRecvQueue.size())
+		{
+			auto& front = mRecvQueue.front();
+
+#ifdef CHANNEL_LOGGING
+			mLog.push("cancel recv #" + ToString(front->mIdx));
+#endif
+			//delete front->mContainer;
+
+			auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
+			front->mPromise.set_exception(e_ptr);
+
+			//delete front;
+			mRecvQueue.pop_front();
+		}
 
 
 #ifdef CHANNEL_LOGGING
-        mLog.push("recv queue empty");
+		mLog.push("recv queue empty");
 #endif
-        mRecvQueueEmptyProm.set_value();
-    }
 
-    std::string Channel::getRemoteName() const
-    {
-        return mBase->mRemoteName;
-    }
+		mRecvQueueEmptyProm.set_value();
+	}
 
-    void Channel::resetStats()
-    {
-        mBase->mTotalSentData = 0;
+	std::string Channel::getRemoteName() const
+	{
+		return mBase->mRemoteName;
+	}
+
+	std::string Channel::getSessionName() const
+	{
+		if (mBase->mSession)
+			return mBase->mSession->mName;
+		else
+			return {};
+	}
+
+
+	void Channel::resetStats()
+	{
+		mBase->mTotalSentData = 0;
 		mBase->mTotalRecvData = 0;
-        mBase->mMaxOutstandingSendData = 0;
-        mBase->mOutstandingSendData = 0;
-    }
+		mBase->mMaxOutstandingSendData = 0;
+		mBase->mOutstandingSendData = 0;
+	}
 
-    u64 Channel::getTotalDataSent() const
-    {
-        return mBase->mTotalSentData;
-    }
+	u64 Channel::getTotalDataSent() const
+	{
+		return mBase->mTotalSentData;
+	}
 
-    u64 Channel::getTotalDataRecv() const
-    {
-        return mBase->mTotalRecvData;
-    }
+	u64 Channel::getTotalDataRecv() const
+	{
+		return mBase->mTotalRecvData;
+	}
 
-    u64 Channel::getMaxOutstandingSendData() const
-    {
-        return (u64)mBase->mMaxOutstandingSendData;
-    }
+	u64 Channel::getMaxOutstandingSendData() const
+	{
+		return (u64)mBase->mMaxOutstandingSendData;
+	}
 
 
-    void Channel::dispatch(std::unique_ptr<IOOperation> op)
-    {
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-    }
+	void Channel::dispatch(std::unique_ptr<IOOperation> op)
+	{
+		mBase->getIOService().dispatch(mBase.get(), std::move(op));
+	}
 
-    void ChannelBase::setRecvFatalError(std::string reason)
-    {
+	void ChannelBase::setRecvFatalError(std::string reason)
+	{
 #ifdef CHANNEL_LOGGING
-        mLog.push("Recv error: " + reason);
+		mLog.push("Recv error: " + reason);
 #endif
-        mRecvErrorMessage += (reason + "\n");
-        mRecvStatus = Channel::Status::FatalError;
-        cancelRecvQueuedOperations();
-    }
+		mRecvErrorMessage += (reason + "\n");
+		mRecvStatus = Channel::Status::FatalError;
+		cancelRecvQueuedOperations();
+	}
 
-    void ChannelBase::setSendFatalError(std::string reason)
-    {
+	void ChannelBase::setSendFatalError(std::string reason)
+	{
 #ifdef CHANNEL_LOGGING
-        mLog.push("Send error: " + reason);
+		mLog.push("Send error: " + reason);
 #endif
-        mSendErrorMessage = reason;
-        mSendStatus = Channel::Status::FatalError;
-        cancelSendQueuedOperations();
-    }
+		mSendErrorMessage = reason;
+		mSendStatus = Channel::Status::FatalError;
+		cancelSendQueuedOperations();
+	}
 
-    void ChannelBase::setBadRecvErrorState(std::string reason)
-    {
-        if (mRecvStatus != Channel::Status::Normal)
-        {
-            std::cout << "Double Error in Channel::setBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n error set twice." << std::endl;
-            std::terminate();
-        }
-        mRecvErrorMessage = reason;
-        mRecvStatus = Channel::Status::RecvSizeError;
-    }
+	void ChannelBase::setBadRecvErrorState(std::string reason)
+	{
+		if (mRecvStatus != Channel::Status::Normal)
+		{
+			std::cout << "Double Error in Channel::setBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n error set twice." << std::endl;
+			std::terminate();
+		}
+		mRecvErrorMessage = reason;
+		mRecvStatus = Channel::Status::RecvSizeError;
+	}
 
-    void ChannelBase::clearBadRecvErrorState()
-    {
+	void ChannelBase::clearBadRecvErrorState()
+	{
 
-        if (mRecvStatus != Channel::Status::RecvSizeError)
-        {
-            std::cout << "Error in Channel::clearBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n Was not in Status::RecvSizeError." << std::endl;
-            std::terminate();
-        }
+		if (mRecvStatus != Channel::Status::RecvSizeError)
+		{
+			std::cout << "Error in Channel::clearBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n Was not in Status::RecvSizeError." << std::endl;
+			std::terminate();
+		}
 
-        mSendErrorMessage = "";
-        mRecvStatus = Channel::Status::Normal;
-    }
+		mSendErrorMessage = "";
+		mRecvStatus = Channel::Status::Normal;
+	}
 }

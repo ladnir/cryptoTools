@@ -29,17 +29,17 @@ namespace osuCrypto
 
 	class Acceptor;
 	class IOOperation;
-    class Endpoint;
+    class Session;
     class Channel;
     class ChannelBase;
-	struct EndpointBase;
+	struct SessionBase;
 
     std::vector<std::string> split(const std::string &s, char delim);
 
     class IOService
     {
         friend class Channel;
-        friend class Endpoint;
+        friend class Session;
 
     public:
 
@@ -79,7 +79,7 @@ namespace osuCrypto
         // Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         Acceptor* getAcceptor(std::string ip, i32 port);
 
-        // Shut down the IO service. WARNING: blocks until all Channels and Endpoints are stopped.
+        // Shut down the IO service. WARNING: blocks until all Channels and Sessions are stopped.
         void stop();
 
         bool mPrint;
@@ -107,51 +107,61 @@ namespace osuCrypto
 		std::mutex mSocketChannelPairsMtx;
 
 
-		struct EndpointGroup
+		struct SessionGroup
 		{
-			EndpointGroup() = default;
-			EndpointGroup(const EndpointGroup&) = delete;
-			EndpointGroup(EndpointGroup&&) = default;
+			SessionGroup() = default;
+			SessionGroup(const SessionGroup&) = delete;
+			SessionGroup(SessionGroup&&) = default;
 
 			struct NamedSocket {
 				std::string mRemoteName, mLocalName;
 				std::unique_ptr<BoostSocketInterface> mSocket;
 			};
 
-			bool isEmpty() const
-			{
+			bool isEmpty() const {
 				return mSockets.size() == 0 && mChannels.size() == 0;
 			}
 
-			bool hasPendingChannels() const
-			{
+			bool hasPendingChannels() const {
 				return mChannels.size();
 			}
 
+			bool erase(ChannelBase* chl);
 
 			void print();
-			//void waitForChannels(std::mutex& mtx, const std::optional<std::chrono::milliseconds>& waitTime = {});
-			//std::promise<void> mProm;
-			//std::future<void> mFuture;
+
+			bool mRemoveWhenEmptry = false;
 			u64 mSuccessfulConnections = 0;
 			std::string mName;
-			std::shared_ptr<EndpointBase> mBase;
+			std::shared_ptr<SessionBase> mBase;
+
+		//	const std::list<NamedSocket> sockets() const { return mSockets; };
+		//	const std::list<std::shared_ptr<ChannelBase>> channels() const { return mChannels; };
+
+
+		//	void startSocket(Acceptor* ios, std::unique_ptr<BoostSocketInterface> sock, const std::list<std::shared_ptr<ChannelBase>>::const_iterator& chl);
+		//	void startSocket(Acceptor* ios, const std::list<NamedSocket>::const_iterator& sock, const std::shared_ptr<ChannelBase>& chl);
+
+		//	void add(const std::shared_ptr<ChannelBase>& chl);
+		//	void add(std::unique_ptr<ChannelBase> chl);
+
+		//private:
 			std::list<NamedSocket> mSockets;
 			std::list<std::shared_ptr<ChannelBase>> mChannels;
 		};
 
-		// A list of EndpointGroups containing unnamed endpointed
+		// A list of SessionGroups containing unnamed endpointed
 		// created by the server.
-		std::list<EndpointGroup> mAnonymousServerEps;
+		std::list<SessionGroup> mAnonymousServerEps;
 
-		// A list of EndpointGroups containing unnamed endpointed
+		// A list of SessionGroups containing unnamed endpointed
 		// created by the server.
-		std::list<EndpointGroup> mAnonymousClientEps;
+		std::list<SessionGroup> mAnonymousClientEps;
 
 		// A map of endpoint groups which have well defined name.
 		// The name was either explicitly provided by the user
 		// or has been agreed upon via some logic.
-		std::unordered_map<std::string, EndpointGroup> mEndpointGroups;
+		std::unordered_map<std::string, SessionGroup> mSessionGroups;
 
 		void asyncSetSocket(		
 			std::string name,
@@ -159,13 +169,17 @@ namespace osuCrypto
 
 		void asyncGetSocket(std::shared_ptr<ChannelBase> chl);
 
+
+		void removePendingChannel(ChannelBase* chl);
+
 		bool isEmpty() const;
 
-		bool hasPendingsChannels() const;
+		bool hasPendingChannels() const;
 
 		void removePendingSockets();
 
-		//void removeEndpoint(const EndpointBase* ep, const std::optional<std::chrono::milliseconds>& waitTime = {});
+		//void removeSession(const SessionBase* ep/*, const std::optional<std::chrono::milliseconds>& waitTime = {}*/);
+		void removeSession(const std::shared_ptr<SessionBase>& ep);
 
 		//void remove(std::string endpoint, std::string localName, std::string remoteName);
 

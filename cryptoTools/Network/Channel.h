@@ -13,7 +13,7 @@
 namespace osuCrypto {
 
     class ChannelBase;
-	class Endpoint;
+	class Session;
 	class IOService;
 	class SocketInterface;
 
@@ -226,13 +226,16 @@ namespace osuCrypto {
 		//////////////////////////////////////////////////////////////////////////////
 
 		// Get the local endpoint for this channel.
-		//Endpoint& getEndpoint();
+		//Session& getSession();
 
 		// The handle for this channel. Both ends will always have the same name.
 		std::string getName() const;
 
 		// Returns the name of the remote endpoint.
 		std::string getRemoteName() const;
+
+		// Return the name of the endpoint of this channel has once.
+		std::string getSessionName() const;
 
 		// Sets the data send and recieved counters to zero.
 		void resetStats();
@@ -250,10 +253,15 @@ namespace osuCrypto {
         bool isConnected();
 
         // A blocking call that waits until the channel is open in that it can send/receive data
-        void waitForConnection();
+		// Returns if the connection has been made. Always true if no timeout is provided.
+        bool waitForConnection(std::chrono::milliseconds* timeout = nullptr);
 
         // Close this channel to denote that no more data will be sent or received.
+		// blocks until all pending operations have completed.
         void close();
+
+		// Aborts all current operations (connect, send, receive).
+		void cancel();
 
         enum class Status { Normal, RecvSizeError, FatalError, Stopped };
 
@@ -263,8 +271,8 @@ namespace osuCrypto {
         void dispatch(std::unique_ptr<IOOperation> op);
 
 		friend class IOService;
-		friend class Endpoint;
-		Channel(Endpoint& endpoint, std::string localName, std::string remoteName);
+		friend class Session;
+		Channel(Session& endpoint, std::string localName, std::string remoteName);
     };
 
 
@@ -306,13 +314,13 @@ namespace osuCrypto {
     };
 #endif
 
-	struct EndpointBase;
+	struct SessionBase;
 
 	// The Channel base class the actually holds a socket. 
     class ChannelBase
     {
     public:
-        ChannelBase(Endpoint& endpoint, std::string localName, std::string remoteName);
+        ChannelBase(Session& endpoint, std::string localName, std::string remoteName);
         ChannelBase(IOService& ios, SocketInterface* sock);
         ~ChannelBase()
         {
@@ -322,7 +330,7 @@ namespace osuCrypto {
         IOService& mIos;
 		boost::asio::io_service::work mWork;
 
-		std::shared_ptr<EndpointBase> mEndpoint;
+		std::shared_ptr<SessionBase> mSession;
         std::string mRemoteName, mLocalName;
 
         u32 mRecvSizeBuff, mSendSizeBuff;
@@ -355,10 +363,11 @@ namespace osuCrypto {
         void cancelRecvQueuedOperations();
         void cancelSendQueuedOperations();
 
-        void close();
+		void close();
+		void cancel();
         IOService& getIOService() { return mIos; }
 
-        bool stopped() { return mSendStatus == Channel::Status::Stopped; }
+        bool stopped() { return mSendStatus == Channel::Status::Stopped && mRecvStatus == Channel::Status::Stopped; }
 
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mOpIdx;

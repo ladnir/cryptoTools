@@ -9,7 +9,7 @@ namespace tests_cryptoTools
     void BtNetwork_OneMegabyteSend_Test();
     void BtNetwork_ConnectMany_Test();
     void BtNetwork_CrossConnect_Test();
-    void BtNetwork_ManyEndpoints_Test();
+    void BtNetwork_ManySessions_Test();
 
 
     void BtNetwork_AsyncConnect_Test();
@@ -25,5 +25,6 @@ namespace tests_cryptoTools
 
 	void BtNetwork_AnonymousMode_Test();
 	void BtNetwork_ServerMode_Test();
-
+	void BtNetwork_CancelChannel_Test();
+	
 }

@@ -1,7 +1,7 @@
 #include "Network.h"
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
-#include <cryptoTools/Network/Endpoint.h>
+#include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/IOService.h>
 
 
@@ -36,18 +36,23 @@ void networkTutorial()
     // connectionName denotes an identifier that both people on either side
     // of this connection will use. If a server connects to several clients,
     // they should all use different connection names.
-    Endpoint server(ios, serversIpAddress, EpMode::Server, connectionName);
-    Endpoint client(ios, serversIpAddress, EpMode::Client, connectionName);
+    Session server(ios, serversIpAddress, EpMode::Server, connectionName);
+    Session client(ios, serversIpAddress, EpMode::Client, connectionName);
 
-
-    // Two endpoints with the same connectionName can have many channels, each independent.
-    // To support that, each channel pair will have a unique name.
-    std::string channelName = "channelName";
 
     // Actually get the channel that can be used to communicate on.
-    Channel chl0 = client.addChannel(channelName);
+    Channel chl0 = client.addChannel();
+    Channel chl1 = server.addChannel();
 
-    Channel chl1 = server.addChannel(channelName);
+    // Two endpoints with the same connectionName can have many channels, each independent.
+	Channel chl0b = client.addChannel();
+	Channel chl1b = server.addChannel();
+	
+	// Above, the channels are connected in the order that they are declared. Alternatively
+	// explicit names can be provided. This channel pair are connected regardless of order.
+	std::string channelName = "channelName";
+	Channel namedChl0 = client.addChannel(channelName);
+	Channel namedChl1 = server.addChannel(channelName);
 
     // we now have a pair of channels, but it is possible that they have yet
     // to actually connect to each other in the background. To test that the
@@ -316,7 +321,7 @@ void networkTutorial()
 
     // Print interesting information.
     std::cout
-        << "Connection: " << chl0.getEndpoint().getName() << std::endl
+        << "Connection: " << chl0.getSessionName() << std::endl
         << "   Channel: " << chl0.getName() << std::endl
         << "      Send: " << chl0.getTotalDataSent() << std::endl
         << "  received: " << chl0.getTotalDataRecv() << std::endl;

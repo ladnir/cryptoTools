@@ -13,6 +13,13 @@ namespace tests_cryptoTools
     TEST_CLASS(BtNetworking_Tests)
     {
     public:
+
+		TEST_METHOD(BtNetwork_CancelChannel_TestVS)
+		{
+			InitDebugPrinting();
+			BtNetwork_CancelChannel_Test();
+		}
+
 		TEST_METHOD(BtNetwork_ServerMode_TestVS)
 		{
 			InitDebugPrinting();
@@ -53,10 +60,10 @@ namespace tests_cryptoTools
         }
 
 
-        TEST_METHOD(BtNetwork_ManyEndpoints_TestVS)
+        TEST_METHOD(BtNetwork_ManySessions_TestVS)
         {
             InitDebugPrinting();
-            BtNetwork_ManyEndpoints_Test();
+            BtNetwork_ManySessions_Test();
         }
 
         TEST_METHOD(BtNetwork_AsyncConnect_TestVS)
