@@ -9,7 +9,7 @@
 #include <emmintrin.h>
 #include <smmintrin.h>
 
-//#include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <cryptoTools/gsl/span>
 
@@ -53,7 +53,7 @@ namespace osuCrypto {
 
 
     template<typename T>
-	static std::string ToString(const T& t) { return ""; }// boost::lexical_cast<std::string>(t); }
+	static std::string ToString(const T& t) { return boost::lexical_cast<std::string>(t); }
 
     typedef  __m128i block;
     inline block toBlock(u8*data) { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
