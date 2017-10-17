@@ -2,6 +2,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Finally.h>
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Channel.h>
@@ -17,8 +18,11 @@ namespace osuCrypto
 
 	Acceptor::Acceptor(IOService& ioService)
 		:
-		mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
+		//mSocketChannelPairsRemovedFuture(mSocketChannelPairsRemovedProm.get_future()),
+		mPendingSocketsEmptyFuture(mPendingSocketsEmptyProm.get_future()),
+		mStoppedFuture(mStoppedPromise.get_future()),
 		mIOService(ioService),
+		mStrand(ioService.mIoService),
 		mHandle(ioService.mIoService),
 		mStopped(false),
 		mPort(0)
@@ -30,7 +34,7 @@ namespace osuCrypto
 		stop();
 	}
 
-	void Acceptor::bind(u32 port, std::string ip)
+	void Acceptor::bind(u32 port, std::string ip, boost::system::error_code& ec)
 	{
 		auto pStr = std::to_string(port);
 		mPort = port;
@@ -39,14 +43,11 @@ namespace osuCrypto
 		boost::asio::ip::tcp::resolver::query
 			query(ip, pStr);
 
-		boost::system::error_code ec;
 		auto addrIter = resolver.resolve(query, ec);
 
 		if (ec)
 		{
-			std::cout << "network address resolve error: " << ec.message() << std::endl;
-
-			throw std::runtime_error(ec.message());
+			return;
 		}
 
 		mAddress = *addrIter;
@@ -61,566 +62,477 @@ namespace osuCrypto
 
 		if (ec)
 		{
-			std::cout << "network address bind error: " << ec.message() << std::endl;
+			return;
+			//std::cout << "network address bind error: " << ec.message() << std::endl;
 
-			throw std::runtime_error(ec.message());
+			//throw std::runtime_error(ec.message());
 		}
 
 
 		//std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
 		//std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
-		mStoppedListeningFuture = (mStoppedListeningPromise.get_future());
 		mHandle.listen(boost::asio::socket_base::max_connections);
 	}
 
 	void Acceptor::start()
 	{
-		if (stopped() == false)
+		mStrand.dispatch([&]()
 		{
-
-
-			BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
-			mHandle.async_accept(newSocket->mSock, [newSocket, this](const boost::system::error_code& ec)
+			if (isListening())
 			{
-				start();
+				mPendingSockets.emplace_back(mIOService.mIoService);
+				auto& sockIter = mPendingSockets.end(); --sockIter;
 
-				if (!ec)
+				//BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
+				mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
 				{
-					boost::asio::ip::tcp::no_delay option(true);
-					newSocket->mSock.set_option(option);
-					auto buff = new std::string(sizeof(u32), '\0');
+					start();
 
-					newSocket->mSock.async_receive(boost::asio::buffer((char*)buff->data(), buff->size()),
-						[newSocket, buff, this](const boost::system::error_code& ec2, u64 bytesTransferred)
+					if (!ec)
 					{
-						if (!ec2 && bytesTransferred == 4)
-						{
-							auto size = *(u32*)buff->data();
-							buff->resize(size);
+						boost::asio::ip::tcp::no_delay option(true);
+						sockIter->mSock.set_option(option);
+						sockIter->mBuff.resize(sizeof(u32));
 
-							newSocket->mSock.async_receive(boost::asio::buffer((char*)buff->data(), buff->size()),
-								[newSocket, buff, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
+						sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
+							[sockIter, this](const boost::system::error_code& ec2, u64 bytesTransferred)
+						{
+							if (!ec2 && bytesTransferred == 4)
 							{
-								if (!ec3 && bytesTransferred2 == buff->size())
+								auto size = *(u32*)sockIter->mBuff.data();
+								sockIter->mBuff.resize(size);
+
+								sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
+									mStrand.wrap([sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
 								{
-									asyncSetSocket(std::move(*buff), std::move(std::unique_ptr<BoostSocketInterface>(newSocket)));
-								}
-								else
+									if (!ec3 && bytesTransferred2 == sockIter->mBuff.size())
+									{
+										asyncSetSocket(
+											std::move(sockIter->mBuff),
+											std::move(std::unique_ptr<BoostSocketInterface>(
+												new BoostSocketInterface(std::move(sockIter->mSock)))));
+									}
+
+									mPendingSockets.erase(sockIter);
+									if (stopped() && mPendingSockets.size() == 0)
+										mPendingSocketsEmptyProm.set_value();
+								}));
+
+							}
+							else
+							{
+								//std::cout << "async_accept error, failed to receive first header on connection handshake."
+								//	<< " Other party may have closed the connection. "
+								//	<< ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+								mStrand.dispatch([&, sockIter]()
 								{
-									std::cout << "async_accept error, failed to receive first header on connection handshake."
-										<< " Other party may have closed the connection. "
-<< ((ec3 != 0) ? "Error code:" + ec3.message() : " received " + ToString(bytesTransferred2) + " / 4 bytes") << "  " << LOCATION << std::endl;
+									mPendingSockets.erase(sockIter);
+									if (stopped() && mPendingSockets.size() == 0)
+										mPendingSocketsEmptyProm.set_value();
+								});
+							}
 
-delete newSocket;
-								}
-
-								delete buff;
-							});
-
-						}
-						else
+						});
+					}
+					else
+					{
+						mStrand.dispatch([&, sockIter]()
 						{
-std::cout << "async_accept error, failed to receive first header on connection handshake."
-<< " Other party may have closed the connection. "
-<< ((ec2 != 0) ? "Error code:" + ec2.message() : " received " + ToString(bytesTransferred) + " / 4 bytes") << "  " << LOCATION << std::endl;
+							mPendingSockets.erase(sockIter);
+							if (stopped() && mPendingSockets.size() == 0)
+								mPendingSocketsEmptyProm.set_value();
+						});
+					}
+				});
+			}
+		});
 
-delete newSocket;
-delete buff;
-						}
-
-					});
-				}
-				else
-				{
-					//std::cout << IoStream::lock<< "async_accept failed with error_code:" << ec.message() << std::endl << IoStream::unlock;
-					delete newSocket;
-				}
-			});
-		}
-		else
-		{
-			mStoppedListeningPromise.set_value();
-		}
 	}
 
 	void Acceptor::stop()
 	{
-		if (mStopped == false) {
-			{
-				std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+		if (mStopped == false)
+		{
+			mStrand.dispatch([&]() {
+
 				mStopped = true;
-				if (hasPendingChannels() == false)
-					mSocketChannelPairsRemovedProm.set_value();
-			}
+				mListening = false;
 
-			if (mSocketChannelPairsRemovedFuture.valid())
-				mSocketChannelPairsRemovedFuture.get();
+				// stop listening.
+				mHandle.close();
 
-			mHandle.close();
+				// cancel any sockets which have not completed the handshake.
+				for (auto& pendingSocket : mPendingSockets)
+					pendingSocket.mSock.close();
 
-			if (mStoppedListeningFuture.valid())
-				mStoppedListeningFuture.get();
+				// if there were no pending sockets, set the promise
+				if (mPendingSockets.size() == 0)
+					mPendingSocketsEmptyProm.set_value();
 
-			mAnonymousClientEps.clear();
-			mAnonymousServerEps.clear();
-			mSessionGroups.clear();
+				// no subscribers, we can set the promise now.
+				if (hasSubscriptions() == false)
+					mStoppedPromise.set_value();
+			});
+
+			// wait for the pending events.
+			mPendingSocketsEmptyFuture.get();
+			mStoppedFuture.get();
 		}
 	}
 
-	bool Acceptor::hasPendingChannels() const
-	{
-		for (auto& a : mAnonymousServerEps)
-			if (a.hasPendingChannels())
-				return true;
 
-		for (auto& a : mSessionGroups)
-			if (a.second.hasPendingChannels())
+	bool Acceptor::hasSubscriptions() const
+	{
+		for (auto& a : mGroups)
+			if (a.hasSubscriptions())
 				return true;
 
 		return false;
 	}
-
-	bool Acceptor::isEmpty() const
+	void Acceptor::stopListening()
 	{
-		for (auto& a : mAnonymousServerEps)
-			if (!a.isEmpty())
-				return false;
+		if (isListening())
+		{
+			mStrand.dispatch([&]() {
+				mListening = false;
+				mHandle.close();
 
-		for (auto& a : mAnonymousClientEps)
-			if (!a.isEmpty())
-				return false;
-
-		for (auto& a : mSessionGroups)
-			if (!a.second.isEmpty())
-				return false;
-
-		return true;
+				if (stopped() && hasSubscriptions() == false)
+					mStoppedPromise.set_value();
+			});
+		}
 	}
 
-
-	void Acceptor::removeSession(const std::shared_ptr<SessionBase>& ep)
+	void Acceptor::unsubscribe(SessionBase* session)
 	{
-		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+		std::promise<void> p;
+		std::future<void> f(p.get_future());
+		auto iter = session->mGroup;
 
-		auto iter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-			[&](const SessionGroup& epg) {
-			return epg.mBase == ep;
+		mStrand.dispatch([&, iter]() {
+			iter->mBase.reset();
+
+			if (iter->hasSubscriptions() == false)
+			{
+				iter->removeMapping();
+				mGroups.erase(iter);
+			}
+
+			// if no one else wants us to listen, stop listening
+			if (hasSubscriptions() == false)
+				stopListening();
+
+			p.set_value();
 		});
 
-		if (iter != mAnonymousServerEps.end())
-		{
-			if (iter->isEmpty())
-				mAnonymousServerEps.erase(iter);
+		f.get();
+	}
+
+	void Acceptor::subscribe(std::shared_ptr<SessionBase>& session)
+	{
+		std::promise<void> p;
+		std::future<void> f = p.get_future();
+
+		session->mAcceptor = this;
+
+		mStrand.dispatch([&]() {
+
+			if (mStopped)
+			{
+				auto ePtr = std::make_exception_ptr(
+					std::runtime_error("can not subscribe to a stopped Acceptor."));
+				p.set_exception(ePtr);
+			}
 			else
-				iter->mRemoveWhenEmptry = true;
+			{
+				mGroups.emplace_back();
+				auto iter = mGroups.end(); --iter;
+
+				iter->mBase = session;
+				session->mGroup = iter;
+
+				auto key = session->mName;
+				auto& collection = mUnclaimedGroups[key];
+				collection.emplace_back(iter);
+				auto deleteIter = collection.end(); --deleteIter;
+
+				iter->removeMapping = [&, deleteIter, key]()
+				{
+					collection.erase(deleteIter);
+					if (collection.size() == 0)
+						mUnclaimedGroups.erase(mUnclaimedGroups.find(key));
+				};
+
+				if (mListening == false)
+				{
+					mListening = true;
+					boost::system::error_code ec;
+					bind(session->mPort, session->mIP, ec);
+
+					if (ec) {
+						auto ePtr = std::make_exception_ptr(
+							std::runtime_error("network bind error: " + ec.message()));
+						p.set_exception(ePtr);
+					}
+
+					start();
+				}
+
+				p.set_value();
+			}
+		});
+
+		// may throw
+		f.get();
+	}
+
+	Acceptor::SocketGroupList::iterator Acceptor::getSocketGroup(const std::string & sessionName, u64 sessionID, bool addIfMissing)
+	{
+
+		auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
+		if (unclaimedSocketIter != mUnclaimedSockets.end())
+		{
+			auto& sockets = unclaimedSocketIter->second;
+			auto matchIter = std::find_if(sockets.begin(), sockets.end(),
+				[&](const SocketGroupList::iterator& g) { return g->mSessionID == sessionID; });
+
+			if (matchIter != sockets.end())
+				return *matchIter;
+		}
+
+		if (addIfMissing)
+		{
+			// there is no socket group for this session. lets create one.
+			mSockets.emplace_back();
+			auto socketIter = mSockets.end(); --socketIter;
+
+			socketIter->mName = sessionName;
+			socketIter->mSessionID = sessionID;
+
+			// add a mapping to indicate that this group is unclaimed
+			auto& group = mUnclaimedSockets[sessionName];
+			group.emplace_back(socketIter);
+			auto deleteIter = group.end(); --deleteIter;
+
+			socketIter->removeMapping = [&group, &socketIter, this, sessionName, deleteIter]() {
+				group.erase(deleteIter);
+				if (group.size() == 0) mUnclaimedSockets.erase(mUnclaimedSockets.find(sessionName));
+			};
+
+			return socketIter;
 		}
 		else
 		{
-			auto iter = mSessionGroups.find(ep->mName);
-			if (iter != mSessionGroups.end())
-			{
-				if (iter->second.isEmpty())
-					mSessionGroups.erase(iter);
-				else
-					iter->second.mRemoveWhenEmptry = true;
-			}
+			return mSockets.end();
 		}
 	}
+
+	void Acceptor::cancelPendingChannel(ChannelBase* chl)
+	{
+		mStrand.dispatch([=]() {
+			auto iter = chl->mSession->mGroup;
+
+			auto chlIter = std::find_if(iter->mChannels.begin(), iter->mChannels.end(),
+				[&](const std::shared_ptr<ChannelBase>& c) { return c.get() == chl; });
+
+			if (chlIter != iter->mChannels.end())
+			{
+				auto ePtr = std::make_exception_ptr(SocketConnectError("Acceptor canceled the socket request. " LOCATION));
+				(*chlIter)->mOpenProm.set_exception(ePtr);
+
+				iter->mChannels.erase(chlIter);
+
+
+				if (iter->hasSubscriptions() == false)
+				{
+					iter->removeMapping();
+					mGroups.erase(iter);
+
+					if (hasSubscriptions() == false)
+						stopListening();
+				}
+			}
+		});
+	}
+
 
 	bool Acceptor::stopped() const
 	{
 		return mStopped;
 	}
+	//bool Acceptor::userModeIsListening() const
+	//{
+	//	return false;
+	//}
 	//std::atomic<int> ccc(0);
 
 	void Acceptor::asyncGetSocket(std::shared_ptr<ChannelBase> chl)
 	{
-		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
-
 		if (stopped()) throw std::runtime_error(LOCATION);
 
-		auto& endpointName = chl->mSession->mName;
-		auto& localName = chl->mLocalName;
-		auto& remoteName = chl->mRemoteName;
+		mStrand.dispatch([&, chl]() {
 
-		if (endpointName == "")
-		{
-			// anonymous Session. Lets try and match the channel name with
-			// the first socket name.
+			auto& sessionGroup = chl->mSession->mGroup;
+			auto& sessionName = chl->mSession->mName;
+			auto& sessionID = chl->mSession->mSessionID;
+			auto& localName = chl->mLocalName;
+			auto& remoteName = chl->mRemoteName;
 
-			auto anIter = std::find_if(mAnonymousClientEps.begin(), mAnonymousClientEps.end(),
-				[&](const SessionGroup& epg) {
-				return epg.mSockets.front().mLocalName == localName &&
-					epg.mSockets.front().mRemoteName == remoteName;
-			});
-
-			// See if we can find a socket that matches.
-			if (anIter != mAnonymousClientEps.end())
+			if (sessionID)
 			{
-				auto& group = *anIter;
-				auto& sockets = group.mSockets;
-				auto& socket = sockets.front();
+				sessionGroup->add(chl, this);
 
-				// we found a match. Lets rename this endpoint to match the 
-				// client's random name
-				endpointName = group.mName;
-				group.mBase = chl->mSession;
-				//group.mComment += " .normal case. channel found anGroup. " + std::to_string(ccc++) + " ";
-
-				// start the socket.
-				mIOService.startSocket(chl.get(), std::move(socket.mSocket));
-				group.mSuccessfulConnections++;
-				sockets.pop_front();
-
-				// move the endpoint group to the named list
-				mSessionGroups.emplace(endpointName, std::move(group));
-
-				// remove the old copy
-				mAnonymousClientEps.erase(anIter);
-
-				// check if we are all done
-				if (stopped() && hasPendingChannels() == false)
-					mSocketChannelPairsRemovedProm.set_value();
-			}
-			else
-			{
-				// The client has not connected with a correctly named
-				// channel with an anonymous endpoint. Lets check if
-				// we have created a group to store these channel.
-				anIter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-					[&](const SessionGroup& epg) {
-					return epg.mBase == chl->mSession;
-				});
-
-				if (anIter == mAnonymousServerEps.end())
+				if (sessionGroup->hasSubscriptions() == false)
 				{
-					// This is the first channel for this endpoint.
-					// Lets create a group to store the channel in
-					// until it has a connecting socket.
-					mAnonymousServerEps.emplace_back();
-					anIter = mAnonymousServerEps.end();
-					--anIter;
+					sessionGroup->removeMapping();
+					mGroups.erase(sessionGroup);
 
-					anIter->mBase = chl->mSession;
+					if (hasSubscriptions() == false)
+						stopListening();
 				}
-
-				// store this channel in this group until
-				// there is a connecting socket.
-				auto& group = *anIter;
-				group.mChannels.emplace_back(chl);
-				//group.mComment += "missing socket. " + std::to_string(ccc++) + " ";
-			}
-		}
-		else
-		{
-			// check if the corresponding group exists
-			auto iter = mSessionGroups.find(endpointName);
-			if (iter == mSessionGroups.end())
-			{
-				// no group exists. This is the first channel for the endpoint and
-				// the client has yet to connect a socket with this endpoint name. 
-				// Create a new group to store the channel in.
-				iter = mSessionGroups.emplace(endpointName, SessionGroup()).first;
-				iter->second.mName = endpointName;
-				iter->second.mBase = chl->mSession;
+				return;
 			}
 
-			auto& group = iter->second;
+			auto socketGroup = mSockets.end();
 
-			// check if there is a socket that matches this channel's name
-			auto sockIter = std::find_if(group.mSockets.begin(), group.mSockets.end(),
-				[&](const SessionGroup::NamedSocket& sock)
+			auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
+			if (unclaimedSocketIter != mUnclaimedSockets.end())
 			{
-				return sock.mLocalName == localName &&
-					sock.mRemoteName == remoteName;
-			});
+				auto& groups = unclaimedSocketIter->second;
+				auto matchIter = std::find_if(groups.begin(), groups.end(),
+					[&](const SocketGroupList::iterator& g) { return g->hasMatchingSocket(chl); });
 
-			if (sockIter != group.mSockets.end())
-			{
-				// we have found a match. Lets connect the socket to the channel
-				mIOService.startSocket(chl.get(), std::move(sockIter->mSocket));
-				group.mSuccessfulConnections++;
-				group.mSockets.erase(sockIter);
-
-				// check if we are all done
-				if (stopped() && hasPendingChannels() == false)
-					mSocketChannelPairsRemovedProm.set_value();
+				if (matchIter != groups.end())
+					socketGroup = *matchIter;
 			}
-			else
+
+			// add this channel to this group. 
+			sessionGroup->add(chl, this);
+
+			// check if we have matching sockets.
+			if (socketGroup != mSockets.end())
 			{
-				// no match was found. Lets store the channel in the group.
-				group.mChannels.emplace_back(chl);
+				// merge the group of sockets into the SessionGroup.
+				sessionGroup->merge(*socketGroup, this);
+
+				// erase the mapping for these sockets being unclaimed.
+				socketGroup->removeMapping();
+				sessionGroup->removeMapping();
+
+				// erase the sockets.
+				mSockets.erase(socketGroup);
+
+				// check if we can erase this session group (session closed).
+				if (sessionGroup->hasSubscriptions() == false)
+				{
+					mGroups.erase(sessionGroup);
+					if (hasSubscriptions() == false)
+						stopListening();
+				}
+				else
+				{
+					// If not then add this SessionGroup to the list of claimed
+					// sessions. Remove the unclaimed channel mapping
+					auto fullKey = sessionName + std::to_string(sessionID);
+
+					auto location = mClaimedGroups.insert({ fullKey, sessionGroup }).first;
+					sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
+				}
 			}
-		}
+		});
 	}
 
-	void Acceptor::removePendingChannel(ChannelBase* chl)
-	{
-		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
-		for (auto& a : mAnonymousServerEps)
-			if (a.erase(chl)) return;
-
-		if (chl->mSession->mName == "") throw std::runtime_error("logic error " LOCATION);
-
-		auto iter = mSessionGroups.find(chl->mSession->mName);
-		if (iter != mSessionGroups.end())
-			iter->second.erase(chl);
-	}
 
 
 	void Acceptor::asyncSetSocket(
 		std::string name,
-		std::unique_ptr<BoostSocketInterface> sock)
+		std::unique_ptr<BoostSocketInterface> s)
 	{
-		std::unique_lock<std::mutex> lock(mSocketChannelPairsMtx);
+		mStrand.dispatch([this, name, ss = s.release()]() {
+			std::unique_ptr<BoostSocketInterface> sock(ss);
 
-		if (stopped()) return;
+			auto names = split(name, '`');
 
-		auto names = split(name, '`');
-
-		// check for the special case that this is a
-		// randomly named endpoint, i.e.  the user provided
-		// no endpoint name.
-		bool anonymousEp = false;
-		if (names.size() == 4 && names[3] == "#")
-		{
-			anonymousEp = true;
-			names.pop_back();
-		}
-
-
-		if (names.size() == 3)
-		{
-			auto& endpointName = names[0];
-			auto& remoteName = names[1];
-			auto& localName = names[2];
-
-			if (anonymousEp)
+			if (names.size() != 4)
 			{
+				std::cout << "bad channel name: " << name << std::endl
+					<< "Dropping the connection" << std::endl;
+				return;
+			}
 
-				// See if there exists an anonymous endpoints
-				// for which the channel name matches. If so rename
-				// the endpoint with the name provided by the client
-				// and forward the new sock onto the existing channel.
-				auto anIter = std::find_if(mAnonymousServerEps.begin(), mAnonymousServerEps.end(),
-					[&](const SessionGroup& epg) {
-					return epg.mChannels.size() &&
-						epg.mChannels.front()->mLocalName == localName &&
-						epg.mChannels.front()->mRemoteName == remoteName;
-				});
+			auto& sessionName = names[0];
+			auto sessionID = std::stoull(names[1]);
+			auto& remoteName = names[2];
+			auto& localName = names[3];
 
-				// SPECIAL CASE: check if by some random chance other (named) connections have been
-				// made ahead of this one with the proposed endpoint name. This can happen 
-				// if messages are delayed/reordered over the network...
-				auto epIter = mSessionGroups.find(endpointName);
-				if (epIter != mSessionGroups.end())
+			details::NamedSocket socket;
+			socket.mLocalName = localName;
+			socket.mRemoteName = remoteName;
+			socket.mSocket = std::move(sock);
+
+			auto fullKey = sessionName + std::to_string(sessionID);
+			auto claimedIter = mClaimedGroups.find(fullKey);
+			if (claimedIter != mClaimedGroups.end())
+			{
+				auto& group = claimedIter->second;
+				group->add(std::move(socket), this);
+
+				if (group->hasSubscriptions() == false)
 				{
-					auto& namedGroup = epIter->second;
-					if (namedGroup.mSuccessfulConnections || namedGroup.mChannels.size())
-					{
-						// this should not happen. The random name proposed
-						// by the client has already been used... As such we
-						// simply give up and drop the connection.
-						std::cout << "connection name:" << name
-							<< " already in use. Dropping the connection." << std::endl;
-						return;
-					}
-
-					// ok, we have this named group which has no successful
-					// connection made on this side. That is, no channels
-					// have used sockets from this group. 
-
-					// It is possible that the user on this side has some 
-					// anonymous group on this side with sockets that can be 
-					// matched. Lets try and find such an anonymous group
-					if (anIter != mAnonymousServerEps.end())
-					{
-						// we found such a group. This means that the client has
-						// established several sockets with the server. These are held in 
-						// namedGroup. The server has also created several channels
-						// with an anonymous endpoint. This lastest socket is a match
-						// to this named endpoint and has a socket that matches the 
-// anonymous group. We therefore merge these two groups together.
-
-						auto& anGroup = *anIter;
-						auto& chl = anGroup.mChannels.front();
-
-						// start with the current sock that matches the first channel.
-						mIOService.startSocket(chl.get(), std::move(sock));
-						namedGroup.mSuccessfulConnections++;
-						anGroup.mChannels.pop_front();
-
-						// ok, we need to merge these groups and complete
-						// any connections that we can. For each channel,
-						// lets look for a matching socket.
-						auto chlIter = anGroup.mChannels.begin();
-						while (chlIter != anGroup.mChannels.end())
-						{
-							auto& chl2 = *chlIter;
-
-							// see if there exists a socket with chl2's name.
-							auto sockIter = std::find_if(namedGroup.mSockets.begin(), namedGroup.mSockets.end(),
-								[&](const Acceptor::SessionGroup::NamedSocket& sock2) {
-								return sock2.mLocalName == chl2->mLocalName &&
-									sock2.mRemoteName == chl2->mRemoteName;
-							});
-
-							if (sockIter != namedGroup.mSockets.end())
-							{
-								// we have a match, start the socket
-								mIOService.startSocket(chl2.get(), std::move(sockIter->mSocket));
-								namedGroup.mSuccessfulConnections++;
-
-								// remove the channel and socket
-								namedGroup.mSockets.erase(sockIter);
-								chlIter = anGroup.mChannels.erase(chlIter);
-							}
-							else
-							{
-								// try the next channel
-								++chlIter;
-							}
-						}
-
-						// All the channels and sockets remaining did no match.
-						// Lets move the channels into the named group.
-						namedGroup.mChannels = std::move(anGroup.mChannels);
-						namedGroup.mBase = anGroup.mBase;
-						namedGroup.mBase->mName = namedGroup.mName;
-						//namedGroup.mComment += "special case merge. " + std::to_string(ccc++) + " ";
-
-						// make sure everything went correctly. Should never throw..
-						if (anGroup.isEmpty() == false)
-							throw std::runtime_error(LOCATION);
-
-						// removed the anGroup
-						mAnonymousServerEps.erase(anIter);
-
-						// check if we are all done
-						if (stopped() && hasPendingChannels() == false)
-							mSocketChannelPairsRemovedProm.set_value();
-						return;
-					}
+					group->removeMapping();
+					mGroups.erase(group);
+					if (hasSubscriptions() == false)
+						stopListening();
 				}
+				return;
+			}
 
+			auto& socketGroup = getSocketGroup(sessionName, sessionID, true);
 
-				// COMMON CASE: this is the first connection for the anonymous 
-				// endpoint and we simply need to check if the server has created
-				// the corresponding endpoint group or if we need to make one.
-				if (anIter != mAnonymousServerEps.end())
+			GroupList::iterator sessionGroup = mGroups.end();
+
+			auto unclaimedLocalIter = mUnclaimedGroups.find(sessionName);
+			if (unclaimedLocalIter != mUnclaimedGroups.end())
+			{
+				auto& groups = unclaimedLocalIter->second;
+				auto matchIter = std::find_if(groups.begin(), groups.end(),
+					[&](const GroupList::iterator& g) { return g->hasMatchingChannel(socket); });
+
+				if (matchIter != groups.end())
+					sessionGroup = *matchIter;
+			}
+
+			// add the socket to the SocketGroup
+			socketGroup->mSockets.emplace_back(std::move(socket));
+
+			if (sessionGroup != mGroups.end())
+			{
+				// merge the sockets into the group of cahnnels.
+				sessionGroup->merge(*socketGroup, this);
+
+				// make these socketes as claimed and remove the container.
+				socketGroup->removeMapping();
+				sessionGroup->removeMapping();
+
+				mSockets.erase(socketGroup);
+
+				// check if we can erase this seesion group (session closed).
+				if (sessionGroup->hasSubscriptions() == false)
 				{
-					// The server has already created a matching endpoint group.
-					auto& group = *anIter;
-					auto& chl = group.mChannels.front();
-
-					// assign the group and endpoint a name
-					group.mName = endpointName;
-					group.mBase->mName = endpointName;
-					//group.mComment += "normal case. socket found anGroupServer. " + std::to_string(ccc++);
-
-					// start the socket
-					mIOService.startSocket(chl.get(), std::move(sock));
-					group.mSuccessfulConnections++;
-
-					// removed the connected channel
-					group.mChannels.pop_front();
-
-					// move the group into the list of named endpoints
-					mSessionGroups.emplace(endpointName, std::move(*anIter));
-
-					// remove this endpoint from the mAnonymousEps list
-					mAnonymousServerEps.erase(anIter);
-
-					// check if we are all done
-					if (stopped() && hasPendingChannels() == false)
-						mSocketChannelPairsRemovedProm.set_value();
+					mGroups.erase(sessionGroup);
+					if (hasSubscriptions() == false)
+						stopListening();
 				}
 				else
 				{
-					// We failed to find an endpoint with a correctly named channel.
-					// As such we will create a new endpoint group and store the socket
-					// there. When/if the corresponding channel is created, that channel
-					// will be able to find the socket here.
-
-					auto iter = std::find_if(mAnonymousClientEps.begin(), mAnonymousClientEps.end(),
-						[&](const SessionGroup& epg) {
-						return epg.mName == endpointName;
-					});
-
-					if (iter != mAnonymousClientEps.end())
-					{
-						std::cout << "duplicate anonymous endpoint name: " << endpointName << "\nDropping connnection." << std::endl;
-						return;
-					}
-
-					mAnonymousClientEps.emplace_back();
-					auto& group = mAnonymousClientEps.back();
-					group.mName = endpointName;
-					group.mSockets.emplace_back();
-					group.mSockets.back().mRemoteName = remoteName;
-					group.mSockets.back().mLocalName = localName;
-					group.mSockets.back().mSocket = std::move(sock);
-				}
-
-			}
-			else
-			{
-				// Here the client has provided an explicit endpoint Name.
-				// We need to check if there is a channel under that endpoint 
-				// name that is waiting for of the socket. If so we forward  
-				// the socket onto that channel. Otherwise we need to create 
-				// a new endpoint group and store the socket there.
-
-				auto iter = mSessionGroups.find(endpointName);
-
-				if (iter == mSessionGroups.end())
-				{
-					// The endpoint has not been created/used yet. Lets create a 
-					// new SessionGroup and store the socket there. A channel
-					// will (maybe) come along later and aquire the socket.
-					iter = mSessionGroups.insert({ endpointName, SessionGroup() }).first;
-					iter->second.mName = endpointName;
-				}
-
-				// Now check if there is a channel looking for this socket.
-				auto& group = iter->second;
-
-				auto chlIter = std::find_if(group.mChannels.begin(), group.mChannels.end(),
-					[&](const std::shared_ptr<ChannelBase>& chl) {
-					return  chl->mLocalName == localName &&
-						chl->mRemoteName == remoteName;
-				});
-				if (chlIter != group.mChannels.end())
-				{
-					auto& chlPtr = *chlIter;
-					// start the socket.
-					mIOService.startSocket(chlPtr.get(), std::move(sock));
-					group.mSuccessfulConnections++;
-
-					// remove the channel from the list of un-connected channels
-					group.mChannels.erase(chlIter);
-
-					// check if this accepter has completed all its work. If so and 
-					// stop has been called, make the all connections have been made
-					if (stopped() && hasPendingChannels() == false)
-						mSocketChannelPairsRemovedProm.set_value();
-				}
-				else
-				{
-					// If we have made it here the no channel has required this socket.
-					// In the mean time we will store the socket in this group.
-					group.mSockets.emplace_back();
-					group.mSockets.back().mRemoteName = remoteName;
-					group.mSockets.back().mLocalName = localName;
-					group.mSockets.back().mSocket = std::move(sock);
+					// If not then add this SessionGroup to the list of claimed
+					// sessions. Remove the unclaimed channel mapping
+					auto location = mClaimedGroups.insert({ fullKey, sessionGroup }).first;
+					sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
 				}
 			}
-		}
-		else
-		{
-			std::cout << "bad channel name: " << name << std::endl
-				<< "Dropping the connection" << std::endl;;
-		}
+		});
+
 	}
 
 
@@ -630,9 +542,7 @@ delete buff;
 	IOService::IOService(u64 numThreads)
 		:
 		mIoService(),
-		mWorker(new boost::asio::io_service::work(mIoService)),
-		mStopped(false),
-		mPrint(true)
+		mWorker(new boost::asio::io_service::work(mIoService))
 	{
 
 
@@ -668,18 +578,7 @@ delete buff;
 
 	void IOService::stop()
 	{
-		//WaitCallback wait();
-		//boost::asio::deadline_timer timer(mIoService, boost::posix_time::seconds(5));
-		//timer.async_wait([&](boost::system::error_code ec) {
 
-		//    if (!ec)
-		//    {
-		//        std::cerr << "waiting for endpoint/channel to close " << std::endl;;
-		//    }
-		//});
-
-
-		std::lock_guard<std::mutex> lock(mMtx);
 
 		// Skip if its already shutdown.
 		if (mStopped == false)
@@ -701,14 +600,9 @@ delete buff;
 			{
 				thrd.join();
 			}
-
 			// clean their state.
 			mWorkerThrds.clear();
-			// close the completion port since no more IO operations will be queued.
-
 		}
-
-		//timer.cancel();
 	}
 
 	void IOService::printErrorMessages(bool v)
@@ -747,11 +641,9 @@ delete buff;
 					auto reason = ("rt error at " LOCATION "\n  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])))
 						+ "\nThis could be from the other end closing too early or the connection being dropped.";
 
+
 					if (mPrint) std::cout << reason << std::endl;
-
-					if(channel->mRecvStatus != Channel::Status::Stopped)
-						channel->setRecvFatalError(reason);
-
+					channel->setRecvFatalError(reason);
 					return;
 				}
 
@@ -786,7 +678,9 @@ delete buff;
 
 					if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[1]) || ec)
 					{
+
 						auto reason = ("Network error: " + ec.message() + "\nOther end may have crashed. Received incomplete message. at " LOCATION);
+
 						if (mPrint) std::cout << reason << std::endl;
 						channel->setRecvFatalError(reason);
 						return;
@@ -825,6 +719,11 @@ delete buff;
 						if (sendMore)
 						{
 							receiveOne(channel);
+						}
+						else if (channel->mRecvStatus == Channel::Status::Stopped)
+						{
+							channel->mRecvQueueEmptyProm.set_value();
+							channel->mRecvQueueEmptyProm = std::promise<void>();
 						}
 					});
 				};
@@ -876,13 +775,13 @@ delete buff;
 			//delete channel->mRecvQueue.front();
 			channel->mRecvQueue.pop_front();
 			channel->mRecvQueueEmptyProm.set_value();
-		}
+	}
 		else
 		{
 			std::cout << "error, unknown operation " << int(u8(op.type())) << std::endl;
 			std::terminate();
 		}
-		}
+}
 
 	void IOService::sendOne(ChannelBase* socket)
 	{
@@ -914,8 +813,7 @@ delete buff;
 					auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
 					if (mPrint) std::cout << reason << std::endl;
 
-					if(socket->mSendStatus != Channel::Status::Stopped)
-						socket->setSendFatalError(reason);
+					socket->setSendFatalError(reason);
 					return;
 				}
 
@@ -933,8 +831,7 @@ delete buff;
 
 					if (mPrint) std::cout << reason << std::endl;
 
-					if (socket->mSendStatus != Channel::Status::Stopped)
-						socket->setSendFatalError(reason);
+					socket->setSendFatalError(reason);
 					return;
 				}
 
@@ -969,6 +866,11 @@ delete buff;
 					if (sendMore)
 					{
 						sendOne(socket);
+					}
+					else if (socket->mSendStatus == Channel::Status::Stopped)
+					{
+						socket->mSendQueueEmptyProm.set_value();
+						socket->mSendQueueEmptyProm = std::promise<void>();
 					}
 				});
 			});
@@ -1087,42 +989,33 @@ delete buff;
 	}
 
 
-	Acceptor* IOService::getAcceptor(std::string ip, i32 port)
+	void IOService::aquireAcceptor(std::shared_ptr<SessionBase>& session)
 	{
-		std::lock_guard<std::mutex> lock(mMtx);
+		std::promise<std::list<Acceptor>::iterator> p;
+		std::future<std::list<Acceptor>::iterator> f = p.get_future();
 
-		// see if there already exists an acceptor that this endpoint can use.
-		auto acceptorIter = std::find_if(
-			mAcceptors.begin(),
-			mAcceptors.end(), [&](const Acceptor& acptr)
+		mIoService.dispatch([&]()
 		{
-			return acptr.mPort == port;
-		});
-
-		if (acceptorIter == mAcceptors.end())
-		{
-			// an acceptor does not exist for this port. Lets create one.
-			mAcceptors.emplace_back(*this);
-			auto& acceptor = mAcceptors.back();
-
-			try {
-
-				acceptor.bind(port, ip);
-			}
-			catch (...)
+			// see if there already exists an acceptor that this endpoint can use.
+			auto acceptorIter = std::find_if(
+				mAcceptors.begin(),
+				mAcceptors.end(), [&](const Acceptor& acptr)
 			{
-				mAcceptors.pop_back();
-				throw;
+				return acptr.mPort == session->mPort;
+			});
+
+			if (acceptorIter == mAcceptors.end())
+			{
+				// an acceptor does not exist for this port. Lets create one.
+				mAcceptors.emplace_back(*this);
+				acceptorIter = mAcceptors.end(); --acceptorIter;
 			}
 
-			acceptor.start();
-			return &acceptor;
-		}
-		else
-		{
-			// there is an acceptor already accepting sockets on the desired port. So return it.
-			return &(*acceptorIter);
-		}
+			p.set_value(acceptorIter);
+		});
+		auto acceptorIter = f.get();
+		acceptorIter->subscribe(session);
+
 	}
 
 	void IOService::startSocket(ChannelBase * chl, std::unique_ptr<BoostSocketInterface> socket)
@@ -1156,7 +1049,7 @@ delete buff;
 			auto ii = ++chl->mOpenCount;
 			if (ii == 2)
 				chl->mOpenProm.set_value();
-	});
+		});
 
 
 		// a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -1190,39 +1083,86 @@ delete buff;
 	}
 
 
-	bool Acceptor::SessionGroup::erase(ChannelBase* chl)
+	void details::SessionGroup::add(NamedSocket s, Acceptor* a)
 	{
 		auto iter = std::find_if(mChannels.begin(), mChannels.end(),
-			[&](const std::shared_ptr<ChannelBase>& c2) {
-			return c2.get() == chl;
+			[&](const std::shared_ptr<ChannelBase>& chl)
+		{
+			return chl->mLocalName == s.mLocalName &&
+				chl->mRemoteName == s.mRemoteName;
 		});
 
 		if (iter != mChannels.end())
 		{
-			auto e_ptr = std::make_exception_ptr(std::runtime_error("connect aborted"));
-			(*iter)->mOpenProm.set_exception(e_ptr);
+			a->mIOService.startSocket(iter->get(), std::move(s.mSocket));
 			mChannels.erase(iter);
-			return true;
 		}
-
-		return false;
+		else
+		{
+			mSockets.emplace_back(std::move(s));
+		}
 	}
 
-	void Acceptor::SessionGroup::print()
+	void details::SessionGroup::add(const std::shared_ptr<ChannelBase>& chl, Acceptor* a)
 	{
-
-		std::cout << "name: " << mName << " " << mBase.get() << std::endl;
-
-
-		for (auto& b : mChannels)
+		auto iter = std::find_if(mSockets.begin(), mSockets.end(),
+			[&](const NamedSocket& s)
 		{
-			std::cout << "   chl: " << b->mLocalName << std::endl;
+			return chl->mLocalName == s.mLocalName &&
+				chl->mRemoteName == s.mRemoteName;
+		});
+
+		if (iter != mSockets.end())
+		{
+			a->mIOService.startSocket(chl.get(), std::move(iter->mSocket));
+			mSockets.erase(iter);
 		}
-
-		for (auto& b : mSockets)
+		else
 		{
-			std::cout << "   sock:" << b.mLocalName << std::endl;
+			mChannels.emplace_back(chl);
 		}
 	}
+
+	bool details::SessionGroup::hasMatchingChannel(const NamedSocket & s) const
+	{
+		return mChannels.end() != std::find_if(mChannels.begin(), mChannels.end(),
+			[&](const std::shared_ptr<ChannelBase>& chl)
+		{
+			return chl->mLocalName == s.mLocalName &&
+				chl->mRemoteName == s.mRemoteName;
+		});
+	}
+
+	bool details::SocketGroup::hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const
+	{
+		return mSockets.end() != std::find_if(mSockets.begin(), mSockets.end(),
+			[&](const NamedSocket& s)
+		{
+			return chl->mLocalName == s.mLocalName &&
+				chl->mRemoteName == s.mRemoteName;
+		});
+	}
+
+	void details::SessionGroup::merge(details::SocketGroup& merge, Acceptor* a)
+	{
+		if (mSockets.size())
+			throw std::runtime_error(LOCATION);
+
+		for (auto& s : merge.mSockets) add(std::move(s), a);
+		merge.mSockets.clear();
+
+		auto session = mBase.lock();
+		if (session)
+		{
+			if (merge.mSessionID == 0 ||
+				session->mName != merge.mName ||
+				session->mSessionID)
+				throw std::runtime_error(LOCATION);
+
+			session->mName = std::move(merge.mName);
+			session->mSessionID = merge.mSessionID;
+		}
+	}
+
 
 }

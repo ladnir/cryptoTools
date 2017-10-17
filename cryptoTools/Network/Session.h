@@ -11,7 +11,8 @@
 namespace osuCrypto {
 
 	class IOService;
-    class Acceptor;
+	class Acceptor;
+	namespace details { struct SessionGroup; }
     class ChannelBase;
 	struct SessionBase;
 
@@ -25,7 +26,7 @@ namespace osuCrypto {
 		// Start a session for the given IP and port in either Client or Server mode.
 		// The server should use their local address on which the socket should bind.
 		// The client should use the address of the server.
-		// The same name should be used by both endpoints. Multiple Sessions can be bound to the same
+		// The same name should be used by both sessions. Multiple Sessions can be bound to the same
 		// address if the same IOService is used but with different name.
         void start(IOService& ioService, std::string remoteIp, u32 port, SessionMode type, std::string name = "");
 
@@ -33,7 +34,7 @@ namespace osuCrypto {
 		// Start a session for the given address in either Client or Server mode.
 		// The server should use their local address on which the socket should bind.
 		// The client should use the address of the server.
-		// The same name should be used by both endpoints. Multiple Sessions can be bound to the same
+		// The same name should be used by both sessions. Multiple Sessions can be bound to the same
 		// address if the same IOService is used but with different name.
         void start(IOService& ioService, std::string address, SessionMode type, std::string name = "");
 
@@ -54,6 +55,8 @@ namespace osuCrypto {
         ~Session();
 
         std::string getName() const;
+
+		u64 getSessionID() const;
 
 		IOService& getIOService();
 
@@ -79,10 +82,17 @@ namespace osuCrypto {
 
 	struct SessionBase
 	{
-		//SessionBase();
+		SessionBase(boost::asio::io_service& ios) : mWorker(new boost::asio::io_service::work(ios)) {}
 
+		~SessionBase();
+
+		void stop();
 		//  Removes the channel with chlName. 
 		//void removeChannel(ChannelBase* chl);
+
+		// if this channnel is waiting on a socket, cancel that 
+		// operation and set the future to contain an exception
+		//void cancelPendingConnection(ChannelBase* chl);
 
 		std::string mIP;
 		u32 mPort = 0, mAnonymousChannelIdx = 0;
@@ -91,11 +101,15 @@ namespace osuCrypto {
 		IOService* mIOService = nullptr;
 		Acceptor* mAcceptor = nullptr;
 
-		//std::list<ChannelBase*> mChannels;
+		std::unique_ptr<boost::asio::io_service::work> mWorker;
+
+		//bool mHasGroup = false;
+		std::list<details::SessionGroup>::iterator mGroup;
+
 		std::mutex mAddChannelMtx;
-		//std::promise<void> mDoneProm;
-		//std::shared_future<void> mDoneFuture;
 		std::string mName;
+
+		u64 mSessionID = 0;
 		boost::asio::ip::tcp::endpoint mRemoteAddr;
 	};
 

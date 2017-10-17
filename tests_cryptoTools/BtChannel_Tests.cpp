@@ -11,6 +11,7 @@
 #include <cryptoTools/Network/Channel.h>
 
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/Finally.h>
 
@@ -33,66 +34,81 @@ namespace tests_cryptoTools
 		Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 		Session c2(ioService, "127.0.0.1", 1212, SessionMode::Client);
 
-		auto ch1 = c1.addChannel();
-		auto ch2 = c2.addChannel();
-
-		auto sch1 = s1.addChannel();
-		auto sch2 = s2.addChannel();
+		auto c1c1 = c1.addChannel();
+		auto c1c2 = c1.addChannel();
+		auto c2c1 = c2.addChannel();
+		auto c2c2 = c2.addChannel();
+		auto s1c1 = s1.addChannel();
+		auto s1c2 = s1.addChannel();
+		auto s2c1 = s2.addChannel();
+		auto s2c2 = s2.addChannel();
 
 		std::string m1 = "m1";
 		std::string m2 = "m2";
 
 
-		ch1.send(m1);
-		ch2.send(m2);
+		c1c1.send(m1);
+		c2c1.send(m1);
+		c1c2.send(m2);
+		c2c2.send(m2);
 
 		std::string t;
-		sch1.recv(t);
 
-		if (m1 != t)
-			throw UnitTestFail();
+		s1c1.recv(t);
+		if (m1 != t) throw UnitTestFail();
 
-		sch2.recv(t);
+		s2c1.recv(t);
+		if (m1 != t) throw UnitTestFail();
 
-		if (m2 != t)
-			throw UnitTestFail();
+		s1c2.recv(t);
+		if (m2 != t) throw UnitTestFail();
 
-		if (ch1.getName() != sch1.getName())
-			throw UnitTestFail();
+		s2c2.recv(t);
+		if (m2 != t) throw UnitTestFail();
 
-		if (ch2.getName() != sch2.getName())
-			throw UnitTestFail();
 
-		if (s1.getName() != c1.getName())
-			throw UnitTestFail();
+		if (c1c1.getName() != s1c1.getName()) throw UnitTestFail();
+		if (c2c1.getName() != s2c1.getName()) throw UnitTestFail();
+		if (c1c2.getName() != s1c2.getName()) throw UnitTestFail();
+		if (c2c2.getName() != s2c2.getName()) throw UnitTestFail();
 
-		if (s2.getName() != c2.getName())
-			throw UnitTestFail();
+		if (s1.getSessionID() != c1.getSessionID()) throw UnitTestFail();
+		if (s2.getSessionID() != c2.getSessionID()) throw UnitTestFail();
 
 	}
 
 	void BtNetwork_CancelChannel_Test()
 	{
-		u64 trials = 10;
+		u64 trials = 1;
+		IOService ioService;
+		Timer& t = gTimer;
 
 		for (u64 i = 0; i < trials; ++i)
 		{
-			IOService ioService(0);
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
+				t.setTimePoint(std::to_string(i) + ".1a");
+
 				auto ch1 = c1.addChannel();
+				t.setTimePoint(std::to_string(i) + ".1b");
 
 				ch1.cancel();
+				t.setTimePoint(std::to_string(i) + ".1c");
 
 				bool throws = false;
 
 				try { ch1.waitForConnection(); }
 				catch (...) { throws = true; }
+				t.setTimePoint(std::to_string(i) + ".1d");
 
 				if (throws == false)
 					throw UnitTestFail();
+
+				if (ch1.isConnected())
+					throw UnitTestFail();
 			}
+			t.setTimePoint(std::to_string(i) + ".1");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -107,9 +123,16 @@ namespace tests_cryptoTools
 
 				if (throws == false)
 					throw UnitTestFail();
+
+				if (ch1.isConnected())
+					throw UnitTestFail();
 			}
 
-
+			if (ioService.mAcceptors.front().hasSubscriptions())
+				throw UnitTestFail();
+			if (ioService.mAcceptors.front().isListening())
+				throw UnitTestFail();
+			t.setTimePoint(std::to_string(i) + ".2");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -133,7 +156,11 @@ namespace tests_cryptoTools
 
 				thrd.join();
 			}
-
+			if (ioService.mAcceptors.front().hasSubscriptions())
+				throw UnitTestFail();
+			if (ioService.mAcceptors.front().isListening())
+				throw UnitTestFail();
+			t.setTimePoint(std::to_string(i) + ".3");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -154,10 +181,22 @@ namespace tests_cryptoTools
 
 				if (throws == false)
 					throw UnitTestFail();
+
+				if (ch1.isConnected())
+					throw UnitTestFail();
+
 				thrd.join();
 			}
+
+			if (ioService.mAcceptors.front().hasSubscriptions())
+				throw UnitTestFail();
+			if (ioService.mAcceptors.front().isListening())
+				throw UnitTestFail();
+			t.setTimePoint(std::to_string(i) + ".4");
+
 		}
 
+		std::cout << t << std::endl << std::endl;
 	}
 
 	void BtNetwork_ServerMode_Test()
@@ -489,7 +528,7 @@ namespace tests_cryptoTools
 				IOService ioService(0);
 				ioService.printErrorMessages(true);
 
-				std::list<Session> endpoints;
+				std::list<Session> sessions;
 				std::vector<Channel> channels;
 
 				for (u64 j = 0; j < nodeCount; ++j)
@@ -509,9 +548,9 @@ namespace tests_cryptoTools
 							port = basePort + (u32)j;
 						}
 
-						endpoints.emplace_back(ioService, ip, port, host, name);
+						sessions.emplace_back(ioService, ip, port, host, name);
 
-						channels.push_back(endpoints.back().addChannel("chl", "chl"));
+						channels.push_back(sessions.back().addChannel("chl", "chl"));
 					}
 				}
 				for (u64 j = 0, idx = 0; idx < nodeCount; ++j, ++idx)
@@ -542,7 +581,7 @@ namespace tests_cryptoTools
 				for (auto& chl : channels)
 					chl.close();
 
-				for (auto& endpoint : endpoints)
+				for (auto& endpoint : sessions)
 					endpoint.stop();
 
 

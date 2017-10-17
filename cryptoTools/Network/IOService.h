@@ -22,6 +22,7 @@
 #include <future>
 #include <string>
 #include <unordered_map>
+#include <functional>
 //#include <optional>
 
 namespace osuCrypto
@@ -62,10 +63,10 @@ namespace osuCrypto
         void printErrorMessages(bool v);
 
         // indicates whether stop() has been called already.
-        bool mStopped;
+		bool mStopped = false;
 
         // The mutex the protects sensitive objects in this class. 
-        std::mutex mMtx;
+        //std::mutex mMtx;
 
         void receiveOne(ChannelBase* socket);
 
@@ -77,14 +78,62 @@ namespace osuCrypto
         void dispatch(ChannelBase* socket, std::unique_ptr<IOOperation> op);
 
         // Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
-        Acceptor* getAcceptor(std::string ip, i32 port);
+        void aquireAcceptor(std::shared_ptr<SessionBase>& session);
 
         // Shut down the IO service. WARNING: blocks until all Channels and Sessions are stopped.
         void stop();
 
-        bool mPrint;
+        bool mPrint = false;
     };
 
+
+	namespace details
+	{
+		struct NamedSocket {
+			NamedSocket() = default;
+			NamedSocket(NamedSocket&&) = default;
+
+			std::string mLocalName, mRemoteName;
+			std::unique_ptr<BoostSocketInterface> mSocket;
+		};
+
+		struct SocketGroup
+		{
+			SocketGroup() = default;
+			SocketGroup(SocketGroup&&) = default;
+
+			bool hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const;
+
+			std::function<void()> removeMapping;
+
+
+			std::string mName;
+			u64 mSessionID = 0;
+			std::list<NamedSocket> mSockets;
+		};
+
+		struct SessionGroup
+		{
+			SessionGroup() = default;
+
+			bool hasSubscriptions() const {
+				return mChannels.size() || mBase.expired() == false;
+			}
+
+			void add(NamedSocket sock, Acceptor* a);
+			void add(const std::shared_ptr<ChannelBase>& chl, Acceptor* a);
+
+			bool hasMatchingChannel(const NamedSocket& sock) const;
+
+			void merge(SocketGroup& merge, Acceptor* a);
+
+			std::weak_ptr<SessionBase> mBase;
+			std::function<void()> removeMapping;
+
+			std::list<NamedSocket> mSockets;
+			std::list<std::shared_ptr<ChannelBase>> mChannels;
+		};
+	}
 
 	class Acceptor
 	{
@@ -96,72 +145,48 @@ namespace osuCrypto
 		Acceptor(IOService& ioService);
 		~Acceptor();
 
-		std::promise<void> mStoppedListeningPromise, mSocketChannelPairsRemovedProm;
-		std::future<void> mStoppedListeningFuture, mSocketChannelPairsRemovedFuture;
+		std::promise<void> mPendingSocketsEmptyProm, mStoppedPromise;
+		std::future<void> mPendingSocketsEmptyFuture, mStoppedFuture;
 
 		IOService& mIOService;
 
+		boost::asio::strand mStrand;
 		boost::asio::ip::tcp::acceptor mHandle;
 
 		std::atomic<bool> mStopped;
-		std::mutex mSocketChannelPairsMtx;
+		//std::mutex mSocketChannelPairsMtx;
+		bool mListening = false;
 
-
-		struct SessionGroup
-		{
-			SessionGroup() = default;
-			SessionGroup(const SessionGroup&) = delete;
-			SessionGroup(SessionGroup&&) = default;
-
-			struct NamedSocket {
-				std::string mRemoteName, mLocalName;
-				std::unique_ptr<BoostSocketInterface> mSocket;
-			};
-
-			bool isEmpty() const {
-				return mSockets.size() == 0 && mChannels.size() == 0;
-			}
-
-			bool hasPendingChannels() const {
-				return mChannels.size();
-			}
-
-			bool erase(ChannelBase* chl);
-
-			void print();
-
-			bool mRemoveWhenEmptry = false;
-			u64 mSuccessfulConnections = 0;
-			std::string mName;
-			std::shared_ptr<SessionBase> mBase;
-
-		//	const std::list<NamedSocket> sockets() const { return mSockets; };
-		//	const std::list<std::shared_ptr<ChannelBase>> channels() const { return mChannels; };
-
-
-		//	void startSocket(Acceptor* ios, std::unique_ptr<BoostSocketInterface> sock, const std::list<std::shared_ptr<ChannelBase>>::const_iterator& chl);
-		//	void startSocket(Acceptor* ios, const std::list<NamedSocket>::const_iterator& sock, const std::shared_ptr<ChannelBase>& chl);
-
-		//	void add(const std::shared_ptr<ChannelBase>& chl);
-		//	void add(std::unique_ptr<ChannelBase> chl);
-
-		//private:
-			std::list<NamedSocket> mSockets;
-			std::list<std::shared_ptr<ChannelBase>> mChannels;
+		struct PendingSocket {
+			PendingSocket(boost::asio::io_service& ios) : mSock(ios) {}
+			boost::asio::ip::tcp::socket mSock;
+			std::string mBuff;
 		};
 
-		// A list of SessionGroups containing unnamed endpointed
-		// created by the server.
-		std::list<SessionGroup> mAnonymousServerEps;
+		std::list<PendingSocket> mPendingSockets;
+		
+		typedef std::list<details::SessionGroup> GroupList;
+		typedef std::list<details::SocketGroup> SocketGroupList;
 
-		// A list of SessionGroups containing unnamed endpointed
-		// created by the server.
-		std::list<SessionGroup> mAnonymousClientEps;
+
+		SocketGroupList mSockets;
+		// A list of local sessions that have not been paired up with sockets. The key is the session
+		// name. For any given session name, there my be several sessions.
+		std::unordered_map<std::string, std::list<SocketGroupList::iterator>> mUnclaimedSockets;
+
+		GroupList mGroups;
+		// A list of local sessions that have not been paired up with sockets. The key is the session
+		// name. For any given session name, there my be several sessions.
+		std::unordered_map<std::string, std::list<GroupList::iterator>> mUnclaimedGroups;
+		std::unordered_map<std::string, GroupList::iterator> mClaimedGroups;
+
+		// A list of local sessons. The key is the session name and the session ID. 
+		//std::unordered_map<std::pair<std::string,u64>, SessionGroup> mGroups;
 
 		// A map of endpoint groups which have well defined name.
 		// The name was either explicitly provided by the user
 		// or has been agreed upon via some logic.
-		std::unordered_map<std::string, SessionGroup> mSessionGroups;
+		//std::unordered_map<std::string, SessionGroup> mSessionGroups;
 
 		void asyncSetSocket(		
 			std::string name,
@@ -170,26 +195,32 @@ namespace osuCrypto
 		void asyncGetSocket(std::shared_ptr<ChannelBase> chl);
 
 
-		void removePendingChannel(ChannelBase* chl);
+		void cancelPendingChannel(ChannelBase* chl);
 
-		bool isEmpty() const;
+		//bool isEmpty() const;
 
-		bool hasPendingChannels() const;
-
-		void removePendingSockets();
+		bool hasSubscriptions() const;
+		//bool userModeHasSubscriptions() const;
+		//void removePendingSockets();
 
 		//void removeSession(const SessionBase* ep/*, const std::optional<std::chrono::milliseconds>& waitTime = {}*/);
-		void removeSession(const std::shared_ptr<SessionBase>& ep);
+		void unsubscribe(SessionBase* ep);
 
-		//void remove(std::string endpoint, std::string localName, std::string remoteName);
+		void stopListening();
+
+		void subscribe(std::shared_ptr<SessionBase>& session);
+
+		SocketGroupList::iterator getSocketGroup(const std::string& name, u64 id, bool addIfMissing);
 
 		u64 mPort;
 		boost::asio::ip::tcp::endpoint mAddress;
 
-		void bind(u32 port, std::string ip);
+		void bind(u32 port, std::string ip, boost::system::error_code& ec);
 		void start();
 		void stop();
 		bool stopped() const;
+		bool isListening() const { return mListening; };
+		//bool userModeIsListening() const;
 	};
 
 }

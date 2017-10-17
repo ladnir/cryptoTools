@@ -20,50 +20,99 @@ void networkTutorial()
     ##                      Setup                        ##
     #####################################################*/
 
+
+	//  --------------- Introduction --------------------\\
+	// 													 \\
+	// The general framework is to have pairs of parties \\
+	//   establish a "session," which in turn can have   \\
+	//          several channels (sockets). 			 \\
+	//													 \\
+	// --------------------------------------------------\\
+
+
     // create network I/O service with 4 background threads.
     // This object must stay in scope until everything is cleaned up.
     IOService ios(4);
 
     std::string serversIpAddress = "127.0.0.1:1212";
 
+    // Optional: Session names can be used to help the network 
+	// identify which sessions should be paired up. 
+    std::string sessionHint = "party0_party1";
 
-    // Network fully supports the multi party setting. A single
-    // server can connect to many clients with a single port.
-    // This is mannaged with connection names.
-    std::string connectionName = "party0_party1";
-
-
-    // connectionName denotes an identifier that both people on either side
-    // of this connection will use. If a server connects to several clients,
-    // they should all use different connection names.
-    Session server(ios, serversIpAddress, SessionMode::Server, connectionName);
-    Session client(ios, serversIpAddress, SessionMode::Client, connectionName);
-
+	// create a pair of sessions that connect to eachother. The optional
+	// sessionHint can be used if several sessions are being constructed 
+	// at the same time. Only sessions with matching hints will be paired.
+    Session server(ios, serversIpAddress, SessionMode::Server, sessionHint);
+    Session client(ios, serversIpAddress, SessionMode::Client, sessionHint);
 
     // Actually get the channel that can be used to communicate on.
     Channel chl0 = client.addChannel();
     Channel chl1 = server.addChannel();
 
-    // Two endpoints with the same connectionName can have many channels, each independent.
-	Channel chl0b = client.addChannel();
-	Channel chl1b = server.addChannel();
+    // Two sessions can have many channels, each independent.
+	{
+		Channel chl0b = client.addChannel();
+		Channel chl1b = server.addChannel();
+	}
 	
 	// Above, the channels are connected in the order that they are declared. Alternatively
 	// explicit names can be provided. This channel pair are connected regardless of order.
-	std::string channelName = "channelName";
-	Channel namedChl0 = client.addChannel(channelName);
-	Channel namedChl1 = server.addChannel(channelName);
+	{
+		std::string channelName = "channelName";
+		Channel namedChl0 = client.addChannel(channelName);
+		Channel namedChl1 = server.addChannel(channelName);
+	}
 
     // we now have a pair of channels, but it is possible that they have yet
     // to actually connect to each other in the background. To test that the
     // channel has a completed the connection, we can do
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
 
-    // To block until we know for sure the channel is open, we can call
-    chl0.waitForConnection();
+
+	// To block until for 100 milliseconds for the connection to actually open.
+	std::chrono::milliseconds timeout(100);
+	bool open = chl0.waitForConnection(&timeout);
+
+	if (open == false)
+	{
+	    // Wait until the channel is open.
+		chl0.waitForConnection();
+	}
 
     // This call will now always return true.
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
+
+
+	/*#####################################################
+	##                   Server Mode                     ##
+	#####################################################*/
+
+	// It is also possible to dynamically accept connection. 
+	// This is done by having the server set up several session.
+	// Each will correspond to a single party.
+
+	u64 numSession = 10;
+
+	for (u64 i = 0; i < numSession; ++i)
+	{
+		// The server will create many sessions, each will find one 
+		// of the clients. 
+		Session perPartySession(ios, serversIpAddress, SessionMode::Server);
+		
+		// On some other thread/program/computer, a client can complete the
+		// session and add a channel.
+		{
+			Channel clientChl = Session(ios, serversIpAddress, SessionMode::Client).addChannel();
+			clientChl.send(std::string("message"));
+		}
+
+		// Create a channel for this session, even before the client has connected.
+		Channel serverChl = perPartySession.addChannel();
+
+		std::string msg;
+		serverChl.recv(msg);
+	}
 
 
     /*#####################################################
@@ -321,7 +370,7 @@ void networkTutorial()
 
     // Print interesting information.
     std::cout
-        << "Connection: " << chl0.getSessionName() << std::endl
+        << "   Session: " << chl0.getSessionName() << std::endl
         << "   Channel: " << chl0.getName() << std::endl
         << "      Send: " << chl0.getTotalDataSent() << std::endl
         << "  received: " << chl0.getTotalDataRecv() << std::endl;

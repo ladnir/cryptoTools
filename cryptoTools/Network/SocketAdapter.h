@@ -129,8 +129,8 @@ namespace osuCrypto
     public:
         boost::asio::ip::tcp::socket mSock;
 
-        BoostSocketInterface(boost::asio::io_service& ios)
-            : mSock(ios)
+        BoostSocketInterface(boost::asio::ip::tcp::socket&& ios)
+            : mSock(std::move(ios))
         {
             //std::cout << IoStream::lock << "create " << this << std::endl << IoStream::unlock;
         }

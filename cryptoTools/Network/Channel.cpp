@@ -2,6 +2,7 @@
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Network/IOService.h>
 namespace osuCrypto {
 
@@ -24,7 +25,7 @@ namespace osuCrypto {
 		std::string remoteName)
 		:
 		mIos(endpoint.getIOService()),
-		mWork(endpoint.getIOService().mIoService),
+		mWork(new boost::asio::io_service::work(endpoint.getIOService().mIoService)),
 		mSession(endpoint.mBase),
 		mRemoteName(remoteName),
 		mLocalName(localName),
@@ -52,7 +53,7 @@ namespace osuCrypto {
 	ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
 		:
 		mIos(ios),
-		mWork(ios.mIoService),
+		mWork(new boost::asio::io_service::work(ios.mIoService)),
 		mRecvStatus(Channel::Status::Normal),
 		mSendStatus(Channel::Status::Normal),
 		mHandle(sock),
@@ -132,24 +133,64 @@ namespace osuCrypto {
 
 	void ChannelBase::cancel()
 	{
-
 		mSendStatus = Channel::Status::Stopped;
 		mRecvStatus = Channel::Status::Stopped;
+		if (mHandle) mHandle->close();
 
-		if (mSession && mSession->mAcceptor)
+		if (mSession)
 		{
 			// if we are still waiting on a connection, cancel it.
-			mSession->mAcceptor->removePendingChannel(this);
+			if (mSession->mAcceptor) mSession->mAcceptor->cancelPendingChannel(this);
 		}
+
+
+		gTimer.setTimePoint("cancelPending");
+
 		try {
 			mOpenFut.get();
-		} catch (...) {}
+			gTimer.setTimePoint("openFut.get()");
 
-		cancelRecvQueuedOperations();
-		cancelSendQueuedOperations();
+		}
+		catch (SocketConnectError& e)
+		{
+			gTimer.setTimePoint("openFut.get()");
+			std::cout << e.what() << std::endl;
+			// The socket has never started.
+			// We can simply remove all the queued items.
+			cancelRecvQueuedOperations();
+			cancelSendQueuedOperations();
 
-		if(mHandle) mHandle->close();
+			gTimer.setTimePoint("cancel*queue()");
+
+		}
+
+
+		mSendStrand.dispatch([&]() {
+
+			if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
+			{
+				mSendQueueEmptyProm.set_value();
+			}
+		});
+
+		mRecvStrand.dispatch([&]() {
+
+			if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
+			{
+				mRecvQueueEmptyProm.set_value();
+			}
+			else if (activeRecvSizeError())
+			{
+				cancelRecvQueuedOperations();
+			}
+		});
+
+		mSendQueueEmptyFuture.get();
+		mRecvQueueEmptyFuture.get();
+		gTimer.setTimePoint("cancel*queue() completed.");
+
 		mHandle.reset(nullptr);
+		mWork.reset(nullptr);
 	}
 
 	void ChannelBase::close()
@@ -157,43 +198,33 @@ namespace osuCrypto {
 		if (stopped() == false)
 		{
 
+
 			mOpenFut.get();
 
-			if (mSendStatus != Channel::Status::Stopped)
-			{
-#ifdef CHANNEL_LOGGING
-				mLog.push("Closing send");
-#endif
-
-				if (mSendStatus == Channel::Status::Normal)
-				{
-					auto closeSend = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseSend));
-					getIOService().dispatch(this, std::move(closeSend));
-				}
-
-				mSendQueueEmptyFuture.get();
+			mSendStrand.dispatch([&]() {
 				mSendStatus = Channel::Status::Stopped;
-			}
-
-			if (mRecvStatus != Channel::Status::Stopped)
-			{
-#ifdef CHANNEL_LOGGING
-				mLog.push("Closing recv");
-#endif
-
-				if (mRecvStatus == Channel::Status::Normal)
+				if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
 				{
-					auto closeRecv = std::unique_ptr<IOOperation>(new IOOperation(IOOperation::Type::CloseRecv));
-					getIOService().dispatch(this, std::move(closeRecv));
+					mSendQueueEmpty = true;
+					mSendQueueEmptyProm.set_value();
 				}
-				else if (mRecvStatus == Channel::Status::RecvSizeError)
+			});
+
+			mRecvStrand.dispatch([&]() {
+				mRecvStatus = Channel::Status::Stopped;
+				if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
+				{
+					mRecvQueueEmpty == true;
+					mRecvQueueEmptyProm.set_value();
+				}
+				else if (activeRecvSizeError())
 				{
 					cancelRecvQueuedOperations();
 				}
+			});
 
-				mRecvQueueEmptyFuture.get();
-				mRecvStatus = Channel::Status::Stopped;
-			}
+			mSendQueueEmptyFuture.get();
+			mRecvQueueEmptyFuture.get();
 
 			// ok, the send and recv queues are empty. Lets close the socket
 			if (mHandle)
@@ -203,69 +234,85 @@ namespace osuCrypto {
 				mHandle.reset(nullptr);
 			}
 
+			mWork.reset(nullptr);
+
 #ifdef CHANNEL_LOGGING
 			mLog.push("Closed");
 #endif
-
 		}
 	}
 
 
 	void ChannelBase::cancelSendQueuedOperations()
 	{
-		if(mHandle)
-			mHandle->close();
+		mSendStrand.dispatch([this]() {
 
-		while (mSendQueue.size())
-		{
-			auto& front = mSendQueue.front();
+			//if (mHandle)
+			//	mHandle->close();
+			if (mSendQueueEmpty == false)
+			{
 
-#ifdef CHANNEL_LOGGING
-			mLog.push("cancel send #" + ToString(front->mIdx));
-#endif
-			//delete front->mContainer;
-
-			auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
-			front->mPromise.set_exception(e_ptr);
-
-			//delete front;
-			mSendQueue.pop_front();
-		}
+				while (mSendQueue.size())
+				{
+					auto& front = mSendQueue.front();
 
 #ifdef CHANNEL_LOGGING
-		mLog.push("send queue empty");
+					mLog.push("cancel send #" + ToString(front->mIdx));
 #endif
-		mSendQueueEmptyProm.set_value();
+					//delete front->mContainer;
+
+					auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
+					front->mPromise.set_exception(e_ptr);
+
+					//delete front;
+					mSendQueue.pop_front();
+				}
+
+#ifdef CHANNEL_LOGGING
+				mLog.push("send queue empty");
+#endif
+				mSendQueueEmpty = true;
+				mSendQueueEmptyProm.set_value();
+			}
+		});
 	}
 
 
 	void ChannelBase::cancelRecvQueuedOperations()
 	{
-		if(mHandle)
-			mHandle->close();
+		mRecvStrand.dispatch([this]() {
 
-		while (mRecvQueue.size())
-		{
-			auto& front = mRecvQueue.front();
+			if (mRecvQueueEmpty == false)
+			{
 
-#ifdef CHANNEL_LOGGING
-			mLog.push("cancel recv #" + ToString(front->mIdx));
-#endif
-			//delete front->mContainer;
 
-			auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
-			front->mPromise.set_exception(e_ptr);
+				//if (mHandle)
+				//	mHandle->close();
 
-			//delete front;
-			mRecvQueue.pop_front();
-		}
-
+				while (mRecvQueue.size())
+				{
+					auto& front = mRecvQueue.front();
 
 #ifdef CHANNEL_LOGGING
-		mLog.push("recv queue empty");
+					mLog.push("cancel recv #" + ToString(front->mIdx));
 #endif
+					//delete front->mContainer;
 
-		mRecvQueueEmptyProm.set_value();
+					auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
+					front->mPromise.set_exception(e_ptr);
+
+					//delete front;
+					mRecvQueue.pop_front();
+				}
+
+
+#ifdef CHANNEL_LOGGING
+				mLog.push("recv queue empty");
+#endif
+				mRecvQueueEmpty = true;
+				mRecvQueueEmptyProm.set_value();
+			}
+		});
 	}
 
 	std::string Channel::getRemoteName() const
@@ -305,7 +352,6 @@ namespace osuCrypto {
 		return (u64)mBase->mMaxOutstandingSendData;
 	}
 
-
 	void Channel::dispatch(std::unique_ptr<IOOperation> op)
 	{
 		mBase->getIOService().dispatch(mBase.get(), std::move(op));
@@ -313,45 +359,49 @@ namespace osuCrypto {
 
 	void ChannelBase::setRecvFatalError(std::string reason)
 	{
+		mRecvStrand.dispatch([&, reason]() {
+
 #ifdef CHANNEL_LOGGING
-		mLog.push("Recv error: " + reason);
+			mLog.push("Recv error: " + reason);
 #endif
-		mRecvErrorMessage += (reason + "\n");
-		mRecvStatus = Channel::Status::FatalError;
-		cancelRecvQueuedOperations();
+			mRecvErrorMessage += (reason + "\n");
+			mRecvStatus = Channel::Status::Stopped;
+			cancelRecvQueuedOperations();
+		});
 	}
 
 	void ChannelBase::setSendFatalError(std::string reason)
 	{
+		mSendStrand.dispatch([&, reason]() {
+
 #ifdef CHANNEL_LOGGING
-		mLog.push("Send error: " + reason);
+			mLog.push("Send error: " + reason);
 #endif
-		mSendErrorMessage = reason;
-		mSendStatus = Channel::Status::FatalError;
-		cancelSendQueuedOperations();
+			mSendErrorMessage = reason;
+			mSendStatus = Channel::Status::Stopped;
+			cancelSendQueuedOperations();
+		});
 	}
 
 	void ChannelBase::setBadRecvErrorState(std::string reason)
 	{
-		if (mRecvStatus != Channel::Status::Normal)
-		{
-			std::cout << "Double Error in Channel::setBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n error set twice." << std::endl;
-			std::terminate();
-		}
-		mRecvErrorMessage = reason;
-		mRecvStatus = Channel::Status::RecvSizeError;
+		mRecvStrand.dispatch([&, reason]() {
+
+			if (mRecvStatus == Channel::Status::Normal)
+			{
+				mRecvErrorMessage = reason;
+			}
+		});
 	}
 
 	void ChannelBase::clearBadRecvErrorState()
 	{
+		mRecvStrand.dispatch([&]() {
 
-		if (mRecvStatus != Channel::Status::RecvSizeError)
-		{
-			std::cout << "Error in Channel::clearBadRecvErrorState, Channel: " << mLocalName << "\n   " << LOCATION << "\n Was not in Status::RecvSizeError." << std::endl;
-			std::terminate();
-		}
-
-		mSendErrorMessage = "";
-		mRecvStatus = Channel::Status::Normal;
+			if (activeRecvSizeError() && mRecvStatus == Channel::Status::Normal)
+			{
+				mRecvErrorMessage = "";
+			}
+		});
 	}
 }

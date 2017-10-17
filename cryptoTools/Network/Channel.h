@@ -263,7 +263,7 @@ namespace osuCrypto {
 		// Aborts all current operations (connect, send, receive).
 		void cancel();
 
-        enum class Status { Normal, RecvSizeError, FatalError, Stopped };
+        enum class Status { Normal, /*RecvSizeError, FatalError,*/ Stopped };
 
         std::shared_ptr<ChannelBase> mBase;
 
@@ -283,12 +283,12 @@ namespace osuCrypto {
         case Channel::Status::Normal:
             o << "Status::Normal";
             break;
-        case Channel::Status::RecvSizeError:
-            o << "Status::RecvSizeError";
-            break;
-        case Channel::Status::FatalError:
-            o << "Status::FatalError";
-            break;
+        //case Channel::Status::RecvSizeError:
+        //    o << "Status::RecvSizeError";
+        //    break;
+        //case Channel::Status::FatalError:
+        //    o << "Status::FatalError";
+        //    break;
         case Channel::Status::Stopped:
             o << "Status::Stopped";
             break;
@@ -314,6 +314,14 @@ namespace osuCrypto {
     };
 #endif
 
+	class SocketConnectError : public std::runtime_error
+	{
+	public:
+		SocketConnectError(const std::string& reason)
+			:std::runtime_error(reason)
+		{}
+	};
+
 	struct SessionBase;
 
 	// The Channel base class the actually holds a socket. 
@@ -328,7 +336,7 @@ namespace osuCrypto {
         }
 
         IOService& mIos;
-		boost::asio::io_service::work mWork;
+		std::unique_ptr<boost::asio::io_service::work> mWork;
 
 		std::shared_ptr<SessionBase> mSession;
         std::string mRemoteName, mLocalName;
@@ -350,6 +358,8 @@ namespace osuCrypto {
         std::string mRecvErrorMessage, mSendErrorMessage;
         u64 mOutstandingSendData, mMaxOutstandingSendData, mTotalSentData, mTotalRecvData;
 
+
+		bool mRecvQueueEmpty = false, mSendQueueEmpty = false;
         std::promise<void> mSendQueueEmptyProm, mRecvQueueEmptyProm;
         std::future<void> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
 
@@ -369,6 +379,9 @@ namespace osuCrypto {
 
         bool stopped() { return mSendStatus == Channel::Status::Stopped && mRecvStatus == Channel::Status::Stopped; }
 
+
+		bool mActiveRecvSizeError = false;
+		bool activeRecvSizeError() const { return mActiveRecvSizeError; }
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mOpIdx;
         ChannelLog mLog;
@@ -599,7 +612,7 @@ namespace osuCrypto {
 		}
 		catch (BadReceiveBufferSize& bad)
 		{
-			std::cout << bad.mWhat << std::endl;
+			std::cout << bad.what() << std::endl;
 			throw;
 		}
 	}

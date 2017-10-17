@@ -134,16 +134,16 @@ namespace osuCrypto {
     };
 
 
-	class BadReceiveBufferSize : public std::exception
+	class BadReceiveBufferSize : public std::runtime_error
 	{
 	public:
-		std::string mWhat;
+		//std::string mWhat;
 		u64 mSize;
 		std::function<void(u8*)> mRescheduler;
 
-		BadReceiveBufferSize(std::string what, u64 length, std::function<void(u8*)> rescheduler)
+		BadReceiveBufferSize(const std::string& what, u64 length, std::function<void(u8*)> rescheduler)
 			:
-			mWhat(std::move(what)),
+			std::runtime_error(what),
 			mSize(length),
 			mRescheduler(std::move(rescheduler))
 		{ }

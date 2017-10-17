@@ -4,6 +4,7 @@
 #include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/Timer.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -20,7 +21,7 @@ namespace osuCrypto {
 		if (mBase && mBase->mStopped == false)
 			throw std::runtime_error("rt error at " LOCATION);
 
-		mBase.reset(new SessionBase);
+		mBase.reset(new SessionBase(ioService.mIoService));
 		mBase->mIP = (remoteIP);
 		mBase->mPort = (port);
 		mBase->mMode = (type);
@@ -28,20 +29,20 @@ namespace osuCrypto {
 		mBase->mStopped = (false);
 		mBase->mName = (name);
 
+
 		if (type == SessionMode::Server)
 		{
-			mBase->mAcceptor = ioService.getAcceptor(remoteIP, port);
+			ioService.aquireAcceptor(mBase);
 		}
 		else
 		{
+			std::random_device rd;
+			mBase->mSessionID = (1ULL << 32) * rd() + rd();
+
 			boost::asio::ip::tcp::resolver resolver(ioService.mIoService);
 			boost::asio::ip::tcp::resolver::query query(remoteIP, boost::lexical_cast<std::string>(port));
 			mBase->mRemoteAddr = *resolver.resolve(query);
 		}
-
-		//std::lock_guard<std::mutex> lock(ioService.mMtx);
-		//ioService.mSessionStopFutures.push_back(mBase->mDoneFuture);
-
 	}
 
 	void Session::start(IOService& ioService, std::string address, SessionMode host, std::string name)
@@ -86,13 +87,20 @@ namespace osuCrypto {
 
 	Session::~Session()
 	{
-		//stop();
 	}
 
 	std::string Session::getName() const
 	{
 		if (mBase)
 			return mBase->mName;
+		else
+			throw std::runtime_error(LOCATION);
+	}
+
+	u64 Session::getSessionID() const
+	{
+		if (mBase)
+			return mBase->mSessionID;
 		else
 			throw std::runtime_error(LOCATION);
 	}
@@ -107,22 +115,12 @@ namespace osuCrypto {
 
 	Channel Session::addChannel(std::string localName, std::string remoteName)
 	{
-		bool firstAnonymousChl = false;
-		{
-			std::lock_guard<std::mutex> lock(mBase->mAddChannelMtx);
-			if (mBase->mName == "" && isHost() == false)
-			{
-				// pick a random endpoint name...
-				firstAnonymousChl = true;
-				std::random_device rd;
-				mBase->mName = "ep_" + std::to_string(rd()) + std::to_string(rd());
-			}
+		// if the user does not provide a local name, use the following.
+		if (localName == "") {
+			if (remoteName != "") throw std::runtime_error("remote name must be empty is local name is empty. " LOCATION);
 
-			// if the user does not provide a local name, use the following.
-			if (localName == "") {
-				if (remoteName != "") throw std::runtime_error("remote name must be empty is local name is empty. " LOCATION);
-				localName = "_autoName_" + std::to_string(mBase->mAnonymousChannelIdx++);
-			}
+			std::lock_guard<std::mutex> lock(mBase->mAddChannelMtx);
+			localName = "_autoName_" + std::to_string(mBase->mAnonymousChannelIdx++);
 		}
 
 
@@ -146,7 +144,8 @@ namespace osuCrypto {
 		}
 		else
 		{
-			chlBase->mHandle.reset(new BoostSocketInterface(getIOService().mIoService));
+			chlBase->mHandle.reset(new BoostSocketInterface(
+				boost::asio::ip::tcp::socket(getIOService().mIoService)));
 
 			auto initialCallback = new std::function<void(const boost::system::error_code&)>();
 			auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
@@ -155,27 +154,48 @@ namespace osuCrypto {
 
 
 			*initialCallback =
-				[epBase, chlBase, timer, initialCallback, localName, remoteName, firstAnonymousChl]
+				[epBase, chlBase, timer, initialCallback, localName, remoteName]
 			(const boost::system::error_code& ec)
 			{
-				if (ec && chlBase->stopped() == false && epBase->mStopped == false)
+				if (ec)
 				{
-					// tell the io service to wait 10 ms and then try again...
-					timer->async_wait([epBase, chlBase, timer, initialCallback](const boost::system::error_code& ec)
+					if (chlBase->stopped() == false && epBase->mStopped == false)
 					{
-						if (chlBase->stopped() || ec)
+						// tell the io service to wait 10 ms and then try again...
+						//timer->async_wait([epBase, chlBase, timer, initialCallback](const boost::system::error_code& ec)
 						{
-							auto e_ptr = std::make_exception_ptr(std::runtime_error(LOCATION));
-							chlBase->mOpenProm.set_exception(e_ptr);
-							delete initialCallback;
-							delete timer;
-						}
-						else
-						{
-							// try to connect again...
-							((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
-						}
-					});
+							if (chlBase->stopped() || ec)
+							{
+								auto e_ptr = std::make_exception_ptr(
+									SocketConnectError(std::string("Session tried to connect but ") +
+									(chlBase->stopped() ? "the channel has stopped. " :
+										"the asio::Timer error code " + ec.message() + " was return. ") + LOCATION));
+								chlBase->mOpenProm.set_exception(e_ptr);
+								
+								gTimer.setTimePoint("set_exception(e_ptr); a");
+
+								delete initialCallback;
+								delete timer;
+							}
+							else
+							{
+								// try to connect again...
+								((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
+							}
+						}//);
+					}
+					else
+					{
+						auto e_ptr = std::make_exception_ptr(
+							SocketConnectError(std::string("Session tried to connect but the ") +
+							(chlBase->stopped() ? "channel " : "session ") + "has stopped. " + LOCATION));
+						chlBase->mOpenProm.set_exception(e_ptr);
+						
+						gTimer.setTimePoint("set_exception(e_ptr); b");
+
+						delete initialCallback;
+						delete timer;
+					}
 				}
 				else if (!ec)
 				{
@@ -185,10 +205,10 @@ namespace osuCrypto {
 					((BoostSocketInterface*)chlBase->mHandle.get())->mSock.set_option(option);
 
 					std::stringstream ss;
-					ss << epBase->mName << char('`') << localName << char('`') << remoteName;
+					ss << epBase->mName << '`' << epBase->mSessionID << '`' << localName << '`' << remoteName;
 
 					// append a special symbol to denote that this EP name was chosen at random.
-					if (firstAnonymousChl) ss << "`#";
+					//if (firstAnonymousChl) ss << "`#";
 
 					//if (firstAnonymousChl)
 					//	std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -232,13 +252,6 @@ namespace osuCrypto {
 					delete initialCallback;
 					delete timer;
 				}
-				else
-				{
-					auto e_ptr = std::make_exception_ptr(std::runtime_error(LOCATION));
-					chlBase->mOpenProm.set_exception(e_ptr);
-					delete initialCallback;
-					delete timer;
-				}
 			};
 
 			((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
@@ -250,10 +263,23 @@ namespace osuCrypto {
 
 	void Session::stop()
 	{
-		mBase->mStopped = true;
+		mBase->stop();
+	}
 
-		if (mBase->mAcceptor)
-			mBase->mAcceptor->removeSession(mBase);
+	void SessionBase::stop()
+	{
+		if (mStopped == false)
+		{
+			mStopped = true;
+			if (mAcceptor)
+				mAcceptor->unsubscribe(this);
+			mWorker.reset(nullptr);
+		}
+	}
+
+	SessionBase::~SessionBase()
+	{
+		stop();
 	}
 
 	bool Session::stopped() const
@@ -270,5 +296,9 @@ namespace osuCrypto {
 		return mBase->mIP;
 	}
 	bool Session::isHost() const { return mBase->mMode == SessionMode::Server; }
+
+	//void SessionBase::cancelPendingConnection(ChannelBase * chl)
+	//{
+	//}
 
 }
