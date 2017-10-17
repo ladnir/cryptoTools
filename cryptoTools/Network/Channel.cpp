@@ -93,7 +93,7 @@ namespace osuCrypto {
 				// try to connect again...
 				if (stopped() == false)
 					((BoostSocketInterface*)mHandle.get())->
-						mSock.async_connect(address, mConnectCallback);
+					mSock.async_connect(address, mConnectCallback);
 				else
 					mOpenProm.set_exception(std::make_exception_ptr(
 						SocketConnectError("Session tried to connect but the channel has stopped. "  LOCATION)));
@@ -104,9 +104,9 @@ namespace osuCrypto {
 				((BoostSocketInterface*)mHandle.get())->mSock.set_option(option);
 
 				std::stringstream sss;
-				sss << mSession->mName << '`' 
-					<< mSession->mSessionID << '`' 
-					<< mLocalName<< '`' 
+				sss << mSession->mName << '`'
+					<< mSession->mSessionID << '`'
+					<< mLocalName << '`'
 					<< mRemoteName;
 
 				mSendStrand.post([this, str = sss.str()]() mutable
@@ -202,72 +202,48 @@ namespace osuCrypto {
 
 	void ChannelBase::cancel()
 	{
-		mSendStatus = Channel::Status::Stopped;
-		mRecvStatus = Channel::Status::Stopped;
-		if (mHandle) mHandle->close();
-
-		if (mSession)
+		if (stopped() == false)
 		{
-			// if we are still waiting on a connection, cancel it.
-			if (mSession->mAcceptor) mSession->mAcceptor->cancelPendingChannel(this);
-		}
+			mSendStatus = Channel::Status::Stopped;
+			mRecvStatus = Channel::Status::Stopped;
 
+			if (mHandle) mHandle->close();
+			if (mSession && mSession->mAcceptor) mSession->mAcceptor->cancelPendingChannel(this);
 
-		gTimer.setTimePoint("cancelPending");
-
-		try {
-			mOpenFut.get();
-			gTimer.setTimePoint("openFut.get()");
-
-		}
-		catch (SocketConnectError& e)
-		{
-			gTimer.setTimePoint("openFut.get()");
-			std::cout << e.what() << std::endl;
-			// The socket has never started.
-			// We can simply remove all the queued items.
-			cancelRecvQueuedOperations();
-			cancelSendQueuedOperations();
-
-			gTimer.setTimePoint("cancel*queue()");
-
-		}
-
-
-		mSendStrand.dispatch([&]() {
-
-			if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
+			try { mOpenFut.get(); }
+			catch (SocketConnectError& e)
 			{
-				mSendQueueEmptyProm.set_value();
-			}
-		});
-
-		mRecvStrand.dispatch([&]() {
-
-			if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
-			{
-				mRecvQueueEmptyProm.set_value();
-			}
-			else if (activeRecvSizeError())
-			{
+				// The socket has never started.
+				// We can simply remove all the queued items.
 				cancelRecvQueuedOperations();
+				cancelSendQueuedOperations();
 			}
-		});
 
-		mSendQueueEmptyFuture.get();
-		mRecvQueueEmptyFuture.get();
-		gTimer.setTimePoint("cancel*queue() completed.");
+			mSendStrand.dispatch([&]() {
+				if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
+					mSendQueueEmptyProm.set_value();
+			});
 
-		mHandle.reset(nullptr);
-		mWork.reset(nullptr);
+			mRecvStrand.dispatch([&]() {
+				if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
+					mRecvQueueEmptyProm.set_value();
+				else if (activeRecvSizeError())
+					cancelRecvQueuedOperations();
+			});
+
+			mSendQueueEmptyFuture.get();
+			mRecvQueueEmptyFuture.get();
+
+			mHandle.reset(nullptr);
+			mWork.reset(nullptr);
+		}
+
 	}
 
 	void ChannelBase::close()
 	{
 		if (stopped() == false)
 		{
-
-
 			mOpenFut.get();
 
 			mSendStrand.dispatch([&]() {
@@ -296,13 +272,9 @@ namespace osuCrypto {
 			mRecvQueueEmptyFuture.get();
 
 			// ok, the send and recv queues are empty. Lets close the socket
-			if (mHandle)
-			{
-				//if (mSession) mSession->removeChannel(this);
-				mHandle->close();
-				mHandle.reset(nullptr);
-			}
+			if (mHandle)mHandle->close();
 
+			mHandle.reset(nullptr);
 			mWork.reset(nullptr);
 
 #ifdef CHANNEL_LOGGING
@@ -382,9 +354,9 @@ namespace osuCrypto {
 #endif
 				mRecvQueueEmpty = true;
 				mRecvQueueEmptyProm.set_value();
-		}
-	});
-}
+			}
+		});
+	}
 
 	std::string Channel::getRemoteName() const
 	{
@@ -461,8 +433,8 @@ namespace osuCrypto {
 			if (mRecvStatus == Channel::Status::Normal)
 			{
 				mRecvErrorMessage = reason;
-		}
-	});
+			}
+		});
 	}
 
 	void ChannelBase::clearBadRecvErrorState()

@@ -88,19 +88,15 @@ namespace tests_cryptoTools
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
-				t.setTimePoint(std::to_string(i) + ".1a");
 
 				auto ch1 = c1.addChannel();
-				t.setTimePoint(std::to_string(i) + ".1b");
 
 				ch1.cancel();
-				t.setTimePoint(std::to_string(i) + ".1c");
 
 				bool throws = false;
 
 				try { ch1.waitForConnection(); }
 				catch (...) { throws = true; }
-				t.setTimePoint(std::to_string(i) + ".1d");
 
 				if (throws == false)
 					throw UnitTestFail();
@@ -108,7 +104,6 @@ namespace tests_cryptoTools
 				if (ch1.isConnected())
 					throw UnitTestFail();
 			}
-			t.setTimePoint(std::to_string(i) + ".1");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -132,7 +127,6 @@ namespace tests_cryptoTools
 				throw UnitTestFail();
 			if (ioService.mAcceptors.front().isListening())
 				throw UnitTestFail();
-			t.setTimePoint(std::to_string(i) + ".2");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -160,7 +154,6 @@ namespace tests_cryptoTools
 				throw UnitTestFail();
 			if (ioService.mAcceptors.front().isListening())
 				throw UnitTestFail();
-			t.setTimePoint(std::to_string(i) + ".3");
 
 			{
 				Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
@@ -192,7 +185,6 @@ namespace tests_cryptoTools
 				throw UnitTestFail();
 			if (ioService.mAcceptors.front().isListening())
 				throw UnitTestFail();
-			t.setTimePoint(std::to_string(i) + ".4");
 
 		}
 
