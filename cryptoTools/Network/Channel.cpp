@@ -80,10 +80,78 @@ namespace osuCrypto {
 	{
 	}
 
-	//Session Channel::getSession()
-	//{
-	//    return mBase->mSession;
-	//}
+
+	void ChannelBase::asyncConnectToServer(const boost::asio::ip::tcp::endpoint& address)
+	{
+		mHandle.reset(new BoostSocketInterface(
+			boost::asio::ip::tcp::socket(getIOService().mIoService)));
+
+		mConnectCallback = [this, address](const boost::system::error_code& ec)
+		{
+			if (ec)
+			{
+				// try to connect again...
+				if (stopped() == false)
+					((BoostSocketInterface*)mHandle.get())->
+						mSock.async_connect(address, mConnectCallback);
+				else
+					mOpenProm.set_exception(std::make_exception_ptr(
+						SocketConnectError("Session tried to connect but the channel has stopped. "  LOCATION)));
+			}
+			else if (!ec)
+			{
+				boost::asio::ip::tcp::no_delay option(true);
+				((BoostSocketInterface*)mHandle.get())->mSock.set_option(option);
+
+				std::stringstream sss;
+				sss << mSession->mName << '`' 
+					<< mSession->mSessionID << '`' 
+					<< mLocalName<< '`' 
+					<< mRemoteName;
+
+				mSendStrand.post([this, str = sss.str()]() mutable
+				{
+					auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
+#ifdef CHANNEL_LOGGING
+					auto idx = op->mIdx = base->mOpIdx++;
+#endif
+					mSendQueue.emplace_front(std::move(op));
+					mSendSocketSet = true;
+
+					auto ii = ++mOpenCount;
+					if (ii == 2) mOpenProm.set_value();
+#ifdef CHANNEL_LOGGING
+					base->mLog.push("initSend' #" + ToString(idx) + " , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
+#endif
+					mSession->mIOService->sendOne(this);
+				});
+
+
+				mRecvStrand.post([this]()
+				{
+					mRecvSocketSet = true;
+
+					auto ii = ++mOpenCount;
+					if (ii == 2) mOpenProm.set_value();
+
+					auto startRecv = mRecvQueue.size() > 0;
+#ifdef CHANNEL_LOGGING
+					base->mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
+#endif
+
+					if (startRecv)
+					{
+						mSession->mIOService->receiveOne(this);
+					}
+				});
+			}
+		};
+
+
+		((BoostSocketInterface*)mHandle.get())->mSock.async_connect(mSession->mRemoteAddr, mConnectCallback);
+	}
+
+
 
 	std::string Channel::getName() const
 	{
@@ -107,17 +175,18 @@ namespace osuCrypto {
 		return mBase->mSendSocketSet  && mBase->mRecvSocketSet;
 	}
 
-	bool Channel::waitForConnection(std::chrono::milliseconds* timeout)
+	bool Channel::waitForConnection(std::chrono::milliseconds timeout)
 	{
-		if (timeout)
-		{
-			auto status = mBase->mOpenFut.wait_for(*timeout);
-			if (status != std::future_status::ready)
-				return false;
-		}
-
+		auto status = mBase->mOpenFut.wait_for(timeout);
+		if (status != std::future_status::ready)
+			return false;
 		mBase->mOpenFut.get();
 		return true;
+	}
+
+	void Channel::waitForConnection()
+	{
+		mBase->mOpenFut.get();
 	}
 
 	void Channel::close()
@@ -243,6 +312,8 @@ namespace osuCrypto {
 	}
 
 
+
+
 	void ChannelBase::cancelSendQueuedOperations()
 	{
 		mSendStrand.dispatch([this]() {
@@ -311,21 +382,21 @@ namespace osuCrypto {
 #endif
 				mRecvQueueEmpty = true;
 				mRecvQueueEmptyProm.set_value();
-			}
-		});
-	}
+		}
+	});
+}
 
 	std::string Channel::getRemoteName() const
 	{
 		return mBase->mRemoteName;
 	}
 
-	std::string Channel::getSessionName() const
+	Session Channel::getSession() const
 	{
 		if (mBase->mSession)
-			return mBase->mSession->mName;
+			return mBase->mSession;
 		else
-			return {};
+			throw std::runtime_error("no session. " LOCATION);
 	}
 
 
@@ -390,8 +461,8 @@ namespace osuCrypto {
 			if (mRecvStatus == Channel::Status::Normal)
 			{
 				mRecvErrorMessage = reason;
-			}
-		});
+		}
+	});
 	}
 
 	void ChannelBase::clearBadRecvErrorState()

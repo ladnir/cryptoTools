@@ -81,12 +81,21 @@ namespace osuCrypto {
 	Session::Session()
 	{ }
 
-	Session::Session(std::shared_ptr<SessionBase>& c)
+	Session::Session(const Session & v)
+		: mBase(v.mBase)
+	{
+		++mBase->mRealRefCount;
+	}
+
+	Session::Session(const std::shared_ptr<SessionBase>& c)
 		: mBase(c)
 	{ }
 
 	Session::~Session()
 	{
+		--mBase->mRealRefCount;
+		if (mBase->mRealRefCount == 0)
+			mBase->stop();
 	}
 
 	std::string Session::getName() const
@@ -132,8 +141,8 @@ namespace osuCrypto {
 
 		// construct the basic channel. Has no socket.
 		Channel chl(*this, localName, remoteName);
-		auto chlBase = chl.mBase;
-		auto epBase = mBase;
+		//auto chlBase = chl.mBase;
+		//auto epBase = mBase;
 
 		if (mBase->mMode == SessionMode::Server)
 		{
@@ -144,117 +153,7 @@ namespace osuCrypto {
 		}
 		else
 		{
-			chlBase->mHandle.reset(new BoostSocketInterface(
-				boost::asio::ip::tcp::socket(getIOService().mIoService)));
-
-			auto initialCallback = new std::function<void(const boost::system::error_code&)>();
-			auto timer = new boost::asio::deadline_timer(getIOService().mIoService, boost::posix_time::milliseconds(10));
-
-
-
-
-			*initialCallback =
-				[epBase, chlBase, timer, initialCallback, localName, remoteName]
-			(const boost::system::error_code& ec)
-			{
-				if (ec)
-				{
-					if (chlBase->stopped() == false && epBase->mStopped == false)
-					{
-						// tell the io service to wait 10 ms and then try again...
-						//timer->async_wait([epBase, chlBase, timer, initialCallback](const boost::system::error_code& ec)
-						{
-							if (chlBase->stopped() || ec)
-							{
-								auto e_ptr = std::make_exception_ptr(
-									SocketConnectError(std::string("Session tried to connect but ") +
-									(chlBase->stopped() ? "the channel has stopped. " :
-										"the asio::Timer error code " + ec.message() + " was return. ") + LOCATION));
-								chlBase->mOpenProm.set_exception(e_ptr);
-								
-								gTimer.setTimePoint("set_exception(e_ptr); a");
-
-								delete initialCallback;
-								delete timer;
-							}
-							else
-							{
-								// try to connect again...
-								((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
-							}
-						}//);
-					}
-					else
-					{
-						auto e_ptr = std::make_exception_ptr(
-							SocketConnectError(std::string("Session tried to connect but the ") +
-							(chlBase->stopped() ? "channel " : "session ") + "has stopped. " + LOCATION));
-						chlBase->mOpenProm.set_exception(e_ptr);
-						
-						gTimer.setTimePoint("set_exception(e_ptr); b");
-
-						delete initialCallback;
-						delete timer;
-					}
-				}
-				else if (!ec)
-				{
-					//std::cout << IoStream::lock << "        connected "<< localName  << std::endl << IoStream::unlock;
-
-					boost::asio::ip::tcp::no_delay option(true);
-					((BoostSocketInterface*)chlBase->mHandle.get())->mSock.set_option(option);
-
-					std::stringstream ss;
-					ss << epBase->mName << '`' << epBase->mSessionID << '`' << localName << '`' << remoteName;
-
-					// append a special symbol to denote that this EP name was chosen at random.
-					//if (firstAnonymousChl) ss << "`#";
-
-					//if (firstAnonymousChl)
-					//	std::this_thread::sleep_for(std::chrono::microseconds(100));
-
-					chlBase->mSendStrand.post([epBase, chlBase, str = ss.str()]() mutable
-					{
-						auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
-#ifdef CHANNEL_LOGGING
-						auto idx = op->mIdx = base->mOpIdx++;
-#endif
-						chlBase->mSendQueue.emplace_front(std::move(op));
-						chlBase->mSendSocketSet = true;
-
-						auto ii = ++chlBase->mOpenCount;
-						if (ii == 2) chlBase->mOpenProm.set_value();
-#ifdef CHANNEL_LOGGING
-						base->mLog.push("initSend' #" + ToString(idx) + " , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
-#endif
-						epBase->mIOService->sendOne(chlBase.get());
-					});
-
-
-					chlBase->mRecvStrand.post([epBase, chlBase]()
-					{
-						chlBase->mRecvSocketSet = true;
-
-						auto ii = ++chlBase->mOpenCount;
-						if (ii == 2) chlBase->mOpenProm.set_value();
-
-						auto startRecv = chlBase->mRecvQueue.size() > 0;
-#ifdef CHANNEL_LOGGING
-						base->mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
-#endif
-
-						if (startRecv)
-						{
-							epBase->mIOService->receiveOne(chlBase.get());
-						}
-					});
-
-					delete initialCallback;
-					delete timer;
-				}
-			};
-
-			((BoostSocketInterface*)chlBase->mHandle.get())->mSock.async_connect(epBase->mRemoteAddr, *initialCallback);
+			chl.mBase->asyncConnectToServer(mBase->mRemoteAddr);
 		}
 
 		return (chl);

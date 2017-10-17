@@ -72,7 +72,7 @@ void networkTutorial()
 
 	// To block until for 100 milliseconds for the connection to actually open.
 	std::chrono::milliseconds timeout(100);
-	bool open = chl0.waitForConnection(&timeout);
+	bool open = chl0.waitForConnection(timeout);
 
 	if (open == false)
 	{
@@ -287,6 +287,52 @@ void networkTutorial()
 
 
 
+	/*#####################################################
+	##                   Cancelation                     ##
+	#####################################################*/
+
+	// If a connection is never established when the channel
+	// is destructed it will block. This can also happen if the
+	// client tries to connect to a server that does not exists.
+	// For example,
+	{
+		Session session(ios, "127.0.0.1:1515", SessionMode::Server);
+		Channel emptyChannel = session.addChannel();
+
+		// no corresponding client channel
+
+		// If we then call
+		//     emptyChannel.recv(...);
+		//     emptyChannel.waitForConnection();
+		// or a similar call, the program will block forever.
+
+		// if we fail to get a connection, cancel() should be called to prevent the channel 
+		// from blocking when it is destructed.
+		if (emptyChannel.isConnected() == false) 
+			emptyChannel.cancel();
+	}
+
+	// We can also cancel pending operations. However, this will also
+	// close the channel making it unusable. 
+	{
+		Channel tempChl0 = Session(ios, "127.0.0.1:1515", SessionMode::Server).addChannel();
+		Channel tempChl1 = Session(ios, "127.0.0.1:1515", SessionMode::Client).addChannel();
+
+		// schedule a recv operation what will never complete.
+		std::vector<u8> buff;
+		auto asyncOp = tempChl0.asyncRecv(buff);
+
+		// Would block forever.
+		//    asyncOp.get();
+		
+		// We can cancel this operation by calling
+		tempChl0.cancel();
+
+		// This will now throw...
+		//    asyncOp.get();
+	}
+
+
     /*#####################################################
     ##                 Error Handling                    ##
     #####################################################*/
@@ -370,9 +416,9 @@ void networkTutorial()
 
     // Print interesting information.
     std::cout
-        << "   Session: " << chl0.getSessionName() << std::endl
+        << "   Session: " << chl0.getSession().getName() << std::endl
         << "   Channel: " << chl0.getName() << std::endl
-        << "      Send: " << chl0.getTotalDataSent() << std::endl
+        << "      Sent: " << chl0.getTotalDataSent() << std::endl
         << "  received: " << chl0.getTotalDataRecv() << std::endl;
 
     // Reset the data sent coutners.

@@ -435,7 +435,11 @@ namespace osuCrypto
 					// sessions. Remove the unclaimed channel mapping
 					auto fullKey = sessionName + std::to_string(sessionID);
 
-					auto location = mClaimedGroups.insert({ fullKey, sessionGroup }).first;
+					auto pair = mClaimedGroups.insert({ fullKey, sessionGroup });
+					auto s = pair.second;
+					auto location = pair.first;
+					if (s == false)
+						throw std::runtime_error(LOCATION);
 					sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
 				}
 			}
@@ -474,7 +478,7 @@ namespace osuCrypto
 			auto claimedIter = mClaimedGroups.find(fullKey);
 			if (claimedIter != mClaimedGroups.end())
 			{
-				auto& group = claimedIter->second;
+				auto group = claimedIter->second;
 				group->add(std::move(socket), this);
 
 				if (group->hasSubscriptions() == false)
@@ -527,7 +531,12 @@ namespace osuCrypto
 				{
 					// If not then add this SessionGroup to the list of claimed
 					// sessions. Remove the unclaimed channel mapping
-					auto location = mClaimedGroups.insert({ fullKey, sessionGroup }).first;
+					auto pair = mClaimedGroups.insert({ fullKey, sessionGroup });
+					auto s = pair.second;
+					auto location = pair.first;
+					if (s == false)
+						throw std::runtime_error(LOCATION);
+
 					sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
 				}
 			}

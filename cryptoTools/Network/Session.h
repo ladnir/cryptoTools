@@ -47,10 +47,10 @@ namespace osuCrypto {
 		// Default constructor
 		Session();
 
-		Session(const Session&) = default;
+		Session(const Session&);
 		Session(Session&&) = default;
 
-		Session(std::shared_ptr<SessionBase>& c);
+		Session(const std::shared_ptr<SessionBase>& c);
 
         ~Session();
 
@@ -100,6 +100,9 @@ namespace osuCrypto {
 		bool mStopped = true;
 		IOService* mIOService = nullptr;
 		Acceptor* mAcceptor = nullptr;
+
+
+		std::atomic<u32> mRealRefCount = 1;
 
 		std::unique_ptr<boost::asio::io_service::work> mWorker;
 

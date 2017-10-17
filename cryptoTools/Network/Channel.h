@@ -235,7 +235,7 @@ namespace osuCrypto {
 		std::string getRemoteName() const;
 
 		// Return the name of the endpoint of this channel has once.
-		std::string getSessionName() const;
+		Session getSession() const;
 
 		// Sets the data send and recieved counters to zero.
 		void resetStats();
@@ -254,7 +254,11 @@ namespace osuCrypto {
 
         // A blocking call that waits until the channel is open in that it can send/receive data
 		// Returns if the connection has been made. Always true if no timeout is provided.
-        bool waitForConnection(std::chrono::milliseconds* timeout = nullptr);
+        bool waitForConnection(std::chrono::milliseconds timeout);
+
+		// A blocking call that waits until the channel is open in that it can send/receive data
+		// Returns if the connection has been made. 
+		void waitForConnection();
 
         // Close this channel to denote that no more data will be sent or received.
 		// blocks until all pending operations have completed.
@@ -364,6 +368,9 @@ namespace osuCrypto {
         std::future<void> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
 
 
+		void asyncConnectToServer(const boost::asio::ip::tcp::endpoint&address);
+		std::function<void(const boost::system::error_code&)> mConnectCallback;
+		
         void setRecvFatalError(std::string reason);
         void setSendFatalError(std::string reason);
 
