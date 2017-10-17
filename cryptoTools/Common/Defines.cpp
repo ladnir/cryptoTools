@@ -3,6 +3,7 @@
 #include <random>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 
 namespace osuCrypto {
 

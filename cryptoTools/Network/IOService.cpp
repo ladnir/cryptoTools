@@ -81,7 +81,7 @@ namespace osuCrypto
 			if (isListening())
 			{
 				mPendingSockets.emplace_back(mIOService.mIoService);
-				auto& sockIter = mPendingSockets.end(); --sockIter;
+				auto sockIter = mPendingSockets.end(); --sockIter;
 
 				//BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
 				mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
@@ -145,6 +145,14 @@ namespace osuCrypto
 					}
 				});
 			}
+			else
+			{
+				mStrand.dispatch([&]()
+				{
+					if (stopped() && mPendingSockets.size() == 0)
+						mPendingSocketsEmptyProm.set_value();
+				});
+			}
 		});
 
 	}
@@ -172,9 +180,19 @@ namespace osuCrypto
 				// no subscribers, we can set the promise now.
 				if (hasSubscriptions() == false)
 					mStoppedPromise.set_value();
+
 			});
 
 			// wait for the pending events.
+			std::chrono::seconds timeout(4);
+			std::future_status status = mPendingSocketsEmptyFuture.wait_for(timeout);
+
+			while (status == std::future_status::timeout)
+			{
+				status = mPendingSocketsEmptyFuture.wait_for(timeout);
+				std::cout << "waiting on acceptor to close "<< mPendingSockets.size() <<" pending socket" << std::endl;
+			}
+
 			mPendingSocketsEmptyFuture.get();
 			mStoppedFuture.get();
 		}
@@ -286,7 +304,7 @@ namespace osuCrypto
 		f.get();
 	}
 
-	Acceptor::SocketGroupList::iterator Acceptor::getSocketGroup(const std::string & sessionName, u64 sessionID, bool addIfMissing)
+	Acceptor::SocketGroupList::iterator Acceptor::getSocketGroup(const std::string & sessionName, u64 sessionID)
 	{
 
 		auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
@@ -300,31 +318,25 @@ namespace osuCrypto
 				return *matchIter;
 		}
 
-		if (addIfMissing)
-		{
-			// there is no socket group for this session. lets create one.
-			mSockets.emplace_back();
-			auto socketIter = mSockets.end(); --socketIter;
+		// there is no socket group for this session. lets create one.
+		mSockets.emplace_back();
+		auto socketIter = mSockets.end(); --socketIter;
 
-			socketIter->mName = sessionName;
-			socketIter->mSessionID = sessionID;
+		socketIter->mName = sessionName;
+		socketIter->mSessionID = sessionID;
 
-			// add a mapping to indicate that this group is unclaimed
-			auto& group = mUnclaimedSockets[sessionName];
-			group.emplace_back(socketIter);
-			auto deleteIter = group.end(); --deleteIter;
+		// add a mapping to indicate that this group is unclaimed
+		auto& group = mUnclaimedSockets[sessionName];
+		group.emplace_back(socketIter);
+		auto deleteIter = group.end(); --deleteIter;
 
-			socketIter->removeMapping = [&group, &socketIter, this, sessionName, deleteIter]() {
-				group.erase(deleteIter);
-				if (group.size() == 0) mUnclaimedSockets.erase(mUnclaimedSockets.find(sessionName));
-			};
+		socketIter->removeMapping = [&group, &socketIter, this, sessionName, deleteIter]() {
+			group.erase(deleteIter);
+			if (group.size() == 0) mUnclaimedSockets.erase(mUnclaimedSockets.find(sessionName));
+		};
 
-			return socketIter;
-		}
-		else
-		{
-			return mSockets.end();
-		}
+		return socketIter;
+
 	}
 
 	void Acceptor::cancelPendingChannel(ChannelBase* chl)
@@ -375,8 +387,7 @@ namespace osuCrypto
 			auto& sessionGroup = chl->mSession->mGroup;
 			auto& sessionName = chl->mSession->mName;
 			auto& sessionID = chl->mSession->mSessionID;
-			auto& localName = chl->mLocalName;
-			auto& remoteName = chl->mRemoteName;
+
 
 			if (sessionID)
 			{
@@ -491,7 +502,7 @@ namespace osuCrypto
 				return;
 			}
 
-			auto& socketGroup = getSocketGroup(sessionName, sessionID, true);
+			auto socketGroup = getSocketGroup(sessionName, sessionID);
 
 			GroupList::iterator sessionGroup = mGroups.end();
 
@@ -592,7 +603,6 @@ namespace osuCrypto
 		// Skip if its already shutdown.
 		if (mStopped == false)
 		{
-			mWorker.reset(nullptr);
 			mStopped = true;
 
 			// tell all the acceptor threads to stop accepting new connections.
@@ -603,6 +613,9 @@ namespace osuCrypto
 
 			// delete all of their state.
 			mAcceptors.clear();
+
+
+			mWorker.reset(nullptr);
 
 			// we can now join on them.
 			for (auto& thrd : mWorkerThrds)
@@ -784,13 +797,13 @@ namespace osuCrypto
 			//delete channel->mRecvQueue.front();
 			channel->mRecvQueue.pop_front();
 			channel->mRecvQueueEmptyProm.set_value();
-	}
+		}
 		else
 		{
 			std::cout << "error, unknown operation " << int(u8(op.type())) << std::endl;
 			std::terminate();
 		}
-}
+		}
 
 	void IOService::sendOne(ChannelBase* socket)
 	{
@@ -902,7 +915,7 @@ namespace osuCrypto
 			std::cout << "error, unknown operation " << std::endl;
 			std::terminate();
 		}
-	}
+		}
 
 	void IOService::dispatch(ChannelBase* socket, std::unique_ptr<IOOperation>op)
 	{
@@ -985,8 +998,8 @@ namespace osuCrypto
 					// will be kicked off at the completion of this operation.
 					sendOne(socket);
 
-				}
-			});
+			}
+		});
 		}
 		break;
 		default:
@@ -994,7 +1007,7 @@ namespace osuCrypto
 			std::cout << ("unknown IOOperation::Type") << std::endl;
 			std::terminate();
 			break;
-		}
+	}
 	}
 
 
@@ -1174,4 +1187,4 @@ namespace osuCrypto
 	}
 
 
-}
+	}

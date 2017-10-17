@@ -109,7 +109,8 @@ namespace osuCrypto {
         const MultiKeyAES<N>& operator=(const MultiKeyAES<N>& rhs)
         {
             for (u64 i = 0; i < N; ++i)
-                memcpy(mAESs[i].mRoundKey, rhs.mAESs[i].mRoundKey, sizeof(block) * 11);
+				for(u64 j =0; j < 11; ++j)
+					mAESs[i].mRoundKey[j] = rhs.mAESs[i].mRoundKey[j];
 
             return rhs;
         }

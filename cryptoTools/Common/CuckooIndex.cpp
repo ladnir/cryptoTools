@@ -375,7 +375,7 @@ namespace osuCrypto
 					std::cout << "cuckoo stash overflow" << std::endl;
 
 					auto jj = find(mHashes[inputIdxs[i]]);
-					if (jj != -1)
+					if (jj != u64(-1))
 					{
 						std::cout << "already inserted." << std::endl;
 					}
@@ -609,7 +609,7 @@ namespace osuCrypto
 		AES hasher(hashingSeed);
 		u64 insertCount = 0;
 
-		for (u64 i = 0; i < inputs.size(); ++i)
+		for (u64 i = 0; i < u64(inputs.size()); ++i)
 		{
 
 			block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];

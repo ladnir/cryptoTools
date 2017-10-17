@@ -210,7 +210,7 @@ namespace osuCrypto
 
 		void subscribe(std::shared_ptr<SessionBase>& session);
 
-		SocketGroupList::iterator getSocketGroup(const std::string& name, u64 id, bool addIfMissing);
+		SocketGroupList::iterator getSocketGroup(const std::string& name, u64 id);
 
 		u64 mPort;
 		boost::asio::ip::tcp::endpoint mAddress;

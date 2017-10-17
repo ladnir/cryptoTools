@@ -259,7 +259,7 @@ namespace osuCrypto {
 				mRecvStatus = Channel::Status::Stopped;
 				if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
 				{
-					mRecvQueueEmpty == true;
+					mRecvQueueEmpty = true;
 					mRecvQueueEmptyProm.set_value();
 				}
 				else if (activeRecvSizeError())

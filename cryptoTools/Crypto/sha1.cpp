@@ -26,6 +26,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <stdint.h>
 #include <string>
+#include <cstring>
 
 
 

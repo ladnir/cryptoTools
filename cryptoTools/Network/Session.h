@@ -82,7 +82,9 @@ namespace osuCrypto {
 
 	struct SessionBase
 	{
-		SessionBase(boost::asio::io_service& ios) : mWorker(new boost::asio::io_service::work(ios)) {}
+		SessionBase(boost::asio::io_service& ios) 
+			: mRealRefCount(1)
+			, mWorker(new boost::asio::io_service::work(ios)) {}
 
 		~SessionBase();
 
@@ -102,7 +104,7 @@ namespace osuCrypto {
 		Acceptor* mAcceptor = nullptr;
 
 
-		std::atomic<u32> mRealRefCount = 1;
+		std::atomic<u32> mRealRefCount;
 
 		std::unique_ptr<boost::asio::io_service::work> mWorker;
 

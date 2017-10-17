@@ -20,7 +20,7 @@ namespace tests_cryptoTools
 		{
 
 			int mod = 24;
-			int order = 0x18;
+			//int order = 0x18;
 
 			EllipticCurve curve(p5_INSECURE, ZeroBlock);
 			PRNG prng(ZeroBlock);

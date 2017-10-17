@@ -21,13 +21,13 @@ void networkTutorial()
     #####################################################*/
 
 
-	//  --------------- Introduction --------------------\\
-	// 													 \\
-	// The general framework is to have pairs of parties \\
-	//   establish a "session," which in turn can have   \\
-	//          several channels (sockets). 			 \\
-	//													 \\
-	// --------------------------------------------------\\
+	/*  --------------- Introduction --------------------\
+	|  													 |
+	|  The general framework is to have pairs of parties |
+	|    establish a "session," which in turn can have   |
+	|           several channels (sockets). 			 |
+	| 													 |
+	\ --------------------------------------------------*/
 
 
     // create network I/O service with 4 background threads.

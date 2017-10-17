@@ -3,6 +3,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/AES.h>
 #include <vector>
+#include <cstring>
 
 namespace osuCrypto
 {
