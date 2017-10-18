@@ -8,7 +8,7 @@ CryptoTools is a portable c++14 library containing a collection of tools for bui
  
 ## Install
  
-The library is *cross platform* and has been tested on both Windows and Linux. The library should work on MAC but it has not been tested. There are two library dependencies including [Boost](http://www.boost.org/) (networking), and [Miracl](https://www.miracl.com/index) (PK crypto). For each, we provide a script that automates the download and build steps. The version of Miracl used by this library requires specific configuration and therefore we advise using the coned repository that we provide.
+The library is *cross platform* and has been tested on both Windows and Linux. The library has worked on Mac but is not regularly tested. There are two library dependencies including [Boost](http://www.boost.org/) (networking), and [Miracl](https://www.miracl.com/index) (PK crypto). For each, we provide a script that automates the download and build steps. The version of Miracl used by this library requires specific configuration and therefore we advise using the cloned repository that we provide. 
  
 ### Windows
 
@@ -31,7 +31,7 @@ Build the solution within visual studio or with `MSBuild`. To see all the comman
   
 
 
-<b>IMPORTANT:</b> By default, the build system needs the NASM compiler to be located at `C:\NASM\nasm.exe`. In the event that it isn't, there are two options, install it, or enable the pure c++ implementation. The latter option is done by excluding `libOTe/Crypto/asm/sha_win64.asm` from the build system and undefining  `INTEL_ASM_SHA1` on line 28 of `libOTe/Crypto/sha1.cpp`.
+<b>IMPORTANT:</b> By default, the build system needs the NASM compiler to be located at `C:\NASM\nasm.exe`. In the event that it isn't, there are two options, install it, or enable the pure c++ implementation. The latter option is done by excluding `cryptoTools/Crypto/asm/sha_win64.asm` from the build system and undefining  `INTEL_ASM_SHA1` on line 28 of `cryptoTools/Crypto/sha1.cpp`.
 
 
  
@@ -55,7 +55,7 @@ The libraries will be placed in `./lib` and the binary will be found at
  
 `./bin/frontend_cryptoTools`
 
-Note: In the case that miracl or boost is already installed, the steps  `cd libOTe/thirdparty/linux; bash all.get` can be skipped and CMake will attempt to find them instead. Boost is found with the CMake findBoost package and miracl is found with the `find_library(miracl)` command.
+Note: In the case that miracl or boost is already installed, the steps  `cd cryptoTools/thirdparty/linux; bash all.get` can be skipped and CMake will attempt to find them instead. Boost is found with the CMake findBoost package and miracl is found with the `find_library(miracl)` command.
  
 
  ## License
