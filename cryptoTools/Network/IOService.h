@@ -2,6 +2,7 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/SocketAdapter.h>
+#include <cryptoTools/Network/Session.h>
 
 # if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
 #  error WinSock.h has already been included. Please move the boost headers above the WinNet*.h headers
@@ -30,10 +31,6 @@ namespace osuCrypto
 
 	class Acceptor;
 	class IOOperation;
-    class Session;
-    class Channel;
-    class ChannelBase;
-	struct SessionBase;
 
     std::vector<std::string> split(const std::string &s, char delim);
 
