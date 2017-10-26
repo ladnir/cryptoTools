@@ -217,7 +217,9 @@ namespace osuCrypto
 		void stop();
 		bool stopped() const;
 		bool isListening() const { return mListening; };
-		//bool userModeIsListening() const;
+
+
+		std::string print() const;
 	};
 
 }

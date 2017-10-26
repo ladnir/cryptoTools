@@ -84,6 +84,24 @@
     <ClInclude Include="Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2b-load-sse2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2b-load-sse41.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2b-round.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2-config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Blake2\blake2-impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp">

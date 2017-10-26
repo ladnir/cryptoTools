@@ -194,12 +194,15 @@ namespace tests_cryptoTools
 			EccNumber a(curve, prng);
 			EccNumber b(curve, prng);
 
+			if (a == b)
+				throw UnitTestFail(LOCATION);
+
 			auto c = a * b;
 
 			if (b != c / a)
-				throw std::runtime_error(LOCATION);
+				throw UnitTestFail(LOCATION);
 			if (a != c / b)
-				throw std::runtime_error(LOCATION);
+				throw UnitTestFail(LOCATION);
 
 		}
 	}
@@ -209,134 +212,156 @@ namespace tests_cryptoTools
 	void EccpPoint_Test()
 	{
 
-		EllipticCurve curve(p256k1, ZeroBlock);
-		//EllipticCurve curve(p5_INSECURE, ZeroBlock);
-		curve.getMiracl().IOBASE = 10;
-
-		PRNG prng(ZeroBlock);
-
-		EccNumber one(curve, 1);
-		EccNumber zero(curve, 0);
-
-		const auto& g = curve.getGenerator();
-
-		//auto g2 = curve.getGenerators()[1] + curve.getGenerators()[2];
-		//EccBrick g2Brick(g2);
-		//std::cout << "g            " << g << std::endl;
-
-
-		//for (u64 i = 0; i < 24 * 2; ++i)
-		//{
-		//    std::cout << "g^"<< i<<"         " << g  * (one * i)<< std::endl;
-		//}
-		//std::cout << "order        " << order << std::endl;
-		//std::cout << "g^(order-1)  " << g*(order - 1) << std::endl;
-		//std::cout << "g^order      " << g*order << std::endl;
-		//std::cout << "g^(1)        " << g*(one) << std::endl;
-		//std::cout << "g^(order+1)  " << g*(order + 1) << std::endl;
-		//std::cout << "g^(2)        " << g*(one + one) << std::endl;
-
-		if (g * (curve.getOrder() + 1) != g)
+		for (auto& param : { p160Param, p192, p224, p256k1, Curve25519})
 		{
-			std::cout << "g^(n+1) != g" << std::endl;
-			std::cout << g * (curve.getOrder() + 1) << std::endl;
-			std::cout << g << std::endl;
-			throw    UnitTestFail("g^(n+1) != g");
+
+			EllipticCurve curve(param, ZeroBlock);
+			//EllipticCurve curve(p5_INSECURE, ZeroBlock);
+			curve.getMiracl().IOBASE = 10;
+
+			PRNG prng(ZeroBlock);
+
+			EccNumber one(curve, 1);
+			EccNumber zero(curve, 0);
+
+			const auto& g = curve.getGenerator();
+
+			//auto g2 = curve.getGenerators()[1] + curve.getGenerators()[2];
+			//EccBrick g2Brick(g2);
+			//std::cout << "g            " << g << std::endl;
+
+
+			//for (u64 i = 0; i < 24 * 2; ++i)
+			//{
+			//    std::cout << "g^"<< i<<"         " << g  * (one * i)<< std::endl;
+			//}
+			//std::cout << "order        " << order << std::endl;
+			//std::cout << "g^(order-1)  " << g*(order - 1) << std::endl;
+			//std::cout << "g^order      " << g*order << std::endl;
+			//std::cout << "g^(1)        " << g*(one) << std::endl;
+			//std::cout << "g^(order+1)  " << g*(order + 1) << std::endl;
+			//std::cout << "g^(2)        " << g*(one + one) << std::endl;
+
+			if (g * (curve.getOrder() + 1) != g)
+			{
+				std::cout << "g^(n+1) != g" << std::endl;
+				std::cout << g * (curve.getOrder() + 1) << std::endl;
+				std::cout << g << std::endl;
+				throw    UnitTestFail("g^(n+1) != g");
+			}
+
+
+
+			EccNumber a(curve);
+			EccNumber b(curve);
+			EccNumber r(curve);
+
+			a.randomize(prng);
+			b.randomize(prng);
+			r.randomize(prng);
+
+
+			auto a_br = a + b * r;
+
+
+
+			auto ga = g* a;
+
+			auto gbr = ((g * b) * r);
+			auto gbr2 = g * (b * r);
+
+
+			//std::cout << "mod  " << curve.getOrder() << std::endl;
+			//std::cout << "a    " << a << std::endl;
+			//std::cout << "b    " << b << std::endl;
+			//std::cout << "r    " << r << std::endl;
+			//std::cout << "abr   " << a_br << std::endl;
+			//std::cout << "ga  " << ga << std::endl;
+			//std::cout << "gbr  " << gbr << std::endl;
+			//std::cout << "gbr2 " << gbr2 << std::endl;
+
+			auto ga_br = ga + gbr;
+			auto ga_br2 = ga + gbr2;
+			auto ga_br3 = g * a_br;
+
+			if (ga_br != ga_br2 || ga_br != ga_br3)
+			{
+				std::cout << "ga_br != ga_br2" << std::endl;
+				std::cout << ga_br << std::endl;
+				std::cout << ga_br2 << std::endl;
+				std::cout << ga_br3 << std::endl;
+
+				throw UnitTestFail("ga_br != ga_br2");
+			}
+
+			EccBrick gBrick(g);
+
+			auto gBOne = gBrick * one;
+
+			if (g != gBOne)
+			{
+				std::cout << "g     " << g << std::endl;
+				std::cout << "gBOne " << gBOne << std::endl;
+
+				throw UnitTestFail("ga != gBa");
+			}
+
+			auto gBa = gBrick * a;
+
+			if (ga != gBa)
+			{
+				std::cout << "ga  " << ga << std::endl;
+				std::cout << "gBa " << gBa << std::endl;
+
+				throw UnitTestFail("ga != gBa");
+			}
+			auto gBbr = ((gBrick * b) * r);
+			auto gBbr2 = (gBrick * (b * r));
+
+			auto gBa_br = gBa + gBbr;
+			auto gBa_br2 = gBa + gBbr2;
+
+
+			if (gBa_br != gBa_br2 || gBa_br != ga_br2)
+			{
+				std::cout << "gBa_br  " << gBa_br << std::endl;
+				std::cout << "gBa_br2 " << gBa_br2 << std::endl;
+				std::cout << "ga_br2  " << ga_br2 << std::endl;
+
+				throw UnitTestFail("gBa_br != gBa_br2");
+			}
+
+
+
+
+			for (u64 i = 0; i < 16; ++i)
+			{
+				PRNG prng(toBlock(i), 8);
+
+				EccPoint p0(curve, prng);
+				EccPoint p1(curve, prng);
+
+				if (p0 == p1)
+				{
+					std::cout << param.bitCount << " " << param.p << std::endl;
+					throw UnitTestFail(LOCATION);
+				}
+
+				std::cout << " p0 " << p0 << std::endl;
+				std::cout << " p1 " << p1 << std::endl;
+			}
+
+			//auto g2a = g2 * a;
+			//auto g2Ba = g2Brick * a;
+			//
+			//if (g2Ba != g2a )
+			//{
+			//    std::cout << "g2Ba  " << g2Ba << std::endl;
+			//    std::cout << "g2a  " << g2a << std::endl;
+
+			//    throw UnitTestFail("g2a != g2Ba");
+			//}
 		}
-
-
-
-		EccNumber a(curve);
-		EccNumber b(curve);
-		EccNumber r(curve);
-
-		a.randomize(prng);
-		b.randomize(prng);
-		r.randomize(prng);
-
-
-
-		auto a_br = a + b * r;
-
-
-
-		auto ga = g* a;
-
-		auto gbr = ((g * b) * r);
-		auto gbr2 = g * (b * r);
-
-
-		//std::cout << "mod  " << curve.getOrder() << std::endl;
-		//std::cout << "a    " << a << std::endl;
-		//std::cout << "b    " << b << std::endl;
-		//std::cout << "r    " << r << std::endl;
-		//std::cout << "abr   " << a_br << std::endl;
-		//std::cout << "ga  " << ga << std::endl;
-		//std::cout << "gbr  " << gbr << std::endl;
-		//std::cout << "gbr2 " << gbr2 << std::endl;
-
-		auto ga_br = ga + gbr;
-		auto ga_br2 = ga + gbr2;
-		auto ga_br3 = g * a_br;
-
-		if (ga_br != ga_br2 || ga_br != ga_br3)
-		{
-			std::cout << "ga_br != ga_br2" << std::endl;
-			std::cout << ga_br << std::endl;
-			std::cout << ga_br2 << std::endl;
-			std::cout << ga_br3 << std::endl;
-
-			throw UnitTestFail("ga_br != ga_br2");
-		}
-
-		EccBrick gBrick(g);
-
-		auto gBOne = gBrick * one;
-
-		if (g != gBOne)
-		{
-			std::cout << "g     " << g << std::endl;
-			std::cout << "gBOne " << gBOne << std::endl;
-
-			throw UnitTestFail("ga != gBa");
-		}
-
-		auto gBa = gBrick * a;
-
-		if (ga != gBa)
-		{
-			std::cout << "ga  " << ga << std::endl;
-			std::cout << "gBa " << gBa << std::endl;
-
-			throw UnitTestFail("ga != gBa");
-		}
-		auto gBbr = ((gBrick * b) * r);
-		auto gBbr2 = (gBrick * (b * r));
-
-		auto gBa_br = gBa + gBbr;
-		auto gBa_br2 = gBa + gBbr2;
-
-
-		if (gBa_br != gBa_br2 || gBa_br != ga_br2)
-		{
-			std::cout << "gBa_br  " << gBa_br << std::endl;
-			std::cout << "gBa_br2 " << gBa_br2 << std::endl;
-			std::cout << "ga_br2  " << ga_br2 << std::endl;
-
-			throw UnitTestFail("gBa_br != gBa_br2");
-		}
-
-
-		//auto g2a = g2 * a;
-		//auto g2Ba = g2Brick * a;
-		//
-		//if (g2Ba != g2a )
-		//{
-		//    std::cout << "g2Ba  " << g2Ba << std::endl;
-		//    std::cout << "g2a  " << g2a << std::endl;
-
-		//    throw UnitTestFail("g2a != g2Ba");
-		//}
 	}
 
 
@@ -453,6 +478,20 @@ namespace tests_cryptoTools
 		if (r != rand)
 		{
 			throw UnitTestFail("");
+		}
+
+
+		{
+			PRNG prng(CCBlock);
+
+			EccNumber p0(curve, prng);
+			EccNumber p1(curve, prng);
+
+			if (p0 == p1)
+			{
+				throw UnitTestFail(LOCATION);
+			}
+
 		}
 
 	}
@@ -627,6 +666,23 @@ namespace tests_cryptoTools
 			std::cout << "gRc  " << gRc << std::endl;
 
 			throw UnitTestFail("gBRc != gRc");
+		}
+
+
+		for (u64 i = 0; i < 16; ++i)
+		{
+			PRNG prng(toBlock(i), 8);
+
+			EccPoint p0(curve, prng);
+			EccPoint p1(curve, prng);
+
+			if (p0 == p1)
+			{
+				throw UnitTestFail(LOCATION);
+			}
+
+			std::cout << " p0 " << p0 << std::endl;
+			std::cout << " p1 " << p1 << std::endl;
 		}
 	}
 }

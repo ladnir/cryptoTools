@@ -7,7 +7,7 @@
 #include "cryptoTools/Common/CuckooIndex.h"
 using namespace osuCrypto;
 #include <sstream>
-
+//#include <cryptoTools/Crypto/Blake2/blake2.h>
 
 
 int main(int argc, char** argv)

@@ -372,6 +372,10 @@ namespace osuCrypto
 	{
 		return mStopped;
 	}
+	std::string Acceptor::print() const
+	{
+		return std::string();
+	}
 	//bool Acceptor::userModeIsListening() const
 	//{
 	//	return false;

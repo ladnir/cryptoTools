@@ -32,6 +32,7 @@ namespace osuCrypto {
 		mRecvStatus(Channel::Status::Normal),
 		mSendStatus(Channel::Status::Normal),
 		mHandle(nullptr),
+		mTimer(endpoint.getIOService().mIoService),
 		mSendStrand(endpoint.getIOService().mIoService),
 		mRecvStrand(endpoint.getIOService().mIoService),
 		mOpenProm(),
@@ -57,6 +58,7 @@ namespace osuCrypto {
 		mRecvStatus(Channel::Status::Normal),
 		mSendStatus(Channel::Status::Normal),
 		mHandle(sock),
+		mTimer(ios.mIoService),
 		mSendStrand(ios.mIoService),
 		mRecvStrand(ios.mIoService),
 		mOpenProm(),
@@ -85,20 +87,33 @@ namespace osuCrypto {
 	{
 		mHandle.reset(new BoostSocketInterface(
 			boost::asio::ip::tcp::socket(getIOService().mIoService)));
+		mTimer.expires_from_now(boost::posix_time::millisec(10));
+
 
 		mConnectCallback = [this, address](const boost::system::error_code& ec)
 		{
 			if (ec)
 			{
+				//std::cout << "connect failed, " << this->mLocalName << " " << ec.value() << " " << ec.message() << ".  " << address.address().to_string() << std::endl;
 				// try to connect again...
 				if (stopped() == false)
-					((BoostSocketInterface*)mHandle.get())->
-					mSock.async_connect(address, mConnectCallback);
+				{
+					mTimer.async_wait([&](const boost::system::error_code& ec)
+					{
+						if (ec)
+						{
+							std::cout << "unknown timeout error: " << ec.message() << std::endl;
+						}
+
+						((BoostSocketInterface*)mHandle.get())->
+							mSock.async_connect(address, mConnectCallback);
+					});
+				}
 				else
 					mOpenProm.set_exception(std::make_exception_ptr(
 						SocketConnectError("Session tried to connect but the channel has stopped. "  LOCATION)));
 			}
-			else if (!ec)
+			else
 			{
 				boost::asio::ip::tcp::no_delay option(true);
 				((BoostSocketInterface*)mHandle.get())->mSock.set_option(option);
@@ -211,7 +226,7 @@ namespace osuCrypto {
 			if (mSession && mSession->mAcceptor) mSession->mAcceptor->cancelPendingChannel(this);
 
 			try { mOpenFut.get(); }
-			catch (SocketConnectError& e)
+			catch (SocketConnectError& )
 			{
 				// The socket has never started.
 				// We can simply remove all the queued items.

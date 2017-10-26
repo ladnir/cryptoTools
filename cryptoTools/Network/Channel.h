@@ -349,6 +349,7 @@ namespace osuCrypto {
 
         Channel::Status mRecvStatus, mSendStatus;
         std::unique_ptr<SocketInterface> mHandle;
+		boost::asio::deadline_timer mTimer;
 
         boost::asio::strand mSendStrand, mRecvStrand;
 

@@ -156,6 +156,12 @@
     <ClInclude Include="Common\Matrix.h" />
     <ClInclude Include="Common\Timer.h" />
     <ClInclude Include="Crypto\AES.h" />
+    <ClInclude Include="Crypto\Blake2\blake2-config.h" />
+    <ClInclude Include="Crypto\Blake2\blake2-impl.h" />
+    <ClInclude Include="Crypto\Blake2\blake2.h" />
+    <ClInclude Include="Crypto\Blake2\blake2b-load-sse2.h" />
+    <ClInclude Include="Crypto\Blake2\blake2b-load-sse41.h" />
+    <ClInclude Include="Crypto\Blake2\blake2b-round.h" />
     <ClInclude Include="Crypto\Commit.h" />
     <ClInclude Include="Crypto\Curve.h" />
     <ClInclude Include="Crypto\PRNG.h" />

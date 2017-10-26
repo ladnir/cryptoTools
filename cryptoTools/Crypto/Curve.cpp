@@ -442,16 +442,22 @@ namespace osuCrypto
     {
         big varX = mirvar(mCurve->mMiracl, 0);
 
+		bool success;
         bytes_to_big(mCurve->mMiracl, (int)sizeBytes() - 1, (char*)src + 1, varX);
         if (mCurve->mIsPrimeField)
         {
-            epoint_set(mCurve->mMiracl, varX, varX, src[0], mVal);
+			success = epoint_set(mCurve->mMiracl, varX, varX, src[0], mVal);
         }
         else
         {
-            epoint2_set(mCurve->mMiracl, varX, varX, src[0], mVal);
+			success = epoint2_set(mCurve->mMiracl, varX, varX, src[0], mVal);
         }
 
+
+		if (success == false)
+		{
+			throw std::runtime_error(LOCATION);
+		}
         mirkill(varX);
     }
 
@@ -504,40 +510,46 @@ namespace osuCrypto
 
     void EccPoint::randomize(PRNG& prng)
     {
-		u64 byteSize = (mCurve->mEcc2mParams.bitCount + 7) / 8;
-		u8* buff = new u8[byteSize];
-		//u8* buff2 = new u8[sizeBytes()];
+//		u64 byteSize = (mCurve->bitCount() + 7) / 8;
+//		u8* buff = new u8[byteSize];
+//		//u8* buff2 = new u8[sizeBytes()];
+//
+//		// a mask for the top bits so the buff contains at most
+//		// bitCount non zeros
+//		u8 mask = u8(-1);
+//		auto mod = mCurve->bitCount() & 7;
+//		if (mod)
+//			mask >>= (8 - mod);
+//
+//
+//		big var = mirvar(mCurve->mMiracl, 0);
+//
+////		do
+//		{
+//			//TODO("replace bigdig with our PRNG");
+//
+//			//bigdig(mCurve->mMiracl, mCurve->mParams.bitCount, 2, var);
+//			prng.get(buff, byteSize);
+//			buff[byteSize - 1] &= mask;
+//
+//			bytes_to_big(mCurve->mMiracl, static_cast<int>(byteSize), (char*)buff, var);
+//			if (mCurve->mIsPrimeField)
+//			{
+//				epoint_set(mCurve->mMiracl, var, var, 0, mVal);
+//			}
+//			else
+//			{
+//				epoint2_set(mCurve->mMiracl, var, var, 0, mVal);
+//			}
+//			//toBytes(buff2);
+//			//fromBytes(buff2);
 
-		// a mask for the top bits so the buff contains at most
-		// bitCount non zeros
-		u8 mask = u8(-1);
-		if (mCurve->mEcc2mParams.bitCount & 7)
-			mask >>= (8 - (mCurve->mEcc2mParams.bitCount & 7));
+			//delete[] buff;
+			////delete[] buff2;
+			//mirkill(var);
 
-
-		big var = mirvar(mCurve->mMiracl, 0);
-
-		//do
-		{
-			//TODO("replace bigdig with our PRNG");
-
-			//bigdig(mCurve->mMiracl, mCurve->mParams.bitCount, 2, var);
-			prng.get(buff, byteSize);
-			buff[byteSize - 1] &= mask;
-
-			bytes_to_big(mCurve->mMiracl, static_cast<int>(byteSize), (char*)buff, var);
-			if (mCurve->mIsPrimeField)
-			{
-				epoint_set(mCurve->mMiracl, var, var, 0, mVal);
-			}
-			else
-			{
-				epoint2_set(mCurve->mMiracl, var, var, 0, mVal);
-			}
-			//toBytes(buff2);
-			//fromBytes(buff2);
-		}
-
+//		}
+//
 		if (point_at_infinity(mVal))
 		{
 			// if that failed, just get a random point
@@ -546,11 +558,6 @@ namespace osuCrypto
 
 			*this = mCurve->getGenerator() * num;
 		}
-
-
-		delete[] buff;
-		//delete[] buff2;
-		mirkill(var);
 
 
     }
