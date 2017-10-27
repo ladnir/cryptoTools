@@ -223,7 +223,7 @@ namespace osuCrypto
 
 					mListening = false;
 
-					std::cout << IoStream::lock << "stop listening " << std::endl << IoStream::unlock;
+					//std::cout << IoStream::lock << "stop listening " << std::endl << IoStream::unlock;
 					mHandle.close();
 
 					if (stopped() && hasSubscriptions() == false)
@@ -1053,7 +1053,7 @@ namespace osuCrypto
 				acceptorIter = mAcceptors.end(); --acceptorIter;
 				acceptorIter->mPort = session->mPort;
 
-				std::cout << "creating acceptor on " + ToString(session->mPort) << std::endl;
+				//std::cout << "creating acceptor on " + ToString(session->mPort) << std::endl;
 			}
 
 			p.set_value(acceptorIter);
