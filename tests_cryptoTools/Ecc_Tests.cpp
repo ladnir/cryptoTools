@@ -347,8 +347,8 @@ namespace tests_cryptoTools
 					throw UnitTestFail(LOCATION);
 				}
 
-				std::cout << " p0 " << p0 << std::endl;
-				std::cout << " p1 " << p1 << std::endl;
+				//std::cout << " p0 " << p0 << std::endl;
+				//std::cout << " p1 " << p1 << std::endl;
 			}
 
 			//auto g2a = g2 * a;
@@ -681,8 +681,8 @@ namespace tests_cryptoTools
 				throw UnitTestFail(LOCATION);
 			}
 
-			std::cout << " p0 " << p0 << std::endl;
-			std::cout << " p1 " << p1 << std::endl;
+			//std::cout << " p0 " << p0 << std::endl;
+			//std::cout << " p1 " << p1 << std::endl;
 		}
 	}
 }

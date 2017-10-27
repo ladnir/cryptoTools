@@ -49,6 +49,7 @@ namespace osuCrypto
         ~IOService();
 
         boost::asio::io_service mIoService;
+		boost::asio::strand mStrand;
 
         std::unique_ptr<boost::asio::io_service::work> mWorker;
 

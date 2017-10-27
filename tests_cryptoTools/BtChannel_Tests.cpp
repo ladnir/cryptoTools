@@ -36,10 +36,10 @@ namespace tests_cryptoTools
 
 		auto c1c1 = c1.addChannel();
 		auto c1c2 = c1.addChannel();
-		auto c2c1 = c2.addChannel();
-		auto c2c2 = c2.addChannel();
 		auto s1c1 = s1.addChannel();
 		auto s1c2 = s1.addChannel();
+		auto c2c1 = c2.addChannel();
+		auto c2c2 = c2.addChannel();
 		auto s2c1 = s2.addChannel();
 		auto s2c2 = s2.addChannel();
 
@@ -504,6 +504,7 @@ namespace tests_cryptoTools
 		u32 basePort = 1212;
 		std::string ip("127.0.0.1");
 		//InitDebugPrinting();
+		IOService ioService(0);
 
 		std::vector<std::thread> nodeThreads(nodeCount);
 
@@ -517,7 +518,6 @@ namespace tests_cryptoTools
 
 
 				u32 port;// = basePort + i;
-				IOService ioService(0);
 				ioService.printErrorMessages(true);
 
 				std::list<Session> sessions;
@@ -532,12 +532,12 @@ namespace tests_cryptoTools
 						if (host == SessionMode::Server)
 						{
 							name += std::to_string(i) + "->" + std::to_string(j);
-							port = basePort + (u32)i;
+							port = basePort;// t + (u32)i;
 						}
 						else
 						{
 							name += std::to_string(j) + "->" + std::to_string(i);
-							port = basePort + (u32)j;
+							port = basePort;// +(u32)j;
 						}
 
 						sessions.emplace_back(ioService, ip, port, host, name);
@@ -577,7 +577,7 @@ namespace tests_cryptoTools
 					endpoint.stop();
 
 
-				ioService.stop();
+				//ioService.stop ();
 			});
 		}
 

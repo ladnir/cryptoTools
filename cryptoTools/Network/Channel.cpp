@@ -87,26 +87,27 @@ namespace osuCrypto {
 	{
 		mHandle.reset(new BoostSocketInterface(
 			boost::asio::ip::tcp::socket(getIOService().mIoService)));
-		mTimer.expires_from_now(boost::posix_time::millisec(10));
 
-
+		mSendSizeBuff = 0;
 		mConnectCallback = [this, address](const boost::system::error_code& ec)
 		{
+			auto& sock = ((BoostSocketInterface*)mHandle.get())->mSock;
+
 			if (ec)
 			{
 				//std::cout << "connect failed, " << this->mLocalName << " " << ec.value() << " " << ec.message() << ".  " << address.address().to_string() << std::endl;
 				// try to connect again...
 				if (stopped() == false)
 				{
+					mTimer.expires_from_now(boost::posix_time::millisec(10));
 					mTimer.async_wait([&](const boost::system::error_code& ec)
 					{
 						if (ec)
 						{
 							std::cout << "unknown timeout error: " << ec.message() << std::endl;
 						}
-
-						((BoostSocketInterface*)mHandle.get())->
-							mSock.async_connect(address, mConnectCallback);
+						sock.close();
+						sock.async_connect(address, mConnectCallback);
 					});
 				}
 				else
@@ -116,7 +117,7 @@ namespace osuCrypto {
 			else
 			{
 				boost::asio::ip::tcp::no_delay option(true);
-				((BoostSocketInterface*)mHandle.get())->mSock.set_option(option);
+				sock.set_option(option);
 
 				std::stringstream sss;
 				sss << mSession->mName << '`'
@@ -163,7 +164,7 @@ namespace osuCrypto {
 		};
 
 
-		((BoostSocketInterface*)mHandle.get())->mSock.async_connect(mSession->mRemoteAddr, mConnectCallback);
+		((BoostSocketInterface*)mHandle.get())->mSock.async_connect(address, mConnectCallback);
 	}
 
 

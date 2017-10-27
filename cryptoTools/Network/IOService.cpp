@@ -136,6 +136,7 @@ namespace osuCrypto
 					}
 					else
 					{
+						
 						mStrand.dispatch([&, sockIter]()
 						{
 							mPendingSockets.erase(sockIter);
@@ -147,11 +148,11 @@ namespace osuCrypto
 			}
 			else
 			{
-				mStrand.dispatch([&]()
-				{
-					if (stopped() && mPendingSockets.size() == 0)
-						mPendingSocketsEmptyProm.set_value();
-				});
+				//mStrand.dispatch([&]()
+				//{
+				//	if (stopped() && mPendingSockets.size() == 0)
+				//		mPendingSocketsEmptyProm.set_value();
+				//});
 			}
 		});
 
@@ -162,25 +163,29 @@ namespace osuCrypto
 		if (mStopped == false)
 		{
 			mStrand.dispatch([&]() {
+				if (mStopped == false)
+				{
+					mStopped = true;
+					mListening = false;
 
-				mStopped = true;
-				mListening = false;
+					// stop listening.
 
-				// stop listening.
-				mHandle.close();
+					//std::cout << IoStream::lock << " accepter stop() " << mPort << std::endl << IoStream::unlock;
 
-				// cancel any sockets which have not completed the handshake.
-				for (auto& pendingSocket : mPendingSockets)
-					pendingSocket.mSock.close();
+					mHandle.close();
 
-				// if there were no pending sockets, set the promise
-				if (mPendingSockets.size() == 0)
-					mPendingSocketsEmptyProm.set_value();
+					// cancel any sockets which have not completed the handshake.
+					for (auto& pendingSocket : mPendingSockets)
+						pendingSocket.mSock.close();
 
-				// no subscribers, we can set the promise now.
-				if (hasSubscriptions() == false)
-					mStoppedPromise.set_value();
+					// if there were no pending sockets, set the promise
+					if (mPendingSockets.size() == 0)
+						mPendingSocketsEmptyProm.set_value();
 
+					// no subscribers, we can set the promise now.
+					if (hasSubscriptions() == false)
+						mStoppedPromise.set_value();
+				}
 			});
 
 			// wait for the pending events.
@@ -195,6 +200,7 @@ namespace osuCrypto
 
 			mPendingSocketsEmptyFuture.get();
 			mStoppedFuture.get();
+
 		}
 	}
 
@@ -212,11 +218,17 @@ namespace osuCrypto
 		if (isListening())
 		{
 			mStrand.dispatch([&]() {
-				mListening = false;
-				mHandle.close();
+				if (hasSubscriptions() == false)
+				{
 
-				if (stopped() && hasSubscriptions() == false)
-					mStoppedPromise.set_value();
+					mListening = false;
+
+					std::cout << IoStream::lock << "stop listening " << std::endl << IoStream::unlock;
+					mHandle.close();
+
+					if (stopped() && hasSubscriptions() == false)
+						mStoppedPromise.set_value();
+				}
 			});
 		}
 	}
@@ -566,6 +578,7 @@ namespace osuCrypto
 	IOService::IOService(u64 numThreads)
 		:
 		mIoService(),
+		mStrand(mIoService),
 		mWorker(new boost::asio::io_service::work(mIoService))
 	{
 
@@ -651,7 +664,7 @@ namespace osuCrypto
 		{
 			op.mBuffs[0] = boost::asio::buffer(&channel->mRecvSizeBuff, sizeof(u32));
 
-			std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[0] };
+			std::array<boost::asio::mutable_buffer, 1>tt{ {op.mBuffs[0] } };
 			//boost::asio::async_read(*,
 			channel->mHandle->async_recv(
 				tt,
@@ -661,11 +674,14 @@ namespace osuCrypto
 				//// This is *** NOT *** within the stand. Dont touch the recv queue! ////
 				//////////////////////////////////////////////////////////////////////////
 
-
+				 
 				if (bytesTransfered != boost::asio::buffer_size(op.mBuffs[0]) || ec)
 				{
 					auto reason = ("rt error at " LOCATION "\n  ec=" + ec.message() + ". else bytesTransfered != " + std::to_string(boost::asio::buffer_size(op.mBuffs[0])))
-						+ "\nThis could be from the other end closing too early or the connection being dropped.";
+						+ "\nThis could be from the other end closing too early or the connection being dropped.\n"
+						+ "Channel: " + channel->mLocalName  
+						+ ", Session: " + channel->mSession->mName + " " + ToString(channel->mSession->mPort) + " "
+						+ ToString(channel->mSession->mMode == SessionMode::Server);
 
 
 					if (mPrint) std::cout << reason << std::endl;
@@ -771,7 +787,7 @@ namespace osuCrypto
 						bool error;
 						u64 bytesTransfered;
 
-						std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+						std::array<boost::asio::mutable_buffer, 1>tt{ {op.mBuffs[1] } };
 						channel->mHandle->recv(tt, error, bytesTransfered);
 						auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
 
@@ -783,7 +799,7 @@ namespace osuCrypto
 				}
 				else
 				{
-					std::array<boost::asio::mutable_buffer, 1>tt{ op.mBuffs[1] };
+					std::array<boost::asio::mutable_buffer, 1>tt{ {op.mBuffs[1] } };
 					channel->mHandle->async_recv(tt, recvMain);
 
 					//boost::asio::async_read(*channel->mHandle,
@@ -1020,7 +1036,7 @@ namespace osuCrypto
 		std::promise<std::list<Acceptor>::iterator> p;
 		std::future<std::list<Acceptor>::iterator> f = p.get_future();
 
-		mIoService.dispatch([&]()
+		mStrand.dispatch([&]()
 		{
 			// see if there already exists an acceptor that this endpoint can use.
 			auto acceptorIter = std::find_if(
@@ -1035,6 +1051,9 @@ namespace osuCrypto
 				// an acceptor does not exist for this port. Lets create one.
 				mAcceptors.emplace_back(*this);
 				acceptorIter = mAcceptors.end(); --acceptorIter;
+				acceptorIter->mPort = session->mPort;
+
+				std::cout << "creating acceptor on " + ToString(session->mPort) << std::endl;
 			}
 
 			p.set_value(acceptorIter);
