@@ -65,7 +65,10 @@ namespace osuCrypto
         template<typename T>
         T get(const std::string& name)
         {
-            std::stringstream ss;
+			if(hasValue(name) == false)
+				throw CommandLineParserError();
+
+			std::stringstream ss;
             ss << *mKeyValues[name].begin();
 
             T ret;

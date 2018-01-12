@@ -43,7 +43,7 @@ namespace osuCrypto {
 
 		// Encrypts the vector of blocks {baseIdx, baseIdx + 1, ..., baseIdx + length - 1} 
 		// and writes the result to cyphertext.
-        void ecbEncCounterMode(u64 baseIdx, u64 length, block* cyphertext);
+        void ecbEncCounterMode(u64 baseIdx, u64 length, block* cyphertext) const;
 
 		// Returns the current key.
 		const block& getKey() const { return mRoundKey[0]; }

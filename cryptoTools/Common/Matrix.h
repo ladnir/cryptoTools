@@ -65,6 +65,14 @@ namespace osuCrypto
             MatrixView<T>::mStride = columns;
         }
 
+
+		// return the internal memory, stop managing its lifetime, and set the current container to null.
+		T* release()
+		{
+			auto ret = MatrixView<T>::mView.data();
+			MatrixView<T>::mView = {};
+			return ret;
+		}
     };
 
 

@@ -735,13 +735,13 @@ namespace osuCrypto
 					//    op.mPromise->set_exception(op.mException);
 					//else
 
-					op.mPromise.set_value();
 
 					if (op.mCallback)
 					{
 						op.mCallback();
 					}
 
+					op.mPromise.set_value();
 					//delete op.mContainer;
 
 					channel->mRecvStrand.dispatch([channel, this, &op]()
@@ -879,14 +879,14 @@ namespace osuCrypto
 
 				socket->mOutstandingSendData -= socket->mSendSizeBuff;
 
-				// if this was a synchronous send, fulfill the promise that the message was sent.
-				op.mPromise.set_value();
-
 				// if they provided a callback, execute it.
 				if (op.mCallback)
 				{
 					op.mCallback();
 				}
+
+				// if this was a synchronous send, fulfill the promise that the message was sent.
+				op.mPromise.set_value();
 
 				//delete op.mContainer;
 
@@ -986,15 +986,19 @@ namespace osuCrypto
 
 			// boost complains if generalized move symantics are used with a post(...) callback
 			auto opPtr = op.release();
+
+			//auto size = opPtr->size();
+			//std::cout << "send " << size << std::endl;
+
 			// a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
 			socket->mSendStrand.post([this, socket, opPtr]()
 			{
 				std::unique_ptr<IOOperation>op(opPtr);
 				// the queue must be guarded from concurrent access, so add the op within the strand
 
-
-				socket->mTotalSentData += op->size();
-				socket->mOutstandingSendData += op->size();
+				auto size = op->size();
+				socket->mTotalSentData += size;
+				socket->mOutstandingSendData += size;
 				socket->mMaxOutstandingSendData = std::max((u64)socket->mOutstandingSendData, (u64)socket->mMaxOutstandingSendData);
 
 				// check to see if we should kick off a new set of send operations. If the size >= 1, then there

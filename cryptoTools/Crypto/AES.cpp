@@ -63,8 +63,8 @@ namespace osuCrypto {
         u64 idx = 0;
         u64 length = blockLength - blockLength % step;
 
-        std::array<block, step> temp;
-
+        //std::array<block, step> temp;
+		block temp[step];
 
         for (; idx < length; idx += step)
         {
@@ -470,13 +470,14 @@ namespace osuCrypto {
 
     }
 
-    void AES::ecbEncCounterMode(u64 baseIdx, u64 blockLength, block * cyphertext)
+    void AES::ecbEncCounterMode(u64 baseIdx, u64 blockLength, block * cyphertext) const 
     {
         const u64 step = 8;
         u64 idx = 0;
         u64 length = blockLength - blockLength % step;
 
-        std::array<block, step> temp;
+        //std::array<block, step> temp;
+		block temp[step];
 
         for (; idx < length; idx += step, baseIdx += step)
         {

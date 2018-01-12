@@ -127,4 +127,10 @@ namespace osuCrypto
     }
 
 
+	template<typename T>
+	std::enable_if_t<std::is_pod<T>::value, PRNG&> operator<<(T& rhs, PRNG& lhs)
+	{
+		lhs.get(&rhs, 1);
+	}
+
 }
