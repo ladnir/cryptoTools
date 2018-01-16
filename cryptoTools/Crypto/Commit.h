@@ -3,13 +3,13 @@
 
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/PRNG.h>
-#include <cryptoTools/Crypto/sha1.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
 #include <iostream>
 
 namespace osuCrypto {
 
 #define COMMIT_BUFF_u32_SIZE  5
-static_assert(SHA1::HashSize == sizeof(u32) * COMMIT_BUFF_u32_SIZE, "buffer need to be the same size as hash size");
+static_assert(RandomOracle::HashSize == sizeof(u32) * COMMIT_BUFF_u32_SIZE, "buffer need to be the same size as hash size");
 
 
 class Commit 
@@ -101,7 +101,7 @@ class Commit
 		// Returns the size of the commitment in bytes.
 		static u64 size()
         {
-            return SHA1::HashSize;
+            return RandomOracle::HashSize;
         }
 
     private:
@@ -109,14 +109,14 @@ class Commit
 
         void hash(u8* data, u64 size)
         {
-            SHA1 sha;
+            RandomOracle sha;
             sha.Update(data, size);
             sha.Final((u8*)buff);
         }
 
          void hash(u8* data, u64 size, block& rand)
          {
-              SHA1 sha;
+              RandomOracle sha;
               sha.Update(data, size);
               sha.Update(rand);
               sha.Final((u8*)buff);
@@ -124,7 +124,7 @@ class Commit
 
     };
 
-    static_assert(sizeof(Commit) == SHA1::HashSize, "needs to be Pod type");
+    static_assert(sizeof(Commit) == RandomOracle::HashSize, "needs to be Pod type");
 
 
 	std::ostream& operator<<(std::ostream& out, const Commit& comm);

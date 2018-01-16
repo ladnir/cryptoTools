@@ -7,11 +7,11 @@ find_program(NASM nasm)
 
 
 if(NOT NASM OR NOT ("$ENV{cryptoTools_NO_NASM}" STREQUAL ""))
-  message(WARNING "\nnasm is not in the PATH or cryptoTools_NO_NASM is defined!!!! This means the fast SHA1 function will not be used.")
+  message(WARNING "\nnasm is not in the PATH or cryptoTools_NO_NASM is defined!!!! This means the fast RandomOracle function will not be used.")
   MESSAGE(STATUS "ENV{cryptoTools_NO_NASM} = $ENV{cryptoTools_NO_NASM}")
 
   # define this so that the asm is disabled.
-  add_definitions(-DNO_INTEL_ASM_SHA1=1)
+  add_definitions(-DNO_INTEL_ASM_RandomOracle=1)
   set(shaNasmOutput )
   add_custom_target(sha_asm)
   
@@ -44,7 +44,7 @@ endif()
 
 
 # add the source files 
-file(GLOB_RECURSE SRCS *.cpp)
+file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 
 # make projects that include cryptoTools use this as an include folder

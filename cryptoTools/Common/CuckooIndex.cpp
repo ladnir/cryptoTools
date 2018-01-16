@@ -1,5 +1,5 @@
 #include <cryptoTools/Common/CuckooIndex.h>
-#include <cryptoTools/Crypto/sha1.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
 #include <cryptoTools/Crypto/PRNG.h>
 #include <cryptoTools/Common/Log.h>
 #include <numeric>

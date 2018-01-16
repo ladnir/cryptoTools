@@ -3,11 +3,11 @@
 ;   This code implements two interfaces of SHA-1 update function: 1) working on a single 
 ;   64-byte block and 2) working on a buffer of multiple 64-bit blocks. Multiple blocks 
 ;   version of code is software pipelined and faster overall, it is a default. Assemble
-;   with -DINTEL_SHA1_SINGLEBLOCK to select single 64-byte block function interface.
+;   with -DINTEL_RandomOracle_SINGLEBLOCK to select single 64-byte block function interface.
 ;
 ;   C++ prototypes of implemented functions are below:
 ;
-;   #ifndef INTEL_SHA1_SINGLEBLOCK
+;   #ifndef INTEL_RandomOracle_SINGLEBLOCK
 ;      // Updates 20-byte SHA-1 record in 'hash' for 'num_blocks' consequtive 64-byte blocks
 ;      extern "C" void sha1_update_intel(int *hash, const char* input, size_t num_blocks );
 ;   #else
@@ -16,7 +16,7 @@
 ;   #endif
 ;
 ;   Function name 'sha1_update_intel' can be changed in the source or via macro:
-;     -DINTEL_SHA1_UPDATE_FUNCNAME=my_sha1_update_func_name
+;     -DINTEL_RandomOracle_UPDATE_FUNCNAME=my_sha1_update_func_name
 ;
 ;   It implements both UNIX(default) and Windows ABIs, use -DWIN_ABI on Windows
 ;
@@ -24,28 +24,28 @@
 ;   and performs dispatch. Since in most cases the functionality on non-SSSE3 supporting CPUs 
 ;   is also required, the default (e.g. one being replaced) function can be provided for 
 ;   dispatch on such CPUs, the name of old function can be changed in the source or via macro:
-;      -DINTEL_SHA1_UPDATE_DEFAULT_DISPATCH=default_sha1_update_function_name 
+;      -DINTEL_RandomOracle_UPDATE_DEFAULT_DISPATCH=default_sha1_update_function_name 
 ; 
 ;   Authors: Maxim Locktyukhin and Ronen Zohar at Intel.com
 ;
 
-%ifndef INTEL_SHA1_UPDATE_DEFAULT_DISPATCH
+%ifndef INTEL_RandomOracle_UPDATE_DEFAULT_DISPATCH
  ;; can be replaced with a default SHA-1 update function name
-%define INTEL_SHA1_UPDATE_DEFAULT_DISPATCH  sha1_intel_non_ssse3_cpu_stub_  
+%define INTEL_RandomOracle_UPDATE_DEFAULT_DISPATCH  sha1_intel_non_ssse3_cpu_stub_  
 %else 
-extern  INTEL_SHA1_UPDATE_DEFAULT_DISPATCH
+extern  INTEL_RandomOracle_UPDATE_DEFAULT_DISPATCH
 %endif
 
 ;; provide alternative SHA-1 update function's name here
-%ifndef INTEL_SHA1_UPDATE_FUNCNAME
-%define INTEL_SHA1_UPDATE_FUNCNAME     sha1_update_intel
+%ifndef INTEL_RandomOracle_UPDATE_FUNCNAME
+%define INTEL_RandomOracle_UPDATE_FUNCNAME     sha1_update_intel
 %endif
 
-global INTEL_SHA1_UPDATE_FUNCNAME
+global INTEL_RandomOracle_UPDATE_FUNCNAME
 
-%define INTEL_SHA1_SINGLEBLOCK
+%define INTEL_RandomOracle_SINGLEBLOCK
 
-%ifndef INTEL_SHA1_SINGLEBLOCK
+%ifndef INTEL_RandomOracle_SINGLEBLOCK
 %assign multiblock 1
 %else
 %assign multiblock 0
@@ -110,7 +110,7 @@ default rel
 ;               =1 - function implements multiple64-byte blocks hash
 ;                    3rd function's argument is a number, greater 0, of 64-byte blocks to calc hash for
 ;
-%macro  SHA1_VECTOR_ASM  2
+%macro  RandomOracle_VECTOR_ASM  2
 align 4096
 %1:
  push rbx
@@ -149,7 +149,7 @@ align 4096
  lea     K_BASE, [K_XMM_AR]
  xmm_mov XMM_SHUFB_BSWAP, [bswap_shufb_ctl]
 
- SHA1_PIPELINED_MAIN_BODY %2
+ RandomOracle_PIPELINED_MAIN_BODY %2
 
  %ifdef WIN_ABI
  xmm_mov xmm6, [xmm_save_base + 0*16]
@@ -177,7 +177,7 @@ align 4096
 ; macro param: =0 - process single 64-byte block
 ;              =1 - multiple blocks
 ;
-%macro SHA1_PIPELINED_MAIN_BODY 1
+%macro RandomOracle_PIPELINED_MAIN_BODY 1
 
  REGALLOC
 
@@ -522,12 +522,12 @@ sha1_update_intel_dispatched:
 ;;----------------------
 section .text align=64
 
-SHA1_VECTOR_ASM     sha1_update_intel_ssse3_, multiblock
+RandomOracle_VECTOR_ASM     sha1_update_intel_ssse3_, multiblock
 
 align 32
 sha1_update_intel_init_:       ;; we get here with the first time invocation
  call    sha1_update_intel_dispacth_init_
-INTEL_SHA1_UPDATE_FUNCNAME:    ;; we get here after init
+INTEL_RandomOracle_UPDATE_FUNCNAME:    ;; we get here after init
  jmp     qword [sha1_update_intel_dispatched]
 
 ;; CPUID feature flag based dispatch
@@ -538,7 +538,7 @@ sha1_update_intel_dispacth_init_:
  push    rdx
  push    rsi
 
- lea     rsi, [INTEL_SHA1_UPDATE_DEFAULT_DISPATCH]
+ lea     rsi, [INTEL_RandomOracle_UPDATE_DEFAULT_DISPATCH]
 
  mov     eax, 1
  cpuid

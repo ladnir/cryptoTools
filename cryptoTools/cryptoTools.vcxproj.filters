@@ -102,6 +102,12 @@
     <ClInclude Include="Crypto\Blake2\blake2-impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Crypto\Blake2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\RandomOracle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp">
@@ -144,6 +150,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Network\Session.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\blake2xb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\blake2bp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\blake2b.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\Blake2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
