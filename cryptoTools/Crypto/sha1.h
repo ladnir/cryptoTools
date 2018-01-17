@@ -20,13 +20,13 @@ namespace osuCrypto {
 		// Resets the interal state.
 		void Reset()
 		{
-			memset(this, 0, sizeof(SHA1));
+			Reset(outputLength());
 		}
 
 		// Resets the interal state and sets the desired output length in bytes.
 		void Reset(u64 digestByteLenght)
 		{
-			Reset();
+			memset(this, 0, sizeof(SHA1));
 			outputLenght = digestByteLenght;
 		}
 
