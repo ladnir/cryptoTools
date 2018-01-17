@@ -15,7 +15,7 @@ namespace osuCrypto {
         static const u64 HashSize = 20;
 
 		// Default constructor of the class. Sets the internal state to zero.
-		SHA1() { Reset(); }
+		SHA1(u64 outputLenght = HashSize) { Reset(outputLenght); }
 
 		// Resets the interal state.
 		void Reset()
@@ -23,9 +23,20 @@ namespace osuCrypto {
 			memset(this, 0, sizeof(SHA1));
 		}
 
-		// Add length bytes pointed to by dataIn to the internal SHA1 state.
-		void Update(const u8* dataIn, u64 length)
+		// Resets the interal state and sets the desired output length in bytes.
+		void Reset(u64 digestByteLenght)
 		{
+			Reset();
+			outputLenght = digestByteLenght;
+		}
+
+		// Add length bytes pointed to by dataIn to the internal Blake2 state.
+		template<typename T>
+		typename std::enable_if_t<std::is_pod<T>::value> Update(const T* dd, u64 ll)
+		{
+			auto length = ll * sizeof(T);
+			u8* dataIn = (u8*)dd;
+
 			while (length)
 			{
 				u64 step = std::min<u64>(length, u64(64) - idx);
@@ -42,7 +53,6 @@ namespace osuCrypto {
 				}
 			}
 		}
-
 		template<typename T>
 		typename std::enable_if_t<std::is_pod<T>::value> Update(const T& blk)
 		{
@@ -51,32 +61,33 @@ namespace osuCrypto {
 
 		// Finalize the SHA1 hash and output the result to DataOut.
 		// Required: DataOut must be at least SHA1::HashSize in length.
-		void Final(u8* DataOut, u64 length  = sizeof(u32) * 5)
+		void Final(u8* DataOut)
 		{
-#ifndef NDEBUG 
-			if (length > sizeof(u32) * 5) throw std::runtime_error(LOCATION);
-#endif
-
 			if (idx) sha1_compress(state.data(), buffer.data());
 			idx = 0;
-			memcpy(DataOut, state.data(), length);
+			memcpy(DataOut, state.data(), outputLength());
 		}
+
 
 		// Finalize the SHA1 hash and output the result to out. 
 		// Only sizeof(T) bytes of the output are written.
 		template<typename T>
-		typename std::enable_if_t<std::is_pod<T>::value && sizeof(T) <= HashSize>
+		typename std::enable_if_t<std::is_pod<T>::value && sizeof(T) <= HashSize && std::is_pointer<T>::value == false>
 			Final(T& out)
 		{
-			Final((u8*)&out, sizeof(T));
+			if (sizeof(T) != outputLength())
+				throw std::runtime_error(LOCATION);
+			Final((u8*)&out);
 		}
 
 		// Copy the interal state of a SHA1 computation.
         const SHA1& operator=(const SHA1& src);
 
+		u64 outputLength() const { return  outputLenght; }
+
     private:
         std::array<uint32_t,5> state;
         std::array<uint8_t, 64> buffer;
-        u64 idx;
+        u32 idx, outputLenght;
     };
 }
