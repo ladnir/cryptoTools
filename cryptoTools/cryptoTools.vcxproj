@@ -168,6 +168,7 @@
     <ClInclude Include="Crypto\PRNG.h" />
     <ClInclude Include="Crypto\RandomOracle.h" />
     <ClInclude Include="Crypto\sha1.h" />
+    <ClInclude Include="gsl\gls-lite.hpp" />
     <ClInclude Include="Network\Channel.h" />
     <ClInclude Include="Network\Endpoint.h" />
     <ClInclude Include="Network\Session.h" />

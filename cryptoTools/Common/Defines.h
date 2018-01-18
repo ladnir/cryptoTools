@@ -10,9 +10,12 @@
 #include <smmintrin.h>
 
 #include <boost/lexical_cast.hpp>
-
+#define USE_FULL_GSL
+#ifdef USE_FULL_GSL
 #include <cryptoTools/gsl/span>
-
+#else
+#include <cryptoTools/gsl/gls-lite.hpp>
+#endif
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)

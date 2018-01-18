@@ -479,7 +479,8 @@ namespace osuCrypto
 		std::string name,
 		std::unique_ptr<BoostSocketInterface> s)
 	{
-		mStrand.dispatch([this, name, ss = s.release()]() {
+		auto ss = s.release();
+		mStrand.dispatch([this, name, ss]() {
 			std::unique_ptr<BoostSocketInterface> sock(ss);
 
 			auto names = split(name, '`');

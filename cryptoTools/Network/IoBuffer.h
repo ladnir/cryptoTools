@@ -48,7 +48,7 @@ namespace osuCrypto {
     ///    * std::is_pod<Container::value_type>::value == true
     template<typename Container>
     using is_container =
-        std::is_same<std::enable_if_t<
+        std::is_same<typename std::enable_if<
         std::is_convertible<
 			typename Container::pointer,
             decltype(std::declval<Container>().data())>::value &&
@@ -56,7 +56,7 @@ namespace osuCrypto {
 			typename Container::size_type,
 			decltype(std::declval<Container>().size())>::value &&
 		std::is_pod<typename Container::value_type>::value &&
-		std::is_pod<Container>::value == false>
+		std::is_pod<Container>::value == false>::type
         ,
         void>;
    

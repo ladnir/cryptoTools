@@ -124,8 +124,8 @@ namespace osuCrypto {
 					<< mSession->mSessionID << '`'
 					<< mLocalName << '`'
 					<< mRemoteName;
-
-				mSendStrand.post([this, str = sss.str()]() mutable
+				auto str = sss.str();
+				mSendStrand.post([this, str]() mutable
 				{
 					auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
 #ifdef CHANNEL_LOGGING

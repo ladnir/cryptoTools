@@ -1,5 +1,9 @@
 #pragma once
+#ifdef USE_FULL_GSL
 #include <cryptoTools/gsl/multi_span>
+#else
+#include <cryptoTools/gsl/gls-lite.hpp>
+#endif
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/MatrixView.h>
 

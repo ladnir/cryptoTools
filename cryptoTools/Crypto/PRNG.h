@@ -38,7 +38,7 @@ namespace osuCrypto
 		// of the given type T. 
 		// Required: T must be a POD type.
         template<typename T>
-        typename std::enable_if_t<std::is_pod<T>::value, T>
+        typename std::enable_if<std::is_pod<T>::value, T>::type
 			get()
         {
             T ret;
@@ -50,7 +50,7 @@ namespace osuCrypto
 		// with random elements of the given type T. 
 		// Required: T must be a POD type.
         template<typename T>
-		typename std::enable_if_t<std::is_pod<T>::value, void> 
+		typename std::enable_if<std::is_pod<T>::value, void>::type 
 			get(T* dest, u64 length)
         {
             u64 lengthu8 = length * sizeof(T);
@@ -74,7 +74,7 @@ namespace osuCrypto
 		// with random elements of the given type T. 
 		// Required: T must be a POD type.
 		template<typename T>
-		typename std::enable_if_t<std::is_pod<T>::value, void>
+		typename std::enable_if<std::is_pod<T>::value, void>::type
 			get(span<T> dest)
 		{
 			get(dest.data(), dest.size());
@@ -128,7 +128,7 @@ namespace osuCrypto
 
 
 	template<typename T>
-	std::enable_if_t<std::is_pod<T>::value, PRNG&> operator<<(T& rhs, PRNG& lhs)
+	typename std::enable_if<std::is_pod<T>::value, PRNG&>::type operator<<(T& rhs, PRNG& lhs)
 	{
 		lhs.get(&rhs, 1);
 	}
