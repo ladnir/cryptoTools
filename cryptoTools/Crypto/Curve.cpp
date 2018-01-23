@@ -550,7 +550,7 @@ namespace osuCrypto
 
 //		}
 //
-		if (point_at_infinity(mVal))
+		//if (point_at_infinity(mVal))
 		{
 			// if that failed, just get a random point
 			// by computing g^r    where r <- Z_p
