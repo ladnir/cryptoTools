@@ -7,7 +7,7 @@ find_program(NASM nasm)
 
 
 if(NOT NASM OR NOT ("$ENV{cryptoTools_NO_NASM}" STREQUAL ""))
-  message(WARNING "\nnasm is not in the PATH or cryptoTools_NO_NASM is defined!!!! This means the fast RandomOracle function will not be used.")
+  message(WARNING "\nnasm is not in the PATH or cryptoTools_NO_NASM is defined!!!! This means the 2x faster SHA1 function will not be used.")
   MESSAGE(STATUS "ENV{cryptoTools_NO_NASM} = $ENV{cryptoTools_NO_NASM}")
 
   # define this so that the asm is disabled.
