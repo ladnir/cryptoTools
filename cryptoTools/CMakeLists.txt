@@ -11,7 +11,7 @@ if(NOT NASM OR NOT ("$ENV{cryptoTools_NO_NASM}" STREQUAL ""))
   MESSAGE(STATUS "ENV{cryptoTools_NO_NASM} = $ENV{cryptoTools_NO_NASM}")
 
   # define this so that the asm is disabled.
-  add_definitions(-DNO_INTEL_ASM_RandomOracle=1)
+  add_definitions(-DNO_INTEL_ASM_SHA1=1)
   set(shaNasmOutput )
   add_custom_target(sha_asm)
   
