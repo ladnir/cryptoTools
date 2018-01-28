@@ -75,8 +75,10 @@ namespace osuCrypto {
 		typename std::enable_if<std::is_pod<T>::value && sizeof(T) <= HashSize && std::is_pointer<T>::value == false>::type
 			Final(T& out)
 		{
+#ifndef NDEBUG
 			if (sizeof(T) != outputLength())
 				throw std::runtime_error(LOCATION);
+#endif
 			Final((u8*)&out);
 		}
 
