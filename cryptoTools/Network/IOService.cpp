@@ -667,7 +667,7 @@ namespace osuCrypto
 
             std::array<boost::asio::mutable_buffer, 1>tt{ {op.mBuffs[0] } };
             //boost::asio::async_read(*,
-            channel->mHandle->async_recv(tt, [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered) 
+            channel->mHandle->async_recv(tt, [&op, channel, this](const boost::system::error_code& ec, u64 bytesTransfered)
             {
                 //////////////////////////////////////////////////////////////////////////
                 //// This is *** NOT *** within the stand. Dont touch the recv queue! ////
@@ -818,76 +818,24 @@ namespace osuCrypto
 
     void IOService::sendOne(ChannelBase* socket)
     {
-        ////////////////////////////////////////////////////////////////////////////////
-        //// This is within the stand. We have sequential access to the send queue. ////
-        ////////////////////////////////////////////////////////////////////////////////
+        socket->mSendQueue.front()->async_perform(socket, [socket](error_code ec, u64 bytesTransferred) {
 
-        IOOperation& op = *socket->mSendQueue.front();
+            socket->mOutstandingSendData -= bytesTransferred;
 
-#ifdef CHANNEL_LOGGING
-        socket->mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.size()));
-#endif
-
-        if (op.type() == IOOperation::Type::SendData)
-        {
-            socket->mSendSizeBuff = u32(op.size());
-            op.mBuffs[0] = boost::asio::buffer(&socket->mSendSizeBuff, sizeof(u32));
-
-            socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
-                //boost::asio::async_write(
+            if (ec)
             {
-                //////////////////////////////////////////////////////////////////////////
-                //// This is *** NOT *** within the stand. Dont touch the send queue! ////
-                //////////////////////////////////////////////////////////////////////////
+                auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
+                if (socket->mIos.mPrint) std::cout << reason << std::endl;
 
-
-                if (ec)
+                socket->setSendFatalError(reason);
+            }
+            else
+            {
+                socket->mSendStrand.dispatch([socket]()
                 {
-                    auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
-                    if (mPrint) std::cout << reason << std::endl;
 
-                    socket->setSendFatalError(reason);
-                    return;
-                }
-
-                // lets delete the other pointer as its either nullptr or a buffer that was allocated
-                //delete (ChannelBuffer*)op.mOther;
-
-                // make sure all the data sent. If this fails, look up whether WSASend guarantees that all the data in the buffers will be send.
-                if (bytesTransferred !=
-                    boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
-                {
-                    auto reason = std::string("failed to send all data. Expected to send ")
-                        + ToString(boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
-                        + " bytes but transfered " + ToString(bytesTransferred) + "\n"
-                        + "  at  " + LOCATION;
-
-                    if (mPrint) std::cout << reason << std::endl;
-
-                    socket->setSendFatalError(reason);
-                    return;
-                }
-
-                socket->mOutstandingSendData -= socket->mSendSizeBuff;
-
-                // if they provided a callback, execute it.
-                if (op.mCallback)
-                {
-                    op.mCallback();
-                }
-
-                // if this was a synchronous send, fulfill the promise that the message was sent.
-                op.mPromise.set_value();
-
-                //delete op.mContainer;
-
-                socket->mSendStrand.dispatch([&op, socket, this]()
-                {
-                    ////////////////////////////////////////////////////////////////////////////////
-                    //// This is within the stand. We have sequential access to the send queue. ////
-                    ////////////////////////////////////////////////////////////////////////////////
 #ifdef CHANNEL_LOGGING
-                    socket->mLog.push("completed send #" + ToString(op.mIdx) + ", size = " + ToString(socket->mSendSizeBuff));
+                    socket->mLog.push("completed send #" + ToString(socket->mSendQueue.front()->mIdx) + ", size = " + ToString(bytesTransferred));
 #endif
                     //delete socket->mSendQueue.front();
                     socket->mSendQueue.pop_front();
@@ -898,7 +846,7 @@ namespace osuCrypto
 
                     if (sendMore)
                     {
-                        sendOne(socket);
+                        socket->mIos.sendOne(socket);
                     }
                     else if (socket->mSendStatus == Channel::Status::Stopped)
                     {
@@ -906,27 +854,115 @@ namespace osuCrypto
                         socket->mSendQueueEmptyProm = std::promise<void>();
                     }
                 });
-            });
-
-        }
-        else if (op.type() == IOOperation::Type::CloseSend)
-        {
-            // This is a special case which may happen if the channel calls stop()
-            // with async sends still queued up, we will get here after they get completes. fulfill the
-            // promise that all async send operations have been completed.
-#ifdef CHANNEL_LOGGING
-            socket->mLog.push("sendClosed #" + ToString(op.mIdx));
-#endif
-            //delete socket->mSendQueue.front();
-            socket->mSendQueue.pop_front();
-            socket->mSendQueueEmptyProm.set_value();
-        }
-        else
-        {
-            std::cout << "error, unknown operation " << std::endl;
-            std::terminate();
-        }
+            }
+        });
     }
+        //
+        //        IOOperation& op = *socket->mSendQueue.front();
+        //
+        //#ifdef CHANNEL_LOGGING
+        //        socket->mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.size()));
+        //#endif
+        //
+        //        if (op.type() == IOOperation::Type::SendData)
+        //        {
+        //            socket->mSendSizeBuff = u32(op.size());
+        //            op.mBuffs[0] = boost::asio::buffer(&socket->mSendSizeBuff, sizeof(u32));
+        //
+        //            socket->mHandle->async_send(op.mBuffs, [&op, socket, this](boost::system::error_code ec, u64 bytesTransferred)
+        //                //boost::asio::async_write(
+        //            {
+        //                //////////////////////////////////////////////////////////////////////////
+        //                //// This is *** NOT *** within the stand. Dont touch the send queue! ////
+        //                //////////////////////////////////////////////////////////////////////////
+        //
+        //
+        //                if (ec)
+        //                {
+        //                    auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
+        //                    if (mPrint) std::cout << reason << std::endl;
+        //
+        //                    socket->setSendFatalError(reason);
+        //                    return;
+        //                }
+        //
+        //                // lets delete the other pointer as its either nullptr or a buffer that was allocated
+        //                //delete (ChannelBuffer*)op.mOther;
+        //
+        //                // make sure all the data sent. If this fails, look up whether WSASend guarantees that all the data in the buffers will be send.
+        //                if (bytesTransferred !=
+        //                    boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
+        //                {
+        //                    auto reason = std::string("failed to send all data. Expected to send ")
+        //                        + ToString(boost::asio::buffer_size(op.mBuffs[0]) + boost::asio::buffer_size(op.mBuffs[1]))
+        //                        + " bytes but transfered " + ToString(bytesTransferred) + "\n"
+        //                        + "  at  " + LOCATION;
+        //
+        //                    if (mPrint) std::cout << reason << std::endl;
+        //
+        //                    socket->setSendFatalError(reason);
+        //                    return;
+        //                }
+        //
+        //                socket->mOutstandingSendData -= socket->mSendSizeBuff;
+        //
+        //                // if they provided a callback, execute it.
+        //                if (op.mCallback)
+        //                {
+        //                    op.mCallback();
+        //                }
+        //
+        //                // if this was a synchronous send, fulfill the promise that the message was sent.
+        //                op.mPromise.set_value();
+        //
+        //                //delete op.mContainer;
+        //
+        //                socket->mSendStrand.dispatch([&op, socket, this]()
+        //                {
+        //                    ////////////////////////////////////////////////////////////////////////////////
+        //                    //// This is within the stand. We have sequential access to the send queue. ////
+        //                    ////////////////////////////////////////////////////////////////////////////////
+        //#ifdef CHANNEL_LOGGING
+        //                    socket->mLog.push("completed send #" + ToString(op.mIdx) + ", size = " + ToString(socket->mSendSizeBuff));
+        //#endif
+        //                    //delete socket->mSendQueue.front();
+        //                    socket->mSendQueue.pop_front();
+        //
+        //                    // Do we have more messages to be sent?
+        //                    auto sendMore = socket->mSendQueue.size();
+        //
+        //
+        //                    if (sendMore)
+        //                    {
+        //                        sendOne(socket);
+        //                    }
+        //                    else if (socket->mSendStatus == Channel::Status::Stopped)
+        //                    {
+        //                        socket->mSendQueueEmptyProm.set_value();
+        //                        socket->mSendQueueEmptyProm = std::promise<void>();
+        //                    }
+        //                });
+        //            });
+        //
+        //        }
+        //        else if (op.type() == IOOperation::Type::CloseSend)
+        //        {
+        //            // This is a special case which may happen if the channel calls stop()
+        //            // with async sends still queued up, we will get here after they get completes. fulfill the
+        //            // promise that all async send operations have been completed.
+        //#ifdef CHANNEL_LOGGING
+        //            socket->mLog.push("sendClosed #" + ToString(op.mIdx));
+        //#endif
+        //            //delete socket->mSendQueue.front();
+        //            socket->mSendQueue.pop_front();
+        //            socket->mSendQueueEmptyProm.set_value();
+        //        }
+        //        else
+        //        {
+        //            std::cout << "error, unknown operation " << std::endl;
+        //            std::terminate();
+        //        }
+    
 
     void IOService::dispatch(ChannelBase* socket, std::unique_ptr<IOOperation>op)
     {
@@ -1089,7 +1125,7 @@ namespace osuCrypto
             auto ii = ++chl->mOpenCount;
             if (ii == 2)
                 chl->mOpenProm.set_value();
-        });
+    });
 
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -1119,7 +1155,7 @@ namespace osuCrypto
             if (ii == 2)
                 chl->mOpenProm.set_value();
 
-        });
+});
     }
 
 

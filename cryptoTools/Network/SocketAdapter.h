@@ -123,7 +123,6 @@ namespace osuCrypto
 
 
 
-
     class BoostSocketInterface : public SocketInterface
     {
     public:

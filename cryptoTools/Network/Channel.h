@@ -267,7 +267,7 @@ namespace osuCrypto {
 		// Aborts all current operations (connect, send, receive).
 		void cancel();
 
-        enum class Status { Normal, /*RecvSizeError, FatalError,*/ Stopped };
+        enum class Status { Normal, Stopped };
 
         std::shared_ptr<ChannelBase> mBase;
 
@@ -345,7 +345,7 @@ namespace osuCrypto {
 		std::shared_ptr<SessionBase> mSession;
         std::string mRemoteName, mLocalName;
 
-        u32 mRecvSizeBuff, mSendSizeBuff;
+        //u32 mRecvSizeBuff, mSendSizeBuff;
 
         Channel::Status mRecvStatus, mSendStatus;
         std::unique_ptr<SocketInterface> mHandle;
@@ -353,7 +353,8 @@ namespace osuCrypto {
 
         boost::asio::strand mSendStrand, mRecvStrand;
 
-        std::deque<std::unique_ptr<IOOperation>> mSendQueue, mRecvQueue;
+        std::deque<std::unique_ptr<IOOperation2>> mSendQueue;
+        std::deque<std::unique_ptr<IOOperation>> mRecvQueue;
         std::promise<void> mOpenProm;
         std::shared_future<void> mOpenFut;
 
@@ -390,6 +391,12 @@ namespace osuCrypto {
 
 		bool mActiveRecvSizeError = false;
 		bool activeRecvSizeError() const { return mActiveRecvSizeError; }
+
+
+        void async_Send(span<boost::asio::mutable_buffer> buffs, io_completion_handle completionHandle);
+
+
+
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mOpIdx;
         ChannelLog mLog;
