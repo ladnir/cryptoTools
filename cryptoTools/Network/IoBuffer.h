@@ -226,5 +226,52 @@ namespace osuCrypto {
     };
 
 
+    // A class template that allows fewer than the specified number of bytes to be received. 
+    template<typename T>
+    class ReceiveAtMost
+    {
+    public:
+        using pointer = T * ;
+        using value_type = T;
+        using size_type = u64;
+
+        T* mData;
+        u64 mMaxReceiveSize, mTrueReceiveSize;
+
+
+        // A constructor that takes the loction to be written to and 
+        // the maximum number of T's that should be written. 
+        // Call 
+        ReceiveAtMost(T* dest, u64 maxReceiveCount)
+            : mData(dest)
+            , mMaxReceiveSize(maxReceiveCount)
+            , mTrueReceiveSize(0)
+        {}
+
+
+        u64 size() const
+        {
+            if (mTrueReceiveSize)
+                return mTrueReceiveSize;
+            else
+                return mMaxReceiveSize;
+        }
+
+        const T* data() const { return mData; }
+        T* data() { return mData; }
+
+        void resize(u64 size)
+        {
+            if (size > mMaxReceiveSize) throw std::runtime_error(LOCATION);
+            mTrueReceiveSize = size;
+        }
+
+        u64 receivedSize() const
+        {
+            return mTrueReceiveSize;
+        }
+    };
+
+
 
 }
