@@ -81,7 +81,12 @@ namespace osuCrypto
         const size_type size() const { return mView.size(); }
         const size_type stride() const { return mStride; }
 
-        std::array<size_type, 2> bounds() const { return { stride() ? size() / stride() : 0 , stride() }; }
+        // returns the number of rows followed by the stride.
+        std::array<size_type, 2> bounds() const { return { rows(), stride() }; }
+
+        u64 rows() const {
+            return stride() ? size() / stride() : 0;
+        }
 
         pointer data() const { return mView.data(); };
 
