@@ -66,14 +66,13 @@ namespace osuCrypto
         // The mutex the protects sensitive objects in this class. 
         //std::mutex mMtx;
 
-        void receiveOne(ChannelBase* socket);
+        //void receiveOne(ChannelBase* socket);
+        //void sendOne(ChannelBase* socket);
 
-        void sendOne(ChannelBase* socket);
-
-        void startSocket(ChannelBase* chl, std::unique_ptr<BoostSocketInterface> socket);
+        //void startSocket(ChannelBase* chl, std::unique_ptr<BoostSocketInterface> socket);
 
         // Used to queue up asynchronous socket operations.
-        void dispatch(ChannelBase* socket, std::unique_ptr<IOOperation> op);
+        //void dispatch(ChannelBase* socket, std::unique_ptr<IOOperation> op);
 
         // Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         void aquireAcceptor(std::shared_ptr<SessionBase>& session);

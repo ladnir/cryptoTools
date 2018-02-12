@@ -193,6 +193,7 @@
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\sha1.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
+    <ClCompile Include="Network\IoBuffer.cpp" />
     <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
     <ClCompile Include="Network\SocketAdapter.cpp" />

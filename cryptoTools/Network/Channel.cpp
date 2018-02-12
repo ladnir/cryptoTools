@@ -5,7 +5,7 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Network/IOService.h>
 namespace osuCrypto {
-
+   
     Channel::Channel(
         Session& endpoint,
         std::string localName,
@@ -40,13 +40,14 @@ namespace osuCrypto {
         mOpenCount(0),
         mRecvSocketSet(false),
         mSendSocketSet(false),
-        mOutstandingSendData(0),
-        mMaxOutstandingSendData(0),
+        //mOutstandingSendData(0),
+        //mMaxOutstandingSendData(0),
         mTotalSentData(0),
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
 #ifdef CHANNEL_LOGGING
-        , mOpIdx(0)
+        , mRecvIdx(0)
+        , mSendIdx(0)
 #endif
     {
     }
@@ -66,13 +67,14 @@ namespace osuCrypto {
         mOpenCount(0),
         mRecvSocketSet(true),
         mSendSocketSet(true),
-        mOutstandingSendData(0),
-        mMaxOutstandingSendData(0),
+        //mOutstandingSendData(0),
+        //mMaxOutstandingSendData(0),
         mTotalSentData(0),
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
 #ifdef CHANNEL_LOGGING
-        , mOpIdx(0)
+        , mRecvIdx(0)
+        , mSendIdx(0)
 #endif
     {
         mOpenProm.set_value();
@@ -88,7 +90,6 @@ namespace osuCrypto {
         mHandle.reset(new BoostSocketInterface(
             boost::asio::ip::tcp::socket(getIOService().mIoService)));
 
-        mSendSizeBuff = 0;
         mConnectCallback = [this, address](const boost::system::error_code& ec)
         {
             auto& sock = ((BoostSocketInterface*)mHandle.get())->mSock;
@@ -127,9 +128,10 @@ namespace osuCrypto {
                 auto str = sss.str();
                 mSendStrand.post([this, str]() mutable
                 {
-                    auto op = std::unique_ptr<IOOperation>(new MoveChannelBuff<std::string>(std::move(str)));
+                    using namespace details;
+                    auto op = std::unique_ptr<SendOperation>(new MoveSendBuff<std::string>(std::move(str)));
 #ifdef CHANNEL_LOGGING
-                    auto idx = op->mIdx = base->mOpIdx++;
+                    auto idx = op->mIdx = mSendIdx++;
 #endif
                     mSendQueue.emplace_front(std::move(op));
                     mSendSocketSet = true;
@@ -137,9 +139,10 @@ namespace osuCrypto {
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
 #ifdef CHANNEL_LOGGING
-                    base->mLog.push("initSend' #" + ToString(idx) + " , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
+                    mLog.push("initSend' #" + ToString(idx) + " , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
 #endif
-                    mSession->mIOService->sendOne(this);
+                    
+                    asyncPerformSend();
                 });
 
 
@@ -152,12 +155,12 @@ namespace osuCrypto {
 
                     auto startRecv = mRecvQueue.size() > 0;
 #ifdef CHANNEL_LOGGING
-                    base->mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
+                    mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
 #endif
 
                     if (startRecv)
                     {
-                        mSession->mIOService->receiveOne(this);
+                        asyncPerformRecv();
                     }
                 });
             }
@@ -256,19 +259,120 @@ namespace osuCrypto {
 
     }
 
-    void ChannelBase::async_Send(span<boost::asio::mutable_buffer> buffs, io_completion_handle completionHandle)
+
+    void ChannelBase::recvEnque(std::unique_ptr<details::RecvOperation> op)
     {
 
+        // boost complains if generalized move symantics are used with a post(...) callback
+        // the callback has to be copyable...
+        auto opPtr = op.release();
+
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        mRecvStrand.post([this, opPtr]()
+        {
+            std::unique_ptr<details::RecvOperation>op(opPtr);
+
+            // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
+            // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
+            bool startRecving = (mRecvQueue.size() == 0) && mRecvSocketSet;
+
 #ifdef CHANNEL_LOGGING
-        mLog.push("starting send #" + ToString(op.mIdx) + ", size = " + ToString(op.size()));
+                mLog.push("queuing recv:" + op->toString() + ", start = " + ToString(startRecving));
 #endif
 
-        mHandle->async_send(buffs, [this](boost::system::error_code ec, u64 bytesTransferred)
-        {
-            //////////////////////////////////////////////////////////////////////////
-            //// This is *** NOT *** within the stand. Dont touch the send queue! ////
-            //////////////////////////////////////////////////////////////////////////
+            // the queue must be guarded from concurrent access, so add the op within the strand
+            // queue up the operation.
+            mRecvQueue.emplace_back(std::move(op));
+            if (startRecving)
+            {
+                // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
+                // will be kicked off at the completion of this operation.
+                asyncPerformRecv();
+            }
+        });
+    }
 
+    void ChannelBase::sendEnque(std::unique_ptr<details::SendOperation> op)
+    {
+
+        // boost complains if generalized move symantics are used with a post(...) callback
+        auto opPtr = op.release();
+
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        mSendStrand.post([this, opPtr]()
+        {
+            // the queue must be guarded from concurrent access, so add the op within the strand
+
+            std::unique_ptr<details::SendOperation>op(opPtr);
+
+            // check to see if we should kick off a new set of send operations. If the size >= 1, then there
+            // is already a set of send operations that will kick off the newly queued send when its turn comes around.
+            auto startSending = (mSendQueue.size() == 0) && mSendSocketSet;
+
+#ifdef CHANNEL_LOGGING
+                mLog.push("queuing send: " + op->toString() + ", start = " + ToString(startSending));
+#endif
+            // add the operation to the queue.
+            mSendQueue.emplace_back(std::move(op));
+
+            if (startSending)
+            {
+                // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
+                // will be kicked off at the completion of this operation.
+                asyncPerformSend();
+            }
+        });
+    }
+
+
+    void ChannelBase::asyncPerformRecv()
+    {
+
+        mRecvQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
+
+            mTotalRecvData += bytesTransferred;
+
+            if (ec)
+            {
+                auto reason = std::string("network receive error: ") + ec.message() + "\n at  " + LOCATION;
+                if (mIos.mPrint) std::cout << reason << std::endl;
+
+                setRecvFatalError(reason);
+            }
+            else
+            {
+
+                mRecvStrand.dispatch([this]()
+                {
+#ifdef CHANNEL_LOGGING
+                    mLog.push("completed recv: " + mRecvQueue.front()->toString());
+#endif
+                    //delete mRecvQueue.front();
+                    mRecvQueue.pop_front();
+
+                    // is there more messages to recv?
+                    bool recvMore = (mRecvQueue.size() != 0);
+
+                    if (recvMore)
+                    {
+                        asyncPerformRecv();
+                    }
+                    else if (mRecvStatus == Channel::Status::Stopped)
+                    {
+                        mRecvQueueEmptyProm.set_value();
+                        mRecvQueueEmptyProm = std::promise<void>();
+                    }
+                });
+            }
+        });
+    }
+
+    void ChannelBase::asyncPerformSend()
+    {
+
+        mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
+
+            mTotalSentData += bytesTransferred;
 
             if (ec)
             {
@@ -276,42 +380,34 @@ namespace osuCrypto {
                 if (mIos.mPrint) std::cout << reason << std::endl;
 
                 setSendFatalError(reason);
-                return;
             }
-
-
-            mOutstandingSendData -= mSendSizeBuff;
-
-            mSendStrand.dispatch([this]()
+            else
             {
-                ////////////////////////////////////////////////////////////////////////////////
-                //// This is within the stand. We have sequential access to the send queue. ////
-                ////////////////////////////////////////////////////////////////////////////////
+                mSendStrand.dispatch([this]()
+                {
 #ifdef CHANNEL_LOGGING
-                mLog.push("completed send #" + ToString(op.mIdx) + ", size = " + ToString(mSendSizeBuff));
+                    mLog.push("completed send #" + mSendQueue.front()->toString());
 #endif
-                //delete mSendQueue.front();
-                mSendQueue.pop_front();
+                    //delete mSendQueue.front();
+                    mSendQueue.pop_front();
 
-                // Do we have more messages to be sent?
-                auto sendMore = mSendQueue.size();
+                    // Do we have more messages to be sent?
+                    auto sendMore = mSendQueue.size();
 
-                if (sendMore)
-                {
-                    mIos.sendOne(this);
-                }
-                else if (mSendStatus == Channel::Status::Stopped)
-                {
-                    mSendQueueEmptyProm.set_value();
-                    mSendQueueEmptyProm = std::promise<void>();
-                }
-            });
+                    if (sendMore)
+                    {
+                        asyncPerformSend();
+                    }
+                    else if (mSendStatus == Channel::Status::Stopped)
+                    {
+                        mSendQueueEmptyProm.set_value();
+                        mSendQueueEmptyProm = std::promise<void>();
+                    }
+                });
+            }
         });
-
-
-
-
     }
+
 
     void ChannelBase::close()
     {
@@ -377,8 +473,9 @@ namespace osuCrypto {
 #endif
                     //delete front->mContainer;
 
-                    auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
-                    front->mPromise.set_exception(e_ptr);
+                    front->cancel(mSendErrorMessage);
+                    //auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mSendErrorMessage));
+                    //front->mPromise.set_exception(e_ptr);
 
                     //delete front;
                     mSendQueue.pop_front();
@@ -413,9 +510,9 @@ namespace osuCrypto {
                     mLog.push("cancel recv #" + ToString(front->mIdx));
 #endif
                     //delete front->mContainer;
-
-                    auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
-                    front->mPromise.set_exception(e_ptr);
+                    front->cancel(mRecvErrorMessage);
+                    //auto e_ptr = std::make_exception_ptr(std::runtime_error("Channel Error: " + mRecvErrorMessage));
+                    //front->mPromise.set_exception(e_ptr);
 
                     //delete front;
                     mRecvQueue.pop_front();
@@ -430,6 +527,70 @@ namespace osuCrypto {
             }
         });
     }
+
+
+    void ChannelBase::startSocket(std::unique_ptr<SocketInterface> socket)
+    {
+
+        mHandle = std::move(socket);
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        mRecvStrand.post([this]()
+        {
+
+
+#ifdef CHANNEL_LOGGING
+            mLog.push("initRecv , start = " + ToString(mRecvQueue.size()));
+#endif
+
+            // check to see if we should kick off a new set of recv operations. Since we are just now
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a receive
+            // operation. But since the channel handshake just finished, those operations didn't start. So if
+            // the queue has anything in it, we should actually start the operation now...
+            if (mRecvQueue.size())
+            {
+                // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
+                // will be kicked off at the completion of this operation.
+                asyncPerformRecv();
+            }
+
+            mRecvSocketSet = true;
+
+            auto ii = ++mOpenCount;
+            if (ii == 2)
+                mOpenProm.set_value();
+        });
+
+
+        // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
+        mSendStrand.post([this]()
+        {
+            // the queue must be guarded from concurrent access, so add the op within the strand
+
+            auto start = mSendQueue.size();
+#ifdef CHANNEL_LOGGING
+            mLog.push("initSend , start = " + ToString(start));
+#endif
+            // check to see if we should kick off a new set of send operations. Since we are just now
+            // starting the channel, its possible that the async connect call returned and the caller scheduled a send
+            // operation. But since the channel handshake just finished, those operations didn't start. So if
+            // the queue has anything in it, we should actually start the operation now...
+
+            if (start)
+            {
+                // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
+                // will be kicked off at the completion of this operation.
+                asyncPerformSend();
+            }
+
+            mSendSocketSet = true;
+
+            auto ii = ++mOpenCount;
+            if (ii == 2)
+                mOpenProm.set_value();
+        });
+    }
+
+
 
     std::string Channel::getRemoteName() const
     {
@@ -449,8 +610,8 @@ namespace osuCrypto {
     {
         mBase->mTotalSentData = 0;
         mBase->mTotalRecvData = 0;
-        mBase->mMaxOutstandingSendData = 0;
-        mBase->mOutstandingSendData = 0;
+        //mBase->mMaxOutstandingSendData = 0;
+        //mBase->mOutstandingSendData = 0;
     }
 
     u64 Channel::getTotalDataSent() const
@@ -463,15 +624,15 @@ namespace osuCrypto {
         return mBase->mTotalRecvData;
     }
 
-    u64 Channel::getMaxOutstandingSendData() const
-    {
-        return (u64)mBase->mMaxOutstandingSendData;
-    }
+    //u64 Channel::getMaxOutstandingSendData() const
+    //{
+    //    return (u64)mBase->mMaxOutstandingSendData;
+    //}
 
-    void Channel::dispatch(std::unique_ptr<IOOperation> op)
-    {
-        mBase->getIOService().dispatch(mBase.get(), std::move(op));
-    }
+    //void Channel::dispatch(std::unique_ptr<IOOperation> op)
+    //{
+    //    mBase->getIOService().dispatch(mBase.get(), std::move(op));
+    //}
 
     void ChannelBase::setRecvFatalError(std::string reason)
     {
