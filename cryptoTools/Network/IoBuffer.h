@@ -8,8 +8,8 @@
 #include <memory> 
 #include <boost/asio.hpp>
 #include <system_error>
+#include  <type_traits>;
 #define CHANNEL_LOGGING
-
 
 namespace osuCrypto {
     using error_code = boost::system::error_code;
@@ -165,6 +165,94 @@ namespace osuCrypto {
 
     namespace details
     {
+
+        template<typename U, typename... Args>
+        U* Make(Args&&... args)
+        {
+            reutrn new U(std::forward<Args>(args)...);
+        }
+
+        template<typename T, int StorageSize = 32>
+        class SBO_ptr
+        {
+        public:
+
+            using base_type = T;
+
+            using Storage = typename std::aligned_storage<StorageSize>::type;
+            T* mData = nullptr;
+            Storage mStorage;
+
+            SBO_ptr() = default;
+            SBO_ptr(const SBO_ptr<T>&) = delete;
+
+            template<typename Enabled = decltype(std::declval<T>().moveTo(std::declval<u8*>()))> 
+            SBO_ptr(SBO_ptr<T>&& m)
+            {
+                if (m.isSBO())
+                {
+                    reset((T*)&mStorage);
+                    m->moveTo((u8*)mData);
+                }
+                else
+                {
+                    mData = m.mData;
+                    m.mData = nullptr;
+                }
+            }
+
+
+            template<typename U, typename... Args >
+            typename std::enable_if<
+                (sizeof(U) <= sizeof(Storage))
+                &&
+                std::is_base_of<T,U>::value &&
+                std::is_constructible<U, Args...>::value
+                >::type
+                New(Args&&... args)
+            {
+                new(&mStorage) U(args...);
+                reset((T*)&mStorage);
+            }
+
+            template<typename U, typename... Args >
+            typename std::enable_if<(sizeof(U) > sizeof(Storage)) 
+                &&
+                std::is_base_of<T, U>::value &&
+                std::is_constructible<U, Args...>::value
+                >::type
+                New(Args&&... args)
+            {
+                reset(Make<U>(std::forward<Args>(args)...));
+            }
+
+
+            void reset(T* t)
+            {
+                if (isSBO()) mData->~T();
+                else delete mData;
+                mData = t;
+            }
+
+            bool isSBO() const { return mData == (T*)&mStorage; }
+
+            T* operator->() { return mData; }
+
+
+        };
+
+
+        template<typename SMO_type, typename U, typename... Args>
+        typename  std::enable_if<
+            std::is_constructible<U, Args...>::value &&
+            std::is_base_of<typename SMO_type::base_type, U>::value, SMO_type>::type
+            make_SBO_ptr(Args&&... args)
+        {
+            SMO_type t;
+            t.New(std::forward<Args>(args)...);
+            return std::move(t);
+        }
+
 
 
         class SendOperation

@@ -13,7 +13,7 @@ namespace osuCrypto
         //////////////////////////////////   REQUIRED //////////////////////////////////
 
         // REQURIED: must implement a distructor as it will be called via the SocketInterface
-        virtual ~SocketInterface() = 0;
+        virtual ~SocketInterface() {};
 
 
         // REQURIED: Sends one or more buffers of data over the socket. See SocketAdapter<T> for an example.
@@ -74,9 +74,7 @@ namespace osuCrypto
             :mChl(chl)
         {}
 
-        ~SocketAdapter() override
-        {
-        }
+        ~SocketAdapter() override {}
 
         void send(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
         {

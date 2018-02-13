@@ -196,7 +196,6 @@
     <ClCompile Include="Network\IoBuffer.cpp" />
     <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
-    <ClCompile Include="Network\SocketAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

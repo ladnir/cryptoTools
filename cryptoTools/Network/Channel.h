@@ -351,8 +351,8 @@ namespace osuCrypto {
 
         boost::asio::strand mSendStrand, mRecvStrand;
 
-        std::deque<std::unique_ptr<details::SendOperation>> mSendQueue;
-        std::deque<std::unique_ptr<details::RecvOperation>> mRecvQueue;
+        std::deque<SBO_ptr<details::SendOperation>> mSendQueue;
+        std::deque<SBO_ptr<details::RecvOperation>> mRecvQueue;
 
         std::promise<void> mOpenProm;
         std::shared_future<void> mOpenFut;
@@ -393,8 +393,8 @@ namespace osuCrypto {
 
 
 
-        void recvEnque(std::unique_ptr<details::RecvOperation> op);
-        void sendEnque(std::unique_ptr<details::SendOperation> op);
+        void recvEnque(SBO_ptr<details::RecvOperation> op);
+        void sendEnque(SBO_ptr<details::SendOperation> op);
 
 
         void asyncPerformRecv();
@@ -477,7 +477,8 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(channelBuffSize(c) - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
-        auto op = unique_ptr<RefRecvBuff>(new RefRecvBuff<Container>(c));
+        SBO_ptr<RecvOperation> op;
+        op.New<RefRecvBuff<Container>>(c);
         auto future = op->mPromise.get_future();
 
         mBase->recvEnque(move(op));
@@ -497,7 +498,9 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(mBase->mRecvStatus == Status::Normal);
 
-        auto op = unique_ptr<ResizableRefRecvBuff<Container>>(new ResizableRefRecvBuff<Container>(c));
+
+        SBO_ptr<RecvOperation> op;
+        op.New<ResizableRefRecvBuff<Container>>(c);
 
         auto future = op->mPromise.get_future();
         mBase->recvEnque(std::move(op));
@@ -517,7 +520,9 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(mBase->mRecvStatus == Status::Normal);
 
-		auto op = unique_ptr<ResizableRefRecvBuff<Container>>(new ResizableRefRecvBuff<Container>(c));
+
+        SBO_ptr<RecvOperation> op;
+        op.New<WithCallback<ResizableRefRecvBuff<Container>>>(c);
 		op->mCallback = std::move(fn);
 
 		auto future = op->mPromise.get_future();
