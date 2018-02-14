@@ -351,8 +351,6 @@ namespace osuCrypto {
 
         boost::asio::strand mSendStrand, mRecvStrand;
 
-        std::deque<SBO_ptr<details::SendOperation>> mSendQueue;
-        std::deque<SBO_ptr<details::RecvOperation>> mRecvQueue;
 
         std::promise<void> mOpenProm;
         std::shared_future<void> mOpenFut;
@@ -391,10 +389,11 @@ namespace osuCrypto {
 		bool mActiveRecvSizeError = false;
 		bool activeRecvSizeError() const { return mActiveRecvSizeError; }
 
-
-
-        void recvEnque(SBO_ptr<details::RecvOperation> op);
-        void sendEnque(SBO_ptr<details::SendOperation> op);
+        bool mHasActiveRecv = false, mHasActiveSend = false;
+        SpscQueue<SBO_ptr<details::SendOperation>> mSendQueue;
+        SpscQueue<SBO_ptr<details::RecvOperation>> mRecvQueue;
+        void recvEnque(SBO_ptr<details::RecvOperation>&& op);
+        void sendEnque(SBO_ptr<details::SendOperation>&& op);
 
 
         void asyncPerformRecv();
@@ -415,7 +414,7 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(channelBuffSize(*c) - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-        auto op = unique_ptr<SendOperation>(new MoveSendBuff<unique_ptr<Container>>(move(c)));
+        auto op = make_SBO_ptr<SendOperation, MoveSendBuff<unique_ptr<Container>>>(move(c));
 
         mBase->sendEnque(move(op));
     }
@@ -429,8 +428,8 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(channelBuffSize(*c) - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-        auto op = unique_ptr<SendOperation>(new MoveSendBuff<shared_ptr<Container>>(move(c)));
 
+        auto op = make_SBO_ptr<SendOperation, MoveSendBuff<shared_ptr<Container>>>(move(c));
         mBase->sendEnque(move(op));
     }
 
@@ -447,8 +446,7 @@ namespace osuCrypto {
 		auto* buff = (u8*)c.data();
 		auto size = c.size() * sizeof(typename Container::value_type);
 
-		auto op = unique_ptr<SendOperation>(new FixedSendBuff(buff, size));
-
+        auto op = make_SBO_ptr<SendOperation, FixedSendBuff>(buff, size);
         mBase->sendEnque(move(op));
 	}
 
@@ -460,7 +458,7 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(channelBuffSize(c) - 1 < u32(-2)  && mBase->mSendStatus == Status::Normal);
 
-        auto op = unique_ptr<SendOperation>(new MoveSendBuff<Container>(move(c)));
+        auto op = make_SBO_ptr<SendOperation,MoveSendBuff<Container>>(move(c));
 
         mBase->sendEnque(move(op));
     }
@@ -477,10 +475,9 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(channelBuffSize(c) - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
-        SBO_ptr<RecvOperation> op;
-        op.New<RefRecvBuff<Container>>(c);
-        auto future = op->mPromise.get_future();
 
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation, RefRecvBuff<Container>>(c, future);
         mBase->recvEnque(move(op));
 
         return future;
@@ -498,12 +495,10 @@ namespace osuCrypto {
         // not zero and less that 32 bits
         Expects(mBase->mRecvStatus == Status::Normal);
 
-
-        SBO_ptr<RecvOperation> op;
-        op.New<ResizableRefRecvBuff<Container>>(c);
-
-        auto future = op->mPromise.get_future();
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation, ResizableRefRecvBuff<Container>>(c, future);
         mBase->recvEnque(std::move(op));
+
         return future;
     }
 
@@ -520,13 +515,11 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(mBase->mRecvStatus == Status::Normal);
 
-
-        SBO_ptr<RecvOperation> op;
-        op.New<WithCallback<ResizableRefRecvBuff<Container>>>(c);
-		op->mCallback = std::move(fn);
-
-		auto future = op->mPromise.get_future();
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation, 
+            WithCallback<ResizableRefRecvBuff<Container>>>(std::move(fn), c, future);
         mBase->recvEnque(std::move(op));
+
 		return future;
 	}
 
@@ -556,8 +549,9 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-		auto op = unique_ptr<WithPromise<FixedSendBuff>>(new WithPromise<FixedSendBuff>(buff, size));
-		auto future = op->mPromise.get_future();
+        std::future<void> future;
+        auto op = make_SBO_ptr<SendOperation, WithPromise<FixedSendBuff>>(future, buff, size);
+
         mBase->sendEnque(move(op));
 		future.get();
 	}
@@ -582,8 +576,8 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
 
-		auto op = unique_ptr<FixedRecvBuff>(new FixedRecvBuff(buff, size));
-		auto future = op->mPromise.get_future();
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation, FixedRecvBuff>(buff, size, future);
         mBase->recvEnque(move(op));
 		return future;
 	}
@@ -601,13 +595,10 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mRecvStatus == Status::Normal);
         
-		auto op = unique_ptr<WithCallback<FixedRecvBuff>>(
-            new WithCallback<FixedRecvBuff>(buff, size));
-
-		op->mCallback = move(fn);
-
-		auto future = op->mPromise.get_future();
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation, WithCallback<FixedRecvBuff>>(move(fn), buff, size, future);
         mBase->recvEnque(move(op));
+
 		return future;
 	}
 
@@ -624,7 +615,7 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-		auto op = unique_ptr<FixedSendBuff>(new FixedSendBuff(buff, size));
+        auto op = make_SBO_ptr<SendOperation, FixedSendBuff>(buff, size);
         mBase->sendEnque(move(op));
 	}
 
@@ -648,9 +639,7 @@ namespace osuCrypto {
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
-		auto op = unique_ptr<WithCallback<FixedSendBuff>>(
-            new WithCallback<FixedSendBuff>(buff, size));
-		op->mCallback = callback;
+        auto op = make_SBO_ptr<SendOperation, WithCallback<FixedSendBuff>>(std::move(callback), buff, size);
 
         mBase->sendEnque(std::move(op));
 	}

@@ -163,96 +163,235 @@ namespace osuCrypto {
         return true;
     }
 
-    namespace details
+    template<typename T>
+    class SpscQueue
     {
+    public:
 
-        template<typename U, typename... Args>
-        U* Make(Args&&... args)
+        struct BaseQueue
         {
-            reutrn new U(std::forward<Args>(args)...);
+            BaseQueue() = delete;
+            BaseQueue(const BaseQueue&) = delete;
+            BaseQueue(BaseQueue&&) = delete;
+
+            BaseQueue(u64 cap)
+                : mPopIdx(0)
+                , mPushIdx(0)
+                , mCapacity(cap)
+                , mStorage(new T[cap])
+            {};
+
+
+            std::atomic<u64> mPopIdx;
+            std::atomic<u64> mPushIdx;
+            u64 mCapacity;
+            std::unique_ptr<T[]> mStorage;
+
+            u64 capacity() const { return mCapacity; }
+            u64 size() const { return mPushIdx.load(std::memory_order_relaxed) - mPopIdx.load(std::memory_order_relaxed); }
+            bool isFull() const { return size() == capacity(); }
+            bool isEmpty() const { return size() == 0; }
+
+            void push_back(T&& v)
+            {
+                if (isFull())
+                    throw std::runtime_error("Queue is full " LOCATION);
+
+                auto pushIdx = mPushIdx.load(std::memory_order_relaxed) % capacity();
+                new (mStorage.get() + pushIdx) T(std::move(v));
+
+                mPushIdx.fetch_add(1, std::memory_order::memory_order_release);
+            }
+
+            T& front()
+            {
+                if (isEmpty())
+                    throw std::runtime_error("queue is empty. " LOCATION);
+
+                auto popIdx = mPopIdx.load(std::memory_order_acquire) % capacity();
+                return mStorage[popIdx];
+            }
+
+            void pop_front()
+            {
+                if (isEmpty())
+                    throw std::runtime_error("queue is empty. " LOCATION);
+
+                auto popIdx = mPopIdx.load(std::memory_order::memory_order_relaxed);
+                mStorage[popIdx % capacity()].~T();
+                mPopIdx.fetch_add(1, std::memory_order::memory_order_relaxed);
+            }
+        };
+
+        std::list<BaseQueue> mQueues;
+
+        SpscQueue(u64 cap = 64)
+        {
+            mQueues.emplace_back(cap);
         }
 
-        template<typename T, int StorageSize = 32>
-        class SBO_ptr
+        u64 capacity() const { return mQueues.back().capacity(); }
+        u64 size() const { return mQueues.back().size(); }
+        bool isFull() const { return mQueues.back().isFull(); }
+        bool isEmpty() const { return mQueues.front().isEmpty(); }
+
+        void push_back(T&& v)
         {
-        public:
+            mQueues.back().push_back(std::move(v));
+        }
 
-            using base_type = T;
+        T& front()
+        {
+            return mQueues.front().front();
+        }
 
-            using Storage = typename std::aligned_storage<StorageSize>::type;
-            T* mData = nullptr;
-            Storage mStorage;
+        void pop_front()
+        {
+            mQueues.front().pop_front();
 
-            SBO_ptr() = default;
-            SBO_ptr(const SBO_ptr<T>&) = delete;
+            if (mQueues.front().size() == 0 && mQueues.size() > 1)
+                mQueues.pop_front();
+        }
 
-            template<typename Enabled = decltype(std::declval<T>().moveTo(std::declval<u8*>()))> 
-            SBO_ptr(SBO_ptr<T>&& m)
+        void unsafeReserve(u64 newSize)
+        {
+            mQueues.emplace_back(newSize);
+        }
+    };
+
+
+    template<typename T, int StorageSize = 24 /* makes the whole thing 32 bytes */>
+    class SBO_ptr
+    {
+    public:
+        using base_type = T;
+        using Storage = typename std::aligned_storage<StorageSize>::type;
+
+
+        T* mData = nullptr;
+        Storage mStorage;
+
+        SBO_ptr() = default;
+        SBO_ptr(const SBO_ptr<T>&) = delete;
+
+        SBO_ptr(SBO_ptr<T>&& m)
+        {
+            if (m.isSBO())
             {
-                if (m.isSBO())
-                {
-                    reset((T*)&mStorage);
-                    m->moveTo((u8*)mData);
-                }
-                else
-                {
-                    mData = m.mData;
-                    m.mData = nullptr;
-                }
+                // will perform the placement new move constructor using the
+                // derived type constructor.
+                Interface& i = m.getInterface();
+                getInterface().moveConstruct(std::move(i));
+                mData = (T*)&getInterface();
             }
+            else
+            {
+                std::swap(mData, m.mData);
+            }
+        }
+
+        ~SBO_ptr()
+        {
+            destruct();
+        }
 
 
-            template<typename U, typename... Args >
-            typename std::enable_if<
-                (sizeof(U) <= sizeof(Storage))
-                &&
-                std::is_base_of<T,U>::value &&
-                std::is_constructible<U, Args...>::value
+        template<typename U, typename... Args >
+        typename std::enable_if<
+            (sizeof(U) <= sizeof(Storage)) &&
+            std::is_base_of<T, U>::value &&
+            std::is_constructible<U, Args...>::value
+        >::type
+            New(Args&&... args)
+        {
+            destruct();
+
+            // Do a placement new to the local storage and then take the
+            // address of the U type and store that in our data pointer.
+            mData = &(new (&getInterface()) Impl<U>(args...))->mU;
+        }
+
+        template<typename U, typename... Args >
+        typename std::enable_if<
+            (sizeof(U) > sizeof(Storage)) &&
+            std::is_base_of<T, U>::value &&
+            std::is_constructible<U, Args...>::value
                 >::type
-                New(Args&&... args)
-            {
-                new(&mStorage) U(args...);
-                reset((T*)&mStorage);
+            New(Args&&... args)
+        {
+            destruct();
+
+            // this object is too big, use the allocator. Local storage
+            // will be unused as denoted by (isSBO() == false).
+            mData = new U(std::forward<Args>(args)...);
+        }
+
+
+        bool isSBO() const { return data() == (T*)&getInterface(); }
+
+        T* operator->() { return data(); }
+        T* data() { return mData; }
+
+        const T* operator->() const { return data(); }
+        const T* data() const  { return mData; }
+
+
+    private:
+
+        void destruct()
+        {
+            if (isSBO())
+                // manually call the virtual destructor.
+                getInterface().~Interface();
+            else
+                // let the compiler call the destructor
+                delete data();
+        }
+
+
+        struct Interface
+        {
+            virtual ~Interface() {};
+            // assumes object is uninitialized.
+            virtual void moveConstruct(Interface&& rhs) = 0;
+        };
+
+        template<typename U>
+        struct Impl : Interface
+        {
+            virtual void moveConstruct(Interface&& rhs) {
+                new (&mU) U(std::move(static_cast<Impl<U>>(rhs).mU));
             }
-
-            template<typename U, typename... Args >
-            typename std::enable_if<(sizeof(U) > sizeof(Storage)) 
-                &&
-                std::is_base_of<T, U>::value &&
-                std::is_constructible<U, Args...>::value
-                >::type
-                New(Args&&... args)
-            {
-                reset(Make<U>(std::forward<Args>(args)...));
-            }
-
-
-            void reset(T* t)
-            {
-                if (isSBO()) mData->~T();
-                else delete mData;
-                mData = t;
-            }
-
-            bool isSBO() const { return mData == (T*)&mStorage; }
-
-            T* operator->() { return mData; }
-
-
+            U mU;
         };
 
 
-        template<typename SMO_type, typename U, typename... Args>
-        typename  std::enable_if<
-            std::is_constructible<U, Args...>::value &&
-            std::is_base_of<typename SMO_type::base_type, U>::value, SMO_type>::type
-            make_SBO_ptr(Args&&... args)
+        Interface& getInterface()
         {
-            SMO_type t;
-            t.New(std::forward<Args>(args)...);
-            return std::move(t);
+            return *(Interface*)&mStorage;
         }
 
+        const Interface& getInterface() const
+        {
+            return *(Interface*)&mStorage;
+        }
+    };
+
+
+    template<typename T, typename U, typename... Args>
+    typename  std::enable_if<
+        std::is_constructible<U, Args...>::value &&
+        std::is_base_of<T, U>::value, SBO_ptr<T>>::type
+        make_SBO_ptr(Args&&... args)
+    {
+        SBO_ptr<T> t;
+        t.New(std::forward<Args>(args)...);
+        return std::move(t);
+    }
+
+
+    namespace details
+    {
 
 
         class SendOperation
@@ -265,7 +404,7 @@ namespace osuCrypto {
             virtual void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) = 0;
             virtual void cancel(std::string reason) = 0;
             virtual std::string toString() const;
-             
+
 #ifdef CHANNEL_LOGGING
             u64 mIdx;
 #endif
@@ -306,7 +445,7 @@ namespace osuCrypto {
                 , mBuffs{ {
                     boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type)) ,
                     boost::asio::buffer((void*)data, size) } }
-            { 
+            {
                 Expects(size < std::numeric_limits<size_header_type>::max());
             }
 
@@ -393,17 +532,23 @@ namespace osuCrypto {
         class FixedRecvBuff : public BasicSizedBuff, public RecvOperation
         {
         public:
-            FixedRecvBuff() = default;
-            FixedRecvBuff(const u8* data, u64 size)
+            FixedRecvBuff(std::future<void>& fu)
+            {
+                fu = mPromise.get_future();
+            }
+
+            FixedRecvBuff(const u8* data, u64 size, std::future<void>& fu)
                 : BasicSizedBuff(data, size)
-            {}
+            {
+                fu = mPromise.get_future();
+            }
 
             io_completion_handle mComHandle;
             ChannelBase* mBase;
             std::promise<void> mPromise;
 
             void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override;
-            void cancel(std::string reason) override 
+            void cancel(std::string reason) override
             {
                 mPromise.set_exception(
                     std::make_exception_ptr(
@@ -418,8 +563,9 @@ namespace osuCrypto {
         class  RefRecvBuff :public FixedRecvBuff {
         public:
             const F& mObj;
-            RefRecvBuff(const F& obj)
-                : mObj(obj)
+            RefRecvBuff(const F& obj, std::future<void>& fu)
+                : FixedRecvBuff(fu)
+                , mObj(obj)
             {   // set must be called after the move in case channelBuffData(mObj) != channelBuffData(obj)
                 set(channelBuffData(mObj), channelBuffSize(mObj));
             }
@@ -431,8 +577,9 @@ namespace osuCrypto {
             ResizableRefRecvBuff() = delete;
             F& mObj;
 
-            ResizableRefRecvBuff(F& obj)
-                :mObj(obj)
+            ResizableRefRecvBuff(F& obj, std::future<void>& fu)
+                : FixedRecvBuff(fu)
+                , mObj(obj)
             {}
 
             virtual void resizeBuffer(u64 size) override
@@ -452,9 +599,10 @@ namespace osuCrypto {
         {
         public:
 
-            template<typename... Args>
-            WithCallback(Args&&... args)
+            template<typename CB, typename... Args>
+            WithCallback(CB&& cb, Args&&... args)
                 : T(std::forward<Args>(args)...)
+                , mCallback(std::forward<CB>(cb))
             {}
 
             std::function<void()> mCallback;
@@ -475,9 +623,11 @@ namespace osuCrypto {
         public:
 
             template<typename... Args>
-            WithPromise(Args&&... args)
+            WithPromise(std::future<void>& f,Args&&... args)
                 : T(std::forward<Args>(args)...)
-            {}
+            {
+                f = mPromise.get_future();
+            }
 
             std::promise<void> mPromise;
 

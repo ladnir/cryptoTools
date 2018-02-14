@@ -5,7 +5,7 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Network/IOService.h>
 namespace osuCrypto {
-   
+
     Channel::Channel(
         Session& endpoint,
         std::string localName,
@@ -129,20 +129,36 @@ namespace osuCrypto {
                 mSendStrand.post([this, str]() mutable
                 {
                     using namespace details;
-                    auto op = std::unique_ptr<SendOperation>(new MoveSendBuff<std::string>(std::move(str)));
-#ifdef CHANNEL_LOGGING
-                    auto idx = op->mIdx = mSendIdx++;
-#endif
-                    mSendQueue.emplace_front(std::move(op));
+                    auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
+
                     mSendSocketSet = true;
+                    mHasActiveSend = true;
 
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
-#ifdef CHANNEL_LOGGING
-                    mLog.push("initSend' #" + ToString(idx) + " , opened = " + ToString(ii == 2) + ", start = " + ToString(true));
-#endif
-                    
-                    asyncPerformSend();
+
+                    op->asyncPerform(this, [this, op](error_code ec, u64 bytesTransferred) {
+
+                        if (ec)
+                        {
+                            setSendFatalError(LOCATION);
+                        }
+                        else
+                        {
+                            mSendStrand.dispatch([this, op]()
+                            {
+                                mHasActiveSend = false;
+
+                                if (mSendQueue.size())
+                                    asyncPerformSend();
+                                else if (mSendStatus == Channel::Status::Stopped)
+                                {
+                                    mSendQueueEmptyProm.set_value();
+                                    mSendQueueEmptyProm = std::promise<void>();
+                                }
+                            });
+                        }
+                    });
                 });
 
 
@@ -260,29 +276,19 @@ namespace osuCrypto {
     }
 
 
-    void ChannelBase::recvEnque(std::unique_ptr<details::RecvOperation> op)
+    void ChannelBase::recvEnque(SBO_ptr<details::RecvOperation>&& op)
     {
-
-        // boost complains if generalized move symantics are used with a post(...) callback
-        // the callback has to be copyable...
-        auto opPtr = op.release();
+        mRecvQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mRecvStrand.post([this, opPtr]()
+        mRecvStrand.post([this]()
         {
-            std::unique_ptr<details::RecvOperation>op(opPtr);
-
             // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
             // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-            bool startRecving = (mRecvQueue.size() == 0) && mRecvSocketSet;
-
-#ifdef CHANNEL_LOGGING
-                mLog.push("queuing recv:" + op->toString() + ", start = " + ToString(startRecving));
-#endif
+            bool startRecving = (mHasActiveRecv == false) && mRecvSocketSet;
 
             // the queue must be guarded from concurrent access, so add the op within the strand
             // queue up the operation.
-            mRecvQueue.emplace_back(std::move(op));
             if (startRecving)
             {
                 // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
@@ -292,28 +298,20 @@ namespace osuCrypto {
         });
     }
 
-    void ChannelBase::sendEnque(std::unique_ptr<details::SendOperation> op)
+    void ChannelBase::sendEnque(SBO_ptr<details::SendOperation>&& op)
     {
 
-        // boost complains if generalized move symantics are used with a post(...) callback
-        auto opPtr = op.release();
+        mSendQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mSendStrand.post([this, opPtr]()
+        mSendStrand.post([this]()
         {
             // the queue must be guarded from concurrent access, so add the op within the strand
 
-            std::unique_ptr<details::SendOperation>op(opPtr);
-
             // check to see if we should kick off a new set of send operations. If the size >= 1, then there
             // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-            auto startSending = (mSendQueue.size() == 0) && mSendSocketSet;
+            auto startSending = (mHasActiveSend == false) && mSendSocketSet;
 
-#ifdef CHANNEL_LOGGING
-                mLog.push("queuing send: " + op->toString() + ", start = " + ToString(startSending));
-#endif
-            // add the operation to the queue.
-            mSendQueue.emplace_back(std::move(op));
 
             if (startSending)
             {
@@ -327,7 +325,7 @@ namespace osuCrypto {
 
     void ChannelBase::asyncPerformRecv()
     {
-
+        mHasActiveRecv = true;
         mRecvQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
             mTotalRecvData += bytesTransferred;
@@ -344,6 +342,7 @@ namespace osuCrypto {
 
                 mRecvStrand.dispatch([this]()
                 {
+                    mHasActiveRecv = false;
 #ifdef CHANNEL_LOGGING
                     mLog.push("completed recv: " + mRecvQueue.front()->toString());
 #endif
@@ -369,7 +368,7 @@ namespace osuCrypto {
 
     void ChannelBase::asyncPerformSend()
     {
-
+        mHasActiveSend = true;
         mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
             mTotalSentData += bytesTransferred;
@@ -385,6 +384,8 @@ namespace osuCrypto {
             {
                 mSendStrand.dispatch([this]()
                 {
+                    mHasActiveSend = false;
+
 #ifdef CHANNEL_LOGGING
                     mLog.push("completed send #" + mSendQueue.front()->toString());
 #endif
