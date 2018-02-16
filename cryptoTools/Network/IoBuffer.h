@@ -240,14 +240,7 @@ namespace osuCrypto {
             mQueues.emplace_back(cap);
         }
 
-        u64 size() const 
-        {
-            u64 s = 0;
-            for (auto& q : mQueues) s += q.size();
-            return s;
-        }
-
-        bool isEmpty() const { return mQueues.front().isEmpty(); }
+        bool isEmpty() const { return mQueues.back().isEmpty(); }
 
         void push_back(T&& v)
         {

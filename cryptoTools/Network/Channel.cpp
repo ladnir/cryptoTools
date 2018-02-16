@@ -149,7 +149,7 @@ namespace osuCrypto {
                             {
                                 mHasActiveSend = false;
 
-                                if (mSendQueue.size())
+                                if (mSendQueue.isEmpty() == false)
                                     asyncPerformSend();
                                 else if (mSendStatus == Channel::Status::Stopped)
                                 {
@@ -169,7 +169,7 @@ namespace osuCrypto {
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
 
-                    auto startRecv = mRecvQueue.size() > 0;
+                    auto startRecv = !mRecvQueue.isEmpty();
 #ifdef CHANNEL_LOGGING
                     mLog.push("initRecv' , opened = " + ToString(ii == 2) + ", start = " + ToString(startRecv));
 #endif
@@ -255,12 +255,12 @@ namespace osuCrypto {
             }
 
             mSendStrand.dispatch([&]() {
-                if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
+                if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
                     mSendQueueEmptyProm.set_value();
             });
 
             mRecvStrand.dispatch([&]() {
-                if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
+                if (mRecvQueue.isEmpty() && mRecvQueueEmpty == false)
                     mRecvQueueEmptyProm.set_value();
                 else if (activeRecvSizeError())
                     cancelRecvQueuedOperations();
@@ -351,7 +351,7 @@ namespace osuCrypto {
                     mRecvQueue.pop_front();
 
                     // is there more messages to recv?
-                    bool recvMore = (mRecvQueue.size() != 0);
+                    bool recvMore = !mRecvQueue.isEmpty();
 
                     if (recvMore)
                     {
@@ -394,7 +394,7 @@ namespace osuCrypto {
                     mSendQueue.pop_front();
 
                     // Do we have more messages to be sent?
-                    auto sendMore = mSendQueue.size();
+                    auto sendMore = !mSendQueue.isEmpty();
 
                     if (sendMore)
                     {
@@ -424,7 +424,7 @@ namespace osuCrypto {
 
             mSendStrand.dispatch([&]() {
                 mSendStatus = Channel::Status::Stopped;
-                if (mSendQueue.size() == 0 && mSendQueueEmpty == false)
+                if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
                 {
                     mSendQueueEmpty = true;
                     mSendQueueEmptyProm.set_value();
@@ -433,7 +433,7 @@ namespace osuCrypto {
 
             mRecvStrand.dispatch([&]() {
                 mRecvStatus = Channel::Status::Stopped;
-                if (mRecvQueue.size() == 0 && mRecvQueueEmpty == false)
+                if (mRecvQueue.isEmpty() && mRecvQueueEmpty == false)
                 {
                     mRecvQueueEmpty = true;
                     mRecvQueueEmptyProm.set_value();
@@ -471,7 +471,7 @@ namespace osuCrypto {
             if (mSendQueueEmpty == false)
             {
 
-                while (mSendQueue.size())
+                while (!mSendQueue.isEmpty())
                 {
                     auto& front = mSendQueue.front();
 
@@ -509,7 +509,7 @@ namespace osuCrypto {
                 //if (mHandle)
                 //	mHandle->close();
 
-                while (mRecvQueue.size())
+                while (!mRecvQueue.isEmpty())
                 {
                     auto& front = mRecvQueue.front();
 
@@ -553,7 +553,7 @@ namespace osuCrypto {
             // starting the channel, its possible that the async connect call returned and the caller scheduled a receive
             // operation. But since the channel handshake just finished, those operations didn't start. So if
             // the queue has anything in it, we should actually start the operation now...
-            if (mRecvQueue.size())
+            if (!mRecvQueue.isEmpty())
             {
                 // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
                 // will be kicked off at the completion of this operation.
@@ -573,7 +573,7 @@ namespace osuCrypto {
         {
             // the queue must be guarded from concurrent access, so add the op within the strand
 
-            auto start = mSendQueue.size();
+            auto start = !mSendQueue.isEmpty();
 #ifdef CHANNEL_LOGGING
             mLog.push("initSend , start = " + ToString(start));
 #endif
