@@ -8,7 +8,7 @@
 #include <memory> 
 #include <boost/asio.hpp>
 #include <system_error>
-#include  <type_traits>;
+#include  <type_traits>
 #define CHANNEL_LOGGING
 
 namespace osuCrypto {
@@ -260,13 +260,48 @@ namespace osuCrypto {
     };
 
 
-    template<typename T, int StorageSize = 24 /* makes the whole thing 32 bytes */>
+    template<typename T, int StorageSize = 120 /* makes the whole thing 128 bytes */>
     class SBO_ptr
     {
     public:
+        struct SBOInterface
+        {
+            virtual ~SBOInterface() {};
+
+            // assumes dest is uninitialized and calls the 
+            // placement new move constructor with this as 
+            // dest destination.
+            virtual void moveTo(SBO_ptr<T, StorageSize>& dest) = 0;
+        };
+
+        template<typename U>
+        struct Impl : SBOInterface
+        {
+
+            template<typename... Args,
+                typename Enabled =
+                std::enable_if<
+                std::is_constructible<U, Args...>::value
+                >::type
+            >
+                Impl(Args&&... args)
+                :mU(std::forward<Args>(args)...)
+            {}
+
+            void moveTo(SBO_ptr<T, StorageSize>& dest) override
+            {
+                Expects(dest.get() == nullptr);
+                dest.New<U>(std::move(mU));
+            }
+
+            U mU;
+        };
+
         using base_type = T;
         using Storage = typename std::aligned_storage<StorageSize>::type;
-
+        
+        template<typename U>
+        using Impl_type =  Impl<U>;
 
         T* mData = nullptr;
         Storage mStorage;
@@ -276,18 +311,7 @@ namespace osuCrypto {
 
         SBO_ptr(SBO_ptr<T>&& m)
         {
-            if (m.isSBO())
-            {
-                // will perform the placement new move constructor using the
-                // derived type constructor.
-                Interface& i = m.getInterface();
-                getInterface().moveConstruct(std::move(i));
-                mData = (T*)&getInterface();
-            }
-            else
-            {
-                std::swap(mData, m.mData);
-            }
+            *this = std::forward<SBO_ptr<T>>(m);
         }
 
         ~SBO_ptr()
@@ -296,9 +320,24 @@ namespace osuCrypto {
         }
 
 
+        SBO_ptr<T, StorageSize>& operator=(SBO_ptr<T>&& m)
+        {
+            destruct();
+
+            if (m.isSBO())
+            {
+                m.getSBO().moveTo(*this);
+            }
+            else
+            {
+                std::swap(mData, m.mData);
+            }
+            return *this;
+        }
+
         template<typename U, typename... Args >
         typename std::enable_if<
-            (sizeof(U) <= sizeof(Storage)) &&
+            (sizeof(Impl_type<U>) <= sizeof(Storage)) &&
             std::is_base_of<T, U>::value &&
             std::is_constructible<U, Args...>::value
         >::type
@@ -308,12 +347,14 @@ namespace osuCrypto {
 
             // Do a placement new to the local storage and then take the
             // address of the U type and store that in our data pointer.
-            mData = &(new (&getInterface()) Impl<U>(args...))->mU;
+            Impl<U>* ptr = (Impl<U>*)&getSBO();
+            new (ptr) Impl<U>(std::forward<Args>(args)...);
+            mData = &(ptr->mU);
         }
 
         template<typename U, typename... Args >
         typename std::enable_if<
-            (sizeof(U) > sizeof(Storage)) &&
+            (sizeof(Impl_type<U>) > sizeof(Storage)) &&
             std::is_base_of<T, U>::value &&
             std::is_constructible<U, Args...>::value
                 >::type
@@ -321,59 +362,57 @@ namespace osuCrypto {
         {
             destruct();
 
+            int n1 = sizeof(Impl_type<U>);
+            int n2 = sizeof(Storage);
+
             // this object is too big, use the allocator. Local storage
             // will be unused as denoted by (isSBO() == false).
             mData = new U(std::forward<Args>(args)...);
         }
 
 
-        bool isSBO() const { return data() == (T*)&getInterface(); }
+        bool isSBO() const 
+        { 
+            auto begin = (u8*)this;
+            auto end = begin + sizeof(SBO_ptr<T, StorageSize>);
+            return 
+                ((u8*)get() >= begin) &&
+                ((u8*)get() < end); 
+        }
 
-        T* operator->() { return data(); }
-        T* data() { return mData; }
+        T* operator->() { return get(); }
+        T* get() { return mData; }
 
-        const T* operator->() const { return data(); }
-        const T* data() const  { return mData; }
+        const T* operator->() const { return get(); }
+        const T* get() const  { return mData; }
 
 
-    private:
+    //private:
 
         void destruct()
         {
             if (isSBO())
                 // manually call the virtual destructor.
-                getInterface().~Interface();
-            else
+                getSBO().~SBOInterface();
+            else if(get())
                 // let the compiler call the destructor
-                delete data();
+                delete get();
+
+            mData = nullptr;
         }
 
 
-        struct Interface
-        {
-            virtual ~Interface() {};
-            // assumes object is uninitialized.
-            virtual void moveConstruct(Interface&& rhs) = 0;
-        };
-
-        template<typename U>
-        struct Impl : Interface
-        {
-            virtual void moveConstruct(Interface&& rhs) {
-                new (&mU) U(std::move(static_cast<Impl<U>>(rhs).mU));
-            }
-            U mU;
-        };
 
 
-        Interface& getInterface()
+
+        SBOInterface& getSBO()
         {
-            return *(Interface*)&mStorage;
+            return *(SBOInterface*)&mStorage;
         }
 
-        const Interface& getInterface() const
+        const SBOInterface& getSBO() const
         {
-            return *(Interface*)&mStorage;
+            return *(SBOInterface*)&mStorage;
         }
     };
 
@@ -385,7 +424,7 @@ namespace osuCrypto {
         make_SBO_ptr(Args&&... args)
     {
         SBO_ptr<T> t;
-        t.New(std::forward<Args>(args)...);
+        t.New<U>(std::forward<Args>(args)...);
         return std::move(t);
     }
 
@@ -398,8 +437,8 @@ namespace osuCrypto {
         {
         public:
             SendOperation() = default;
+            SendOperation(SendOperation&& copy) = default;
             SendOperation(const SendOperation& copy) = delete;
-            SendOperation(SendOperation&& copy) = delete;
 
             virtual void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) = 0;
             virtual void cancel(std::string reason) = 0;
@@ -414,8 +453,8 @@ namespace osuCrypto {
         {
         public:
             RecvOperation() = default;
+            RecvOperation(RecvOperation&& copy) = default;
             RecvOperation(const RecvOperation& copy) = delete;
-            RecvOperation(RecvOperation&& copy) = delete;
 
             virtual void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) = 0;
             virtual void cancel(std::string reason) = 0;
@@ -435,16 +474,22 @@ namespace osuCrypto {
         public:
             using size_header_type = u32;
 
+            BasicSizedBuff(BasicSizedBuff&& v)
+            {
+                mHeaderSize = v.mHeaderSize;
+                mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
+                mBuffs[1] = v.mBuffs[1];
+                v.mBuffs[1] = {};
+            }
+
             BasicSizedBuff()
             {
                 mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
             };
 
             BasicSizedBuff(const u8* data, u64 size)
-                : mHeaderSize(size)
-                , mBuffs{ {
-                    boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type)) ,
-                    boost::asio::buffer((void*)data, size) } }
+                : mHeaderSize(size_header_type(size))
+                , mBuff{ (u8*)data, size }
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
             }
@@ -452,16 +497,17 @@ namespace osuCrypto {
             void set(const u8* data, u64 size)
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
-                mHeaderSize = size;
+                mHeaderSize = size_header_type(size);
                 mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
                 mBuffs[1] = boost::asio::buffer((void*)data, size);
             }
 
             inline u64 getHeaderSize() const { return mHeaderSize; }
             inline u64 getBufferSize() const { return boost::asio::buffer_size(mBuffs[1]); }
+            inline u8* getBufferData() { return boost::asio::buffer_cast<u8*>(mBuffs[1]); }
 
             size_header_type mHeaderSize;
-            std::array<boost::asio::mutable_buffer, 2> mBuffs;
+            span<u8> mBuff;
         };
 
 
@@ -474,6 +520,8 @@ namespace osuCrypto {
             FixedSendBuff(const u8* data, u64 size)
                 : BasicSizedBuff(data, size)
             {}
+
+            FixedSendBuff(FixedSendBuff&& v) = default;
 
             void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override;
             void cancel(std::string _) override {};
@@ -492,6 +540,10 @@ namespace osuCrypto {
             {   // set must be called after the move in case channelBuffData(mObj) != channelBuffData(obj)
                 set(channelBuffData(mObj), channelBuffSize(mObj));
             }
+
+            MoveSendBuff(MoveSendBuff&&v)
+                : MoveSendBuff(std::move(v.mObj))
+            {}
         };
 
         template <typename T>
@@ -504,6 +556,11 @@ namespace osuCrypto {
                 : FixedSendBuff(channelBuffData(*obj), channelBuffSize(*obj))
                 , mObj(std::move(obj))
             {}
+
+            MoveSendBuff(MoveSendBuff<std::unique_ptr<T>>&& v)
+                : MoveSendBuff(std::move(v.mObj))
+            {}
+
         };
 
         template <typename T>
@@ -516,6 +573,10 @@ namespace osuCrypto {
                 : FixedSendBuff(channelBuffData(*obj), channelBuffSize(*obj))
                 , mObj(std::move(obj))
             {}
+
+            MoveSendBuff(MoveSendBuff<std::unique_ptr<T>>&& v)
+                : MoveSendBuff(std::move(v.mObj))
+            {}
         };
 
         template <typename F>
@@ -523,15 +584,31 @@ namespace osuCrypto {
         public:
             const F& mObj;
             RefSendBuff(const F& obj)
-                : mObj(obj)
-            {   // set must be called after the move in case channelBuffData(mObj) != channelBuffData(obj)
-                set(channelBuffData(mObj), channelBuffSize(mObj));
-            }
+                : FixedSendBuff(channelBuffData(*obj), channelBuffSize(*obj))
+                , mObj(obj)
+            {}
+
+            RefSendBuff(RefSendBuff<F>&& v)
+                :RefSendBuff(v.obj)
+            {}
         };
 
         class FixedRecvBuff : public BasicSizedBuff, public RecvOperation
         {
         public:
+
+            io_completion_handle mComHandle;
+            ChannelBase* mBase;
+            std::promise<void> mPromise;
+
+
+            FixedRecvBuff(FixedRecvBuff&& v)
+                : BasicSizedBuff(v.getBufferData(), v.getBufferSize())
+                , mComHandle(std::move(v.mComHandle))
+                , mBase(v.mBase)
+                , mPromise(std::move(v.mPromise))
+            {}
+
             FixedRecvBuff(std::future<void>& fu)
             {
                 fu = mPromise.get_future();
@@ -542,10 +619,6 @@ namespace osuCrypto {
             {
                 fu = mPromise.get_future();
             }
-
-            io_completion_handle mComHandle;
-            ChannelBase* mBase;
-            std::promise<void> mPromise;
 
             void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override;
             void cancel(std::string reason) override
@@ -569,6 +642,12 @@ namespace osuCrypto {
             {   // set must be called after the move in case channelBuffData(mObj) != channelBuffData(obj)
                 set(channelBuffData(mObj), channelBuffSize(mObj));
             }
+
+            RefRecvBuff(RefRecvBuff<F>&& v)
+                : FixedRecvBuff(std::move(v))
+                , mObj(v.mObj)
+            {}
+
         };
 
         template <typename F>
@@ -580,6 +659,11 @@ namespace osuCrypto {
             ResizableRefRecvBuff(F& obj, std::future<void>& fu)
                 : FixedRecvBuff(fu)
                 , mObj(obj)
+            {}
+
+            ResizableRefRecvBuff(ResizableRefRecvBuff<F>&& v)
+                : FixedRecvBuff(std::move(v))
+                , mObj(v.mObj)
             {}
 
             virtual void resizeBuffer(u64 size) override
@@ -605,6 +689,11 @@ namespace osuCrypto {
                 , mCallback(std::forward<CB>(cb))
             {}
 
+            WithCallback(WithCallback<T>&& v)
+                : T(std::move(v))
+                , mCallback(std::move(v.mCallback))
+            {}
+
             std::function<void()> mCallback;
 
             void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override
@@ -628,6 +717,12 @@ namespace osuCrypto {
             {
                 f = mPromise.get_future();
             }
+
+            WithPromise(WithPromise<T>&& v)
+                : T(std::move(v))
+                , mPromise(std::move(v.mPromise))
+            {}
+
 
             std::promise<void> mPromise;
 
