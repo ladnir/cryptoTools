@@ -10,7 +10,8 @@ namespace osuCrypto
 
         void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle completionHandle)
         {
-            base->mHandle->async_send(mBuffs, completionHandle);
+            base->mSendBuffers = getSendBuffer();
+            base->mHandle->async_send(base->mSendBuffers, completionHandle);
         }
 
         void FixedRecvBuff::asyncPerform(ChannelBase * base, io_completion_handle completionHandle)
@@ -19,7 +20,8 @@ namespace osuCrypto
             mBase = base;
 
             // first we have to receive the header which tells us how much.
-            base->mHandle->async_recv({ &mBuffs[0], 1 }, [this](const error_code& ec, u64 bytesTransferred) {
+            base->mRecvBuffer = getRecvHeaderBuffer();
+            base->mHandle->async_recv({&base->mRecvBuffer, 1}, [this](const error_code& ec, u64 bytesTransferred) {
 
                 if (!ec)
                 {
@@ -33,7 +35,7 @@ namespace osuCrypto
                         {
                             std::stringstream ss;
                             ss << "Bad receive buffer size.\n  Buffer size: " << getHeaderSize()
-                                << " bytes\n  Data size:   " << boost::asio::buffer_size(mBuffs[1]) << " bytes\n";
+                                << " bytes\n  Data size:   " << getBufferSize() << " bytes\n";
 
                             // make the channel to know that a receive has a partial failure.
                             // The partial error can be cleared if the following lambda is 
@@ -52,8 +54,8 @@ namespace osuCrypto
                                 mBase->clearBadRecvErrorState();
 
                                 // perform the write.
-                                mBuffs[1] = boost::asio::buffer(dest, getHeaderSize());
-                                mBase->mHandle->recv({ &mBuffs[1], 1 }, error, bytesTransferred);
+                                mBase->mRecvBuffer = boost::asio::buffer(dest, getHeaderSize());
+                                mBase->mHandle->recv({ &mBase->mRecvBuffer, 1 }, error, bytesTransferred);
 
                                 // convert the return value to an error_code and call 
                                 // the completion handle.
@@ -68,7 +70,8 @@ namespace osuCrypto
                     }
 
                     // the normal case that the buffer is the right size or was correctly resized.
-                    mBase->mHandle->async_recv({ &mBuffs[1], 1 }, [this](const error_code& ec, u64 bt)
+                    mBase->mRecvBuffer = getRecvBuffer();
+                    mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this](const error_code& ec, u64 bt)
                     {
                         if (!ec) mPromise.set_value();
                         mComHandle(ec, bt);

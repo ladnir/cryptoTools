@@ -399,6 +399,10 @@ namespace osuCrypto {
         void asyncPerformRecv();
         void asyncPerformSend();
 
+
+        std::array<boost::asio::mutable_buffer, 2> mSendBuffers;
+        boost::asio::mutable_buffer mRecvBuffer;
+
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mRecvIdx, mSendIdx;
         ChannelLog mLog;

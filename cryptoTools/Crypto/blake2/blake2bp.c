@@ -49,7 +49,7 @@ static int blake2bp_init_leaf( blake2b_state *S, size_t outlen, size_t keylen, u
   P->fanout = PARALLELISM_DEGREE;
   P->depth = 2;
   P->leaf_length = 0;
-  P->node_offset = offset;
+  P->node_offset = (uint32_t)offset;
   P->xof_length = 0;
   P->node_depth = 0;
   P->inner_length = BLAKE2B_OUTBYTES;

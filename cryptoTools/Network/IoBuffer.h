@@ -477,19 +477,14 @@ namespace osuCrypto {
             BasicSizedBuff(BasicSizedBuff&& v)
             {
                 mHeaderSize = v.mHeaderSize;
-                mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
-                mBuffs[1] = v.mBuffs[1];
-                v.mBuffs[1] = {};
+                mBuff = v.mBuff;
+                v.mBuff = {};
             }
-
-            BasicSizedBuff()
-            {
-                mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
-            };
+            BasicSizedBuff() = default;
 
             BasicSizedBuff(const u8* data, u64 size)
                 : mHeaderSize(size_header_type(size))
-                , mBuff{ (u8*)data, size }
+                , mBuff{ (u8*)data,  i64(size) }
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
             }
@@ -497,15 +492,29 @@ namespace osuCrypto {
             void set(const u8* data, u64 size)
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
-                mHeaderSize = size_header_type(size);
-                mBuffs[0] = boost::asio::buffer((void*)&mHeaderSize, sizeof(size_header_type));
-                mBuffs[1] = boost::asio::buffer((void*)data, size);
+                mBuff = {(u8*)data, i64(size)};
             }
 
             inline u64 getHeaderSize() const { return mHeaderSize; }
-            inline u64 getBufferSize() const { return boost::asio::buffer_size(mBuffs[1]); }
-            inline u8* getBufferData() { return boost::asio::buffer_cast<u8*>(mBuffs[1]); }
+            inline u64 getBufferSize() const { return mBuff.size(); }
+            inline u8* getBufferData() { return mBuff.data(); }
 
+            inline std::array<boost::asio::mutable_buffer, 2> getSendBuffer()
+            {
+                Expects(mBuff.size());
+                mHeaderSize = size_header_type(mBuff.size());
+                return { { getRecvHeaderBuffer(), getRecvBuffer() } };
+            }
+
+            inline boost::asio::mutable_buffer getRecvHeaderBuffer(){
+                return boost::asio::mutable_buffer(&mHeaderSize, sizeof(size_header_type));
+            }
+
+            inline boost::asio::mutable_buffer getRecvBuffer(){
+                return boost::asio::mutable_buffer(mBuff.data(), mBuff.size());
+            }
+
+        protected:
             size_header_type mHeaderSize;
             span<u8> mBuff;
         };
@@ -669,7 +678,7 @@ namespace osuCrypto {
             virtual void resizeBuffer(u64 size) override
             {
                 channelBuffResize(mObj, size);
-                mBuffs[1] = boost::asio::buffer((void*)channelBuffData(mObj), channelBuffSize(mObj));
+                set((u8*)channelBuffData(mObj), channelBuffSize(mObj));
             }
         };
 
