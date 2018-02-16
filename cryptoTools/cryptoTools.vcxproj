@@ -155,6 +155,7 @@
     <ClInclude Include="Common\ThreadBarrier.h" />
     <ClInclude Include="Common\Matrix.h" />
     <ClInclude Include="Common\Timer.h" />
+    <ClInclude Include="Common\Version.h" />
     <ClInclude Include="Crypto\AES.h" />
     <ClInclude Include="Crypto\Blake2.h" />
     <ClInclude Include="Crypto\Blake2\blake2-config.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Network\IOService.h" />
     <ClInclude Include="Network\IoBuffer.h" />
     <ClInclude Include="Network\SocketAdapter.h" />
+    <ClInclude Include="Common\TestCollection.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp" />
@@ -192,9 +194,10 @@
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\sha1.cpp" />
     <ClCompile Include="Network\Channel.cpp" />
+    <ClCompile Include="Network\IoBuffer.cpp" />
     <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
-    <ClCompile Include="Network\SocketAdapter.cpp" />
+    <ClCompile Include="Common\TestCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

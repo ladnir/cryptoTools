@@ -33,10 +33,10 @@
     <ClInclude Include="Cuckoo_Tests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UnitTests.h">
+    <ClInclude Include="SimpleCuckoo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleCuckoo.h">
+    <ClInclude Include="UnitTests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

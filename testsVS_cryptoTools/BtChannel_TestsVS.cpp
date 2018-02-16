@@ -99,6 +99,13 @@ namespace tests_cryptoTools
 			InitDebugPrinting();
 			BtNetwork_SocketInterface_Test();
 		}
+
+        TEST_METHOD(SBO_ptr_testVS)
+        {
+            InitDebugPrinting();
+            SBO_ptr_test(); 
+        }
+
     };
 }
 #endif

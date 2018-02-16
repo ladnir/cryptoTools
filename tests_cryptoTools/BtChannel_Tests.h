@@ -26,5 +26,8 @@ namespace tests_cryptoTools
 	void BtNetwork_AnonymousMode_Test();
 	void BtNetwork_ServerMode_Test();
 	void BtNetwork_CancelChannel_Test();
-	
+
+
+    void SBO_ptr_test();
+
 }

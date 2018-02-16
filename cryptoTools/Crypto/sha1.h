@@ -27,7 +27,7 @@ namespace osuCrypto {
 		void Reset(u64 digestByteLenght)
 		{
 			memset(this, 0, sizeof(SHA1));
-			outputLenght = digestByteLenght;
+			outputLenght = u32(digestByteLenght);
 		}
 
 		// Add length bytes pointed to by dataIn to the internal Blake2 state.
@@ -39,7 +39,7 @@ namespace osuCrypto {
 
 			while (length)
 			{
-				u64 step = std::min<u64>(length, u64(64) - idx);
+				u32 step = u32(std::min<u64>(length, 64ull - idx));
 				memcpy(buffer.data() + idx, dataIn, step);
 
 				idx += step;

@@ -12,5 +12,5 @@ using namespace osuCrypto;
 
 int main(int argc, char** argv)
 {
-    tests_cryptoTools::tests_all();
+    tests_cryptoTools::Tests.runAll();
 }

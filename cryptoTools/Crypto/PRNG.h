@@ -84,14 +84,16 @@ namespace osuCrypto
         u8 getBit();
 
 		// STL random number interface
-        typedef u32 result_type;
+        typedef u64 result_type;
         static result_type min() { return 0; }
         static result_type max() { return (result_type)-1; }
         result_type operator()() {
             return get<result_type>();
         }
-        result_type operator()(int mod) {
-            return get<result_type>() % mod;
+
+        template<typename R>
+        R operator()(R mod) {
+            return get<R>() % mod;
         }
 
 		// internal buffer to store future random values.

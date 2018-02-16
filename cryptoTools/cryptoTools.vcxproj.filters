@@ -111,6 +111,12 @@
     <ClInclude Include="gsl\gls-lite.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\TestCollection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp">
@@ -146,9 +152,6 @@
     <ClCompile Include="Common\CuckooIndex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network\SocketAdapter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Common\CLP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -165,6 +168,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Crypto\Blake2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\IoBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\TestCollection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
