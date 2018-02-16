@@ -260,7 +260,7 @@ namespace osuCrypto {
     };
 
 
-    template<typename T, int StorageSize = 120 /* makes the whole thing 128 bytes */>
+    template<typename T, int StorageSize = 248 /* makes the whole thing 256 bytes */>
     class SBO_ptr
     {
     public:
