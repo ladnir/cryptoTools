@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 #include <system_error>
 #include  <type_traits>
-#define CHANNEL_LOGGING
+//#define CHANNEL_LOGGING
 
 namespace osuCrypto {
     using error_code = boost::system::error_code;

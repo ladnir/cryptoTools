@@ -58,27 +58,18 @@ namespace osuCrypto
         // The list of acceptor objects that hold state about the ports that are being listened to. 
         std::list<Acceptor> mAcceptors;
 
-        void printErrorMessages(bool v);
-
         // indicates whether stop() has been called already.
 		bool mStopped = false;
-
-        // The mutex the protects sensitive objects in this class. 
-        //std::mutex mMtx;
-
-        //void receiveOne(ChannelBase* socket);
-        //void sendOne(ChannelBase* socket);
-
-        //void startSocket(ChannelBase* chl, std::unique_ptr<BoostSocketInterface> socket);
-
-        // Used to queue up asynchronous socket operations.
-        //void dispatch(ChannelBase* socket, std::unique_ptr<IOOperation> op);
 
         // Gives a new endpoint which is a host endpoint the acceptor which provides sockets. 
         void aquireAcceptor(std::shared_ptr<SessionBase>& session);
 
         // Shut down the IO service. WARNING: blocks until all Channels and Sessions are stopped.
         void stop();
+
+        void showErrorMessages(bool v);
+
+        void printError(std::string msg);
 
         bool mPrint = false;
     };

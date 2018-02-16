@@ -87,21 +87,37 @@ namespace osuCrypto
         }
         std::string RecvOperation::toString() const
         {
-            return std::string("RecvOperation #") + oc::ToString(mIdx);
+            return std::string("RecvOperation #") 
+#ifdef CHANNEL_LOGGING
+                + oc::ToString(mIdx)
+#endif
+                ;
         }
         std::string SendOperation::toString() const
         {
-            return std::string("SendOperation #") + oc::ToString(mIdx);
+            return std::string("SendOperation #") 
+#ifdef CHANNEL_LOGGING
+                + oc::ToString(mIdx)
+#endif
+                ;
         }
 
         std::string FixedSendBuff::toString() const
         {
-            return std::string("FixedSendBuff #") + oc::ToString(mIdx) + " ~ " + oc::ToString(getBufferSize()) + " bytes";
+            return std::string("FixedSendBuff #")
+#ifdef CHANNEL_LOGGING
+                + oc::ToString(mIdx) 
+#endif
+                + " ~ " + oc::ToString(getBufferSize()) + " bytes";
         }
 
         std::string FixedRecvBuff::toString() const
         {
-            return std::string("FixedRecvBuff #") + oc::ToString(mIdx) + " ~ " + oc::ToString(getBufferSize()) + " bytes";
+            return std::string("FixedRecvBuff #") 
+#ifdef CHANNEL_LOGGING
+                + oc::ToString(mIdx) 
+#endif
+                + " ~ " + oc::ToString(getBufferSize()) + " bytes";
         }
 
         

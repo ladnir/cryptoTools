@@ -645,7 +645,13 @@ namespace osuCrypto
         }
     }
 
-    void IOService::printErrorMessages(bool v)
+    void IOService::printError(std::string msg)
+    {
+        if(mPrint)
+            std::cerr << msg << std::endl;
+    }
+
+    void IOService::showErrorMessages(bool v)
     {
         mPrint = v;
     }

@@ -409,6 +409,11 @@ namespace osuCrypto {
         });
     }
 
+    void ChannelBase::printError(std::string s)
+    {
+        mIos.printError(s);
+    }
+
 
     void ChannelBase::close()
     {

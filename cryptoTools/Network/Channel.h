@@ -403,6 +403,8 @@ namespace osuCrypto {
         std::array<boost::asio::mutable_buffer, 2> mSendBuffers;
         boost::asio::mutable_buffer mRecvBuffer;
 
+        void printError(std::string s);
+
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mRecvIdx, mSendIdx;
         ChannelLog mLog;
@@ -651,11 +653,8 @@ namespace osuCrypto {
 
 	template<typename T>
 	typename std::enable_if<std::is_pod<T>::value, void>::type
-		Channel::recv(T* buffT, u64 sizeT)
+		Channel::recv(T* buff, u64 size)
 	{
-		u8* buff = (u8*)buffT;
-		auto size = sizeT * sizeof(T);
-
 		try {
 			// schedule the recv.
 			auto request = asyncRecv(buff, size);
@@ -666,8 +665,7 @@ namespace osuCrypto {
 		}
 		catch (BadReceiveBufferSize& bad)
 		{
-            if(mBase->mIos.mPrint) 
-                std::cout << bad.what() << std::endl;
+            mBase->printError(bad.what());
 
 			throw;
 		}

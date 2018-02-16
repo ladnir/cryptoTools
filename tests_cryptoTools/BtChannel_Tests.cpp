@@ -518,7 +518,7 @@ namespace tests_cryptoTools
 
 
                 u32 port;// = basePort + i;
-                ioService.printErrorMessages(true);
+                ioService.showErrorMessages(true);
 
                 std::list<Session> sessions;
                 std::vector<Channel> channels;
@@ -703,7 +703,7 @@ namespace tests_cryptoTools
         std::string channelName{ "TestChannel" }, msg{ "This is the message" };
         IOService ioService;
 
-        ioService.printErrorMessages(false);
+        ioService.showErrorMessages(false);
 
         Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
         Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
@@ -767,7 +767,7 @@ namespace tests_cryptoTools
             std::string channelName{ "TestChannel" }, msg{ "This is the message" };
             IOService ioService;
 
-            ioService.printErrorMessages(false);
+            ioService.showErrorMessages(false);
 
             Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
             Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
@@ -809,7 +809,7 @@ namespace tests_cryptoTools
             setThreadName("Test_Host");
             std::string channelName{ "TestChannel" }, msg{ "This is the message" };
             IOService ioService;
-            ioService.printErrorMessages(false);
+            ioService.showErrorMessages(false);
 
             Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
             Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
@@ -873,7 +873,7 @@ namespace tests_cryptoTools
             std::string channelName{ "TestChannel" }, msg{ "This is the message" };
             IOService ioService;
 
-            ioService.printErrorMessages(false);
+            ioService.showErrorMessages(false);
 
             Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
             Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");

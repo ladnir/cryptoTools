@@ -39,7 +39,7 @@ namespace osuCrypto {
 
 			while (length)
 			{
-				u64 step = std::min<u64>(length, u64(64) - idx);
+				u32 step = std::min<u32>(length, u64(64) - idx);
 				memcpy(buffer.data() + idx, dataIn, step);
 
 				idx += step;
