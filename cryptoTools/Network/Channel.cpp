@@ -278,6 +278,8 @@ namespace osuCrypto {
 
     void ChannelBase::recvEnque(SBO_ptr<details::RecvOperation>&& op)
     {
+
+
         mRecvQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -300,7 +302,6 @@ namespace osuCrypto {
 
     void ChannelBase::sendEnque(SBO_ptr<details::SendOperation>&& op)
     {
-
         mSendQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially

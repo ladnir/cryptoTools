@@ -8,20 +8,29 @@ namespace osuCrypto
     namespace details
     {
 
-        void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle completionHandle)
+        void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle&& completionHandle)
         {
             base->mSendBuffers = getSendBuffer();
-            base->mHandle->async_send(base->mSendBuffers, completionHandle);
+            base->mHandle->async_send(base->mSendBuffers, 
+                std::forward<io_completion_handle>(completionHandle));
         }
 
-        void FixedRecvBuff::asyncPerform(ChannelBase * base, io_completion_handle completionHandle)
+        void FixedRecvBuff::asyncPerform(ChannelBase * base, io_completion_handle&& completionHandle)
         {
+
             mComHandle = std::move(completionHandle);
             mBase = base;
+
+            if (!mComHandle)
+                throw std::runtime_error(LOCATION);
 
             // first we have to receive the header which tells us how much.
             base->mRecvBuffer = getRecvHeaderBuffer();
             base->mHandle->async_recv({&base->mRecvBuffer, 1}, [this](const error_code& ec, u64 bytesTransferred) {
+
+
+                if (!mComHandle)
+                    throw std::runtime_error(LOCATION);
 
                 if (!ec)
                 {
@@ -74,6 +83,10 @@ namespace osuCrypto
                     mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this](const error_code& ec, u64 bt)
                     {
                         if (!ec) mPromise.set_value();
+
+                        if (!mComHandle)
+                            throw std::runtime_error(LOCATION);
+
                         mComHandle(ec, bt);
                     });
                 }

@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <system_error>
 #include  <type_traits>
+#include <list>
 //#define CHANNEL_LOGGING
 
 namespace osuCrypto {
@@ -177,39 +178,47 @@ namespace osuCrypto {
             BaseQueue(u64 cap)
                 : mPopIdx(0)
                 , mPushIdx(0)
-                , mCapacity(cap)
-                , mStorage(new T[cap])
+                , mStorage((T*)new u8[cap * sizeof(T)], cap)
             {};
 
+            ~BaseQueue()
+            {
+                while (size())
+                {
+                    pop_front();
+                }
+
+                delete[] (u8*)mStorage.data();
+            }
 
             std::atomic<u64> mPopIdx;
             std::atomic<u64> mPushIdx;
-            u64 mCapacity;
-            std::unique_ptr<T[]> mStorage;
+            span<T> mStorage;
 
-            u64 capacity() const { return mCapacity; }
+            u64 capacity() const { return mStorage.size(); }
             u64 size() const { return mPushIdx.load(std::memory_order_relaxed) - mPopIdx.load(std::memory_order_relaxed); }
             bool isFull() const { return size() == capacity(); }
             bool isEmpty() const { return size() == 0; }
 
             void push_back(T&& v)
             {
-                if (isFull())
+                if (isFull()) // synchonize mPopIdx with #2
                     throw std::runtime_error("Queue is full " LOCATION);
 
                 auto pushIdx = mPushIdx.load(std::memory_order_relaxed) % capacity();
-                new (mStorage.get() + pushIdx) T(std::move(v));
+                new (&mStorage[pushIdx]) T(std::move(v));
 
-                mPushIdx.fetch_add(1, std::memory_order::memory_order_release);
+                mPushIdx.fetch_add(1, std::memory_order_release); // synchonize storage with #1
             }
 
             T& front()
             {
-                if (isEmpty())
+                auto popIdx = mPopIdx.load(std::memory_order_relaxed);  // synchonize mPopIdx with #2
+                auto pushIdx = mPushIdx.load(std::memory_order_acquire); // synchonize storage with #1
+                if (popIdx == pushIdx)
                     throw std::runtime_error("queue is empty. " LOCATION);
 
-                auto popIdx = mPopIdx.load(std::memory_order_acquire) % capacity();
-                return mStorage[popIdx];
+                return mStorage[popIdx % capacity()];
             }
 
             void pop_front()
@@ -217,26 +226,38 @@ namespace osuCrypto {
                 if (isEmpty())
                     throw std::runtime_error("queue is empty. " LOCATION);
 
-                auto popIdx = mPopIdx.load(std::memory_order::memory_order_relaxed);
+                auto popIdx = mPopIdx.load(std::memory_order_relaxed);
                 mStorage[popIdx % capacity()].~T();
-                mPopIdx.fetch_add(1, std::memory_order::memory_order_relaxed);
+                mPopIdx.fetch_add(1, std::memory_order_relaxed);
             }
         };
 
         std::list<BaseQueue> mQueues;
+        std::mutex mMtx;
 
         SpscQueue(u64 cap = 64)
         {
             mQueues.emplace_back(cap);
         }
 
-        u64 capacity() const { return mQueues.back().capacity(); }
-        u64 size() const { return mQueues.back().size(); }
-        bool isFull() const { return mQueues.back().isFull(); }
+        u64 size() const 
+        {
+            u64 s = 0;
+            for (auto& q : mQueues) s += q.size();
+            return s;
+        }
+
         bool isEmpty() const { return mQueues.front().isEmpty(); }
 
         void push_back(T&& v)
         {
+            if (mQueues.back().isFull())
+            {
+                // create a new subQueue of four times the size.
+                std::lock_guard<std::mutex> l(mMtx);
+                mQueues.emplace_back(mQueues.back().capacity() * 4);
+            }
+
             mQueues.back().push_back(std::move(v));
         }
 
@@ -250,12 +271,12 @@ namespace osuCrypto {
             mQueues.front().pop_front();
 
             if (mQueues.front().size() == 0 && mQueues.size() > 1)
+            {
+                // a larger subqueue was added and the current one is
+                // empty. Migrate to the larger one.
+                std::lock_guard<std::mutex> l(mMtx);
                 mQueues.pop_front();
-        }
-
-        void unsafeReserve(u64 newSize)
-        {
-            mQueues.emplace_back(newSize);
+            }
         }
     };
 
@@ -280,7 +301,7 @@ namespace osuCrypto {
 
             template<typename... Args,
                 typename Enabled =
-                std::enable_if<
+                typename std::enable_if<
                 std::is_constructible<U, Args...>::value
                 >::type
             >
@@ -362,8 +383,8 @@ namespace osuCrypto {
         {
             destruct();
 
-            int n1 = sizeof(Impl_type<U>);
-            int n2 = sizeof(Storage);
+            //int n1 = sizeof(Impl_type<U>);
+            //int n2 = sizeof(Storage);
 
             // this object is too big, use the allocator. Local storage
             // will be unused as denoted by (isSBO() == false).
@@ -424,7 +445,7 @@ namespace osuCrypto {
         make_SBO_ptr(Args&&... args)
     {
         SBO_ptr<T> t;
-        t.New<U>(std::forward<Args>(args)...);
+        t.template New<U>(std::forward<Args>(args)...);
         return std::move(t);
     }
 
@@ -440,7 +461,9 @@ namespace osuCrypto {
             SendOperation(SendOperation&& copy) = default;
             SendOperation(const SendOperation& copy) = delete;
 
-            virtual void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) = 0;
+            virtual ~SendOperation() {}
+
+            virtual void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) = 0;
             virtual void cancel(std::string reason) = 0;
             virtual std::string toString() const;
 
@@ -456,7 +479,9 @@ namespace osuCrypto {
             RecvOperation(RecvOperation&& copy) = default;
             RecvOperation(const RecvOperation& copy) = delete;
 
-            virtual void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) = 0;
+            virtual ~RecvOperation() {}
+
+            virtual void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) = 0;
             virtual void cancel(std::string reason) = 0;
             virtual std::string toString() const;
 
@@ -467,7 +492,7 @@ namespace osuCrypto {
 
 
         // A class for sending or receiving data over a channel. 
-        // Data sent/received with this type sent over the network 
+        // Datam sent/received with this type sent over the network 
         // with a header denoting its size in bytes.
         class BasicSizedBuff
         {
@@ -532,7 +557,7 @@ namespace osuCrypto {
 
             FixedSendBuff(FixedSendBuff&& v) = default;
 
-            void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override;
+            void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override;
             void cancel(std::string _) override {};
 
             std::string toString() const override;
@@ -629,7 +654,7 @@ namespace osuCrypto {
                 fu = mPromise.get_future();
             }
 
-            void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override;
+            void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override;
             void cancel(std::string reason) override
             {
                 mPromise.set_exception(
@@ -704,13 +729,16 @@ namespace osuCrypto {
             {}
 
             std::function<void()> mCallback;
+            io_completion_handle mWithCBCompletionHandle;
 
-            void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override
+            void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override
             {
-                T::asyncPerform(base, [this, h = std::move(completionHandle)](const error_code& ec, u64 bytes) mutable
+                mWithCBCompletionHandle = std::move(completionHandle);
+
+                T::asyncPerform(base, [this](const error_code& ec, u64 bytes) mutable
                 {
-                    h(ec, bytes);
                     mCallback();
+                    mWithCBCompletionHandle(ec, bytes);
                 });
             }
         };
@@ -734,16 +762,19 @@ namespace osuCrypto {
 
 
             std::promise<void> mPromise;
+            io_completion_handle mWithPromCompletionHandle;
 
-            void asyncPerform(ChannelBase* base, io_completion_handle completionHandle) override
+            void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override
             {
-                T::asyncPerform(base, [this, h = std::move(completionHandle)](const error_code& ec, u64 bytes) mutable
+                mWithPromCompletionHandle = std::move(completionHandle);
+
+                T::asyncPerform(base, [this](const error_code& ec, u64 bytes) mutable
                 {
                     if (ec) mPromise.set_exception(std::make_exception_ptr(
                         CanceledOperation("network send error: " + ec.message() + "\n" LOCATION)));
                     else mPromise.set_value();
 
-                    h(ec, bytes);
+                    mWithPromCompletionHandle(ec, bytes);
                 });
             }
 

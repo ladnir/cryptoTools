@@ -19,12 +19,14 @@
 #include "BtChannel_Tests.h"
 
 #include "Common.h"
-
+#include <cryptoTools/Common/TestCollection.h>
 
 using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
+
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AnonymousMode_Test);
     void BtNetwork_AnonymousMode_Test()
     {
         IOService ioService(0);
@@ -77,11 +79,12 @@ namespace tests_cryptoTools
 
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CancelChannel_Test);
     void BtNetwork_CancelChannel_Test()
     {
-        u64 trials = 1;
+        u64 trials = 10;
         IOService ioService;
-        Timer& t = gTimer;
+        //Timer& t = gTimer;
 
         for (u64 i = 0; i < trials; ++i)
         {
@@ -188,9 +191,10 @@ namespace tests_cryptoTools
 
         }
 
-        std::cout << t << std::endl << std::endl;
+        //std::cout << t << std::endl << std::endl;
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);
     void BtNetwork_ServerMode_Test()
     {
         u64 numConnect = 128;
@@ -275,6 +279,7 @@ namespace tests_cryptoTools
         //thrd.join();
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_Connect1_Test);
     void BtNetwork_Connect1_Test()
     {
         setThreadName("Test_Host");
@@ -312,6 +317,7 @@ namespace tests_cryptoTools
     }
 
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_OneMegabyteSend_Test);
     void BtNetwork_OneMegabyteSend_Test()
     {
         setThreadName("Test_Host");
@@ -354,6 +360,7 @@ namespace tests_cryptoTools
     }
 
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ConnectMany_Test);
     void BtNetwork_ConnectMany_Test()
     {
         //InitDebugPrinting();
@@ -438,6 +445,7 @@ namespace tests_cryptoTools
     }
 
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CrossConnect_Test);
     void BtNetwork_CrossConnect_Test()
     {
         const block send = _mm_set_epi64x(123412156, 123546);
@@ -497,7 +505,7 @@ namespace tests_cryptoTools
         thrd.join();
     }
 
-
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ManySessions_Test);
     void BtNetwork_ManySessions_Test()
     {
         u64 nodeCount = 10;
@@ -585,6 +593,7 @@ namespace tests_cryptoTools
             nodeThreads[i].join();
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AsyncConnect_Test);
     void BtNetwork_AsyncConnect_Test()
     {
         setThreadName("Test_Host");
@@ -616,6 +625,7 @@ namespace tests_cryptoTools
         if (chl1.isConnected() == false) throw UnitTestFail();
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_std_Containers_Test);
     void BtNetwork_std_Containers_Test()
     {
         setThreadName("Test_Host");
@@ -666,6 +676,7 @@ namespace tests_cryptoTools
     }
 
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_bitVector_Test);
     void BtNetwork_bitVector_Test()
     {
         setThreadName("Test_Host");
@@ -695,6 +706,7 @@ namespace tests_cryptoTools
 
 
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_recvErrorHandler_Test);
     void BtNetwork_recvErrorHandler_Test()
     {
 
@@ -757,6 +769,7 @@ namespace tests_cryptoTools
             throw UnitTestFail("failed to recover bad recv size.");
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_closeOnError_Test);
     void BtNetwork_closeOnError_Test()
     {
 
@@ -848,6 +861,7 @@ namespace tests_cryptoTools
 
     }
 
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_SocketInterface_Test);
     void BtNetwork_SocketInterface_Test()
     {
 
@@ -907,6 +921,7 @@ namespace tests_cryptoTools
 
     class Base {
     public:
+        virtual ~Base() {}
         virtual std::string print() = 0;
     };
     template<int N>
@@ -935,6 +950,7 @@ namespace tests_cryptoTools
 
     };
 
+    OSU_CRYPTO_ADD_TEST(globalTests, SBO_ptr_test);
     void SBO_ptr_test()
     {
         auto ss = std::string("s");
@@ -969,10 +985,6 @@ namespace tests_cryptoTools
             oo.New<Large>();
             bool b = oo.isSBO();
             if (b) throw std::runtime_error(LOCATION);
-
-            int size0 = sizeof(MoveOnly<4>);
-            int size1 = sizeof(SBO_ptr<Base>::Impl<MoveOnly<4>>);
-
 
             auto s1 = oo->print();
             if (s1 != "Large") throw std::runtime_error(LOCATION);

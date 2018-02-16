@@ -176,6 +176,7 @@
     <ClInclude Include="Network\IOService.h" />
     <ClInclude Include="Network\IoBuffer.h" />
     <ClInclude Include="Network\SocketAdapter.h" />
+    <ClInclude Include="Common\TestCollection.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp" />
@@ -196,6 +197,7 @@
     <ClCompile Include="Network\IoBuffer.cpp" />
     <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
+    <ClCompile Include="Common\TestCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">
