@@ -29,26 +29,14 @@ namespace osuCrypto {
         mSession(endpoint.mBase),
         mRemoteName(remoteName),
         mLocalName(localName),
-        mRecvStatus(Channel::Status::Normal),
-        mSendStatus(Channel::Status::Normal),
-        mHandle(nullptr),
         mTimer(endpoint.getIOService().mIoService),
         mSendStrand(endpoint.getIOService().mIoService),
         mRecvStrand(endpoint.getIOService().mIoService),
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
-        mRecvSocketSet(false),
-        mSendSocketSet(false),
-        //mOutstandingSendData(0),
-        //mMaxOutstandingSendData(0),
-        mTotalSentData(0),
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
-#ifdef CHANNEL_LOGGING
-        , mRecvIdx(0)
-        , mSendIdx(0)
-#endif
     {
     }
 
@@ -56,8 +44,6 @@ namespace osuCrypto {
         :
         mIos(ios),
         mWork(new boost::asio::io_service::work(ios.mIoService)),
-        mRecvStatus(Channel::Status::Normal),
-        mSendStatus(Channel::Status::Normal),
         mHandle(sock),
         mTimer(ios.mIoService),
         mSendStrand(ios.mIoService),
@@ -65,17 +51,10 @@ namespace osuCrypto {
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
-        mRecvSocketSet(true),
-        mSendSocketSet(true),
-        //mOutstandingSendData(0),
-        //mMaxOutstandingSendData(0),
-        mTotalSentData(0),
+        mSendSocketAvailable(true),
+        mRecvSocketAvailable(true),
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
-#ifdef CHANNEL_LOGGING
-        , mRecvIdx(0)
-        , mSendIdx(0)
-#endif
     {
         mOpenProm.set_value();
     }
@@ -149,9 +128,6 @@ namespace osuCrypto {
                     using namespace details;
                     auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
 
-                    mSendSocketSet = true;
-                    mHasActiveSend = true;
-
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
 
@@ -168,7 +144,8 @@ namespace osuCrypto {
 
                             mSendStrand.dispatch([this]()
                             {
-                                mHasActiveSend = false;
+                                mSendSocketAvailable = true;
+
 
                                 if (mSendQueue.isEmpty() == false)
                                 {
@@ -178,8 +155,10 @@ namespace osuCrypto {
                                 {
                                     LOG_MSG("async connect. queue is empty.");
 
-                                    if (mSendStatus == Channel::Status::Stopped)
+                                    if (mSendStatus == Channel::Status::Stopped && 
+                                        mSendQueueEmpty == false)
                                     {
+                                        mSendQueueEmpty = true;
                                         mSendQueueEmptyProm.set_value();
                                         mSendQueueEmptyProm = std::promise<void>();
                                     }
@@ -192,17 +171,18 @@ namespace osuCrypto {
 
                 mRecvStrand.dispatch([this]()
                 {
-
-
-                    mRecvSocketSet = true;
-
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
+                    mRecvSocketAvailable = true;
 
                     if (!mRecvQueue.isEmpty())
                     {
-                        LOG_MSG("async connect. Recv Strand.");
+                        LOG_MSG("async connect. Recv Strand, start.");
                         asyncPerformRecv();
+                    }
+                    else
+                    {
+                        LOG_MSG("async connect. Recv Strand, queue empty.");
                     }
                 });
             }
@@ -233,7 +213,7 @@ namespace osuCrypto {
 
     bool Channel::isConnected()
     {
-        return mBase->mSendSocketSet  && mBase->mRecvSocketSet;
+        return mBase->mOpenCount == 2;
     }
 
     bool Channel::waitForConnection(std::chrono::milliseconds timeout)
@@ -285,12 +265,18 @@ namespace osuCrypto {
 
             mSendStrand.dispatch([&]() {
                 if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
+                {
+                    mSendQueueEmpty = true;
                     mSendQueueEmptyProm.set_value();
+                }
             });
 
             mRecvStrand.dispatch([&]() {
                 if (mRecvQueue.isEmpty() && mRecvQueueEmpty == false)
+                {
+                    mRecvQueueEmpty = true;
                     mRecvQueueEmptyProm.set_value();
+                }
                 else if (activeRecvSizeError())
                     cancelRecvQueuedOperations();
             });
@@ -322,9 +308,10 @@ namespace osuCrypto {
 
             // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
             // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-            bool startRecving = (mHasActiveRecv == false) && mRecvSocketSet;
+            bool hasItems = (mRecvQueue.isEmpty() == false);
+            bool startRecving = hasItems && mRecvSocketAvailable;
 
-            LOG_MSG("queuing* Recv, start = " + ToString(startRecving) + " = " + ToString(mHasActiveRecv == false) + " && " + ToString(mRecvSocketSet));
+            LOG_MSG("queuing* Recv, start = " + ToString(startRecving) + " = " + ToString(hasItems) + " & " + ToString(mRecvSocketAvailable));
             // the queue must be guarded from concurrent access, so add the op within the strand
             // queue up the operation.
             if (startRecving)
@@ -352,18 +339,14 @@ namespace osuCrypto {
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         mSendStrand.post([this]()
         {
-            // the queue must be guarded from concurrent access, so add the op within the strand
+            auto hasItems = (mSendQueue.isEmpty() == false);
+            auto startSending = hasItems && mSendSocketAvailable;
 
-            // check to see if we should kick off a new set of send operations. If the size >= 1, then there
-            // is already a set of send operations that will kick off the newly queued send when its turn comes around.
-            auto startSending = (mHasActiveSend == false) && mSendSocketSet;
-
-            LOG_MSG("queuing* Send, start = " + ToString(startSending) + " = " + ToString(mHasActiveSend == false) + " && " + ToString(mSendSocketSet));
+            LOG_MSG("queuing* Send, start = " + ToString(startSending) + " = " + ToString(hasItems)
+                + " & " + ToString(mSendSocketAvailable));
 
             if (startSending)
             {
-                // ok, so there isn't any send operations currently underway. Lets kick off the first one. Subsequent sends
-                // will be kicked off at the completion of this operation.
                 asyncPerformSend();
             }
         });
@@ -374,8 +357,10 @@ namespace osuCrypto {
     {
         LOG_MSG("starting asyncPerformRecv()");
 
+        if (mRecvSocketAvailable == false)
+            throw std::runtime_error(LOCATION);
 
-        mHasActiveRecv = true;
+        mRecvSocketAvailable = false;
         mIos.mIoService.dispatch([this] {
 
             mRecvQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
@@ -395,7 +380,7 @@ namespace osuCrypto {
                     {
                         LOG_MSG("completed recv: " + mRecvQueue.front()->toString());
 
-                        mHasActiveRecv = false;
+                        mRecvSocketAvailable = true;
                         mRecvQueue.pop_front();
 
                         // is there more messages to recv?
@@ -403,9 +388,11 @@ namespace osuCrypto {
                         {
                             asyncPerformRecv();
                         }
-                        else if (mRecvStatus == Channel::Status::Stopped)
+                        else if (mRecvStatus == Channel::Status::Stopped && 
+                            mRecvQueueEmpty == false)
                         {
                             LOG_MSG("Recv queue stopped.");
+                            mRecvQueueEmpty = true;
                             mRecvQueueEmptyProm.set_value();
                             mRecvQueueEmptyProm = std::promise<void>();
                         }
@@ -419,8 +406,15 @@ namespace osuCrypto {
     {
         LOG_MSG("Starting asyncPerformSend()");
 
-        mHasActiveSend = true;
+        if (mSendSocketAvailable == false)
+        {
+#ifdef CHANNEL_LOGGING
+            std::cout << mLog << std::endl;
+#endif
+            throw std::runtime_error(LOCATION);
+        }
 
+        mSendSocketAvailable = false;
         mIos.mIoService.dispatch([this] {
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
@@ -439,16 +433,17 @@ namespace osuCrypto {
                     {
                         LOG_MSG("completed send #" + mSendQueue.front()->toString());
 
-                        mHasActiveSend = false;
+                        mSendSocketAvailable = true;
                         mSendQueue.pop_front();
 
                         if (!mSendQueue.isEmpty())
                         {
                             asyncPerformSend();
                         }
-                        else if (mSendStatus == Channel::Status::Stopped)
+                        else if (mSendStatus == Channel::Status::Stopped && mSendQueueEmpty == false)
                         {
                             LOG_MSG("Send queue stopped");
+                            mSendQueueEmpty = true;
                             mSendQueueEmptyProm.set_value();
                             mSendQueueEmptyProm = std::promise<void>();
                         }
@@ -562,10 +557,11 @@ namespace osuCrypto {
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         mRecvStrand.post([this]()
         {
-            mRecvSocketSet = true;
             auto ii = ++mOpenCount;
             if (ii == 2)
                 mOpenProm.set_value();
+            
+            mRecvSocketAvailable = true;
 
             bool isEmpty = mRecvQueue.isEmpty();
             LOG_MSG("startSocket Recv, queue is isEmpty = " + ToString(isEmpty));
@@ -580,10 +576,10 @@ namespace osuCrypto {
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         mSendStrand.post([this]()
         {
-            mSendSocketSet = true;
             auto ii = ++mOpenCount;
             if (ii == 2)
                 mOpenProm.set_value();
+            mSendSocketAvailable = true;
 
             bool isEmpty = mSendQueue.isEmpty();
             LOG_MSG("startSocket Send, queue is isEmpty = " + ToString(isEmpty));
@@ -667,6 +663,7 @@ namespace osuCrypto {
     {
         mRecvStrand.dispatch([&, reason]() {
 
+            LOG_MSG("Recv bad buff size: " + reason);
             if (mRecvStatus == Channel::Status::Normal)
             {
                 mRecvErrorMessage = reason;
@@ -677,6 +674,7 @@ namespace osuCrypto {
     void ChannelBase::clearBadRecvErrorState()
     {
         mRecvStrand.dispatch([&]() {
+            LOG_MSG("Recv clear bad buff size: ");
 
             if (activeRecvSizeError() && mRecvStatus == Channel::Status::Normal)
             {

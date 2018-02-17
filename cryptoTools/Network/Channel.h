@@ -334,7 +334,9 @@ namespace osuCrypto {
 
         //u32 mRecvSizeBuff, mSendSizeBuff;
 
-        Channel::Status mRecvStatus, mSendStatus;
+        Channel::Status mRecvStatus = Channel::Status::Normal;
+        Channel::Status mSendStatus = Channel::Status::Normal;
+
         std::unique_ptr<SocketInterface> mHandle;
 		boost::asio::deadline_timer mTimer;
 
@@ -345,10 +347,12 @@ namespace osuCrypto {
         std::shared_future<void> mOpenFut;
 
         std::atomic<u8> mOpenCount;
-        bool mRecvSocketSet, mSendSocketSet;
+        bool mRecvSocketAvailable = false;
+        bool mSendSocketAvailable = false;
 
         std::string mRecvErrorMessage, mSendErrorMessage;
-        u64 mTotalSentData, mTotalRecvData;
+        u64 mTotalSentData = 0;
+        u64 mTotalRecvData = 0;
 
 
 		bool mRecvQueueEmpty = false, mSendQueueEmpty = false;
@@ -378,7 +382,7 @@ namespace osuCrypto {
 		bool mActiveRecvSizeError = false;
 		bool activeRecvSizeError() const { return mActiveRecvSizeError; }
 
-        bool mHasActiveRecv = false, mHasActiveSend = false;
+
         SpscQueue<SBO_ptr<details::SendOperation>> mSendQueue;
         SpscQueue<SBO_ptr<details::RecvOperation>> mRecvQueue;
         void recvEnque(SBO_ptr<details::RecvOperation>&& op);
@@ -395,7 +399,7 @@ namespace osuCrypto {
         void printError(std::string s);
 
 #ifdef CHANNEL_LOGGING
-        std::atomic<u32> mRecvIdx, mSendIdx;
+        u32 mRecvIdx = 0, mSendIdx = 0;
         Log mLog;
 #endif
 

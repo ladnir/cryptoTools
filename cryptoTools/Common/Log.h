@@ -15,11 +15,22 @@ namespace osuCrypto
 
         void push(const std::string& msg)
         {
-            mLock.lock();
+            std::lock_guard<std::mutex>l(mLock);
             mMessages.emplace_back(msg);
-            mLock.unlock();
         }
+
+
     };
+    inline std::ostream& operator<<(std::ostream& o, Log& log)
+    {
+        std::lock_guard<std::mutex>l(log.mLock);
+        for (u64 i = 0; i < log.mMessages.size(); ++i)
+        {
+            o << "[" << i << "]  " << log.mMessages[i] << std::endl;
+        }
+
+        return o;
+    }
 
 	enum class Color {
 		LightGreen = 2,

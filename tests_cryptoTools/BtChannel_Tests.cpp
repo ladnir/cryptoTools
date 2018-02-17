@@ -20,7 +20,8 @@
 
 #include "Common.h"
 #include <cryptoTools/Common/TestCollection.h>
-
+#include <chrono>
+#include <thread>
 using namespace osuCrypto;
 
 namespace tests_cryptoTools
@@ -861,39 +862,115 @@ namespace tests_cryptoTools
 
     }
 
+
+    class Pipe
+    {
+    public:
+
+        //struct FP
+        //{
+        //    FP() 
+        //        :mF(mP.get_future())
+        //    {}
+
+        //    std::promise<std::vector<u8>> mP;
+        //    std::future<std::vector<u8>> mF;
+        //};
+
+        std::mutex mMtx;
+        std::list<std::vector<u8>> mBuff;
+
+
+
+        Pipe() = default;
+
+        Pipe* mOther;
+
+        void join(Pipe& o)
+        {
+            mOther = &o;
+            o.mOther = this;
+        }
+
+
+        void send(u8* d, u64 s)
+        {
+            std::lock_guard<std::mutex> l(mOther->mMtx);
+            mOther->mBuff.emplace_back(d, d + s);
+        }
+
+
+        void recv(u8* d, u64 s)
+        {
+            while (true)
+            {
+
+                {
+                    std::lock_guard<std::mutex> l(mMtx);
+                    if (mBuff.size())
+                    {
+                        if (mBuff.front().size() == s)
+                        {
+                            memcpy(d, mBuff.front().data(), s);
+                            mBuff.pop_front();
+                            return;
+                        }
+                        else
+                        {
+                            throw std::runtime_error(LOCATION);
+                        }
+                    }
+                }
+                
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+    };
+
     OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_SocketInterface_Test);
     void BtNetwork_SocketInterface_Test()
     {
-
+        setThreadName("main");
         try {
             std::string channelName{ "TestChannel" }, msg{ "This is the message" };
             IOService ioService;
+            IOService ioService2;
 
             ioService.showErrorMessages(false);
 
-            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
+            u64 trials = 100;
 
-            auto chl1 = ep1.addChannel(channelName, channelName);
-            auto chl2 = ep2.addChannel(channelName, channelName);
-
-            //////////////////////////////////////////////////////////////////////////
-            //////////////////////////////////////////////////////////////////////////
-            chl1.waitForConnection();
-            chl2.waitForConnection();
-
-            Channel ichl1(ioService, new SocketAdapter<Channel>(chl1));
-            Channel ichl2(ioService, new SocketAdapter<Channel>(chl2));
-
-
-            ichl1.asyncSendCopy(msg);
-
-            std::string msg2;
-            ichl2.recv(msg2);
-
-            if (msg != msg2)
+            for (u64 i = 0; i < trials; ++i)
             {
-                throw UnitTestFail(LOCATION);
+
+                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
+
+                auto chl1 = ep1.addChannel(channelName, channelName);
+                auto chl2 = ep2.addChannel(channelName, channelName);
+
+                //////////////////////////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////////////////////////
+                chl1.waitForConnection();
+                chl2.waitForConnection();
+
+                Pipe p1;
+                Pipe p2;
+                p2.join(p1);
+
+                Channel ichl1(ioService2, new SocketAdapter<Channel>(chl1));
+                Channel ichl2(ioService2, new SocketAdapter<Channel>(chl2));
+
+
+                ichl1.asyncSendCopy(msg);
+
+                std::string msg2;
+                ichl2.recv(msg2);
+
+                if (msg != msg2)
+                {
+                    throw UnitTestFail(LOCATION);
+                }
             }
         }
         catch (std::exception e)
@@ -908,15 +985,15 @@ namespace tests_cryptoTools
     {
 
         u64 trials = 100;
+        std::string channelName{ "TestChannel" }, msg{ "This is the message" };
+        IOService ioService;
+
+        ioService.showErrorMessages(false);
 
         for (u64 i = 0; i < trials; ++i)
         {
 
             try {
-                std::string channelName{ "TestChannel" }, msg{ "This is the message" };
-                IOService ioService;
-
-                ioService.showErrorMessages(false);
 
                 Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
                 Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
