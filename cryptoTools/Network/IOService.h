@@ -3,6 +3,8 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Network/Session.h>
+#include <cryptoTools/Network/IoBuffer.h>
+#include <cryptoTools/Common/Log.h>
 
 # if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
 #  error WinSock.h has already been included. Please move the boost headers above the WinNet*.h headers
@@ -24,7 +26,6 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
-//#include <optional>
 
 namespace osuCrypto
 {
@@ -77,6 +78,21 @@ namespace osuCrypto
 
 	namespace details
 	{
+        // A socket which has not been named yet. The Acceptor will create these
+        // objects and then call listen on them. When a new connection comes in, 
+        // the Accept will receive the socket's name. At this point it will
+        // be converted to a NamedSocket and matched with a Channel.
+        struct PendingSocket {
+            PendingSocket(boost::asio::io_service& ios) : mSock(ios) {}
+            boost::asio::ip::tcp::socket mSock;
+            std::string mBuff;
+#ifdef CHANNEL_LOGGING
+            u64 mIdx;
+#endif
+        };
+
+        // A single socket that has been named by client. Next it will be paired with 
+        // a Channel at which point the object will be destructed.
 		struct NamedSocket {
 			NamedSocket() = default;
 			NamedSocket(NamedSocket&&) = default;
@@ -85,40 +101,77 @@ namespace osuCrypto
 			std::unique_ptr<BoostSocketInterface> mSocket;
 		};
 
+        // A group of sockets from a single remote session which 
+        // has not been paired with a local session/Channel. 
 		struct SocketGroup
 		{
 			SocketGroup() = default;
 			SocketGroup(SocketGroup&&) = default;
 
+            // returns whether this socket group has a socket with a matching 
+            // name session name and channel name.
 			bool hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const;
 
+            // Removes this SocketGroup from the containing Acceptor once this
+            // group has been merged with a SessionGroup or on cleanup.
 			std::function<void()> removeMapping;
 
-
+            // The human readable name associated with the remote session.
+            // Can be empty.
 			std::string mName;
+
+            // The unique session identifier chosen by the client
 			u64 mSessionID = 0;
+
+            // The unclaimed sockets associated with this remote session.
 			std::list<NamedSocket> mSockets;
 		};
-
+        
+        // A local session that pairs up incoming sockets with local sessions.
+        // A SessionGroup is created when a local Session is created. 
 		struct SessionGroup
 		{
 			SessionGroup() = default;
 
+            // return true if there are active channels waiting for a socket
+            // or if there is an active session associated with this group.
 			bool hasSubscriptions() const {
 				return mChannels.size() || mBase.expired() == false;
 			}
 
+            // Add a newly accepted socket to this group. If there is a matching
+            // ChannelBase, this socket will be directly given to it. Otherwise
+            // the socket will be stored locally and wait for a matching ChannelBase
+            // or until the local session is destructed.
 			void add(NamedSocket sock, Acceptor* a);
+
+            // Add a local ChannelBase to this group. If there is a matching socket,
+            // this socket will be handed to the ChannelBase. Otherwise the a shared_ptr
+            // to the ChannelBase will be stored here until the associated socket is 
+            // connected or the channel is canceled.
 			void add(const std::shared_ptr<ChannelBase>& chl, Acceptor* a);
 
+            // returns true if there is a ChannelBase in this group that has the same 
+            // channel name as this socket. The session name and id are not considered.
 			bool hasMatchingChannel(const NamedSocket& sock) const;
 
+            // Takes all the sockets in the SocketGroup and pairs them up with 
+            // ChannelBase's in this group. Any socket without a matching ChannelBase
+            // will be stored here until it is matched or the session is destructed.
 			void merge(SocketGroup& merge, Acceptor* a);
 
+            // A weak pointer to the associated session. Has to be non-owning so that the 
+            // session is destructed when it has no more channel/references.
 			std::weak_ptr<SessionBase> mBase;
+
+            // removes this session group from the associated Acceptor. Should be called when 
+            // hasSubscription returns false.
 			std::function<void()> removeMapping;
 
+            // The list of unmatched sockets that we know are associated with this session.
 			std::list<NamedSocket> mSockets;
+
+            // The list of unmatched Channels what are associated with this session.
 			std::list<std::shared_ptr<ChannelBase>> mChannels;
 		};
 	}
@@ -142,64 +195,75 @@ namespace osuCrypto
 		boost::asio::ip::tcp::acceptor mHandle;
 
 		std::atomic<bool> mStopped;
-		//std::mutex mSocketChannelPairsMtx;
-		bool mListening = false;
 
-		struct PendingSocket {
-			PendingSocket(boost::asio::io_service& ios) : mSock(ios) {}
-			boost::asio::ip::tcp::socket mSock;
-			std::string mBuff;
-		};
+        
+        bool mListening = false;
 
-		std::list<PendingSocket> mPendingSockets;
+        u64 mPendingSocketIdx = 0;
+
+        // The list of sockets which have connected but which have not 
+        // completed the initial handshake which allows them to be named.
+		std::list<details::PendingSocket> mPendingSockets;
 		
 		typedef std::list<details::SessionGroup> GroupList;
 		typedef std::list<details::SocketGroup> SocketGroupList;
 
-
+        // The full list of unmatched named sockets groups associated with this Acceptor. 
+        // Each group has a session name (hint) and a unqiue session ID. 
 		SocketGroupList mSockets;
-		// A list of local sessions that have not been paired up with sockets. The key is the session
-		// name. For any given session name, there my be several sessions.
+
+        // The full list of matched and unmatched SessionGroups. These all have active Sessions
+        // or active Channels which are waiting on matching sockets.
+		GroupList mGroups;
+
+		// A map: SessionName -> { socketGroup1, ..., socketGroupN } which all have the 
+        // same session name (hint) but a unique ID. These groups of sockets have not been 
+        // matched with a local Session/Channel. Then this happens the SocketGroup is merged 
+        // into a SessionGroup
 		std::unordered_map<std::string, std::list<SocketGroupList::iterator>> mUnclaimedSockets;
 
-		GroupList mGroups;
-		// A list of local sessions that have not been paired up with sockets. The key is the session
-		// name. For any given session name, there my be several sessions.
+		// A map: SessionName -> { sessionGroup1, ..., sessionGroupN }. Each session has not 
+        // been paired up with sockets. The key is the session name. For any given session name, 
+        // there may be several sessions. When this happens, the first matching socket name gives 
+        // that group a Session ID.
 		std::unordered_map<std::string, std::list<GroupList::iterator>> mUnclaimedGroups;
+
+        // A map: SessionName || SessionID -> sessionGroup. The list of sessions what have been 
+        // matched with a remote session. At least one channel must have been matched and this 
+        // SessionGroup has a session ID.
 		std::unordered_map<std::string, GroupList::iterator> mClaimedGroups;
 
-		// A list of local sessons. The key is the session name and the session ID. 
-		//std::unordered_map<std::pair<std::string,u64>, SessionGroup> mGroups;
+        // Takes the connection string name="SessionName`SessionID`remoteName`localName"
+        // and matches the name with a compatable ChannelBase. SessionName is not unique,
+        // the remote and local name of the channel itself will be used. Note SessionID
+        // will always be unique.
+		void asyncSetSocket(std::string name,std::unique_ptr<BoostSocketInterface> handel);
 
-		// A map of endpoint groups which have well defined name.
-		// The name was either explicitly provided by the user
-		// or has been agreed upon via some logic.
-		//std::unordered_map<std::string, SessionGroup> mSessionGroups;
-
-		void asyncSetSocket(		
-			std::string name,
-			std::unique_ptr<BoostSocketInterface> handel);
-
+        // Let the acceptor know that this channel is looking for a socket
+        // with a matching name.
 		void asyncGetSocket(std::shared_ptr<ChannelBase> chl);
 
-
+        // Remove this channel from the list of channels awaiting
+        // a matching socket. effectively undoes asyncGetSocket(...);
 		void cancelPendingChannel(ChannelBase* chl);
 
-		//bool isEmpty() const;
-
+        // return true if any sessions are still accepting connections or
+        // if there are still some channels with unmatched sockets.
 		bool hasSubscriptions() const;
-		//bool userModeHasSubscriptions() const;
-		//void removePendingSockets();
 
-		//void removeSession(const SessionBase* ep/*, const std::optional<std::chrono::milliseconds>& waitTime = {}*/);
+        // Make this session are no longer accepting any *new* connections. Channels
+        // that have previously required sockets will still be matched.
 		void unsubscribe(SessionBase* ep);
 
-		void stopListening();
-
+        // Make this session as interested in accepting connecctions. Will create
+        // a SessionGroup.
 		void subscribe(std::shared_ptr<SessionBase>& session);
 
+        // returns a pointer to the session group that has the provided name and 
+        // seesion ID. If no such socket group exists, one is created and returned.
 		SocketGroupList::iterator getSocketGroup(const std::string& name, u64 id);
 
+		void stopListening();
 		u64 mPort;
 		boost::asio::ip::tcp::endpoint mAddress;
 
@@ -211,6 +275,10 @@ namespace osuCrypto
 
 
 		std::string print() const;
+#ifdef CHANNEL_LOGGING
+        Log mLog;
+#endif
+
 	};
 
 }

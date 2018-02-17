@@ -7,7 +7,19 @@
 
 namespace osuCrypto
 {
+    class Log
+    {
+    public:
+        std::vector<std::string> mMessages;
+        std::mutex mLock;
 
+        void push(const std::string& msg)
+        {
+            mLock.lock();
+            mMessages.emplace_back(msg);
+            mLock.unlock();
+        }
+    };
 
 	enum class Color {
 		LightGreen = 2,

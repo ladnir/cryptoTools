@@ -4,6 +4,9 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/SocketAdapter.h>
 
+#ifdef CHANNEL_LOGGING
+#include <cryptoTools/Common/Log.h>
+#endif
 #include <future>
 #include <ostream>
 #include <deque>
@@ -300,21 +303,7 @@ namespace osuCrypto {
         return o;
     }
 
-#ifdef CHANNEL_LOGGING
-    class ChannelLog
-    {
-    public:
-        std::vector<std::string> mMessages;
-        std::mutex mLock;
 
-        void push(const std::string& msg)
-        {
-            mLock.lock();
-            mMessages.emplace_back(msg);
-            mLock.unlock();
-        }
-    };
-#endif
 
 	class SocketConnectError : public std::runtime_error
 	{
@@ -407,7 +396,7 @@ namespace osuCrypto {
 
 #ifdef CHANNEL_LOGGING
         std::atomic<u32> mRecvIdx, mSendIdx;
-        ChannelLog mLog;
+        Log mLog;
 #endif
 
     };

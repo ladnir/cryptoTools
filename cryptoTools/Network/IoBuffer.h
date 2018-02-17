@@ -233,21 +233,25 @@ namespace osuCrypto {
         };
 
         std::list<BaseQueue> mQueues;
-        std::mutex mMtx;
+        mutable std::mutex mMtx;
 
         SpscQueue(u64 cap = 64)
         {
             mQueues.emplace_back(cap);
         }
 
-        bool isEmpty() const { return mQueues.back().isEmpty(); }
+        bool isEmpty() const { 
+            std::lock_guard<std::mutex> l(mMtx);
+            return mQueues.back().isEmpty(); 
+        }
 
         void push_back(T&& v)
         {
+            std::lock_guard<std::mutex> l(mMtx);
             if (mQueues.back().isFull())
             {
                 // create a new subQueue of four times the size.
-                std::lock_guard<std::mutex> l(mMtx);
+                //std::lock_guard<std::mutex> l(mMtx);
                 mQueues.emplace_back(mQueues.back().capacity() * 4);
             }
 
@@ -256,18 +260,20 @@ namespace osuCrypto {
 
         T& front()
         {
+            std::lock_guard<std::mutex> l(mMtx);
             return mQueues.front().front();
         }
 
         void pop_front()
         {
+            std::lock_guard<std::mutex> l(mMtx);
             mQueues.front().pop_front();
 
             if (mQueues.front().size() == 0 && mQueues.size() > 1)
             {
                 // a larger subqueue was added and the current one is
                 // empty. Migrate to the larger one.
-                std::lock_guard<std::mutex> l(mMtx);
+                //std::lock_guard<std::mutex> l(mMtx);
                 mQueues.pop_front();
             }
         }

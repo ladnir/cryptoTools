@@ -866,24 +866,6 @@ namespace tests_cryptoTools
     {
 
         try {
-            //auto i = new std::future<int>();
-            //{
-            //    std::promise<int> p;
-            //}
-            //{
-            //    std::promise<int> p;
-            //    p.set_value(1);
-            //}
-
-            //{
-            //    std::promise<int> p;
-            //    *i = p.get_future();
-            //    //p.set_value(1);
-            //}
-            //i->get();
-            //delete i;
-            //return;
-
             std::string channelName{ "TestChannel" }, msg{ "This is the message" };
             IOService ioService;
 
@@ -897,7 +879,8 @@ namespace tests_cryptoTools
 
             //////////////////////////////////////////////////////////////////////////
             //////////////////////////////////////////////////////////////////////////
-
+            chl1.waitForConnection();
+            chl2.waitForConnection();
 
             Channel ichl1(ioService, new SocketAdapter<Channel>(chl1));
             Channel ichl2(ioService, new SocketAdapter<Channel>(chl2));
@@ -918,6 +901,48 @@ namespace tests_cryptoTools
             std::cout << "sss" << e.what() << std::endl;
         }
     }
+
+
+    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_RapidConnect_Test);
+    void BtNetwork_RapidConnect_Test()
+    {
+
+        u64 trials = 100;
+
+        for (u64 i = 0; i < trials; ++i)
+        {
+
+            try {
+                std::string channelName{ "TestChannel" }, msg{ "This is the message" };
+                IOService ioService;
+
+                ioService.showErrorMessages(false);
+
+                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
+
+                auto chl1 = ep1.addChannel(channelName, channelName);
+                auto chl2 = ep2.addChannel(channelName, channelName);
+
+                chl1.asyncSendCopy(msg);
+
+                std::string msg2;
+                chl2.recv(msg2);
+
+                if (msg != msg2)
+                {
+                    throw UnitTestFail(LOCATION);
+                }
+            }
+            catch (std::exception e)
+            {
+                std::cout << "sss" << e.what() << std::endl;
+                throw;
+            }
+        }
+
+    }
+
 
     class Base {
     public:

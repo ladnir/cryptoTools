@@ -14,8 +14,9 @@ using namespace osuCrypto;
 namespace tests_cryptoTools
 {
     TestCollection Tests([](TestCollection& th) {
-        th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
+        th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
+        th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
         th.add("BtNetwork_OneMegabyteSend_Test          ", BtNetwork_OneMegabyteSend_Test);
         th.add("BtNetwork_ConnectMany_Test              ", BtNetwork_ConnectMany_Test);
         th.add("BtNetwork_CrossConnect_Test             ", BtNetwork_CrossConnect_Test);
