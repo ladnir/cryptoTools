@@ -472,9 +472,9 @@ namespace osuCrypto {
 
     void AES::ecbEncCounterMode(u64 baseIdx, u64 blockLength, block * cyphertext) const 
     {
-        const u64 step = 8;
-        u64 idx = 0;
-        u64 length = blockLength - blockLength % step;
+        const i32 step = 8;
+        i32 idx = 0;
+        i32 length = blockLength - blockLength % step;
 
         //std::array<block, step> temp;
 		block temp[step];

@@ -24,13 +24,9 @@
 #ifdef _MSC_VER
 	#pragma warning( disable : 4018) // signed unsigned comparison warning
 	#define TODO(x) __pragma(message (__FILE__ ":"STRINGIZE(__LINE__) " Warning:TODO - " #x))
-	#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __declspec(align(__alignment)) __Declaration
-	#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT __pragma(loop( ivdep ))
 #else
 	#pragma GCC diagnostic ignored "-Wignored-attributes"
 	#define TODO(x)
-	#define CRYPTO_TOOLS_ALIGNED(__Declaration, __alignment) __Declaration __attribute__((aligned (16)))
-	#define OSU_CRYPTO_COMPILER_UNROLL_LOOP_HINT
 #endif
 
 // add instrinsics names that intel knows but clang doesn't…

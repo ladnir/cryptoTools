@@ -72,7 +72,7 @@ namespace osuCrypto
 
         void printError(std::string msg);
 
-        bool mPrint = false;
+        bool mPrint = true;
     };
 
 

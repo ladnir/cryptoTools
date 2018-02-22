@@ -89,6 +89,13 @@ namespace osuCrypto
         }
 
         pointer data() const { return mView.data(); };
+        pointer data(u64 rowIdx) const 
+        { 
+#ifndef NDEBUG
+            if (rowIdx >= rows()) throw std::runtime_error(LOCATION);
+#endif
+            return mView.data() + rowIdx * stride(); 
+        };
 
         iterator begin() const { return mView.begin(); };
         iterator end() const { return mView.end(); }
@@ -106,7 +113,7 @@ namespace osuCrypto
         span<T> operator[](size_type rowIdx) const
         {
 #ifndef NDEBUG
-            if (rowIdx >= mView.size() / stride()) throw std::runtime_error(LOCATION);
+            if (rowIdx >= rows()) throw std::runtime_error(LOCATION);
 #endif
 
             return span<T>(mView.data() + rowIdx * stride(), stride());

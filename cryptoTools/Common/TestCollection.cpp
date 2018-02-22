@@ -16,44 +16,70 @@ namespace osuCrypto
     bool TestCollection::runOne(uint64_t idx)
     {
         bool passed = false;
+
         int w = int(std::ceil(std::log10(mTests.size())));
+        std::cout << std::setw(w) << idx << " - " << Color::Blue << mTests[idx].mName << ColorDefault << std::flush;
 
-        if (idx < mTests.size())
+        auto start = std::chrono::high_resolution_clock::now();
+        try
         {
-
-            std::cout << std::setw(w) << idx << " - " << Color::Blue << mTests[idx].mName << ColorDefault << std::flush;
-
-            auto start = std::chrono::high_resolution_clock::now();
-            try
-            {
-                mTests[idx].mTest(); std::cout << Color::Green << "  Passed" << ColorDefault;
-                passed = true;
-            }
-            catch (const std::exception& e)
-            {
-                std::cout << Color::Red << "Failed - " << e.what() << ColorDefault;
-            }
-
-            auto end = std::chrono::high_resolution_clock::now();
-
-            uint64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "   " << time << "ms" << std::endl;
-
+            mTests[idx].mTest(); std::cout << Color::Green << "  Passed" << ColorDefault;
+            passed = true;
         }
+        catch (const std::exception& e)
+        {
+            std::cout << Color::Red << "Failed - " << e.what() << ColorDefault;
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+
+
+
+        uint64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "   " << time << "ms" << std::endl;
 
         return passed;
     }
 
-    bool TestCollection::runAll()
+    bool TestCollection::run(std::vector<u64> testIdxs, u64 repeatCount)
     {
-        bool passed = true;
-        for (uint64_t i = 0; i < mTests.size(); ++i)
+        u64 numPassed(0), total(0);
+
+        for (u64 r = 0; r < repeatCount; ++r)
         {
-            passed &= runOne(i);
+            for (auto i : testIdxs)
+            {
+                if (repeatCount != 1) std::cout << r << " ";
+                numPassed += (runOne(i) & 1);
+                total += 1;
+            }
         }
 
-        return passed;
+        if (numPassed == total)
+        {
+            std::cout << Color::Green << std::endl
+                << "=============================================\n"
+                << "            All Passed (" << numPassed << ")\n"
+                << "=============================================" << std::endl << ColorDefault;
+            return true;
+        }
+        else
+        {
+            std::cout << Color::Red << std::endl
+                << "#############################################\n"
+                << "           Failed (" << total - numPassed << ")\n" << Color::Green
+                << "           Passed (" << numPassed << ")\n" << Color::Red
+                << "#############################################" << std::endl << ColorDefault;
+            return false;
+        }
+    }
+
+    bool TestCollection::runAll(uint64_t rp)
+    {
+        std::vector<u64> v;
+        for (u64 i = 0; i < mTests.size(); ++i)
+            v.push_back(i);
+
+        return run(v, rp);
     }
 
     void TestCollection::list()

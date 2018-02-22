@@ -126,8 +126,12 @@ namespace osuCrypto
     public:
         boost::asio::ip::tcp::socket mSock;
 
+#ifndef BOOST_ASIO_HAS_MOVE
+#error "require move"
+#endif
+
         BoostSocketInterface(boost::asio::ip::tcp::socket&& ios)
-            : mSock(std::move(ios))
+            : mSock(std::forward<boost::asio::ip::tcp::socket>(ios))
         {
             //std::cout << IoStream::lock << "create " << this << std::endl << IoStream::unlock;
         }

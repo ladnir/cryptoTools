@@ -93,7 +93,7 @@ namespace osuCrypto
 
         template<typename R>
         R operator()(R mod) {
-            return get<R>() % mod;
+            return get<typename std::make_unsigned<R>::type>() % mod;
         }
 
 		// internal buffer to store future random values.

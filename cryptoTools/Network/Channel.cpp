@@ -370,7 +370,6 @@ namespace osuCrypto {
                 if (ec)
                 {
                     auto reason = std::string("network receive error: ") + ec.message() + "\n at  " + LOCATION;
-                    if (mIos.mPrint) std::cout << reason << std::endl;
                     LOG_MSG(reason);
                     setRecvFatalError(reason);
                 }
@@ -423,7 +422,6 @@ namespace osuCrypto {
                 if (ec)
                 {
                     auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
-                    if (mIos.mPrint) std::cout << reason << std::endl;
                     LOG_MSG(reason);
                     setSendFatalError(reason);
                 }
@@ -639,6 +637,10 @@ namespace osuCrypto {
 
     void ChannelBase::setRecvFatalError(std::string reason)
     {
+
+        if (mIos.mPrint)
+            std::cout << reason << std::endl;
+
         mRecvStrand.dispatch([&, reason]() {
 
             LOG_MSG("Recv error: " + reason);
@@ -650,6 +652,9 @@ namespace osuCrypto {
 
     void ChannelBase::setSendFatalError(std::string reason)
     {
+        if (mIos.mPrint)
+            std::cout << reason << std::endl;
+
         mSendStrand.dispatch([&, reason]() {
 
             LOG_MSG("Send error: " + reason);
@@ -661,6 +666,9 @@ namespace osuCrypto {
 
     void ChannelBase::setBadRecvErrorState(std::string reason)
     {
+        if (mIos.mPrint)
+            std::cout << reason << std::endl;
+
         mRecvStrand.dispatch([&, reason]() {
 
             LOG_MSG("Recv bad buff size: " + reason);
