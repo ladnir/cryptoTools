@@ -66,6 +66,6 @@ namespace osuCrypto
         return out;
     }
 
-	Timer _gTimer(true);
+	Timer gTimer(true);
 
 }

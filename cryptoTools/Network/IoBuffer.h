@@ -10,7 +10,7 @@
 #include <system_error>
 #include  <type_traits>
 #include <list>
-//#define CHANNEL_LOGGING
+#define CHANNEL_LOGGING
 
 namespace osuCrypto {
     using error_code = boost::system::error_code;
@@ -458,7 +458,7 @@ namespace osuCrypto {
         public:
             SendOperation() = default;
             SendOperation(SendOperation&& copy) = default;
-            SendOperation(const SendOperation& copy) = delete;
+            SendOperation(const SendOperation& copy) = default;
 
             virtual ~SendOperation() {}
 
@@ -476,7 +476,7 @@ namespace osuCrypto {
         public:
             RecvOperation() = default;
             RecvOperation(RecvOperation&& copy) = default;
-            RecvOperation(const RecvOperation& copy) = delete;
+            RecvOperation(const RecvOperation& copy) = default;
 
             virtual ~RecvOperation() {}
 
@@ -489,6 +489,7 @@ namespace osuCrypto {
 #endif
         };
 
+        using size_header_type = u32;
 
         // A class for sending or receiving data over a channel. 
         // Datam sent/received with this type sent over the network 
@@ -496,7 +497,6 @@ namespace osuCrypto {
         class BasicSizedBuff
         {
         public:
-            using size_header_type = u32;
 
             BasicSizedBuff(BasicSizedBuff&& v)
             {

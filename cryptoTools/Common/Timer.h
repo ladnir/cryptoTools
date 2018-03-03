@@ -57,7 +57,7 @@ namespace osuCrypto
         void reset();
     };
 
-	extern Timer _gTimer;
+	extern Timer gTimer;
     class TimerAdapter
     {
     public:
