@@ -85,6 +85,7 @@ namespace tests_cryptoTools
     {
         u64 trials = 10;
         IOService ioService;
+        ioService.showErrorMessages(false);
         //Timer& t = gTimer;
 
         for (u64 i = 0; i < trials; ++i)
