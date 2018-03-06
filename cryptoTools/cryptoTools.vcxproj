@@ -217,6 +217,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\SimplestOT\SimplestOT.vcxproj" />
     <None Include="cryptoToolsconfig.cmake" />
     <None Include="Network\gsl\span" />
   </ItemGroup>

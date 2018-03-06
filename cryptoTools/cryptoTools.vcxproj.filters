@@ -185,6 +185,7 @@
   <ItemGroup>
     <None Include="Network\gsl\span" />
     <None Include="cryptoToolsconfig.cmake" />
+    <None Include="..\..\SimplestOT\SimplestOT.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="gsl\GSL.natvis" />

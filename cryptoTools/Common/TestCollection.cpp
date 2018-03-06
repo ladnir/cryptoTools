@@ -26,6 +26,10 @@ namespace osuCrypto
             mTests[idx].mTest(); std::cout << Color::Green << "  Passed" << ColorDefault;
             passed = true;
         }
+        catch (const UnitTestSkipped& e)
+        {
+            std::cout << Color::Yellow << "Skipped - " << e.what() << ColorDefault;
+        }
         catch (const std::exception& e)
         {
             std::cout << Color::Red << "Failed - " << e.what() << ColorDefault;
