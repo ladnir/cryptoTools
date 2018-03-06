@@ -35,9 +35,16 @@ namespace osuCrypto
 
         std::vector<Test> mTests;
 
-        bool runOne(u64 idx);
-        bool run(std::vector<u64> testIdxs, u64 repeatCount = 1);
-        bool runAll(uint64_t repeatCount = 1);
+        enum class Result
+        {
+            passed,
+            skipped,
+            failed
+        };
+
+        Result runOne(u64 idx);
+        Result run(std::vector<u64> testIdxs, u64 repeatCount = 1);
+        Result runAll(uint64_t repeatCount = 1);
 
         void list();
 

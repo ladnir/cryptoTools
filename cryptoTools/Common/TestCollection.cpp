@@ -13,10 +13,10 @@ namespace osuCrypto
     {
         mTests.push_back({ std::move(name), std::move(fn) });
     }
-    bool TestCollection::runOne(uint64_t idx)
+    TestCollection::Result TestCollection::runOne(uint64_t idx)
     {
         bool passed = false;
-
+        Result res = Result::failed;
         int w = int(std::ceil(std::log10(mTests.size())));
         std::cout << std::setw(w) << idx << " - " << Color::Blue << mTests[idx].mName << ColorDefault << std::flush;
 
@@ -24,11 +24,12 @@ namespace osuCrypto
         try
         {
             mTests[idx].mTest(); std::cout << Color::Green << "  Passed" << ColorDefault;
-            passed = true;
+            res = Result::passed;
         }
         catch (const UnitTestSkipped& e)
         {
-            std::cout << Color::Yellow << "Skipped - " << e.what() << ColorDefault;
+            std::cout << Color::Yellow << "  Skipped - " << e.what() << ColorDefault;
+            res = Result::skipped;
         }
         catch (const std::exception& e)
         {
@@ -41,20 +42,22 @@ namespace osuCrypto
         uint64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "   " << time << "ms" << std::endl;
 
-        return passed;
+        return res;
     }
 
-    bool TestCollection::run(std::vector<u64> testIdxs, u64 repeatCount)
+    TestCollection::Result TestCollection::run(std::vector<u64> testIdxs, u64 repeatCount)
     {
-        u64 numPassed(0), total(0);
+        u64 numPassed(0), total(0), numSkipped(0);
 
         for (u64 r = 0; r < repeatCount; ++r)
         {
             for (auto i : testIdxs)
             {
                 if (repeatCount != 1) std::cout << r << " ";
-                numPassed += (runOne(i) & 1);
-                total += 1;
+                auto res = runOne(i);
+                numPassed += (res == Result::passed);
+                total += (res != Result::skipped);
+                numSkipped += (res == Result::skipped);
             }
         }
 
@@ -62,22 +65,31 @@ namespace osuCrypto
         {
             std::cout << Color::Green << std::endl
                 << "=============================================\n"
-                << "            All Passed (" << numPassed << ")\n"
+                << "            All Passed (" << numPassed << ")\n";
+            if(numSkipped)
+                std::cout << Color::Yellow << "            skipped (" << numSkipped << ")\n";
+
+            std::cout << Color::Green
                 << "=============================================" << std::endl << ColorDefault;
-            return true;
+            return Result::passed;
         }
         else
         {
             std::cout << Color::Red << std::endl
                 << "#############################################\n"
                 << "           Failed (" << total - numPassed << ")\n" << Color::Green
-                << "           Passed (" << numPassed << ")\n" << Color::Red
+                << "           Passed (" << numPassed << ")\n";
+
+            if (numSkipped)
+                std::cout << Color::Yellow << "            skipped (" << numSkipped << ")\n";
+            
+            std::cout << Color::Red
                 << "#############################################" << std::endl << ColorDefault;
-            return false;
+            return Result::failed;
         }
     }
 
-    bool TestCollection::runAll(uint64_t rp)
+    TestCollection::Result TestCollection::runAll(uint64_t rp)
     {
         std::vector<u64> v;
         for (u64 i = 0; i < mTests.size(); ++i)
