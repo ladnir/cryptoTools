@@ -1,11 +1,11 @@
 ﻿$ErrorActionPreference = "Stop"
 
-# Update this if needed
-$MSBuild = 'C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe'
-#$MSBuild = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe'
-#$cl = 'C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe'
-$git = 'git'
+$MSBuild_14 = 'C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe'
+$MSBuild_15 = 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\MSBuild.exe'
 
+# Update this if needed
+$MSBuild = $MSBuild_15
+$git = 'git'
 
 
 if(!(Test-Path $MSBuild))

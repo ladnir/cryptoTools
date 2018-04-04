@@ -100,6 +100,11 @@ namespace osuCrypto
         iterator begin() const { return mView.begin(); };
         iterator end() const { return mView.end(); }
 
+        T& operator()(size_type idx)
+        {
+            return mView[idx];
+        }
+
         T& operator()(size_type rowIdx, size_type colIdx)
         {
             return mView[rowIdx * stride() + colIdx];
