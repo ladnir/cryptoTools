@@ -20,8 +20,7 @@ namespace osuCrypto
     {
         u64 mCapacity = 0;
     public:
-        Matrix()
-        {}
+        Matrix() = default;
 
         Matrix(u64 rows, u64 columns, AllocType t = AllocType::Zeroed)
         {
@@ -63,31 +62,22 @@ namespace osuCrypto
 
         void resize(u64 rows, u64 columns, AllocType type = AllocType::Zeroed)
         {
-			u64 newCapacity = rows * columns;
-			if(mCapacity == 0 && newCapacity >= 0)
-			{
-                if (type == AllocType::Zeroed)
-                    MatrixView<T>::mView = span<T>(new T[newCapacity](), newCapacity);
-                else
-                    MatrixView<T>::mView = span<T>(new T[newCapacity], newCapacity);
-
-				mCapacity = newCapacity;
-			}
-			else if (newCapacity > mCapacity)
+            if (rows * columns > mCapacity)
             {
+                mCapacity = rows * columns;
                 auto old = MatrixView<T>::mView;
 
                 if (type == AllocType::Zeroed)
-                    MatrixView<T>::mView = span<T>(new T[newCapacity](), newCapacity);
+                    MatrixView<T>::mView = span<T>(new T[mCapacity](), mCapacity);
                 else
-                    MatrixView<T>::mView = span<T>(new T[newCapacity], newCapacity);
+                    MatrixView<T>::mView = span<T>(new T[mCapacity], mCapacity);
 
-                auto min = std::min<u64>(mCapacity, newCapacity) * sizeof(T);
 
+                auto min = std::min<u64>(old.size(), mCapacity) * sizeof(T);
                 memcpy(MatrixView<T>::mView.data(), old.data(), min);
-				mCapacity = newCapacity;
 
-				delete[] old.data();
+                delete[] old.data();
+
             }
             else
             {

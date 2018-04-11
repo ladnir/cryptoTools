@@ -87,6 +87,7 @@ namespace osuCrypto
         u64 rows() const {
             return stride() ? size() / stride() : 0;
         }
+        u64 cols() const { return stride(); }
 
         pointer data() const { return mView.data(); };
         pointer data(u64 rowIdx) const 
@@ -101,6 +102,11 @@ namespace osuCrypto
         iterator end() const { return mView.end(); }
 
         T& operator()(size_type idx)
+        {
+            return mView[idx];
+        }
+
+        const T& operator()(size_type idx) const
         {
             return mView[idx];
         }
@@ -127,8 +133,8 @@ namespace osuCrypto
 
 
     protected:
-        span<T> mView;
-        size_type mStride;
+        span<T> mView = {0,0};
+        size_type mStride = 0;
 
 
     };
