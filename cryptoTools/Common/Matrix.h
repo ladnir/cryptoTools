@@ -74,7 +74,9 @@ namespace osuCrypto
 
 
                 auto min = std::min<u64>(old.size(), mCapacity) * sizeof(T);
-                memcpy(MatrixView<T>::mView.data(), old.data(), min);
+    
+                if(min)
+                    memcpy(MatrixView<T>::mView.data(), old.data(), min);
 
                 delete[] old.data();
 
@@ -82,7 +84,7 @@ namespace osuCrypto
             else
             {
                 auto newSize = rows * columns;
-                if (newSize > MatrixView<T>::size() && type == AllocType::Zeroed)
+                if (MatrixView<T>::size() && newSize > MatrixView<T>::size() && type == AllocType::Zeroed)
                 {
                     memset(MatrixView<T>::data() + MatrixView<T>::size(), 0, newSize - MatrixView<T>::size());
                 }

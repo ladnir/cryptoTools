@@ -133,7 +133,7 @@ namespace osuCrypto
 
 
     protected:
-        span<T> mView = {0,0};
+        span<T> mView = nullptr;
         size_type mStride = 0;
 
 
