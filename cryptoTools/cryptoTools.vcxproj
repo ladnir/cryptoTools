@@ -202,12 +202,12 @@
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug_DLLRT|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\NASM\nasm.exe "$(ProjectDir)\Crypto\asm\sha_win64.asm" -f win64 -DWIN_ABI -o "$(ProjectDir)\x64\$(Configuration)\sha_win64.obj"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug_DLLRT|x64'">C:\NASM\nasm.exe "$(ProjectDir)\Crypto\asm\sha_win64.asm" -f win64 -DWIN_ABI -o "$(ProjectDir)\x64\$(Configuration)\sha_win64.obj"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug_DLLRT|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release_DLLRT|x64'">C:\NASM\nasm.exe $(ProjectDir)\Crypto\asm\sha_win64.asm -f win64 -DWIN_ABI -o $(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\NASM\nasm.exe "$(ProjectDir)\Crypto\asm\sha_win64.asm" -f win64 -DWIN_ABI -o "$(ProjectDir)\x64\$(Configuration)\sha_win64.obj"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release_DLLRT|x64'">C:\NASM\nasm.exe "$(ProjectDir)\Crypto\asm\sha_win64.asm" -f win64 -DWIN_ABI -o "$(ProjectDir)\x64\$(Configuration)\sha_win64.obj"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release_DLLRT|x64'">$(ProjectDir)\x64\$(Configuration)\sha_win64.obj</Outputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
