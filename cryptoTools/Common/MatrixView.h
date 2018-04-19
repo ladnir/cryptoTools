@@ -132,6 +132,15 @@ namespace osuCrypto
 
 
 
+        template<typename TT = T>
+        typename std::enable_if<std::is_pod<TT>::value>::type setZero()
+        {
+            static_assert(std::is_same<TT, T>::value, "");
+
+            if (mView.size())
+                memset(mView.data(), 0, mView.size() * sizeof(T));
+        }
+
     protected:
         span<T> mView = nullptr;
         size_type mStride = 0;

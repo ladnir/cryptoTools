@@ -630,10 +630,13 @@ namespace osuCrypto {
 
 	template<typename T>
 	typename std::enable_if<std::is_pod<T>::value, void>::type
-		Channel::asyncSend(const T * buff, u64 size, std::function<void()> callback)
+		Channel::asyncSend(const T * buffT, u64 sizeT, std::function<void()> callback)
 	{
         using namespace details;
         using namespace std;
+
+        u8* buff = (u8*)buffT;
+        auto size = sizeT * sizeof(T);
 
 		// not zero and less that 32 bits
 		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
