@@ -28,12 +28,18 @@ namespace osuCrypto
         }
 
 
+        Matrix(const Matrix<T>& copy)
+            : MatrixView<T>(new T[copy.size()], copy.bounds()[0], copy.stride())
+            , mCapacity(copy.size())
+        {
+            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
+        }
 
         Matrix(const MatrixView<T>& copy)
             : MatrixView<T>(new T[copy.size()], copy.bounds()[0], copy.stride())
             , mCapacity(copy.size())
         {
-            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.sizeBytes());
+            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
         }
 
         Matrix(Matrix<T>&& copy)
