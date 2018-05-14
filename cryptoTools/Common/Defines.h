@@ -20,6 +20,7 @@
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
+#define RTE_LOC std::runtime_error(LOCATION)
 
 #ifdef _MSC_VER
 	#pragma warning( disable : 4018) // signed unsigned comparison warning

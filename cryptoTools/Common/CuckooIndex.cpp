@@ -228,6 +228,25 @@ namespace osuCrypto
 		}
 	}
 
+    template<CuckooTypes Mode>
+    void CuckooIndex<Mode>::insert(span<block> items,u64 startIdx)
+    {
+        std::array<u64, 16> idxs;
+
+        for (u64 i = 0; i < u64(items.size()); i += u64(idxs.size()))
+        {
+
+            auto min = std::min<u64>(items.size() - i, idxs.size());
+            for (u64 j = 0, jj = i; j < min; ++j, ++jj)
+            {
+                idxs[j] = jj + startIdx;
+            }
+
+            insert(min, idxs.data(), items.data() + i);
+        }
+    }
+
+
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::insert(const u64& inputIdx, const block& hashs)
 	{
@@ -412,7 +431,7 @@ namespace osuCrypto
 
 
 	template<CuckooTypes Mode>
-	u64 CuckooIndex<Mode>::find(const block& hashes)
+    typename CuckooIndex<Mode>::FindResult CuckooIndex<Mode>::find(const block& hashes)
 	{
 		if (mParams.mNumHashes == 2)
 		{
@@ -430,7 +449,7 @@ namespace osuCrypto
 
 				bool match = eq(mHashes[itemIdx], hashes);
 
-				if (match) return itemIdx;
+                if (match) return { itemIdx, addr[0] };
 			}
 
 			if (val[1] != u64(-1))
@@ -439,7 +458,7 @@ namespace osuCrypto
 
 				bool match = eq(mHashes[itemIdx], hashes);
 
-				if (match) return itemIdx;
+				if (match) return { itemIdx, addr[1] };
 			}
 
 
@@ -456,7 +475,7 @@ namespace osuCrypto
 
 					if (match)
 					{
-						return itemIdx;
+						return { itemIdx, i + mBins.size() };
 					}
 				}
 
@@ -483,7 +502,7 @@ namespace osuCrypto
 
 					if (match)
 					{
-						return itemIdx;
+                        return { itemIdx, addr };
 					}
 				}
 			}
@@ -501,7 +520,7 @@ namespace osuCrypto
 
 					if (match)
 					{
-						return itemIdx;
+						return { itemIdx, i + mBins.size() };
 					}
 				}
 
@@ -509,7 +528,7 @@ namespace osuCrypto
 			}
 		}
 
-		return u64(-1);
+        return {~0ull,~0ull};
 	}
 
 
@@ -525,6 +544,9 @@ namespace osuCrypto
 
 		find(hashes.size(), hashes.data(), idxs.data());
 	}
+
+
+
 
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::find(const u64& numItemsMaster, const block * hashesMaster, const u64 * idxsMaster)
@@ -563,7 +585,10 @@ namespace osuCrypto
 					{
 						u64 itemIdx = findVal[i][0] & (u64(-1) >> 8);
 						bool match = eq(mHashes[itemIdx], hashes[i]);
-						if (match) idxs[i] = itemIdx;
+                        if (match)
+                        {
+                            idxs[i] = itemIdx;
+                        }
 					}
 
 					if (findVal[i][1] != u64(-1))

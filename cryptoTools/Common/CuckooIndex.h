@@ -105,7 +105,15 @@ namespace osuCrypto
 
 		static CuckooParam selectParams(const u64& n, const u64& statSecParam, const u64& stashSize, const u64& h);
 
+        // insert unhashed items into the table using the provided hashing seed. 
+        // set startIdx to be the first idx of the items being inserted. When 
+        // find is called, it will return these indexes.
         void insert(span<block> items, block hashingSeed, u64 startIdx = 0);
+
+        // insert pre hashed items into the table. 
+        // set startIdx to be the first idx of the items being inserted. When 
+        // find is called, it will return these indexes.
+        void insert(span<block> items, u64 startIdx = 0);
 
         // insert single index with pre hashed values with error checking
         void insert(const u64& IdxItem, const block& hashes);
@@ -115,9 +123,20 @@ namespace osuCrypto
 
         // insert several items with pre-hashed values
         void insert(const u64& numInserts, const u64* itemIdxs, const block* hashs);
+        
+        struct FindResult
+        {
+            u64 mInputIdx;
+            u64 mCuckooPositon;
+
+            operator bool() const
+            {
+                return mInputIdx != -1;
+            }
+        };
 
         // find a single item with pre-hashed values and error checking.
-        u64 find(const block& hash);
+        FindResult find(const block& hash);
 
         // find several items with pre hashed values, the indexes that are found are written to the idxs array.
         void find(span<block> hashes, span<u64> idxs);

@@ -32,6 +32,11 @@ namespace osuCrypto
             else        *mByte &= ~mMask;
         }
 		
+        inline void operator^=(bool b)
+        {
+            *mByte ^= ((b & 1) << mShift);
+        }
+
 		// Convert the reference to the underlying value
 		operator u8() const {
 			return (*mByte & mMask) >> mShift;
