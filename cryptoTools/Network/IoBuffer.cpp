@@ -43,8 +43,9 @@ namespace osuCrypto
                         if (getHeaderSize() != getBufferSize())
                         {
                             std::stringstream ss;
-                            ss << "Bad receive buffer size.\n  Buffer size: " << getHeaderSize()
-                                << " bytes\n  Data size:   " << getBufferSize() << " bytes\n";
+                            ss << "Bad receive buffer size.\n"
+                                <<         "  Size transmitted: " << getHeaderSize()
+                                << " bytes\n  Size of buffer:   " << getBufferSize() << " bytes\n";
 
                             // make the channel to know that a receive has a partial failure.
                             // The partial error can be cleared if the following lambda is 

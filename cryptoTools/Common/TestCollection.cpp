@@ -15,7 +15,6 @@ namespace osuCrypto
     }
     TestCollection::Result TestCollection::runOne(uint64_t idx)
     {
-        bool passed = false;
         Result res = Result::failed;
         int w = int(std::ceil(std::log10(mTests.size())));
         std::cout << std::setw(w) << idx << " - " << Color::Blue << mTests[idx].mName << ColorDefault << std::flush;

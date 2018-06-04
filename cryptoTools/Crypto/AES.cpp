@@ -581,7 +581,7 @@ namespace osuCrypto {
             cyphertext[idx + 7] = _mm_aesenclast_si128(temp[7], mRoundKey[10]);
         }
 
-        for (; idx < blockLength; ++idx, ++baseIdx)
+        for (; idx < static_cast<i32>(blockLength); ++idx, ++baseIdx)
         {
             cyphertext[idx] = _mm_xor_si128(_mm_set1_epi64x(baseIdx), mRoundKey[0]);
             cyphertext[idx] = _mm_aesenc_si128(cyphertext[idx], mRoundKey[1]);

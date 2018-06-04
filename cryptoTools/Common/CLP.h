@@ -76,6 +76,14 @@ namespace osuCrypto
 
             return ret;
         }
+        template<typename T>
+        T getOr(const std::string& name, T alternative)
+        {
+            if (hasValue(name))
+                return get<T>(name);
+
+            return alternative;
+        }
 
 		// Return the first value associated with the key.
 		template<typename T>

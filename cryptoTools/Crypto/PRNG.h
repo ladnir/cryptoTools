@@ -80,6 +80,24 @@ namespace osuCrypto
 			get(dest.data(), dest.size());
 		}
 
+        // returns the buffer of maximum maxSize bytes or however 
+        // many the internal buffer has, which ever is smaller. The 
+        // returned bytes are "consumed" and will not be used on 
+        // later calls to get*(...). Note, buffer may be invalidated 
+        // on the next call to get*(...) or destruction.
+        span<u8> getBufferSpan(u64 maxSize)
+        {
+            if (mBytesIdx == mBufferByteCapacity)
+                refillBuffer();
+
+            auto data = ((u8*)mBuffer.data()) + mBytesIdx;
+            auto size = std::min(maxSize, mBufferByteCapacity - mBytesIdx);
+
+            mBytesIdx += size;
+
+            return span<u8>(data, size);
+        }
+
 		// Returns a random element from {0,1}
         u8 getBit();
 

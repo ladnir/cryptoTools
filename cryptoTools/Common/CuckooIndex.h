@@ -131,7 +131,7 @@ namespace osuCrypto
 
             operator bool() const
             {
-                return mInputIdx != -1;
+                return mInputIdx != ~0ull;
             }
         };
 
