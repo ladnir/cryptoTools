@@ -53,13 +53,13 @@ namespace tests_cryptoTools
 			for (u64 j = 0; j < (i + 1) * stepSize; ++j)
 			{
 
-				if (hashMap0.find(hashes[j]) != j)
+				if (hashMap0.find(hashes[j]).mInputIdx != j)
 				{
 					std::cout << i << std::endl;
 					throw UnitTestFail();
 				}
 
-				if (hashMap1.find(hashes[j]) != j)
+				if (hashMap1.find(hashes[j]).mInputIdx != j)
 				{
 					std::cout << i << std::endl;
 					throw UnitTestFail();
@@ -70,12 +70,12 @@ namespace tests_cryptoTools
 		for (u64 i = 0; i < setSize; ++i)
 		{
 
-			if (hashMap0.find(hashes[i]) != i)
+			if (hashMap0.find(hashes[i]).mInputIdx != i)
 			{
 				throw UnitTestFail();
 			}
 
-			if (hashMap1.find(hashes[i]) != i)
+			if (hashMap1.find(hashes[i]).mInputIdx != i)
 			{
 				throw UnitTestFail();
 			}
