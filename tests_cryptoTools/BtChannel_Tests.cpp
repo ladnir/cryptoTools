@@ -27,7 +27,6 @@ using namespace osuCrypto;
 namespace tests_cryptoTools
 {
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AnonymousMode_Test);
     void BtNetwork_AnonymousMode_Test()
     {
         IOService ioService(0);
