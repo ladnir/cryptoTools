@@ -85,6 +85,16 @@ namespace osuCrypto
             return alternative;
         }
 
+        template<typename T>
+        T getOr(const std::vector<std::string>& name, T alternative)
+        {
+            if (hasValue(name))
+                return get<T>(name);
+
+            return alternative;
+        }
+
+
 		// Return the first value associated with the key.
 		template<typename T>
         T get(const std::vector<std::string>& names, const std::string& failMessage = "")

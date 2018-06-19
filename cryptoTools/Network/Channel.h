@@ -117,6 +117,12 @@ namespace osuCrypto {
 			asyncSend(std::shared_ptr<Container> buffer);
 
 
+        // Sends the data in buf over the network. The type T must be POD.
+        // Returns before the data has been sent. The life time of the data must be 
+        // managed externally to ensure it lives longer than the async operations.
+        template<typename T>
+        typename std::enable_if<std::is_pod<T>::value, std::future<void>>::type
+            asyncSendFuture(const T* data, u64 length);
 
 
 		// Performs a data copy and then sends the data in buf over the network. 
@@ -539,21 +545,31 @@ namespace osuCrypto {
 	typename std::enable_if<std::is_pod<T>::value, void>::type
 		Channel::send(const T* buffT, u64 sizeT)
 	{
+        asyncSendFuture(buffT, sizeT).get();
+	}
+
+
+    template<typename T>
+    typename std::enable_if<std::is_pod<T>::value, std::future<void>>::type
+        Channel::asyncSendFuture(const T* buffT, u64 sizeT)
+    {
         using namespace details;
         using namespace std;
 
-		u8* buff = (u8*)buffT;
-		auto size = sizeT * sizeof(T);
+        u8* buff = (u8*)buffT;
+        auto size = sizeT * sizeof(T);
 
-		// not zero and less that 32 bits
-		Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
+        // not zero and less that 32 bits
+        Expects(size - 1 < u32(-2) && mBase->mSendStatus == Status::Normal);
 
         std::future<void> future;
         auto op = make_SBO_ptr<SendOperation, WithPromise<FixedSendBuff>>(future, buff, size);
 
         mBase->sendEnque(move(op));
-		future.get();
-	}
+
+        return future;
+    }
+
 
 	template<typename T>
 	typename std::enable_if<std::is_pod<T>::value, void>::type

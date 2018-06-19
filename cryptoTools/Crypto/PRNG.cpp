@@ -27,6 +27,21 @@ namespace osuCrypto {
         s.mBufferByteCapacity = 0;
     }
 
+    void PRNG::operator=(PRNG&&s) 
+    {
+        mBuffer = (std::move(s.mBuffer));
+        mAes = (std::move(s.mAes));
+        mBytesIdx = (s.mBytesIdx);
+        mBlockIdx = (s.mBlockIdx);
+        mBufferByteCapacity = (s.mBufferByteCapacity);
+
+        s.mBuffer.resize(0);
+        memset(&s.mAes, 0, sizeof(AES));
+        s.mBytesIdx = 0;
+        s.mBlockIdx = 0;
+        s.mBufferByteCapacity = 0;
+    }
+
 
     void PRNG::SetSeed(const block& seed, u64 bufferSize)
     {

@@ -21,12 +21,16 @@ namespace osuCrypto
 		// given seed and to buffer bufferSize number of AES block
         PRNG(const block& seed, u64 bufferSize = 256);
 
-		// standard move constructor. The moved from PRNG is invalide
+		// standard move constructor. The moved from PRNG is invalid
 		// unless SetSeed(...) is called.
         PRNG(PRNG&& s);
 
 		// Copy is not allowed.
         PRNG(const PRNG&) = delete;
+
+        // standard move assignment. The moved from PRNG is invalid
+        // unless SetSeed(...) is called.
+        void operator=(PRNG&&);
 
         // Set seed from a block and set the desired buffer size.
         void SetSeed(const block& b, u64 bufferSize = 256);
