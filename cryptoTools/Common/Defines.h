@@ -26,7 +26,6 @@
 	#pragma warning( disable : 4018) // signed unsigned comparison warning
 	#define TODO(x) __pragma(message (__FILE__ ":" STRINGIZE(__LINE__) " Warning:TODO - " #x))
 #else
-	#pragma GCC diagnostic ignored "-Wignored-attributes"
 	#define TODO(x)
 #endif
 
