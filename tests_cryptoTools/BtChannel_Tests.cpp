@@ -518,7 +518,7 @@ namespace tests_cryptoTools
         std::vector<std::thread> nodeThreads(nodeCount);
 
         setThreadName("main");
-
+        bool failed = false;
         for (u64 i = 0; i < nodeCount; ++i)
         {
             nodeThreads[i] = std::thread([&, i]() {
@@ -564,7 +564,7 @@ namespace tests_cryptoTools
                     }
 
                     std::string msg = "hello" + std::to_string(idx);
-                    channels[j].asyncSend(std::move(msg));
+                    channels[j].send(std::move(msg));
                 }
 
                 std::string expected = "hello" + std::to_string(i);
@@ -575,23 +575,17 @@ namespace tests_cryptoTools
                     chl.recv(msg);
 
                     if (msg != expected)
-                        throw UnitTestFail();
+                        failed = true;
                 }
-                //std::cout << IoStream::lock << "re " << i << std::endl << IoStream::unlock;
 
-                for (auto& chl : channels)
-                    chl.close();
-
-                for (auto& endpoint : sessions)
-                    endpoint.stop();
-
-
-                //ioService.stop ();
             });
         }
 
         for (u64 i = 0; i < nodeCount; ++i)
             nodeThreads[i].join();
+
+        if (failed)
+            throw UnitTestFail();
     }
 
     OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AsyncConnect_Test);

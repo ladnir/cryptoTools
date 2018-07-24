@@ -128,15 +128,17 @@ namespace osuCrypto {
                     using namespace details;
                     auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
 
-                    auto ii = ++mOpenCount;
-                    if (ii == 2) mOpenProm.set_value();
-
                     op->asyncPerform(this, [this, op](error_code ec, u64 bytesTransferred) {
+
+                        auto ii = ++mOpenCount;
+                        if (ii == 2) mOpenProm.set_value();
 
                         if (ec)
                         {
                             LOG_MSG("async connect. Failed to send ConnectionString");
-                            setSendFatalError(LOCATION);
+                            setSendFatalError("Async connect error (" +
+                                mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
+                                +ec.message() +" " + LOCATION);
                         }
                         else
                         {
@@ -369,7 +371,9 @@ namespace osuCrypto {
 
                 if (ec)
                 {
-                    auto reason = std::string("network receive error: ") + ec.message() + "\n at  " + LOCATION;
+                    auto reason = std::string("network receive error (") +
+                        mSession->mName + " "  +  mRemoteName + " -> " + mLocalName + " ): "
+                    + ec.message() + "\n at  " + LOCATION;
                     LOG_MSG(reason);
                     setRecvFatalError(reason);
                 }
