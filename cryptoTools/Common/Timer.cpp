@@ -22,10 +22,10 @@ namespace osuCrypto
     {
         if (timer.mTimes.size() > 1)
         {
-            u64 totalStars = 200;
+            u64 maxStars = 10;
             u64 p = 9;
             u64 width = 0;
-            auto totalDiffLog = 0.0;
+            auto maxLog = 1.0;
 
             {
                 auto prev = timer.mTimes.begin();
@@ -35,7 +35,7 @@ namespace osuCrypto
                 {
                     width = std::max<u64>(width, iter->second.size());
                     auto diff = std::chrono::duration_cast<std::chrono::microseconds>(iter->first - prev->first).count() / 1000.0;
-                    totalDiffLog += std::max(0.1, std::log2(diff));
+                    maxLog = std::max(maxLog, std::log2(diff));
                     ++iter;
                     ++prev;
                 }
@@ -43,7 +43,7 @@ namespace osuCrypto
             width += 3;
 
 
-            std::cout << std::left << std::setw(width) << "Label  " << "  " << std::setw(p) << "Time (ms)" << "  " << std::setw(p) << "diff (ms)\n__________________________________"  << std::endl;
+            out << std::left << std::setw(width) << "Label  " << "  " << std::setw(p) << "Time (ms)" << "  " << std::setw(p) << "diff (ms)\n__________________________________"  << std::endl;
 
             auto prev = timer.mTimes.begin();
             auto iter = timer.mTimes.begin(); ++iter;
@@ -52,7 +52,7 @@ namespace osuCrypto
             {
                 auto time = std::chrono::duration_cast<std::chrono::microseconds>(iter->first - timer.mTimes.front().first).count() / 1000.0;
                 auto diff = std::chrono::duration_cast<std::chrono::microseconds>(iter->first - prev->first).count() / 1000.0;
-                u64 numStars = static_cast<u64>(std::round(std::max(0.1, std::log2(diff)) * totalStars / totalDiffLog));
+                u64 numStars = static_cast<u64>(std::round(std::max(0.1, std::log2(diff)) * maxStars / maxLog));
 
                 out << std::setw(width) << std::left << iter->second
                     << "  " << std::right << std::fixed << std::setprecision(1) << std::setw(p) << time
