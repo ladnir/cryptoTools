@@ -144,6 +144,9 @@
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Circuit\betacircuit.h" />
+    <ClInclude Include="Circuit\BetaLibrary.h" />
+    <ClInclude Include="Circuit\Gate.h" />
     <ClInclude Include="Common\BitIterator.h" />
     <ClInclude Include="Common\BitVector.h" />
     <ClInclude Include="Common\CLP.h" />
@@ -179,6 +182,8 @@
     <ClInclude Include="Common\TestCollection.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Circuit\BetaCircuit.cpp" />
+    <ClCompile Include="Circuit\BetaLibrary.cpp" />
     <ClCompile Include="Common\BitVector.cpp" />
     <ClCompile Include="Common\CLP.cpp" />
     <ClCompile Include="Common\CuckooIndex.cpp" />

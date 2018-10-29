@@ -6,6 +6,7 @@
 #include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
 #include "tests_cryptoTools/Cuckoo_Tests.h"
+#include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
 
 
@@ -29,19 +30,49 @@ namespace tests_cryptoTools
         th.add("BtNetwork_AnonymousMode_Test            ", BtNetwork_AnonymousMode_Test);
         th.add("BtNetwork_CancelChannel_Test            ", BtNetwork_CancelChannel_Test);
         th.add("BtNetwork_ServerMode_Test               ", BtNetwork_ServerMode_Test);
+
         th.add("AES                                     ", AES_EncDec_Test);
+
         th.add("BitVector_Indexing_Test                 ", BitVector_Indexing_Test_Impl);
         th.add("BitVector_Parity                        ", BitVector_Parity_Test_Impl);
         th.add("BitVector_Append_Test                   ", BitVector_Append_Test_Impl);
         th.add("BitVector_Copy_Test                     ", BitVector_Copy_Test_Impl);
+
         th.add("CuckooIndex_many_Test_Impl              ", CuckooIndex_many_Test_Impl);
         th.add("CuckooIndex_paramSweep_Test_Impl        ", CuckooIndex_paramSweep_Test_Impl);
         th.add("CuckooIndex_parallel_Test_Impl          ", CuckooIndex_parallel_Test_Impl);
+
         th.add("Ecc2mNumber_Test                        ", Ecc2mNumber_Test);
         th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);
         th.add("EccpNumber_Test                         ", EccpNumber_Test);
         th.add("EccpPoint_Test                          ", EccpPoint_Test);
+
         th.add("SBO_ptr_test                            ", SBO_ptr_test);
+
+
+
+        th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);
+        th.add("BetaCircuit_int_Adder_Test              ", BetaCircuit_int_Adder_Test);
+        th.add("BetaCircuit_int_Adder_const_Test        ", BetaCircuit_int_Adder_const_Test);
+        th.add("BetaCircuit_int_Subtractor_Test         ", BetaCircuit_int_Subtractor_Test);
+        th.add("BetaCircuit_int_Subtractor_const_Test   ", BetaCircuit_int_Subtractor_const_Test);
+        th.add("BetaCircuit_uint_Adder_Test             ", BetaCircuit_uint_Adder_Test);
+        th.add("BetaCircuit_uint_Subtractor_Test        ", BetaCircuit_uint_Subtractor_Test);
+        th.add("BetaCircuit_int_Multiply_Test           ", BetaCircuit_int_Multiply_Test);
+        th.add("BetaCircuit_uint_Multiply_Test          ", BetaCircuit_uint_Multiply_Test);
+        th.add("BetaCircuit_int_Divide_Test             ", BetaCircuit_int_Divide_Test);
+        th.add("BetaCircuit_int_LessThan_Test           ", BetaCircuit_int_LessThan_Test);
+        th.add("BetaCircuit_int_GreaterThanEq_Test      ", BetaCircuit_int_GreaterThanEq_Test);
+        th.add("BetaCircuit_uint_LessThan_Test          ", BetaCircuit_uint_LessThan_Test);
+        th.add("BetaCircuit_uint_GreaterThanEq_Test     ", BetaCircuit_uint_GreaterThanEq_Test);
+        th.add("BetaCircuit_multiplex_Test              ", BetaCircuit_multiplex_Test);
+        th.add("BetaCircuit_negate_Test                 ", BetaCircuit_negate_Test);
+        th.add("BetaCircuit_bitInvert_Test              ", BetaCircuit_bitInvert_Test);
+        th.add("BetaCircuit_removeSign_Test             ", BetaCircuit_removeSign_Test);
+        th.add("BetaCircuit_addSign_Test                ", BetaCircuit_addSign_Test);
+        th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
+        th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
+        th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
     });
 
 
