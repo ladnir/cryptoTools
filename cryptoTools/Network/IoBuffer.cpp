@@ -28,6 +28,7 @@ namespace osuCrypto
             base->mRecvBuffer = getRecvHeaderBuffer();
             base->mHandle->async_recv({&base->mRecvBuffer, 1}, [this](const error_code& ec, u64 bytesTransferred) {
 
+				mBase->mTotalRecvData += bytesTransferred;
 
                 if (!mComHandle)
                     throw std::runtime_error(LOCATION);

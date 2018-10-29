@@ -341,23 +341,53 @@ namespace tests_cryptoTools
 
             std::vector<u8> srvRecv;
             chl.recv(srvRecv);
+
+
+			if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
+				throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
+
+
             if (srvRecv != oneMegabyte) throw UnitTestFail();
+
             chl.asyncSend(std::move(srvRecv));
         });
+
+
+		Finally f([&] { thrd.join(); });
 
 
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
         auto chl = endpoint.addChannel(channelName, channelName);
 
-        chl.asyncSend(oneMegabyte);
 
-        std::vector<u8> clientRecv;
-        chl.recv(clientRecv);
+		if (chl.getTotalDataSent() != 0)
+			throw UnitTestFail("channel send statistics incorrectly initialized." LOCATION);
+		if (chl.getTotalDataRecv() != 0)
+			throw UnitTestFail("channel recv statistics incorrectly initialized." LOCATION);
 
-        thrd.join();
 
-        if (clientRecv != oneMegabyte)
-            throw UnitTestFail();
+		std::vector<u8> clientRecv;
+		chl.asyncSend(oneMegabyte);
+		chl.recv(clientRecv);
+
+		if (chl.getTotalDataSent() != oneMegabyte.size() + 4)
+			throw UnitTestFail("channel send statistics incorrectly increased." LOCATION);
+		if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
+			throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
+
+		chl.resetStats();
+
+		if (chl.getTotalDataSent() != 0)
+			throw UnitTestFail("channel send statistics incorrectly reset." LOCATION);
+		if (chl.getTotalDataRecv() != 0)
+			throw UnitTestFail("channel recv statistics incorrectly reset." LOCATION);
+
+		if (clientRecv != oneMegabyte)
+			throw UnitTestFail();
+
+
+
+        
     }
 
 
