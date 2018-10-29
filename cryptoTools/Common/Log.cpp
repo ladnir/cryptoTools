@@ -10,7 +10,7 @@ namespace osuCrypto
 {
 
 
-
+	ostreamLocker lout(std::cout);
     std::mutex gIoStreamMtx;
 
     void setThreadName(const std::string name)

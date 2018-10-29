@@ -63,11 +63,13 @@ namespace osuCrypto
 	struct ostreamLock
 	{
 		std::ostream& out;
-		std::lock_guard<std::mutex> mLock;
+		std::unique_lock<std::mutex> mLock;
 
-		ostreamLock(std::ostream& o) :
+		ostreamLock(ostreamLock&&) = default;
+
+		ostreamLock(std::ostream& o, std::mutex& lock = gIoStreamMtx) :
 			out(o),
-			mLock(gIoStreamMtx)
+			mLock(lock)
 		{}
 
 		template<typename T>
@@ -99,6 +101,51 @@ namespace osuCrypto
 			return *this;
 		}
 	};
+
+
+    struct ostreamLocker
+    {
+        std::ostream& out;
+
+        ostreamLocker(std::ostream& o) :
+            out(o)
+        {}
+
+        template<typename T>
+        ostreamLock operator<<(const T& v)
+        {
+            ostreamLock r(out);
+            r << v;
+            return std::move(r);
+        }
+
+        template<typename T>
+        ostreamLock operator<<(T& v)
+        {
+            ostreamLock r(out);
+            r << v;
+            return std::move(r);
+        }
+        ostreamLock operator<< (std::ostream& (*v)(std::ostream&))
+        {
+            ostreamLock r(out);
+            r << v;
+            return std::move(r);
+        }
+        ostreamLock operator<< (std::ios& (*v)(std::ios&))
+        {
+            ostreamLock r(out);
+            r << v;
+            return std::move(r);
+        }
+        ostreamLock operator<< (std::ios_base& (*v)(std::ios_base&))
+        {
+            ostreamLock r(out);
+            r << v;
+            return std::move(r);
+        }
+    };
+    extern ostreamLocker lout;
 
 	std::ostream& operator<<(std::ostream& out, IoStream color);
 
