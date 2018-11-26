@@ -143,8 +143,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)../thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)../thirdparty\win\;C:/libs/;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(SolutionDir)thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -200,8 +200,8 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(SolutionDir)thirdparty\win\;C:/libs/;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(SolutionDir)thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_DLLRT|x64'">
@@ -221,8 +221,8 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(SolutionDir)thirdparty\win\;C:/libs/;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(SolutionDir)thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

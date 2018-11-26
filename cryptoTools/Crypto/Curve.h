@@ -1,9 +1,9 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
-
-
-#include <miracl/include/miracl.h>
 #include <cryptoTools/Common/Defines.h>
+
+#ifdef USE_MIRACL
+#include <miracl/include/miracl.h>
 #include <cryptoTools/Crypto/PRNG.h>
 #include <memory>
 namespace osuCrypto
@@ -99,7 +99,8 @@ namespace osuCrypto
 	{
 		256, //bitCount
 		"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed", // prime p
-		"80000000000000000000000000000000A6F7CEF517BCE6B2C09318D2E7AE9F68", // order n
+		//"80000000000000000000000000000000A6F7CEF517BCE6B2C09318D2E7AE9F68", // order n
+        "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED", // order n
 		"2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa984914a144", // coefficient a
 		"7b425ed097b425ed097b425ed097b425ed097b425ed097b4260b5e9c7710c864", // coefficient b
 		"2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad245a,"// generator X
@@ -184,13 +185,19 @@ namespace osuCrypto
 	class EccNumber
 	{
 	public:
+        // encodes wether to reduce over the curve order or by the field
+        enum Modulus {
+            CurveOrder,
+            FieldPrime
+        };
+
 
 		EccNumber(const EccNumber& num);
 		EccNumber(EccNumber&& num);
 		EccNumber(EllipticCurve& curve);
 		EccNumber(EllipticCurve& curve, const EccNumber& copy);
-		EccNumber(EllipticCurve& curve, PRNG& prng);
-		EccNumber(EllipticCurve& curve, const i32& val);
+		EccNumber(EllipticCurve& curve, PRNG& prng, Modulus type = CurveOrder);
+		EccNumber(EllipticCurve& curve, const i32& val, Modulus type = CurveOrder);
 
 		~EccNumber();
 
@@ -209,7 +216,8 @@ namespace osuCrypto
 		EccNumber& operator*=(int i);
 		EccNumber& operator/=(const EccNumber& b);
 		EccNumber& operator/=(int i);
-		EccNumber& negate();
+        void inplaceNegate();
+        EccNumber negate() const;
 		EccNumber inverse() const;
 
 		bool operator==(const EccNumber& cmp) const;
@@ -234,6 +242,7 @@ namespace osuCrypto
 
 		BOOL iszero() const;
 
+        const EccNumber& modulus() const;
 
 		friend EccNumber operator-(const EccNumber&);
 		friend EccNumber operator+(const EccNumber&, int);
@@ -262,6 +271,7 @@ namespace osuCrypto
 		void randomize(PRNG& prng);
 		void randomize(const block& seed);
 
+        EccNumber chi() const;
 
 	private:
 
@@ -281,6 +291,7 @@ namespace osuCrypto
 	public:
 		big mVal;
 		EllipticCurve* mCurve;
+        Modulus mModType = CurveOrder;
 
 		friend class EllipticCurve;
 		friend EccBrick;
@@ -297,7 +308,6 @@ namespace osuCrypto
 
 		EccPoint(EllipticCurve& curve);
 		EccPoint(EllipticCurve& curve, const EccPoint& copy);
-		EccPoint(EllipticCurve& curve, PRNG& prng);
 		EccPoint(const EccPoint& copy);
 		EccPoint(EccPoint&& move);
 
@@ -323,8 +333,11 @@ namespace osuCrypto
 		void fromDec(char* x, char* y);
 		void fromNum(EccNumber& x, EccNumber& y);
 
+#ifdef DEPRECATED_ECC_POINT_RANDOMIZE
+        EccPoint(EllipticCurve& curve, PRNG& prng);
 		void randomize(PRNG& prng);
 		void randomize(const block& seed);
+#endif
 
 		void setCurve(EllipticCurve& curve);
 
@@ -392,15 +405,15 @@ namespace osuCrypto
 	private:
 		// A **non-thread safe** member variable which acts as a memory pool and
 		// determines the byte/bit size of the variables within this curve.
-		miracl* mMiracl;
+		miracl* mMiracl = nullptr;
 
 		bool mIsPrimeField, mIsPrimeOrder;
 		PRNG mPrng;
 		//csprng mMrPrng;
 		Ecc2mParams mEcc2mParams;
 		EccpParams mEccpParams;
-		big BA, BB;
-		std::unique_ptr<EccNumber> mOrder, mFieldPrime;
+        
+		std::unique_ptr<EccNumber> mOrder, mFieldPrime, BA, BB;
 		std::vector<Point> mG;
 
 
@@ -433,3 +446,4 @@ namespace osuCrypto
 	};
 
 }
+#endif

@@ -8,12 +8,13 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/Curve.h>
 #include <cryptoTools/Common/Log.h>
-
+#include <cryptoTools/Common/TestCollection.h>
 using namespace osuCrypto;
 
 
 namespace tests_cryptoTools
 {
+#ifdef USE_MIRACL
 
 	void EccpNumber_Test()
 	{
@@ -170,8 +171,49 @@ namespace tests_cryptoTools
 
 			if (r != rand)
 			{
-				throw UnitTestFail("");
+				throw UnitTestFail(LOCATION);
 			}
+
+            if (rand - rand != 0)
+            {
+                throw std::runtime_error("x - x != 0 " LOCATION);
+            }
+
+            if (rand + rand.negate() != 0)
+            {
+                std::cout << "order       = " << curve.getOrder() << std::endl;
+                std::cout << "prime       = " << curve.getFieldPrime() << std::endl;
+                std::cout << "x           = " << rand << std::endl;
+                std::cout << "x.neg()     = " << rand.negate() << std::endl;
+                std::cout << "x + x.neg() = " << rand +rand.negate() << std::endl;
+                std::cout << "mod         = " << rand.modulus() << std::endl;
+
+                throw std::runtime_error("x + x.negate() != 0 " LOCATION);
+            }
+
+
+
+            EccNumber primeRand(curve, prng, EccNumber::FieldPrime);
+
+
+            if (primeRand - primeRand != 0 ||
+                primeRand + primeRand.negate() != 0)
+            {
+                throw std::runtime_error("x - x != 0 " LOCATION);
+            }
+
+            if (primeRand * primeRand.inverse() != 1)
+            {
+                std::cout << "x * x^-1 != 1 " LOCATION << std::endl;
+                throw std::runtime_error("x * x^-1 != 1 " LOCATION);
+            }
+
+
+
+
+
+
+
 		}
 
 
@@ -203,6 +245,15 @@ namespace tests_cryptoTools
 				throw UnitTestFail(LOCATION);
 			if (a != c / b)
 				throw UnitTestFail(LOCATION);
+
+
+            EccNumber rand(curve, prng), r(curve);
+
+            if (rand * rand.inverse() != 1)
+            {
+                throw std::runtime_error("x * x^-1 != 1 " LOCATION);
+            }
+
 
 		}
 	}
@@ -331,26 +382,26 @@ namespace tests_cryptoTools
 				throw UnitTestFail("gBa_br != gBa_br2");
 			}
 
+#ifdef DEPRECATED_ECC_POINT_RANDOMIZE
+            {
+			    for (u64 i = 0; i < 16; ++i)
+			    {
 
+				    PRNG prng(toBlock(i), 8);
 
+				    EccPoint p0(curve, prng);
+				    EccPoint p1(curve, prng);
 
-			for (u64 i = 0; i < 16; ++i)
-			{
-				PRNG prng(toBlock(i), 8);
-
-				EccPoint p0(curve, prng);
-				EccPoint p1(curve, prng);
-
-				if (p0 == p1)
-				{
-					std::cout << param.bitCount << " " << param.p << std::endl;
-					throw UnitTestFail(LOCATION);
-				}
-
-				//std::cout << " p0 " << p0 << std::endl;
-				//std::cout << " p1 " << p1 << std::endl;
-			}
-
+				    if (p0 == p1)
+				    {
+					    std::cout << param.bitCount << " " << param.p << std::endl;
+					    throw UnitTestFail(LOCATION);
+				    }
+				    //std::cout << " p0 " << p0 << std::endl;
+				    //std::cout << " p1 " << p1 << std::endl;
+			    }
+            }
+#endif
 			//auto g2a = g2 * a;
 			//auto g2Ba = g2Brick * a;
 			//
@@ -669,20 +720,42 @@ namespace tests_cryptoTools
 		}
 
 
-		for (u64 i = 0; i < 16; ++i)
-		{
-			PRNG prng(toBlock(i), 8);
+		//for (u64 i = 0; i < 16; ++i)
+		//{
+		//	PRNG prng(toBlock(i), 8);
 
-			EccPoint p0(curve, prng);
-			EccPoint p1(curve, prng);
+		//	EccPoint p0(curve, prng);
+		//	EccPoint p1(curve, prng);
 
-			if (p0 == p1)
-			{
-				throw UnitTestFail(LOCATION);
-			}
+		//	if (p0 == p1)
+		//	{
+		//		throw UnitTestFail(LOCATION);
+		//	}
 
-			//std::cout << " p0 " << p0 << std::endl;
-			//std::cout << " p1 " << p1 << std::endl;
-		}
+		//	//std::cout << " p0 " << p0 << std::endl;
+		//	//std::cout << " p1 " << p1 << std::endl;
+		//}
 	}
+
+#else
+
+
+void EccpNumber_Test()
+{
+    throw UnitTestSkipped("USE_MIRACL not defined.");
+}
+void EccpPoint_Test()
+{
+    throw UnitTestSkipped("USE_MIRACL not defined.");
+}
+void Ecc2mNumber_Test()
+{
+    throw UnitTestSkipped("USE_MIRACL not defined.");
+}
+void Ecc2mPoint_Test()
+{
+    throw UnitTestSkipped("USE_MIRACL not defined.");
+}
+
+#endif
 }

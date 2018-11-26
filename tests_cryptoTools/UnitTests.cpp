@@ -4,6 +4,7 @@
 #include "tests_cryptoTools/AES_Tests.h"
 #include "tests_cryptoTools/BtChannel_Tests.h"
 #include "tests_cryptoTools/Ecc_Tests.h"
+#include "tests_cryptoTools/REcc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
 #include "tests_cryptoTools/Cuckoo_Tests.h"
 #include "tests_cryptoTools/Circuit_Tests.h"
@@ -46,6 +47,8 @@ namespace tests_cryptoTools
         th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);
         th.add("EccpNumber_Test                         ", EccpNumber_Test);
         th.add("EccpPoint_Test                          ", EccpPoint_Test);
+        th.add("REccpNumber_Test                        ", REccpNumber_Test);
+        th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
         th.add("SBO_ptr_test                            ", SBO_ptr_test);
 
@@ -70,7 +73,7 @@ namespace tests_cryptoTools
         th.add("BetaCircuit_bitInvert_Test              ", BetaCircuit_bitInvert_Test);
         th.add("BetaCircuit_removeSign_Test             ", BetaCircuit_removeSign_Test);
         th.add("BetaCircuit_addSign_Test                ", BetaCircuit_addSign_Test);
-        th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
+        //th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
         th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
         th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
     });

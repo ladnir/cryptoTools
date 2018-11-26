@@ -50,14 +50,14 @@ namespace osuCrypto
 		BetaCircuit* int_int_bitwiseXor(u64 aSize, u64 bSize, u64 cSize);
 
 
-		BetaCircuit* int_Piecewise_helper(u64 aSize, u64 numThesholds);
+		//BetaCircuit* int_Piecewise_helper(u64 aSize, u64 numThesholds);
 
 
-		void int_piecewise_build_do(
-			BetaCircuit& cd,
-			span<const BetaBundle> aa,
-			const BetaBundle & b,
-			span<const BetaBundle> c);
+		//void int_piecewise_build_do(
+		//	BetaCircuit& cd,
+		//	span<const BetaBundle> aa,
+		//	const BetaBundle & b,
+		//	span<const BetaBundle> c);
 
 
 

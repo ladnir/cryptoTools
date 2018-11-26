@@ -10,7 +10,9 @@
 #include <smmintrin.h>
 
 #include <boost/lexical_cast.hpp>
-#define USE_FULL_GSL
+#include "config.h"
+
+
 #ifdef USE_FULL_GSL
 #include <cryptoTools/gsl/span>
 #else
@@ -130,6 +132,16 @@ inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::
 {
 	return _mm_add_epi64(lhs, rhs);
 }
+
+
+#ifdef USE_RELIC
+#pragma comment(lib, "relic_s.lib")
+#endif
+
+#ifdef USE_MIRACL
+#pragma comment(lib, "miracl.lib")
+#endif
+
 #endif
 
 namespace oc = osuCrypto;
