@@ -8,6 +8,12 @@
 
 namespace osuCrypto
 {
+    EllipticCurve::EllipticCurve()
+    {
+        setParameters(p256k1);
+        setPrng(sysRandomSeed());
+    }
+
     EllipticCurve::EllipticCurve(const Ecc2mParams & params, const block& seed)
     {
         setParameters(params);

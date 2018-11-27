@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cryptoTools/Common/TestCollection.h>
 using namespace oc;
+#ifdef USE_CIRCUITS
 
 
 i64 signExtend(i64 v, u64 b, bool print = false)
@@ -1283,3 +1284,4 @@ void BetaCircuit_bin_Tests()
     }
 
 }
+#endif

@@ -383,7 +383,7 @@ namespace osuCrypto
 
 		EllipticCurve(const Ecc2mParams& params, const block& seed);
 		EllipticCurve(const EccpParams& params, const block& seed);
-		EllipticCurve() = delete;
+        EllipticCurve();
 		~EllipticCurve();
 
 

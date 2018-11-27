@@ -9,7 +9,9 @@ extern "C" {
     #include <relic/relic_bn.h>
     #include <relic/relic_ep.h>
 }
-
+#ifdef MONTY
+#undef MONTY
+#endif
 #include <cryptoTools/Crypto/PRNG.h>
 
 namespace osuCrypto

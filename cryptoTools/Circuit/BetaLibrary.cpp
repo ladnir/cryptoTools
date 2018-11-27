@@ -1,4 +1,7 @@
 #include "BetaLibrary.h"
+
+#ifdef USE_CIRCUITS
+
 #include "Gate.h"
 
 namespace osuCrypto
@@ -1749,4 +1752,5 @@ namespace osuCrypto
 		}
 		return true;
 	}
-	}
+}
+#endif

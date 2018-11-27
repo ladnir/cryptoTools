@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
 #include <cryptoTools/Common/Defines.h>
+#ifdef USE_CIRCUITS
+#include <vector>
 #include <array>
 
 namespace osuCrypto {
@@ -134,3 +135,4 @@ namespace osuCrypto {
 		//{}
 	};
 }
+#endif

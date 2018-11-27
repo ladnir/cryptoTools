@@ -52,6 +52,7 @@ namespace tests_cryptoTools
 
         th.add("SBO_ptr_test                            ", SBO_ptr_test);
 
+#ifdef USE_CIRCUITS
 
 
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);
@@ -76,6 +77,7 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
         th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
         th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
+#endif
     });
 
 

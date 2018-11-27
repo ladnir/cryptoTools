@@ -11,7 +11,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace tests_cryptoTools
 {
-    TEST_CLASS(LocalChannel_Tests)
+    TEST_CLASS(Ecc_Tests)
     {
     public:
 

@@ -1,8 +1,9 @@
 #pragma once
+#include <cryptoTools/Common/Defines.h>
+#ifdef USE_CIRCUITS
 
 
 #include "Gate.h"
-#include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/BitVector.h>
 #include <array>
 
@@ -129,3 +130,4 @@ namespace osuCrypto
 	};
 
 }
+#endif

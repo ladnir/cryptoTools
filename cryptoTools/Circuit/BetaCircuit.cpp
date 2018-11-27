@@ -1,10 +1,13 @@
 #include "BetaCircuit.h"
+#ifdef USE_CIRCUITS
+
 #include <vector>
 #include <unordered_map>
 #include <set>
 #include <numeric>
 #include "cryptoTools/Common/BitVector.h"
 #include <cryptoTools/Crypto/sha1.h>
+
 #ifdef USE_JSON
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -1245,3 +1248,4 @@ namespace osuCrypto
     }
 
 }
+#endif
