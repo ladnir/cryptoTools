@@ -1,7 +1,7 @@
 
 #include <cryptoTools/Crypto/Curve.h>
 
-#ifdef USE_MIRACL
+#ifdef ENABLE_MIRACL
 #include <cryptoTools/Common/Log.h>
 #include <miracl/include/miracl.h>
 #include <sstream>

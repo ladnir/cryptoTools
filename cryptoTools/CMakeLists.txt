@@ -74,31 +74,54 @@ install(TARGETS cryptoTools DESTINATION lib)
 ## Miracl
 ###########################################################################
 
-set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/miracl/")
+if (ENABLE_MIRACL)
 
-set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
-find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
+  set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/miracl/")
 
-# if we cant fint it, throw an error
-if(NOT MIRACL_LIB)
-    message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
-endif()
-message(STATUS "MIRACL_LIB:  ${MIRACL_LIB}")
+  set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
+  find_library(MIRACL_LIB NAMES miracl  HINTS "${Miracl_Lib_Dirs}")
 
-#include_directories("${Miracl_Dirs}") 
+  # if we cant fint it, throw an error
+  if(NOT MIRACL_LIB)
+      message(FATAL_ERROR "Failed to find miracl at " ${Miracl_Lib_Dirs})
+  endif()
+  message(STATUS "MIRACL_LIB:  ${MIRACL_LIB}")
 
-target_include_directories(cryptoTools PUBLIC "${Miracl_Dirs}") 
-target_link_libraries(cryptoTools ${MIRACL_LIB})
+  #include_directories("${Miracl_Dirs}") 
+
+  target_include_directories(cryptoTools PUBLIC "${Miracl_Dirs}") 
+  target_link_libraries(cryptoTools ${MIRACL_LIB})
 
 
-INSTALL(DIRECTORY "${Miracl_Dirs}/miracl/include/" DESTINATION include)
-INSTALL(FILES ${MIRACL_LIB} DESTINATION lib)
+  INSTALL(DIRECTORY "${Miracl_Dirs}/miracl/include/" DESTINATION include)
+  INSTALL(FILES ${MIRACL_LIB} DESTINATION lib)
 
-#copy miracl to the lib directory for others to use/find
-#file(COPY ${MIRACL_LIB}  DESTINATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
-#file(GLOB_RECURSE miracl_headers "${Miracl_Dirs}/miracl/include/*.h")
-#file(COPY ${miracl_headers}  DESTINATION "${CMAKE_SOURCE_DIR}/include/")
-#MESSAGE(STATUS  " headers ${miracl_headers}")
+  #copy miracl to the lib directory for others to use/find
+  #file(COPY ${MIRACL_LIB}  DESTINATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
+  #file(GLOB_RECURSE miracl_headers "${Miracl_Dirs}/miracl/include/*.h")
+  #file(COPY ${miracl_headers}  DESTINATION "${CMAKE_SOURCE_DIR}/include/")
+  #MESSAGE(STATUS  " headers ${miracl_headers}")
+
+endif(ENABLE_MIRACL)
+
+
+## Relic
+###########################################################################
+
+
+if (ENABLE_RELIC)
+  find_package(Relic REQUIRED)
+
+  if (NOT Relic_FOUND)
+    message(FATAL_ERROR "Failed to find Relic")
+  endif (NOT Relic_FOUND)
+
+  message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES}")
+
+  target_include_directories(cryptoTools PUBLIC ${RELIC_INCLUDE_DIR}) 
+  target_link_libraries(cryptoTools ${RELIC_LIBRARIES})
+
+endif (ENABLE_RELIC)
 
 ## Boost
 ###########################################################################

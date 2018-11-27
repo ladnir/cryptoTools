@@ -226,6 +226,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\SimplestOT\SimplestOT.vcxproj" />
+    <None Include="Common\config.h.in" />
     <None Include="cryptoToolsconfig.cmake" />
     <None Include="Network\gsl\span" />
   </ItemGroup>

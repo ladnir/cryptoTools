@@ -1,5 +1,5 @@
 #include "BetaCircuit.h"
-#ifdef USE_CIRCUITS
+#ifdef ENABLE_CIRCUITS
 
 #include <vector>
 #include <unordered_map>

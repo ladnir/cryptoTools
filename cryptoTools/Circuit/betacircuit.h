@@ -1,6 +1,6 @@
 #pragma once
-#include <cryptoTools/Common/Defines.h>
-#ifdef USE_CIRCUITS
+#include <cryptoTools/Common/Defines.h> 
+#ifdef ENABLE_CIRCUITS
 
 
 #include "Gate.h"

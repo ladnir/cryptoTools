@@ -210,6 +210,7 @@
     <None Include="Network\gsl\span" />
     <None Include="cryptoToolsconfig.cmake" />
     <None Include="..\..\SimplestOT\SimplestOT.vcxproj" />
+    <None Include="Common\config.h.in" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="gsl\GSL.natvis" />

@@ -10,7 +10,7 @@ namespace osuCrypto
     class MatrixView
     {
     public:
-#ifdef USE_FULL_GSL
+#ifdef ENABLE_FULL_GSL
         using iterator = gsl::details::span_iterator<gsl::span<T>, false>;
         using const_iterator = gsl::details::span_iterator<gsl::span<T>, true>;
 #else

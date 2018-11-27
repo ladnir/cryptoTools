@@ -1,6 +1,6 @@
 #include "RCurve.h"
 
-#ifdef USE_RELIC
+#ifdef ENABLE_RELIC
 
 extern "C" {
 #include "relic/relic_core.h"
@@ -140,7 +140,7 @@ namespace osuCrypto
 
     REccNumber & REccNumber::operator/=(const REccNumber & b)
     {
-        return *this * b.inverse();
+        return (*this *= b.inverse());
     }
 
     REccNumber & REccNumber::operator/=(int i)
@@ -150,9 +150,8 @@ namespace osuCrypto
 
         bn_gcd_ext_dig(c, y, iInv, modulus(), i);
 
-        iInv *= *this;
 
-        return iInv;
+        return (*this *= iInv);
     }
 
     void REccNumber::init()

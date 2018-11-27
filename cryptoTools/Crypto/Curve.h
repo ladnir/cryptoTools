@@ -2,7 +2,7 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 
-#ifdef USE_MIRACL
+#ifdef ENABLE_MIRACL
 #include <miracl/include/miracl.h>
 #include <cryptoTools/Crypto/PRNG.h>
 #include <memory>

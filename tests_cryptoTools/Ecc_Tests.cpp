@@ -14,7 +14,7 @@ using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
-#ifdef USE_MIRACL
+#ifdef ENABLE_MIRACL
 
 	void EccpNumber_Test()
 	{
@@ -742,19 +742,19 @@ namespace tests_cryptoTools
 
 void EccpNumber_Test()
 {
-    throw UnitTestSkipped("USE_MIRACL not defined.");
+    throw UnitTestSkipped("ENABLE_MIRACL not defined.");
 }
 void EccpPoint_Test()
 {
-    throw UnitTestSkipped("USE_MIRACL not defined.");
+    throw UnitTestSkipped("ENABLE_MIRACL not defined.");
 }
 void Ecc2mNumber_Test()
 {
-    throw UnitTestSkipped("USE_MIRACL not defined.");
+    throw UnitTestSkipped("ENABLE_MIRACL not defined.");
 }
 void Ecc2mPoint_Test()
 {
-    throw UnitTestSkipped("USE_MIRACL not defined.");
+    throw UnitTestSkipped("ENABLE_MIRACL not defined.");
 }
 
 #endif

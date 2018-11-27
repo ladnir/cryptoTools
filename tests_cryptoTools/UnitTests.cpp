@@ -52,7 +52,7 @@ namespace tests_cryptoTools
 
         th.add("SBO_ptr_test                            ", SBO_ptr_test);
 
-#ifdef USE_CIRCUITS
+#ifdef ENABLE_CIRCUITS
 
 
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);

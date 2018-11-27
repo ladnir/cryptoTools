@@ -1,6 +1,6 @@
 #pragma once
 #include <cryptoTools/Common/Defines.h>
-#ifdef USE_CIRCUITS
+#ifdef ENABLE_CIRCUITS
 
 #include "BetaCircuit.h"
 #include <unordered_map>

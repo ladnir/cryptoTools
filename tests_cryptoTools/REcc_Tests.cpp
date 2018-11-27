@@ -14,7 +14,7 @@ using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
-#ifdef USE_RELIC
+#ifdef ENABLE_RELIC
 
     void REccpNumber_Test()
     {
@@ -308,11 +308,11 @@ namespace tests_cryptoTools
 
 void REccpNumber_Test()
 {
-    throw UnitTestSkipped("USE_RELIC not defined.");
+    throw UnitTestSkipped("ENABLE_RELIC not defined.");
 }
 void REccpPoint_Test()
 {
-    throw UnitTestSkipped("USE_RELIC not defined.");
+    throw UnitTestSkipped("ENABLE_RELIC not defined.");
 }
 #endif
 

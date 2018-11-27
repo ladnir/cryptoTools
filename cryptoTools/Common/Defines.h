@@ -13,7 +13,7 @@
 #include "config.h"
 
 
-#ifdef USE_FULL_GSL
+#ifdef ENABLE_FULL_GSL
 #include <cryptoTools/gsl/span>
 #else
 #include <cryptoTools/gsl/gls-lite.hpp>
@@ -134,11 +134,11 @@ inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::
 }
 
 
-#ifdef USE_RELIC
+#ifdef ENABLE_RELIC
 #pragma comment(lib, "relic_s.lib")
 #endif
 
-#ifdef USE_MIRACL
+#ifdef ENABLE_MIRACL
 #pragma comment(lib, "miracl.lib")
 #endif
 

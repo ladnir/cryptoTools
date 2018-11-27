@@ -1,6 +1,6 @@
 #include "BetaLibrary.h"
 
-#ifdef USE_CIRCUITS
+#ifdef ENABLE_CIRCUITS
 
 #include "Gate.h"
 

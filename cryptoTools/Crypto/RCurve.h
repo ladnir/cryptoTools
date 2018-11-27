@@ -2,7 +2,7 @@
 
 #include <cryptoTools/Common/Defines.h>
 
-#ifdef USE_RELIC
+#ifdef ENABLE_RELIC
 
 
 extern "C" {

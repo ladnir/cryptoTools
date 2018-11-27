@@ -14,7 +14,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
 
-	
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
 	if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -45,6 +44,19 @@ endif()
 
 
 
+
+#############################################
+#                  CONGIFURE                #
+#############################################
+option(ENABLE_MIRACL "use the miracl library" ON)
+option(ENABLE_RELIC "use the relic library" OFF)
+option(ENABLE_CIRCUITS "compile the circuit module" OFF)
+
+message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
+message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
+message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
+
+configure_file(cryptoTools/Common/config.h.in cryptoTools/Common/config.h)
 
 #############################################
 #       cryptoTools, tests, frontend        #

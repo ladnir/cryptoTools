@@ -1,5 +1,5 @@
 #pragma once
-#ifdef USE_FULL_GSL
+#ifdef ENABLE_FULL_GSL
 #include <cryptoTools/gsl/multi_span>
 #else
 #include <cryptoTools/gsl/gls-lite.hpp>
