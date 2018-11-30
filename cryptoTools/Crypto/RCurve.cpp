@@ -76,12 +76,20 @@ namespace osuCrypto
     REccNumber & REccNumber::operator=(const bn_t c)
     {
         bn_copy(*this, c);
+        
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic copy error " LOCATION);
+
         return *this;
     }
 
     REccNumber & REccNumber::operator=(int i)
     {
         bn_set_dig(mVal, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic set int error " LOCATION);
+
         reduce();
         return *this;
     }
@@ -99,6 +107,10 @@ namespace osuCrypto
     REccNumber & REccNumber::operator+=(int i)
     {
         bn_add_dig(*this, *this, 1);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic add int error " LOCATION);
+
         reduce();
         return *this;
     }
@@ -106,6 +118,9 @@ namespace osuCrypto
     REccNumber & REccNumber::operator-=(int i)
     {
         bn_sub_dig(*this, *this, 1);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic sub int error " LOCATION);
+
         reduce();
         return *this;
     }
@@ -113,6 +128,9 @@ namespace osuCrypto
     REccNumber & REccNumber::operator+=(const REccNumber & b)
     {
         bn_add(*this, *this, b);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic add error " LOCATION);
         reduce();
         return *this;
     }
@@ -120,6 +138,9 @@ namespace osuCrypto
     REccNumber & REccNumber::operator-=(const REccNumber & b)
     {
         bn_sub(*this, *this, b);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic sub error " LOCATION);
         reduce();
         return *this;
     }
@@ -127,6 +148,10 @@ namespace osuCrypto
     REccNumber & REccNumber::operator*=(const REccNumber & b)
     {
         bn_mul(*this, *this, b);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic mul error " LOCATION);
+
         reduce();
         return *this;
     }
@@ -134,6 +159,10 @@ namespace osuCrypto
     REccNumber & REccNumber::operator*=(int i)
     {
         bn_mul_dig(*this, *this, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic mul error " LOCATION);
+
         reduce();
         return *this;
     }
@@ -150,6 +179,10 @@ namespace osuCrypto
 
         bn_gcd_ext_dig(c, y, iInv, modulus(), i);
 
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic div error " LOCATION);
+
+
 
         return (*this *= iInv);
     }
@@ -164,6 +197,10 @@ namespace osuCrypto
     {
         //auto t = *this;
         bn_mod_basic(*this, *this, modulus());
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic mod error " LOCATION);
+
     }
 
     const bn_st * REccNumber::modulus() const { return &core_get()->ep_r; }
@@ -172,6 +209,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_neg(r, *this);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic neg error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -181,6 +222,10 @@ namespace osuCrypto
         REccNumber bInv,y,c;
 
         bn_gcd_ext_basic(c, bInv, y, *this, modulus());
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic inverse error " LOCATION);
+
         bInv.reduce();
 
         return bInv;
@@ -270,6 +315,12 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_add_dig(r, v, i);
+
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic add error " LOCATION);
+
+
         r.reduce();
         return r;
     }
@@ -277,6 +328,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_add(r, v, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic add error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -284,6 +339,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_sub_dig(r, v, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic sub error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -295,6 +354,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_sub(r, v, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic sub error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -302,6 +365,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_mul_dig(r, v, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic mul error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -313,6 +380,10 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_mul(r, v, i);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic mul error " LOCATION);
+
         r.reduce();
         return r;
     }
@@ -335,6 +406,11 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_mxp_basic(r, base, exp, base.modulus());
+
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic exp error " LOCATION);
+
         return r;
     }
 
@@ -350,13 +426,32 @@ namespace osuCrypto
     std::ostream & operator<<(std::ostream & out, const REccPoint & val)
     {
         auto radix = 16;
-        std::string buff(fp_size_str(val.mVal->x, radix), '0');
-        fp_write_str(&buff[0], buff.size(), val.mVal->x, radix);
-        out << "("<< buff << ", ";
-        fp_write_str(&buff[0], buff.size(), val.mVal->y, radix);
-        out << buff << ", ";
-        fp_write_str(&buff[0], buff.size(), val.mVal->z, radix);
-        out << buff << ")";
+
+        auto print = [radix](std::ostream& out, const fp_t& c) {
+
+            std::string buff(FP_BYTES * 2 + 1, ' ');
+
+            if (buff.size() < fp_size_str(c, radix))
+            {
+                std::cout << "buff.size() " << buff.size() << std::endl;
+                std::cout << "fp_size_str " << fp_size_str(c, radix) << std::endl;
+                throw std::runtime_error(LOCATION);
+            }
+            fp_write_str(&buff[0], buff.size(), c, radix);
+            if (GSL_UNLIKELY(err_get_code()))
+                throw std::runtime_error("Relic write error " LOCATION);
+
+            out << buff;
+        };
+
+        out << "(";
+        print(out, val.mVal->x);
+        out << ", ";
+        print(out, val.mVal->y);
+        out << ", ";
+        print(out, val.mVal->z);
+        out << ")";
+
         return out;
     }
 
@@ -364,6 +459,8 @@ namespace osuCrypto
     {
         REccNumber r;
         bn_add_dig(r, v, i);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic add error " LOCATION);
         r.reduce();
         return r;
     }
@@ -373,13 +470,22 @@ namespace osuCrypto
         if (core_get() == nullptr)
             core_init();
 
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic core init error " LOCATION);
+
         ep_param_set_any();
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic set any error " LOCATION);
     }
 
     REllipticCurve::Point REllipticCurve::getGenerator() const
     {
         Point g;
         ep_curve_get_gen(g);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic get gen error " LOCATION);
+
         return g;
         // TODO: insert return statement here
     }
@@ -393,6 +499,9 @@ namespace osuCrypto
     {
         REccNumber g;
         ep_curve_get_ord(g);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic get order error " LOCATION);
         return g;
     }
 
@@ -408,18 +517,25 @@ namespace osuCrypto
     REccPoint & REccPoint::operator+=(const REccPoint & addIn)
     {
         ep_add(*this, *this, addIn);
+
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_add error " LOCATION);
         return *this;
     }
 
     REccPoint & REccPoint::operator-=(const REccPoint & subtractIn)
     {
         ep_sub(*this, *this, subtractIn);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_sub error " LOCATION);
         return *this;
     }
 
     REccPoint & REccPoint::operator*=(const REccNumber & multIn)
     {
         ep_mul(*this, *this, multIn);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_mul error " LOCATION);
         return *this;
     }
 
@@ -427,6 +543,8 @@ namespace osuCrypto
     {
         REccPoint r;
         ep_add(r, *this, addIn);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_add error " LOCATION);
         return r;
     }
 
@@ -434,6 +552,8 @@ namespace osuCrypto
     {
         REccPoint r;
         ep_sub(r, *this, subtractIn);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_sub error " LOCATION);
         return r;
     }
 
@@ -441,6 +561,8 @@ namespace osuCrypto
     {
         REccPoint r;
         ep_mul(r, *this, multIn);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_mul error " LOCATION);
         return r;
     }
 
@@ -462,11 +584,15 @@ namespace osuCrypto
     void REccPoint::toBytes(u8 * dest) const
     {
         ep_write_bin(dest, sizeBytes(), *this, 1);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_write error " LOCATION);
     }
 
     void REccPoint::fromBytes(u8 * src)
     {
         ep_read_bin(*this, src, sizeBytes());
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_read error " LOCATION);
     }
 
     void REccPoint::randomize(PRNG & prng)
@@ -477,6 +603,8 @@ namespace osuCrypto
     void REccPoint::randomize(const block & seed)
     {
         ep_map(*this, (u8*)&seed, sizeof(block));
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_map error " LOCATION);
     }
 
     u64 REccNumber::sizeDigits() const
@@ -493,17 +621,23 @@ namespace osuCrypto
     void REccNumber::toBytes(u8 * dest) const
     {
         bn_write_bin(dest, sizeBytes(), *this);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic write error " LOCATION);
     }
 
     void REccNumber::fromBytes(const u8 * src)
     {
         bn_read_bin(*this, src, sizeBytes());
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic read error " LOCATION);
     }
 
     void REccNumber::fromHex(const char * src)
     {
         auto len = std::strlen(src);
         bn_read_str(*this, src, len, 16);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic read error " LOCATION);
     }
 
     void REccNumber::randomize(PRNG & prng)

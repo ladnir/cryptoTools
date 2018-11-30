@@ -121,7 +121,7 @@ namespace osuCrypto
 			return mView[rowIdx * stride() + colIdx];
 		}
 
-        span<T> operator[](size_type rowIdx) const
+        const span<T> operator[](size_type rowIdx) const
         {
 #ifndef NDEBUG
             if (rowIdx >= rows()) throw std::runtime_error(LOCATION);
