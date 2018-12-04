@@ -33,6 +33,9 @@ namespace osuCrypto
         BetaCircuit* int_int_mult(u64 aSize, u64 bSize, u64 cSize, Optimized op = Optimized::Size);
         BetaCircuit* int_int_div(u64 aSize, u64 bSize, u64 cSize);
 
+        BetaCircuit* int_eq(u64 aSize);
+        BetaCircuit* int_neq(u64 aSize);
+
         BetaCircuit* int_int_lt(u64 aSize, u64 bSize);
         BetaCircuit* int_int_gteq(u64 aSize, u64 bSize);
 
@@ -45,6 +48,7 @@ namespace osuCrypto
         BetaCircuit* int_removeSign(u64 aSize);
         BetaCircuit* int_addSign(u64 aSize);
         BetaCircuit* int_negate(u64 aSize);
+        BetaCircuit* int_isZero(u64 aSize);
 
         BetaCircuit* int_bitInvert(u64 aSize);
         BetaCircuit* int_int_bitwiseAnd(u64 aSize, u64 bSize, u64 cSize);
@@ -145,6 +149,17 @@ namespace osuCrypto
             //,const BetaBundle & divByZero,
             //bool checkDivByZero
         );
+
+        void int_isZero_build(
+            BetaCircuit& cd,
+            BetaBundle & a1,
+            BetaBundle & out);
+
+        void int_int_eq_build(
+            BetaCircuit& cd,
+            BetaBundle & a1,
+            BetaBundle & a2,
+            BetaBundle & out);
 
         void int_int_lt_build(
             BetaCircuit& cd,

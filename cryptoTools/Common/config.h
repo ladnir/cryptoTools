@@ -11,7 +11,7 @@
 #define ENABLE_FULL_GSL
 
 // compile the circuit library
-//#define ENABLE_CIRCUITS
+#define ENABLE_CIRCUITS
 
 
 // disables the use of assembly based SHA1

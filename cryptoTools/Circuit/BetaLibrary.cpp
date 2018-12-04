@@ -493,6 +493,82 @@ namespace osuCrypto
 		return iter->second;
 	}
 
+
+    BetaCircuit * BetaLibrary::int_eq(u64 aSize)
+    {
+        auto key = "eq" + ToString(aSize);
+
+        auto iter = mCirMap.find(key);
+
+        if (iter == mCirMap.end())
+        {
+            auto* cd = new BetaCircuit;
+
+            BetaBundle a(aSize);
+            BetaBundle b(aSize);
+            BetaBundle c(1);
+
+            cd->addInputBundle(a);
+            cd->addInputBundle(b);
+            cd->addOutputBundle(c);
+
+            int_int_eq_build(*cd, a, b, c);
+
+            iter = mCirMap.insert(std::make_pair(key, cd)).first;
+        }
+
+        return iter->second;
+    }
+    BetaCircuit * BetaLibrary::int_neq(u64 aSize)
+    {
+        auto key = "neq" + ToString(aSize);
+
+        auto iter = mCirMap.find(key);
+
+        if (iter == mCirMap.end())
+        {
+            auto* cd = new BetaCircuit;
+
+            BetaBundle a(aSize);
+            BetaBundle b(aSize);
+            BetaBundle c(1);
+
+            cd->addInputBundle(a);
+            cd->addInputBundle(b);
+            cd->addOutputBundle(c);
+
+            int_int_eq_build(*cd, a, b, c);
+            cd->addInvert(c.mWires[0]);
+
+            iter = mCirMap.insert(std::make_pair(key, cd)).first;
+        }
+
+        return iter->second;
+    }
+
+
+    BetaCircuit * BetaLibrary::int_isZero(u64 aSize)
+    {
+        auto key = "iz" + ToString(aSize);
+        auto iter = mCirMap.find(key);
+        if (iter == mCirMap.end())
+        {
+            auto* cd = new BetaCircuit;
+
+            BetaBundle a(aSize);
+            BetaBundle c(aSize);
+
+            cd->addInputBundle(a);
+            cd->addOutputBundle(c);
+
+            int_isZero_build(*cd, a, c);
+
+            iter = mCirMap.insert(std::make_pair(key, cd)).first;
+        }
+
+        return iter->second;
+    }
+
 	BetaCircuit * BetaLibrary::uint_uint_lt(u64 aSize, u64 bSize)
 	{
 		auto key = "uintLessThan" + ToString(aSize) + "x" + ToString(bSize);
@@ -1508,6 +1584,48 @@ namespace osuCrypto
 
 		}
 	}
+
+
+    void BetaLibrary::int_isZero_build(
+        BetaCircuit & cd,
+        BetaBundle & a1,
+        BetaBundle & out)
+    {
+        if (a1.mWires.size() == 1)
+        {
+            cd.addCopy(a1, out);
+            cd.addInvert(a1.mWires[0]);
+        }
+        else
+        {
+            cd.addGate(a1.mWires[0], a1.mWires[1], GateType::Nor, out.mWires[0]);
+
+            for (u64 i = 2; i < a1.mWires.size(); ++i)
+                cd.addGate(out.mWires[0], a1.mWires[i], GateType::nb_And, out.mWires[0]);
+        }
+    }
+
+    void BetaLibrary::int_int_eq_build(
+        BetaCircuit & cd,
+        BetaBundle & a1,
+        BetaBundle & a2,
+        BetaBundle & out)
+    {
+        auto bits = a1.mWires.size();
+        BetaBundle temp(1);
+        cd.addTempWireBundle(temp);
+        cd.addGate(a1.mWires[0], a2.mWires[0],
+            GateType::Nxor, out.mWires[0]);
+
+        for (u64 i = 1; i < bits; ++i)
+        {
+            cd.addGate(a1.mWires[i], a2.mWires[i],
+                GateType::Nxor, temp.mWires[0]);
+
+            cd.addGate(temp.mWires[0], out.mWires[0],
+                GateType::And, out.mWires[0]);
+        }
+    }
 
 	void BetaLibrary::int_int_lt_build(
 		BetaCircuit & cd,
