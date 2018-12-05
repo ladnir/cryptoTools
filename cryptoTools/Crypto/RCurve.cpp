@@ -431,7 +431,7 @@ namespace osuCrypto
 
             std::string buff(FP_BYTES * 2 + 1, ' ');
 
-            if (buff.size() < fp_size_str(c, radix))
+            if (i64(buff.size()) < i64(fp_size_str(c, radix)))
             {
                 std::cout << "buff.size() " << buff.size() << std::endl;
                 std::cout << "fp_size_str " << fp_size_str(c, radix) << std::endl;

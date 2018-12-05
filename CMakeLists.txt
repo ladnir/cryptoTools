@@ -48,7 +48,7 @@ endif()
 #############################################
 #                  CONGIFURE                #
 #############################################
-option(ENABLE_MIRACL "use the miracl library" ON)
+option(ENABLE_MIRACL "use the miracl library" OFF)
 option(ENABLE_RELIC "use the relic library" OFF)
 option(ENABLE_CIRCUITS "compile the circuit module" OFF)
 

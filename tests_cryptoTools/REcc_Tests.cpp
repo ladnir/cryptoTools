@@ -49,7 +49,7 @@ namespace tests_cryptoTools
             }
 
 
-            auto tryCount = 10;
+            u64 tryCount = 10;
             //bool ok = false;
             for (u64 i = 0; i < tryCount; ++i)
             {

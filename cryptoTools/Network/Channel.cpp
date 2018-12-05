@@ -30,8 +30,8 @@ namespace osuCrypto {
         mRemoteName(remoteName),
         mLocalName(localName),
         mTimer(endpoint.getIOService().mIoService),
-        mRecvStrand(endpoint.getIOService().mIoService),
 	    mSendStrand(endpoint.getIOService().mIoService),
+        mRecvStrand(endpoint.getIOService().mIoService),
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
@@ -51,8 +51,8 @@ namespace osuCrypto {
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
-        mSendSocketAvailable(true),
         mRecvSocketAvailable(true),
+        mSendSocketAvailable(true),
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
     {
