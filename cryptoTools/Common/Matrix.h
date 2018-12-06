@@ -106,7 +106,7 @@ namespace osuCrypto
         T* release()
         {
             auto ret = MatrixView<T>::mView.data();
-            MatrixView<T>::mView = nullptr;
+            MatrixView<T>::mView = span<T>(nullptr, 0);
             mCapacity = 0;
             return ret;
         }
