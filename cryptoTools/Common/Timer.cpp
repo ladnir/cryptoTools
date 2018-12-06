@@ -4,6 +4,8 @@
 #include <ostream>
 #include <string>
 #include <iomanip>
+#include <cmath>
+
 namespace osuCrypto
 {
     const Timer::timeUnit& Timer::setTimePoint(const std::string& msg)

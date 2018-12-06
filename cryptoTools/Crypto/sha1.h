@@ -2,6 +2,7 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
+#include <cstring>
 
 extern void sha1_compress(uint32_t state[5], const uint8_t block[64]);
 
@@ -40,7 +41,7 @@ namespace osuCrypto {
 			while (length)
 			{
 				u32 step = u32(std::min<u64>(length, 64ull - idx));
-				memcpy(buffer.data() + idx, dataIn, step);
+				std::memcpy(buffer.data() + idx, dataIn, step);
 
 				idx += step;
 				dataIn += step;
@@ -65,7 +66,7 @@ namespace osuCrypto {
 		{
 			if (idx) sha1_compress(state.data(), buffer.data());
 			idx = 0;
-			memcpy(DataOut, state.data(), outputLength());
+            std::memcpy(DataOut, state.data(), outputLength());
 		}
 
 

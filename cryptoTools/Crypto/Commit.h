@@ -23,13 +23,13 @@ class Commit
 		Commit(const block& in, PRNG& prng)
         {
             block rand = prng.get<block>();
-            hash(ByteArray(in), sizeof(block), rand);
+            hash((u8*)(&in), sizeof(block), rand);
         }
 
 		// Compute a randomized commitment of input. 
         Commit(const block& in, block& rand)
         {
-             hash(ByteArray(in), sizeof(block), rand);
+             hash((u8*)(&in), sizeof(block), rand);
         }
 
 		// Compute a randomized commitment of input. 
@@ -49,15 +49,15 @@ class Commit
 
 		// Compute a non-randomized commitment of input. 
 		// Note: insecure if input has low entropy. 
-		Commit(const block& input) { hash(ByteArray(input), sizeof(block)); }
+		Commit(const block& input) { hash((u8*)(&input), sizeof(block)); }
 
 		// Compute a non-randomized commitment of input. 
 		// Note: insecure if input has low entropy. 
 		Commit(const std::array<block, 3>& input)
 		{
-			hash(ByteArray(input[0]), sizeof(block));
-			hash(ByteArray(input[1]), sizeof(block));
-			hash(ByteArray(input[2]), sizeof(block));
+			hash((u8*)(&input[0]), sizeof(block));
+			hash((u8*)(&input[1]), sizeof(block));
+			hash((u8*)(&input[2]), sizeof(block));
 		}
 
 		// Compute a non-randomized commitment of input. 

@@ -3,6 +3,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
 #include <cryptoTools/Crypto/blake2/blake2.h>
+#include <cstring>
 
 namespace osuCrypto {
 
@@ -41,9 +42,9 @@ namespace osuCrypto {
 			};
 
 			const unsigned char * v = (const unsigned char *)(blake2b_IV);
-			memset(&state, 0, sizeof(blake2b_state));
+			std::memset(&state, 0, sizeof(blake2b_state));
 			state.outlen = outputLength;
-			memcpy(state.h, v, BLAKE2B_OUTBYTES);
+            std::memcpy(state.h, v, BLAKE2B_OUTBYTES);
 #endif
 	}
 

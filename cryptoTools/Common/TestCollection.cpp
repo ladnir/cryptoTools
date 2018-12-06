@@ -3,6 +3,8 @@
 
 #include <cryptoTools/Common/Log.h>
 #include <iomanip>
+#include <cmath>
+
 namespace osuCrypto
 {
 

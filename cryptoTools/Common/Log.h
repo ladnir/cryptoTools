@@ -4,6 +4,7 @@
 #include <string>
 #include <ostream>
 #include <mutex>
+#include <vector>
 
 namespace osuCrypto
 {

@@ -769,7 +769,7 @@ namespace tests_cryptoTools
             chl2.recv(arr_u32_3);
             throws = false;
         }
-        catch (BadReceiveBufferSize e)
+        catch (BadReceiveBufferSize& e)
         {
             if (e.mSize != vec_u32.size() * sizeof(u32))
                 throw UnitTestFail();
@@ -829,7 +829,7 @@ namespace tests_cryptoTools
             chl1.recv(vec_u32);
 
         }
-        catch (std::runtime_error e)
+        catch (std::runtime_error& e)
         {
             throws = true;
         }
@@ -872,7 +872,7 @@ namespace tests_cryptoTools
             chl2.recv(vec_u32);
 
         }
-        catch (std::runtime_error e)
+        catch (std::runtime_error& e)
         {
             throws = true;
         }
@@ -997,7 +997,7 @@ namespace tests_cryptoTools
                 }
             }
         }
-        catch (std::exception e)
+        catch (std::exception& e)
         {
             std::cout << "sss" << e.what() << std::endl;
         }
@@ -1035,7 +1035,7 @@ namespace tests_cryptoTools
                     throw UnitTestFail(LOCATION);
                 }
             }
-            catch (std::exception e)
+            catch (std::exception& e)
             {
                 std::cout << "sss" << e.what() << std::endl;
                 throw;

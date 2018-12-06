@@ -4,12 +4,10 @@
 #include <cinttypes>
 #include <iostream>
 #include <memory>
-#include <vector>
 
 #include <emmintrin.h>
 #include <smmintrin.h>
 
-#include <boost/lexical_cast.hpp>
 #include "config.h"
 
 
@@ -53,8 +51,8 @@ namespace osuCrypto {
     typedef int8_t i8;
 
 
-    template<typename T>
-	static std::string ToString(const T& t) { return boost::lexical_cast<std::string>(t); }
+ //   template<typename T>
+	//static std::string ToString(const T& t) { return boost::lexical_cast<std::string>(t); }
 
     typedef  __m128i block;
     inline block toBlock(u8*data) { return _mm_set_epi64x(((u64*)data)[1], ((u64*)data)[0]);}
@@ -68,13 +66,6 @@ namespace osuCrypto {
     extern const std::array<block, 2> zeroAndAllOne;
 
     inline u64 roundUpTo(u64 val, u64 step) { return ((val + step - 1) / step) * step; }
-
-    inline u8* ByteArray(const block& b) { return ((u8 *)(&b)); }
-
-    block PRF(const block& b, u64 i);
-
-    void split(const std::string &s, char delim, std::vector<std::string> &elems);
-    std::vector<std::string> split(const std::string &s, char delim);
 
     u64 log2ceil(u64);
     u64 log2floor(u64);
