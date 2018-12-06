@@ -1,4 +1,5 @@
 #include "RCurve.h"
+#include <string>
 
 #ifdef ENABLE_RELIC
 
