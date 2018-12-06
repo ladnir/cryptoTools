@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(USE_BLAKE2_AS_RANDOM_ORACLE) || defined(NO_INTEL_ASM_SHA1)
+#if defined(USE_BLAKE2_AS_RANDOM_ORACLE) || !defined(ENABLE_NASM)
 
 #include <cryptoTools/Crypto/Blake2.h>
 namespace osuCrypto

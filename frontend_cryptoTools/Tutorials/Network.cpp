@@ -350,7 +350,7 @@ void networkTutorial()
             // will throw, dest.size() != dat.size(); and no resize() member.
             chl1.recv(dest);
         }
-        catch (BadReceiveBufferSize b)
+        catch (BadReceiveBufferSize& b)
         {
             // catch the error, creat a new dest in bytes.
             std::vector<u8> backup(b.mSize);

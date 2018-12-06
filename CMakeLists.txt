@@ -48,13 +48,24 @@ endif()
 #############################################
 #                  CONGIFURE                #
 #############################################
+find_program(NASM nasm)
+
+
+
 option(ENABLE_MIRACL "use the miracl library" OFF)
 option(ENABLE_RELIC "use the relic library" OFF)
 option(ENABLE_CIRCUITS "compile the circuit module" OFF)
 
+if(NOT NASM)
+	option(ENABLE_NASM "compile using NASM" OFF)
+else(NOT NASM)
+	option(ENABLE_NASM "compile using NASM" ON)
+endif(NOT NASM)
+
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
+message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
 
 configure_file(cryptoTools/Common/config.h.in cryptoTools/Common/config.h)
 

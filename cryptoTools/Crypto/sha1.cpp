@@ -35,7 +35,7 @@ extern "C" void sha1_update_intel(int *hash, const char* input);
 void sha1_compress(uint32_t state[5], const uint8_t block[64])
 {
 
-#ifndef NO_INTEL_ASM_SHA1
+#ifdef ENABLE_NASM
 
     // disable this if you dont want the assembly version.
     sha1_update_intel((int*)state, (const char*)block);

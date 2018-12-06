@@ -3,20 +3,13 @@ project(cryptoTools)
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 
-find_program(NASM nasm)
 
-
-if(NOT NASM OR NOT ("$ENV{cryptoTools_NO_NASM}" STREQUAL ""))
-  message(WARNING "\nnasm is not in the PATH or cryptoTools_NO_NASM is defined!!!! This means the 2x faster SHA1 function will not be used.")
-  MESSAGE(STATUS "ENV{cryptoTools_NO_NASM} = $ENV{cryptoTools_NO_NASM}")
-
-  # define this so that the asm is disabled.
-  add_definitions(-DNO_INTEL_ASM_SHA1=1)
-  set(shaNasmOutput )
-  add_custom_target(sha_asm)
+if(ENABLE_NASM)
   
-else()
-  
+    if(NOT NASM)
+        message(FATAL_ERROR "Can not find nasm. Disable it with:    cmake . -DENABLE_NASM=OFF")
+    endif()
+
     set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/Crypto/asm/sha_lnx.S")
     set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
 
@@ -26,8 +19,8 @@ else()
 
     #OSX nasm flags
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(shaNasmComment ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
-    set(shaNasmCommand ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
+        set(shaNasmComment ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
+        set(shaNasmCommand ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
     ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
     add_custom_command(
@@ -39,7 +32,10 @@ else()
 
   # mark this asm output input to everything.
   add_custom_target(sha_asm DEPENDS ${shaNasmOutput})
-endif()
+else(ENABLE_NASM)
+  set(shaNasmOutput )
+  add_custom_target(sha_asm)
+endif(ENABLE_NASM)
 
 
 
