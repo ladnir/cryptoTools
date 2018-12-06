@@ -107,9 +107,12 @@ namespace osuCrypto
 
     std::ostream& operator<<(std::ostream& out, Color tag)
     {
+        if (tag == Color::Default)
+            tag = ColorDefault;
 #ifdef _MSC_VER
         SetConsoleTextAttribute(__m_hConsole, (WORD)tag | (240 & (WORD)ColorDefault) );
 #else
+
         out << colorMap[15 & (char)tag];
 #endif
         return out;

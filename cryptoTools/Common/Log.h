@@ -45,7 +45,8 @@ namespace osuCrypto
 		Red = 12,
 		Pink = 13,
 		Yellow = 14,
-		White = 15
+		White = 15,
+        Default
 	};
 
 	extern const Color ColorDefault;
