@@ -292,6 +292,11 @@ namespace osuCrypto
         return bn_cmp_dig(*this, cmp) == CMP_LT;
     }
 
+    bool REccNumber::isPrime() const
+    {
+        return bn_is_prime(*this);
+    }
+
     bool REccNumber::iszero() const
     {
         return bn_is_zero(*this);

@@ -78,7 +78,7 @@ namespace osuCrypto
         bool operator<(const REccNumber& cmp)const;
         bool operator<(const int& cmp)const;
 
-
+        bool isPrime() const;
         bool iszero() const;
 
         //const REccNumber& modulus() const;

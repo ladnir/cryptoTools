@@ -313,7 +313,7 @@ namespace osuCrypto {
             bool hasItems = (mRecvQueue.isEmpty() == false);
             bool startRecving = hasItems && mRecvSocketAvailable;
 
-            LOG_MSG("queuing* Recv, start = " + ToString(startRecving) + " = " + ToString(hasItems) + " & " + ToString(mRecvSocketAvailable));
+            LOG_MSG("queuing* Recv, start = " + std::to_string(startRecving) + " = " + std::to_string(hasItems) + " & " + std::to_string(mRecvSocketAvailable));
             // the queue must be guarded from concurrent access, so add the op within the strand
             // queue up the operation.
             if (startRecving)
@@ -344,8 +344,8 @@ namespace osuCrypto {
             auto hasItems = (mSendQueue.isEmpty() == false);
             auto startSending = hasItems && mSendSocketAvailable;
 
-            LOG_MSG("queuing* Send, start = " + ToString(startSending) + " = " + ToString(hasItems)
-                + " & " + ToString(mSendSocketAvailable));
+            LOG_MSG("queuing* Send, start = " + std::to_string(startSending) + " = " + std::to_string(hasItems)
+                + " & " + std::to_string(mSendSocketAvailable));
 
             if (startSending)
             {
@@ -517,7 +517,7 @@ namespace osuCrypto {
                 while (!mSendQueue.isEmpty())
                 {
                     auto& front = mSendQueue.front();
-                    LOG_MSG("cancel send #" + ToString(front->mIdx));
+                    LOG_MSG("cancel send #" + std::to_string(front->mIdx));
                     front->cancel(mSendErrorMessage);
                     mSendQueue.pop_front();
                 }
@@ -539,7 +539,7 @@ namespace osuCrypto {
                 while (!mRecvQueue.isEmpty())
                 {
                     auto& front = mRecvQueue.front();
-                    LOG_MSG("cancel recv #" + ToString(front->mIdx));
+                    LOG_MSG("cancel recv #" + std::to_string(front->mIdx));
                     front->cancel(mRecvErrorMessage);
                     mRecvQueue.pop_front();
                 }
@@ -566,7 +566,7 @@ namespace osuCrypto {
             mRecvSocketAvailable = true;
 
             bool isEmpty = mRecvQueue.isEmpty();
-            LOG_MSG("startSocket Recv, queue is isEmpty = " + ToString(isEmpty));
+            LOG_MSG("startSocket Recv, queue is isEmpty = " + std::to_string(isEmpty));
 
             if (isEmpty == false)
             {
@@ -584,7 +584,7 @@ namespace osuCrypto {
             mSendSocketAvailable = true;
 
             bool isEmpty = mSendQueue.isEmpty();
-            LOG_MSG("startSocket Send, queue is isEmpty = " + ToString(isEmpty));
+            LOG_MSG("startSocket Send, queue is isEmpty = " + std::to_string(isEmpty));
 
             if (!isEmpty)
             {

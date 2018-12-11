@@ -90,7 +90,7 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
                 sockIter->mIdx = mPendingSocketIdx++;
 #endif
-                LOG_MSG("lestening with socket#" + ToString(sockIter->mIdx));
+                LOG_MSG("lestening with socket#" + std::to_string(sockIter->mIdx));
 
                 //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
                 mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
@@ -99,7 +99,7 @@ namespace osuCrypto
 
                     if (!ec)
                     {
-                        LOG_MSG("Connected with socket#" + ToString(sockIter->mIdx));
+                        LOG_MSG("Connected with socket#" + std::to_string(sockIter->mIdx));
 
                         boost::asio::ip::tcp::no_delay option(true);
                         sockIter->mSock.set_option(option);
@@ -110,7 +110,7 @@ namespace osuCrypto
                         {
                             if (!ec2)
                             {
-                                LOG_MSG("Recv header with socket#" + ToString(sockIter->mIdx));
+                                LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
 
                                 auto size = *(u32*)sockIter->mBuff.data();
                                 sockIter->mBuff.resize(size);
@@ -120,7 +120,7 @@ namespace osuCrypto
                                 {
                                     if (!ec3)
                                     {
-                                        LOG_MSG("Recv boby with socket#" + ToString(sockIter->mIdx) + " ~ " + sockIter->mBuff);
+                                        LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
 
                                         asyncSetSocket(
                                             std::move(sockIter->mBuff),
@@ -130,7 +130,7 @@ namespace osuCrypto
                                     else
                                     {
                                         std::cout << "socket header body failed: " << ec3.message() << std::endl;
-                                        LOG_MSG("Recv body failed with socket#" + ToString(sockIter->mIdx) + " ~ " + ec3.message());
+                                        LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
                                     }
 
                                     mPendingSockets.erase(sockIter);
@@ -146,7 +146,7 @@ namespace osuCrypto
                                     << ec2.message() << "  " << LOCATION << std::endl;
                                 
 
-                                LOG_MSG("Recv header failed with socket#" + ToString(sockIter->mIdx) + " ~ " + ec2.message());
+                                LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
 
                                 mStrand.dispatch([&, sockIter]()
                                 {
@@ -160,7 +160,7 @@ namespace osuCrypto
                     }
                     else
                     {
-                        LOG_MSG("Failed with socket#" + ToString(sockIter->mIdx) + " ~ " +ec.message());
+                        LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " +ec.message());
 
                         mStrand.dispatch([&, sockIter]()
                         {
@@ -430,7 +430,7 @@ namespace osuCrypto
                 // is a match, they are paired up. Otherwise the acceptor 
                 // will pair them up once the matching socket is connected                
                 sessionGroup->add(chl, this);
-                LOG_MSG("getSocket(...) Channel " + sessionName + " " + chl->mLocalName + " " + chl->mRemoteName + " matched = " + ToString(chl->mHandle == nullptr));
+                LOG_MSG("getSocket(...) Channel " + sessionName + " " + chl->mLocalName + " " + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
                 
                 // remove this session group if it is no longer active.
                 if (sessionGroup->hasSubscriptions() == false)
@@ -746,7 +746,7 @@ namespace osuCrypto
                 acceptorIter = mAcceptors.end(); --acceptorIter;
                 acceptorIter->mPort = session->mPort;
 
-                //std::cout << "creating acceptor on " + ToString(session->mPort) << std::endl;
+                //std::cout << "creating acceptor on " + std::to_string(session->mPort) << std::endl;
             }
 
             p.set_value(acceptorIter);
