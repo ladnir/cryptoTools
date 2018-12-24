@@ -89,7 +89,9 @@ namespace osuCrypto {
 
 	Session::Session(const std::shared_ptr<SessionBase>& c)
 		: mBase(c)
-	{ }
+	{
+        ++mBase->mRealRefCount;
+    }
 
 	Session::~Session()
 	{
