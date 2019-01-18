@@ -450,12 +450,16 @@ namespace osuCrypto
             out << buff;
         };
 
+        REccPoint val2;
+
+        ep_norm(val2, val);
+
         out << "(";
-        print(out, val.mVal->x);
+        print(out, val2.mVal->x);
         out << ", ";
-        print(out, val.mVal->y);
+        print(out, val2.mVal->y);
         out << ", ";
-        print(out, val.mVal->z);
+        print(out, val2.mVal->z);
         out << ")";
 
         return out;

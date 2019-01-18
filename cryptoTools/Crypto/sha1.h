@@ -54,8 +54,9 @@ namespace osuCrypto {
 				}
 			}
 		}
+
 		template<typename T>
-		typename std::enable_if<std::is_pod<T>::value>::type Update(const T& blk)
+		typename std::enable_if<std::is_pod<T>::value && !std::is_pointer<T>::value>::type Update(const T& blk)
 		{
 			Update((u8*)&blk, sizeof(T));
 		}
