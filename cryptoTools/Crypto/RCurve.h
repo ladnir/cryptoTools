@@ -168,6 +168,7 @@ namespace osuCrypto
 
         void randomize(PRNG& prng);
         void randomize(const block& seed);
+        void randomize();
 
 
         operator ep_t& () { return mVal; }

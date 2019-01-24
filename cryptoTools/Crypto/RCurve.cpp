@@ -617,6 +617,13 @@ namespace osuCrypto
             throw std::runtime_error("Relic ep_map error " LOCATION);
     }
 
+    void REccPoint::randomize()
+    {
+        ep_rand(*this);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_rand error " LOCATION);
+    }
+
     u64 REccNumber::sizeDigits() const
     {
         return bn_size_raw(modulus());

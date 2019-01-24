@@ -722,6 +722,14 @@ namespace osuCrypto
     }
 #endif
 
+
+    void EccPoint::randomize()
+    {
+        PRNG prng(sysRandomSeed());
+        EccNumber num(*mCurve, prng);
+        *this = mCurve->getGenerator() * num;
+    }
+
     void EccPoint::setCurve(EllipticCurve & curve)
     {
         mCurve = &curve;

@@ -338,6 +338,7 @@ namespace osuCrypto
 		void randomize(PRNG& prng);
 		void randomize(const block& seed);
 #endif
+        void randomize();
 
 		void setCurve(EllipticCurve& curve);
 
