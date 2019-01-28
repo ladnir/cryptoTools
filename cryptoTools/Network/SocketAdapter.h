@@ -163,14 +163,14 @@ namespace osuCrypto
         {
             boost::system::error_code ec;
             bytesTransfered = boost::asio::write(mSock, buffers, ec);
-            error = (ec != 0);
+            error = static_cast<bool>(ec);
         }
 
         void recv(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
         {
             boost::system::error_code ec;
             bytesTransfered = boost::asio::read(mSock, buffers, ec);
-            error = (ec != 0);
+            error = static_cast<bool>(ec);
         }
     };
 }

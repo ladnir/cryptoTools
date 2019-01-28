@@ -26,7 +26,7 @@ namespace osuCrypto
         mPendingSocketsEmptyFuture(mPendingSocketsEmptyProm.get_future()),
         mStoppedFuture(mStoppedPromise.get_future()),
         mIOService(ioService),
-        mStrand(ioService.mIoService),
+        mStrand(ioService.mIoService.get_executor()),
         mHandle(ioService.mIoService),
         mStopped(false),
         mPort(0)
@@ -80,7 +80,7 @@ namespace osuCrypto
 
     void Acceptor::start()
     {
-        mStrand.dispatch([&]()
+        boost::asio::dispatch(mStrand, [&]()
         {
             if (isListening())
             {
@@ -116,7 +116,8 @@ namespace osuCrypto
                                 sockIter->mBuff.resize(size);
 
                                 sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
-                                    mStrand.wrap([sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
+                                    
+                                    bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
                                 {
                                     if (!ec3)
                                     {
@@ -148,7 +149,7 @@ namespace osuCrypto
 
                                 LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
 
-                                mStrand.dispatch([&, sockIter]()
+                                boost::asio::dispatch(mStrand, [&, sockIter]()
                                 {
                                     mPendingSockets.erase(sockIter);
                                     if (stopped() && mPendingSockets.size() == 0)
@@ -162,7 +163,7 @@ namespace osuCrypto
                     {
                         LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " +ec.message());
 
-                        mStrand.dispatch([&, sockIter]()
+                        boost::asio::dispatch(mStrand, [&, sockIter]()
                         {
                             mPendingSockets.erase(sockIter);
                             if (stopped() && mPendingSockets.size() == 0)
@@ -183,7 +184,7 @@ namespace osuCrypto
     {
         if (mStopped == false)
         {
-            mStrand.dispatch([&]() {
+            boost::asio::dispatch(mStrand, [&]() {
                 if (mStopped == false)
                 {
                     mStopped = true;
@@ -238,7 +239,7 @@ namespace osuCrypto
     {
         if (isListening())
         {
-            mStrand.dispatch([&]() {
+            boost::asio::dispatch(mStrand, [&]() {
                 if (hasSubscriptions() == false)
                 {
 
@@ -260,7 +261,7 @@ namespace osuCrypto
         std::future<void> f(p.get_future());
         auto iter = session->mGroup;
 
-        mStrand.dispatch([&, iter]() {
+        boost::asio::dispatch(mStrand, [&, iter]() {
             iter->mBase.reset();
 
             if (iter->hasSubscriptions() == false)
@@ -286,7 +287,7 @@ namespace osuCrypto
 
         session->mAcceptor = this;
 
-        mStrand.dispatch([&]() {
+        boost::asio::dispatch(mStrand, [&]() {
 
             if (mStopped)
             {
@@ -374,7 +375,7 @@ namespace osuCrypto
 
     void Acceptor::cancelPendingChannel(ChannelBase* chl)
     {
-        mStrand.dispatch([=]() {
+        boost::asio::dispatch(mStrand, [=]() {
             auto iter = chl->mSession->mGroup;
 
             auto chlIter = std::find_if(iter->mChannels.begin(), iter->mChannels.end(),
@@ -414,7 +415,7 @@ namespace osuCrypto
     {
         if (stopped()) throw std::runtime_error(LOCATION);
 
-        mStrand.dispatch([&, chl]() {
+        boost::asio::dispatch(mStrand, [&, chl]() {
 
             auto& sessionGroup = chl->mSession->mGroup;
             auto& sessionName = chl->mSession->mName;
@@ -511,7 +512,7 @@ namespace osuCrypto
         std::unique_ptr<BoostSocketInterface> s)
     {
         auto ss = s.release();
-        mStrand.dispatch([this, name, ss]() {
+        boost::asio::dispatch(mStrand, [this, name, ss]() {
             std::unique_ptr<BoostSocketInterface> sock(ss);
 
             auto names = split(name, '`');
@@ -646,7 +647,7 @@ namespace osuCrypto
     IOService::IOService(u64 numThreads)
         :
         mIoService(),
-        mStrand(mIoService),
+        mStrand(mIoService.get_executor()),
         mWorker(new boost::asio::io_service::work(mIoService))
     {
 
@@ -729,7 +730,7 @@ namespace osuCrypto
         std::promise<std::list<Acceptor>::iterator> p;
         std::future<std::list<Acceptor>::iterator> f = p.get_future();
 
-        mStrand.dispatch([&]()
+        boost::asio::dispatch(mStrand, [&]()
         {
             // see if there already exists an acceptor that this endpoint can use.
             auto acceptorIter = std::find_if(

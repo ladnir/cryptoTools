@@ -30,8 +30,8 @@ namespace osuCrypto {
         mRemoteName(remoteName),
         mLocalName(localName),
         mTimer(endpoint.getIOService().mIoService),
-	    mSendStrand(endpoint.getIOService().mIoService),
-        mRecvStrand(endpoint.getIOService().mIoService),
+	    mSendStrand(endpoint.getIOService().mIoService.get_executor()),
+        mRecvStrand(endpoint.getIOService().mIoService.get_executor()),
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
@@ -46,8 +46,8 @@ namespace osuCrypto {
         mWork(new boost::asio::io_service::work(ios.mIoService)),
         mHandle(sock),
         mTimer(ios.mIoService),
-        mSendStrand(ios.mIoService),
-        mRecvStrand(ios.mIoService),
+        mSendStrand(ios.mIoService.get_executor()),
+        mRecvStrand(ios.mIoService.get_executor()),
         mOpenProm(),
         mOpenFut(mOpenProm.get_future()),
         mOpenCount(0),
@@ -121,8 +121,7 @@ namespace osuCrypto {
 
                 LOG_MSG("Success: async connect to server. ConnectionString = " + str);
 
-
-                mSendStrand.dispatch([this, str]() mutable
+                boost::asio::dispatch(mSendStrand,[this, str]() mutable
                 {
                     LOG_MSG("async connect. Sending ConnectionString");
                     using namespace details;
@@ -144,7 +143,7 @@ namespace osuCrypto {
                         {
                             LOG_MSG("async connect. ConnectionString sent.");
 
-                            mSendStrand.dispatch([this]()
+                            boost::asio::dispatch(mSendStrand, [this]()
                             {
                                 mSendSocketAvailable = true;
 
@@ -171,7 +170,7 @@ namespace osuCrypto {
                 });
 
 
-                mRecvStrand.dispatch([this]()
+                boost::asio::dispatch(mRecvStrand,[this]()
                 {
                     auto ii = ++mOpenCount;
                     if (ii == 2) mOpenProm.set_value();
@@ -265,7 +264,7 @@ namespace osuCrypto {
                 cancelSendQueuedOperations();
             }
 
-            mSendStrand.dispatch([&]() {
+            boost::asio::dispatch(mSendStrand, [&]() {
                 if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
                 {
                     mSendQueueEmpty = true;
@@ -273,7 +272,7 @@ namespace osuCrypto {
                 }
             });
 
-            mRecvStrand.dispatch([&]() {
+            boost::asio::dispatch(mRecvStrand, [&]() {
                 if (mRecvQueue.isEmpty() && mRecvQueueEmpty == false)
                 {
                     mRecvQueueEmpty = true;
@@ -304,7 +303,7 @@ namespace osuCrypto {
         mRecvQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mRecvStrand.post([this]()
+        boost::asio::post(mRecvStrand, [this]()
         {
 
 
@@ -339,7 +338,7 @@ namespace osuCrypto {
         mSendQueue.push_back(std::move(op));
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mSendStrand.post([this]()
+        boost::asio::post(mSendStrand, [this]()
         {
             auto hasItems = (mSendQueue.isEmpty() == false);
             auto startSending = hasItems && mSendSocketAvailable;
@@ -379,7 +378,7 @@ namespace osuCrypto {
                 }
                 else
                 {
-                    mRecvStrand.dispatch([this]()
+                    boost::asio::dispatch(mRecvStrand, [this]()
                     {
                         LOG_MSG("completed recv: " + mRecvQueue.front()->toString());
 
@@ -418,7 +417,7 @@ namespace osuCrypto {
         }
 
         mSendSocketAvailable = false;
-        mIos.mIoService.dispatch([this] {
+        boost::asio::dispatch(mRecvStrand, [this] {
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalSentData += bytesTransferred;
@@ -431,7 +430,7 @@ namespace osuCrypto {
                 }
                 else
                 {
-                    mSendStrand.dispatch([this]()
+                    boost::asio::dispatch(mSendStrand, [this]()
                     {
                         LOG_MSG("completed send #" + mSendQueue.front()->toString());
 
@@ -470,7 +469,7 @@ namespace osuCrypto {
         {
             mOpenFut.get();
 
-            mSendStrand.dispatch([&]() {
+            boost::asio::dispatch(mSendStrand, [&]() {
                 mSendStatus = Channel::Status::Stopped;
                 if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
                 {
@@ -479,7 +478,7 @@ namespace osuCrypto {
                 }
             });
 
-            mRecvStrand.dispatch([&]() {
+            boost::asio::dispatch(mRecvStrand, [&]() {
                 mRecvStatus = Channel::Status::Stopped;
                 if (mRecvQueue.isEmpty() && mRecvQueueEmpty == false)
                 {
@@ -510,7 +509,7 @@ namespace osuCrypto {
 
     void ChannelBase::cancelSendQueuedOperations()
     {
-        mSendStrand.dispatch([this]()
+        boost::asio::dispatch(mSendStrand, [this]()
         {
             if (mSendQueueEmpty == false)
             {
@@ -532,7 +531,7 @@ namespace osuCrypto {
 
     void ChannelBase::cancelRecvQueuedOperations()
     {
-        mRecvStrand.dispatch([this]()
+        boost::asio::dispatch(mRecvStrand, [this]()
         {
             if (mRecvQueueEmpty == false)
             {
@@ -557,7 +556,7 @@ namespace osuCrypto {
 
         mHandle = std::move(socket);
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mRecvStrand.post([this]()
+        boost::asio::post(mRecvStrand, [this]()
         {
             auto ii = ++mOpenCount;
             if (ii == 2)
@@ -576,7 +575,7 @@ namespace osuCrypto {
 
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        mSendStrand.post([this]()
+        boost::asio::post(mSendStrand, [this]()
         {
             auto ii = ++mOpenCount;
             if (ii == 2)
@@ -645,7 +644,7 @@ namespace osuCrypto {
         if (mIos.mPrint)
             std::cout << reason << std::endl;
 
-        mRecvStrand.dispatch([&, reason]() {
+        boost::asio::dispatch(mRecvStrand, [&, reason]() {
 
             LOG_MSG("Recv error: " + reason);
             mRecvErrorMessage += (reason + "\n");
@@ -659,7 +658,7 @@ namespace osuCrypto {
         if (mIos.mPrint)
             std::cout << reason << std::endl;
 
-        mSendStrand.dispatch([&, reason]() {
+        boost::asio::dispatch(mSendStrand, [&, reason]() {
 
             LOG_MSG("Send error: " + reason);
             mSendErrorMessage = reason;
@@ -673,7 +672,7 @@ namespace osuCrypto {
         if (mIos.mPrint)
             std::cout << reason << std::endl;
 
-        mRecvStrand.dispatch([&, reason]() {
+        boost::asio::dispatch(mRecvStrand, [&, reason]() {
 
             LOG_MSG("Recv bad buff size: " + reason);
             if (mRecvStatus == Channel::Status::Normal)
@@ -685,7 +684,7 @@ namespace osuCrypto {
 
     void ChannelBase::clearBadRecvErrorState()
     {
-        mRecvStrand.dispatch([&]() {
+        boost::asio::dispatch(mRecvStrand, [&]() {
             LOG_MSG("Recv clear bad buff size: ");
 
             if (activeRecvSizeError() && mRecvStatus == Channel::Status::Normal)

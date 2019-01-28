@@ -50,7 +50,7 @@ namespace osuCrypto
         ~IOService();
 
         boost::asio::io_service mIoService;
-		boost::asio::strand mStrand;
+		boost::asio::strand<boost::asio::io_service::executor_type> mStrand;
 
         std::unique_ptr<boost::asio::io_service::work> mWorker;
 
@@ -191,7 +191,7 @@ namespace osuCrypto
 
 		IOService& mIOService;
 
-		boost::asio::strand mStrand;
+		boost::asio::strand<boost::asio::io_service::executor_type> mStrand;
 		boost::asio::ip::tcp::acceptor mHandle;
 
 		std::atomic<bool> mStopped;
