@@ -2,6 +2,7 @@
 
 
 #include <cryptoTools/Common/Log.h>
+#include <cryptoTools/Common/CLP.h>
 #include <iomanip>
 #include <cmath>
 
@@ -88,6 +89,27 @@ namespace osuCrypto
                 << "#############################################" << std::endl << ColorDefault;
             return Result::failed;
         }
+    }
+
+    TestCollection::Result TestCollection::runIf(CLP& cmd)
+    {
+        if (cmd.isSet("list"))
+        {
+            list();
+            return Result::passed;
+        }
+        auto unitTestTag = std::vector<std::string>{ "u","unitTests" };
+        if (cmd.isSet(unitTestTag))
+        {
+            cmd.setDefault("loop", 1);
+            auto loop = cmd.get<u64>("loop");
+
+            if (cmd.hasValue(unitTestTag))
+                return run(cmd.getMany<u64>(unitTestTag), loop);
+            else
+                return runAll(loop);
+        }
+        return Result::skipped;
     }
 
     TestCollection::Result TestCollection::runAll(uint64_t rp)

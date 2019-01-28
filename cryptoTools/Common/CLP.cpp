@@ -76,6 +76,11 @@ namespace osuCrypto
         }
     }
 
+    void CLP::set(std::string name)
+    {
+        mKeyValues[name];
+    }
+
     bool CLP::isSet(std::string name)
     {
         return mKeyValues.find(name) != mKeyValues.end();

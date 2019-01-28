@@ -4,6 +4,9 @@
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Network/IOService.h>
+#include <thread>
+#include <chrono>
+
 namespace osuCrypto {
 
     Channel::Channel(
@@ -72,7 +75,8 @@ namespace osuCrypto {
 
     void ChannelBase::asyncConnectToServer(const boost::asio::ip::tcp::endpoint& address)
     {
-        LOG_MSG("start async connect to server");
+        LOG_MSG("start async connect to server at " +
+            address.address().to_string() + " : "+std::to_string(address.port()));
 
         mHandle.reset(new BoostSocketInterface(
             boost::asio::ip::tcp::socket(getIOService().mIoService)));
@@ -121,30 +125,41 @@ namespace osuCrypto {
 
                 LOG_MSG("Success: async connect to server. ConnectionString = " + str);
 
-                boost::asio::dispatch(mSendStrand,[this, str]() mutable
+                boost::asio::dispatch(mSendStrand,[this, str,address]() mutable
                 {
                     LOG_MSG("async connect. Sending ConnectionString");
                     using namespace details;
                     auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
 
-                    op->asyncPerform(this, [this, op](error_code ec, u64 bytesTransferred) {
-
-                        auto ii = ++mOpenCount;
-                        if (ii == 2) mOpenProm.set_value();
+                    op->asyncPerform(this, [this, op, address](error_code ec, u64 bytesTransferred) {
 
                         if (ec)
                         {
-                            LOG_MSG("async connect. Failed to send ConnectionString");
-                            setSendFatalError("Async connect error (" +
-                                mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
-                                +ec.message() +" " + LOCATION);
+                            auto& sock = ((BoostSocketInterface*)mHandle.get())->mSock;
+
+                            auto msg = "async connect. Failed to send ConnectionString ~ ec=" + ec.message() + "\n"
+                                + " isOpen=" + std::to_string(sock.is_open()) 
+                                + " stopped=" +std::to_string(stopped());
+                            
+                            LOG_MSG(msg);
+
+                            // Unknown issue where we connect but then the pipe is broken. 
+                            // Simply retrying seems to be a workaround.
+                            if (stopped() == false)
+                            {
+                                sock.close();
+                                sock.async_connect(address, mConnectCallback);
+                            }
                         }
                         else
                         {
+
                             LOG_MSG("async connect. ConnectionString sent.");
 
                             boost::asio::dispatch(mSendStrand, [this]()
                             {
+                                auto ii = ++mOpenCount;
+                                if (ii == 2) mOpenProm.set_value();
                                 mSendSocketAvailable = true;
 
 
@@ -165,27 +180,30 @@ namespace osuCrypto {
                                     }
                                 }
                             });
+
+
+
+
+                            boost::asio::dispatch(mRecvStrand, [this]()
+                            {
+                                auto ii = ++mOpenCount;
+                                if (ii == 2) mOpenProm.set_value();
+                                mRecvSocketAvailable = true;
+
+                                if (!mRecvQueue.isEmpty())
+                                {
+                                    LOG_MSG("async connect. Recv Strand, start.");
+                                    asyncPerformRecv();
+                                }
+                                else
+                                {
+                                    LOG_MSG("async connect. Recv Strand, queue empty.");
+                                }
+                            });
                         }
                     });
                 });
 
-
-                boost::asio::dispatch(mRecvStrand,[this]()
-                {
-                    auto ii = ++mOpenCount;
-                    if (ii == 2) mOpenProm.set_value();
-                    mRecvSocketAvailable = true;
-
-                    if (!mRecvQueue.isEmpty())
-                    {
-                        LOG_MSG("async connect. Recv Strand, start.");
-                        asyncPerformRecv();
-                    }
-                    else
-                    {
-                        LOG_MSG("async connect. Recv Strand, queue empty.");
-                    }
-                });
             }
         };
 

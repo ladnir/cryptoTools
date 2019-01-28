@@ -90,11 +90,14 @@ namespace osuCrypto
 #ifdef CHANNEL_LOGGING
                 sockIter->mIdx = mPendingSocketIdx++;
 #endif
-                LOG_MSG("lestening with socket#" + std::to_string(sockIter->mIdx));
+                LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
+                    " at " + mAddress.address().to_string() +" : "+ std::to_string(mAddress.port()));
 
                 //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
                 mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
                 {
+                    //std::cout << "async_accept cb socket#" + std::to_string(sockIter->mIdx) << " " << ec.message() <<  std::endl;
+
                     start();
 
                     if (!ec)

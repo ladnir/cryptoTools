@@ -18,7 +18,7 @@
 
 namespace osuCrypto
 {
-
+    class CLP;
     class TestCollection
     {
     public:
@@ -45,7 +45,7 @@ namespace osuCrypto
         Result runOne(u64 idx);
         Result run(std::vector<u64> testIdxs, u64 repeatCount = 1);
         Result runAll(uint64_t repeatCount = 1);
-
+        Result runIf(CLP& cmd);
         void list();
 
         void add(std::string name, std::function<void()> test);

@@ -49,6 +49,9 @@ namespace osuCrypto
 		// Set the default for the provided key. Keys do not include the leading `-`.
 		void setDefault(std::vector<std::string> keys, i64 value) { setDefault(keys, std::to_string(value)); }
 
+        // Manually set a flag.
+        void set(std::string name);
+
 		// Return weather the key was provided on the command line or has a default.
         bool isSet(std::string name);
 

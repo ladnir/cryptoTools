@@ -8,6 +8,7 @@
 
 namespace osuCrypto
 {
+    std::chrono::time_point<std::chrono::system_clock> gStart = std::chrono::system_clock::now();
 
 
 	ostreamLocker lout(std::cout);

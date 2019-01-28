@@ -5,21 +5,28 @@
 #include <ostream>
 #include <mutex>
 #include <vector>
+#include <chrono>
+
 
 namespace osuCrypto
 {
+    extern std::chrono::time_point<std::chrono::system_clock> gStart;
     class Log
     {
     public:
-        std::vector<std::string> mMessages;
+        std::vector<std::pair<u64,std::string>> mMessages;
         std::mutex mLock;
 
         void push(const std::string& msg)
         {
             std::lock_guard<std::mutex>l(mLock);
-            mMessages.emplace_back(msg);
-        }
 
+
+            auto now = std::chrono::system_clock::now();
+            auto ts = std::chrono::duration_cast<std::chrono::microseconds>(now - gStart).count();
+
+            mMessages.emplace_back(ts, msg);
+        }
 
     };
     inline std::ostream& operator<<(std::ostream& o, Log& log)
@@ -27,7 +34,7 @@ namespace osuCrypto
         std::lock_guard<std::mutex>l(log.mLock);
         for (u64 i = 0; i < log.mMessages.size(); ++i)
         {
-            o << "[" << i << "]  " << log.mMessages[i] << std::endl;
+            o << "[" << i <<", "<< log.mMessages[i].first<<"]  " << log.mMessages[i].second << std::endl;
         }
 
         return o;

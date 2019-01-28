@@ -5,7 +5,7 @@ $SolutionDir=$PWD
 $RemoteWorkingDir='/scratch/repo/cryptoTools'
 
 # only files with these extensions will be copied
-$FileMasks='**.cpp;**.c;**.h;*.bin,*.S,*.sh,*CMake*;*/gsl/*;*/Tools/*.txt;**.mak;thirdparty/linux/**.get;*/libOTe_Tests/testData/*.txt'
+$FileMasks='**.cpp;**.c;**.h;*.h.in;*.bin,*.S,*.sh,*CMake*;*/gsl/*;*/Tools/*.txt;**.mak;thirdparty/linux/**.get;*/libOTe_Tests/testData/*.txt'
 
 # everything in these folders will be skipped
 $ExcludeDirs='.git/;thirdparty/;Debug/;Release/;x64/;ipch/;.vs/'

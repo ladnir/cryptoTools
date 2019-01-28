@@ -79,7 +79,7 @@ namespace tests_cryptoTools
 
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CancelChannel_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CancelChannel_Test);
     void BtNetwork_CancelChannel_Test()
     {
         u64 trials = 10;
@@ -195,7 +195,7 @@ namespace tests_cryptoTools
         //std::cout << t << std::endl << std::endl;
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);
     void BtNetwork_ServerMode_Test()
     {
         u64 numConnect = 128;
@@ -280,7 +280,7 @@ namespace tests_cryptoTools
         //thrd.join();
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_Connect1_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_Connect1_Test);
     void BtNetwork_Connect1_Test()
     {
         setThreadName("Test_Host");
@@ -289,36 +289,42 @@ namespace tests_cryptoTools
         std::string msg{ "This is the message" };
 
         IOService ioService(0);
+        Channel chl1, chl2;
         auto thrd = std::thread([&]()
         {
             setThreadName("Test_Client");
 
             Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-            Channel chl = endpoint.addChannel(channelName, channelName);
+            chl1 = endpoint.addChannel(channelName, channelName);
 
             std::string recvMsg;
-            chl.recv(recvMsg);
+            chl1.recv(recvMsg);
 
             if (recvMsg != msg) throw UnitTestFail();
 
-            chl.asyncSend(std::move(recvMsg));
+            chl1.asyncSend(std::move(recvMsg));
         });
 
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
-        auto chl = endpoint.addChannel(channelName, channelName);
+        chl2 = endpoint.addChannel(channelName, channelName);
 
-        chl.asyncSend(msg);
+        chl2.asyncSend(msg);
 
         std::string clientRecv;
-        chl.recv(clientRecv);
-
-        if (clientRecv != msg) throw UnitTestFail();
+        chl2.recv(clientRecv);
 
         thrd.join();
+        if (clientRecv != msg) throw UnitTestFail();
+
+        //std::cout << "chl1: " << chl1.mBase->mLog << std::endl;
+
+
+        //std::cout << "acpt: " << ioService.mAcceptors.begin()->mLog << std::endl;
+        //std::cout << "chl2: " << chl2.mBase->mLog << std::endl;
     }
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_OneMegabyteSend_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_OneMegabyteSend_Test);
     void BtNetwork_OneMegabyteSend_Test()
     {
         setThreadName("Test_Host");
@@ -343,8 +349,8 @@ namespace tests_cryptoTools
             chl.recv(srvRecv);
 
 
-			if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
-				throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
+            if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
+                throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
 
 
             if (srvRecv != oneMegabyte) throw UnitTestFail();
@@ -353,45 +359,45 @@ namespace tests_cryptoTools
         });
 
 
-		Finally f([&] { thrd.join(); });
+        Finally f([&] { thrd.join(); });
 
 
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
         auto chl = endpoint.addChannel(channelName, channelName);
 
 
-		if (chl.getTotalDataSent() != 0)
-			throw UnitTestFail("channel send statistics incorrectly initialized." LOCATION);
-		if (chl.getTotalDataRecv() != 0)
-			throw UnitTestFail("channel recv statistics incorrectly initialized." LOCATION);
+        if (chl.getTotalDataSent() != 0)
+            throw UnitTestFail("channel send statistics incorrectly initialized." LOCATION);
+        if (chl.getTotalDataRecv() != 0)
+            throw UnitTestFail("channel recv statistics incorrectly initialized." LOCATION);
 
 
-		std::vector<u8> clientRecv;
-		chl.asyncSend(oneMegabyte);
-		chl.recv(clientRecv);
+        std::vector<u8> clientRecv;
+        chl.asyncSend(oneMegabyte);
+        chl.recv(clientRecv);
 
-		if (chl.getTotalDataSent() != oneMegabyte.size() + 4)
-			throw UnitTestFail("channel send statistics incorrectly increased." LOCATION);
-		if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
-			throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
+        if (chl.getTotalDataSent() != oneMegabyte.size() + 4)
+            throw UnitTestFail("channel send statistics incorrectly increased." LOCATION);
+        if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
+            throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
 
-		chl.resetStats();
+        chl.resetStats();
 
-		if (chl.getTotalDataSent() != 0)
-			throw UnitTestFail("channel send statistics incorrectly reset." LOCATION);
-		if (chl.getTotalDataRecv() != 0)
-			throw UnitTestFail("channel recv statistics incorrectly reset." LOCATION);
+        if (chl.getTotalDataSent() != 0)
+            throw UnitTestFail("channel send statistics incorrectly reset." LOCATION);
+        if (chl.getTotalDataRecv() != 0)
+            throw UnitTestFail("channel recv statistics incorrectly reset." LOCATION);
 
-		if (clientRecv != oneMegabyte)
-			throw UnitTestFail();
+        if (clientRecv != oneMegabyte)
+            throw UnitTestFail();
 
 
 
-        
+
     }
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ConnectMany_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ConnectMany_Test);
     void BtNetwork_ConnectMany_Test()
     {
         //InitDebugPrinting();
@@ -476,7 +482,7 @@ namespace tests_cryptoTools
     }
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CrossConnect_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CrossConnect_Test);
     void BtNetwork_CrossConnect_Test()
     {
         const block send = _mm_set_epi64x(123412156, 123546);
@@ -536,7 +542,7 @@ namespace tests_cryptoTools
         thrd.join();
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ManySessions_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ManySessions_Test);
     void BtNetwork_ManySessions_Test()
     {
         u64 nodeCount = 10;
@@ -618,39 +624,56 @@ namespace tests_cryptoTools
             throw UnitTestFail();
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AsyncConnect_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_AsyncConnect_Test);
     void BtNetwork_AsyncConnect_Test()
     {
         setThreadName("Test_Host");
 
-
-        std::string channelName{ "TestChannel" };
-        std::string msg{ "This is the message" };
-
         IOService ioService(4);
+        Channel chl1, chl2;
+        try {
 
-        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-        auto chl1 = ep1.addChannel(channelName, channelName);
-        Finally cleanup1([&]() { chl1.close(); ep1.stop(); ioService.stop(); });
-
-        if (chl1.isConnected() == true) throw UnitTestFail();
-
-
-        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
-        Finally cleanup2([&]() { ep2.stop(); });
-
-        if (chl1.isConnected() == true) throw UnitTestFail();
+            std::string channelName{ "TestChannel" };
+            std::string msg{ "This is the message" };
 
 
-        auto chl2 = ep2.addChannel(channelName, channelName);
-        Finally cleanup3([&]() { chl2.close(); });
+            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+            chl1 = ep1.addChannel(channelName, channelName);
 
-        chl1.waitForConnection();
+            if (chl1.isConnected() == true) throw UnitTestFail();
 
-        if (chl1.isConnected() == false) throw UnitTestFail();
+
+            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
+
+            if (chl1.isConnected() == true) throw UnitTestFail();
+
+            //std::cout << "add 2" << std::endl;
+            chl2 = ep2.addChannel(channelName, channelName);
+
+            chl1.waitForConnection();
+
+            if (chl1.isConnected() == false) throw UnitTestFail();
+
+        }
+        catch (...)
+        {
+
+            //std::cout << "done" << std::endl;
+
+            //std::cout << "chl1: " << chl1.mBase->mLog << std::endl;
+
+            //int aa = 0;
+            //for (auto& a : ioService.mAcceptors)
+            //{
+            //    std::cout << "acpt"<<aa++<<": " << a.mLog << std::endl;
+            //}
+            //std::cout << "chl2: " << chl2.mBase->mLog << std::endl;
+            throw;
+        }
+
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_std_Containers_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_std_Containers_Test);
     void BtNetwork_std_Containers_Test()
     {
         setThreadName("Test_Host");
@@ -701,7 +724,7 @@ namespace tests_cryptoTools
     }
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_bitVector_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_bitVector_Test);
     void BtNetwork_bitVector_Test()
     {
         setThreadName("Test_Host");
@@ -731,7 +754,7 @@ namespace tests_cryptoTools
 
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_recvErrorHandler_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_recvErrorHandler_Test);
     void BtNetwork_recvErrorHandler_Test()
     {
 
@@ -794,7 +817,7 @@ namespace tests_cryptoTools
             throw UnitTestFail("failed to recover bad recv size.");
     }
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_closeOnError_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_closeOnError_Test);
     void BtNetwork_closeOnError_Test()
     {
 
@@ -945,13 +968,13 @@ namespace tests_cryptoTools
                         }
                     }
                 }
-                
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
     };
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_SocketInterface_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_SocketInterface_Test);
     void BtNetwork_SocketInterface_Test()
     {
         setThreadName("main");
@@ -1004,7 +1027,7 @@ namespace tests_cryptoTools
     }
 
 
-    OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_RapidConnect_Test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_RapidConnect_Test);
     void BtNetwork_RapidConnect_Test()
     {
 
@@ -1076,7 +1099,7 @@ namespace tests_cryptoTools
 
     };
 
-    OSU_CRYPTO_ADD_TEST(globalTests, SBO_ptr_test);
+    //OSU_CRYPTO_ADD_TEST(globalTests, SBO_ptr_test);
     void SBO_ptr_test()
     {
         auto ss = std::string("s");

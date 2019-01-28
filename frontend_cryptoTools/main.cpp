@@ -5,6 +5,7 @@
 #include "cryptoTools/Network/IOService.h"
 #include <cryptoTools/Common/Matrix.h>
 #include "cryptoTools/Common/CuckooIndex.h"
+#include "cryptoTools/Common/CLP.h"
 using namespace osuCrypto;
 #include <sstream>
 //#include <cryptoTools/Crypto/Blake2/blake2.h>
@@ -12,5 +13,8 @@ using namespace osuCrypto;
 
 int main(int argc, char** argv)
 {
-    tests_cryptoTools::Tests.runAll();
+    CLP cmd(argc, argv);
+    cmd.set("u");
+
+    tests_cryptoTools::Tests.runIf(cmd);
 }
