@@ -281,6 +281,10 @@ namespace osuCrypto {
                 cancelRecvQueuedOperations();
                 cancelSendQueuedOperations();
             }
+            std::promise<void> checkSendQueue, checkRecvQueue;
+            std::future<void> 
+                checkSendQueueFut(checkSendQueue.get_future()), 
+                checkRecvQueueFut(checkRecvQueue.get_future());
 
             boost::asio::dispatch(mSendStrand, [&]() {
                 if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
@@ -288,6 +292,7 @@ namespace osuCrypto {
                     mSendQueueEmpty = true;
                     mSendQueueEmptyProm.set_value();
                 }
+                checkSendQueue.set_value();
             });
 
             boost::asio::dispatch(mRecvStrand, [&]() {
@@ -298,8 +303,13 @@ namespace osuCrypto {
                 }
                 else if (activeRecvSizeError())
                     cancelRecvQueuedOperations();
+
+                checkRecvQueue.set_value();
+
             });
 
+            checkSendQueueFut.get();
+            checkRecvQueueFut.get();
             mSendQueueEmptyFuture.get();
             mRecvQueueEmptyFuture.get();
 
