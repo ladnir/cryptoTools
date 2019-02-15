@@ -38,10 +38,10 @@ namespace tests_cryptoTools
         th.add("BitVector_Parity                        ", BitVector_Parity_Test_Impl);
         th.add("BitVector_Append_Test                   ", BitVector_Append_Test_Impl);
         th.add("BitVector_Copy_Test                     ", BitVector_Copy_Test_Impl);
-
-        th.add("CuckooIndex_many_Test_Impl              ", CuckooIndex_many_Test_Impl);
-        th.add("CuckooIndex_paramSweep_Test_Impl        ", CuckooIndex_paramSweep_Test_Impl);
-        th.add("CuckooIndex_parallel_Test_Impl          ", CuckooIndex_parallel_Test_Impl);
+        th.add("BitVector_Resize_Test                   ", BitVector_Resize_Test_Impl);
+        th.add("CuckooIndex_many_Test                   ", CuckooIndex_many_Test_Impl);
+        th.add("CuckooIndex_paramSweep_Test             ", CuckooIndex_paramSweep_Test_Impl);
+        th.add("CuckooIndex_parallel_Test               ", CuckooIndex_parallel_Test_Impl);
 
         th.add("Ecc2mNumber_Test                        ", Ecc2mNumber_Test);
         th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);

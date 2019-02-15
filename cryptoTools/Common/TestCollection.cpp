@@ -12,12 +12,30 @@ namespace osuCrypto
     TestCollection globalTests;
 
 
-    void TestCollection::add(std::string name, std::function<void()> fn)
+    void TestCollection::add(std::string name, std::function<void(const CLP&)> fn)
     {
         mTests.push_back({ std::move(name), std::move(fn) });
     }
-    TestCollection::Result TestCollection::runOne(uint64_t idx)
+    void TestCollection::add(std::string name, std::function<void()> fn)
     {
+        mTests.push_back({ std::move(name),[func = std::move(fn)](const CLP& cmd)
+        {
+            func();
+        } });
+    }
+
+    TestCollection::Result TestCollection::runOne(uint64_t idx, CLP const * cmd)
+    {
+        if (idx >= mTests.size())
+        {
+            std::cout << Color::Red << "No test " << idx << std::endl;
+            return Result::failed;
+        }
+
+        CLP dummy;
+        if (cmd == nullptr)
+            cmd = &dummy;
+
         Result res = Result::failed;
         int w = int(std::ceil(std::log10(mTests.size())));
         std::cout << std::setw(w) << idx << " - " << Color::Blue << mTests[idx].mName << ColorDefault << std::flush;
@@ -25,7 +43,7 @@ namespace osuCrypto
         auto start = std::chrono::high_resolution_clock::now();
         try
         {
-            mTests[idx].mTest(); std::cout << Color::Green << "  Passed" << ColorDefault;
+            mTests[idx].mTest(*cmd); std::cout << Color::Green << "  Passed" << ColorDefault;
             res = Result::passed;
         }
         catch (const UnitTestSkipped& e)
@@ -47,7 +65,7 @@ namespace osuCrypto
         return res;
     }
 
-    TestCollection::Result TestCollection::run(std::vector<u64> testIdxs, u64 repeatCount)
+    TestCollection::Result TestCollection::run(std::vector<u64> testIdxs, u64 repeatCount, CLP const * cmd)
     {
         u64 numPassed(0), total(0), numSkipped(0);
 
@@ -56,7 +74,7 @@ namespace osuCrypto
             for (auto i : testIdxs)
             {
                 if (repeatCount != 1) std::cout << r << " ";
-                auto res = runOne(i);
+                auto res = runOne(i, cmd);
                 numPassed += (res == Result::passed);
                 total += (res != Result::skipped);
                 numSkipped += (res == Result::skipped);
@@ -105,20 +123,20 @@ namespace osuCrypto
             auto loop = cmd.get<u64>("loop");
 
             if (cmd.hasValue(unitTestTag))
-                return run(cmd.getMany<u64>(unitTestTag), loop);
+                return run(cmd.getMany<u64>(unitTestTag), loop, &cmd);
             else
-                return runAll(loop);
+                return runAll(loop, &cmd);
         }
         return Result::skipped;
     }
 
-    TestCollection::Result TestCollection::runAll(uint64_t rp)
+    TestCollection::Result TestCollection::runAll(uint64_t rp, CLP const * cmd)
     {
         std::vector<u64> v;
         for (u64 i = 0; i < mTests.size(); ++i)
             v.push_back(i);
 
-        return run(v, rp);
+        return run(v, rp, cmd);
     }
 
     void TestCollection::list()

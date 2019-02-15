@@ -47,11 +47,18 @@ namespace osuCrypto {
 		// Append an existing BitVector to this BitVector.
         void append(const BitVector& k) { append(k.data(), k.size()); }
 
+        // Append length bits pointed to by data starting a the bit index by offset.
+        void append(const BitVector& k, u64 length, u64 offset = 0);
+
         // erases original contents and set the new size, default 0.
         void reset(size_t new_nbits = 0);
 
-		// Resize the BitVector to have the desired number of bits,
+		// Resize the BitVector to have the desired number of bits.
         void resize(u64 newSize);
+
+        // Resize the BitVector to have the desired number of bits.
+        // Fill each new bit with val.
+        void resize(u64 newSize, u8 val);
 
 		// Reserve enough space for the specified number of bits.
         void reserve(u64 bits);

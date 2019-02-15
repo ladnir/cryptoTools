@@ -81,11 +81,11 @@ namespace osuCrypto
         mKeyValues[name];
     }
 
-    bool CLP::isSet(std::string name)
+    bool CLP::isSet(std::string name)const
     {
         return mKeyValues.find(name) != mKeyValues.end();
     }
-    bool CLP::isSet(std::vector<std::string> names)
+    bool CLP::isSet(std::vector<std::string> names)const
     {
         for (auto name : names)
         {
@@ -97,11 +97,11 @@ namespace osuCrypto
         return false;
     }
 
-    bool CLP::hasValue(std::string name)
+    bool CLP::hasValue(std::string name)const
     {
-        return mKeyValues.find(name) != mKeyValues.end() && mKeyValues[name].size();
+        return mKeyValues.find(name) != mKeyValues.end() && mKeyValues.at(name).size();
     }
-    bool CLP::hasValue(std::vector<std::string> names)
+    bool CLP::hasValue(std::vector<std::string> names)const
     {
         for (auto name : names)
         {

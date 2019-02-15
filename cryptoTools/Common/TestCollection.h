@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <cryptoTools/Common/Defines.h>
+//#include <cryptoTools/Common/Defines.h>
 
 //#define OSU_CRYPTO_PP_CAT(a, b) OSU_CRYPTO_PP_CAT_I(a, b)
 //#define OSU_CRYPTO_PP_CAT_I(a, b) OSU_CRYPTO_PP_CAT_II(~, a ## b)
@@ -25,9 +26,9 @@ namespace osuCrypto
         struct Test
         {
             std::string mName;
-            std::function<void()> mTest;
+            std::function<void(const CLP&)> mTest;
         };
-        TestCollection() = default;
+        TestCollection() = default; 
         TestCollection(std::function<void(TestCollection&)> init)
         {
             init(*this);
@@ -42,13 +43,14 @@ namespace osuCrypto
             failed
         };
 
-        Result runOne(u64 idx);
-        Result run(std::vector<u64> testIdxs, u64 repeatCount = 1);
-        Result runAll(uint64_t repeatCount = 1);
+        Result runOne(u64 idx, CLP const * cmd = nullptr);
+        Result run(std::vector<u64> testIdxs, u64 repeatCount = 1, CLP const * cmd = nullptr);
+        Result runAll(uint64_t repeatCount = 1, CLP const * cmd = nullptr);
         Result runIf(CLP& cmd);
         void list();
 
         void add(std::string name, std::function<void()> test);
+        void add(std::string name, std::function<void(const CLP&)> test);
 
         void operator+=(const TestCollection& add);
     };

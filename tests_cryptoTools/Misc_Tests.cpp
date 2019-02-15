@@ -116,4 +116,33 @@ namespace tests_cryptoTools
 
         }
     }
+
+    void BitVector_Resize_Test_Impl()
+    {
+        u64 size0 = 9;
+        BitVector bb(size0);
+
+        u64 size1 = 11;
+        bb.resize(size1, 1);
+
+        u64 size2 = 13;
+        bb.resize(size2, 0);
+
+        u64 size3 = 31;
+        bb.resize(size3, 1);
+
+        for (u64 i{ 0 }; i < size0; ++i)
+            if (bb[i])throw std::runtime_error(LOCATION);
+
+        for (u64 i{ size0 }; i < size1; ++i)
+            if (!bb[i])throw std::runtime_error(LOCATION);
+
+        for (u64 i{ size1 }; i < size2; ++i)
+            if (bb[i])throw std::runtime_error(LOCATION);
+
+        for (u64 i{ size2 }; i < size3; ++i)
+            if (!bb[i])throw std::runtime_error(LOCATION);
+
+
+    }
 }

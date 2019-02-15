@@ -79,6 +79,14 @@ namespace osuCrypto {
         }
     }
 
+
+    void BitVector::append(const BitVector& k, u64 length, u64 offset) {
+        if (k.size() < length + offset)
+            throw std::runtime_error("length too long. " LOCATION);
+
+        append(k.data(), length, offset);
+    }
+
     void BitVector::reserve(u64 bits)
     {
         u64 curBits = mNumBits;
@@ -104,6 +112,29 @@ namespace osuCrypto {
             mData = tmp;
         }
         mNumBits = newSize;
+    }
+
+    void BitVector::resize(u64 newSize, u8 val)
+    {
+        
+        val = bool(val) * ~0;
+
+        auto oldSize = size();
+        resize(newSize);
+
+        u64 offset = oldSize & 7;
+        u64 idx = oldSize / 8;
+
+        if (offset)
+        {
+            u8 mask = (~0) << offset;
+            mData[idx] = (mData[idx] & ~mask) | (val & mask);
+            ++idx;
+        }
+
+        u64 rem = sizeBytes() - idx;
+        if(rem)
+            memset(mData + idx, val, rem);
     }
 
     void BitVector::reset(size_t new_nbits)
