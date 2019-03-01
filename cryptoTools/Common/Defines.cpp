@@ -58,7 +58,10 @@ namespace osuCrypto {
 
     u64 log2ceil(u64 value)
     {
-        return u64(std::ceil(std::log2(value)));
+        auto floor = log2floor(value);
+
+        return floor + (value > (1ull << floor));
+        //return u64(std::ceil(std::log2(value)));
     }
 
     block sysRandomSeed()
