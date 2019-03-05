@@ -120,7 +120,7 @@ void networkTutorial()
     #####################################################*/
 
     // There are several ways and modes to send and receive data.
-    // The simplest mode is block, i.e. when data is sent, the caller
+    // The simplest mode is blocking, i.e. when data is sent, the caller
     // blocks until all data is sent.
 
     // For example:

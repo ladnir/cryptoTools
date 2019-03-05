@@ -182,7 +182,7 @@ namespace osuCrypto
 	template<CuckooTypes Mode>
 	void CuckooIndex<Mode>::init(const u64& n, const u64& statSecParam, u64 stashSize, u64 h)
 	{
-		init(selectParams(n, statSecParam, 0, h));
+		init(selectParams(n, statSecParam, stashSize, h));
 	}
 
 	template<CuckooTypes Mode>
