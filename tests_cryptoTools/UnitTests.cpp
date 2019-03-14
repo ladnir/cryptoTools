@@ -77,6 +77,11 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
         th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
         th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
+
+        th.add("BetaCircuit_aes_test                    ", BetaCircuit_aes_test);
+        th.add("BetaCircuit_aes_sbox_test               ", BetaCircuit_aes_sbox_test);
+        th.add("BetaCircuit_aes_shiftRows_test          ", BetaCircuit_aes_shiftRows_test);
+        th.add("BetaCircuit_aes_mixColumns_test         ", BetaCircuit_aes_mixColumns_test);
 #endif
     });
 
