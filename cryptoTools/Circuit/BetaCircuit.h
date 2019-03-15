@@ -99,8 +99,8 @@ namespace osuCrypto
         void addCopy(BetaWire src, BetaWire dest);
         void addCopy(const BetaBundle& src, const  BetaBundle& dest);
 
-        bool isConst(BetaWire wire);
-        bool isInvert(BetaWire wire);
+        bool isConst(BetaWire wire)const;
+        bool isInvert(BetaWire wire)const;
         u8 constVal(BetaWire wire);
 
         void addPrint(BetaBundle in);
@@ -119,6 +119,11 @@ namespace osuCrypto
 
         void writeBin(std::ostream& out);
         void readBin(std::istream& in);
+
+
+        //BetaCircuit toBristol() const;
+        void writeBristol(std::ostream& out)const;
+        void readBristol(std::istream& in);
 
         bool operator==(const BetaCircuit& rhs)const {
             return *this != rhs;

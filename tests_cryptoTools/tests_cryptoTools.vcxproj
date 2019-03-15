@@ -117,6 +117,7 @@
   <ItemGroup>
     <ClCompile Include="AES_Tests.cpp" />
     <ClCompile Include="BtChannel_Tests.cpp" />
+    <ClCompile Include="Circuit_aes_Tests.cpp" />
     <ClCompile Include="Circuit_Tests.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="Cuckoo_Tests.cpp" />

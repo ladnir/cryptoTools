@@ -270,12 +270,12 @@ namespace osuCrypto
 
     }
 
-    bool BetaCircuit::isConst(BetaWire wire)
+    bool BetaCircuit::isConst(BetaWire wire)const
     {
         return mWireFlags[wire] == BetaWireFlag::One || mWireFlags[wire] == BetaWireFlag::Zero;
     }
 
-    bool BetaCircuit::isInvert(BetaWire wire)
+    bool BetaCircuit::isInvert(BetaWire wire)const
     {
         return mWireFlags[wire] == BetaWireFlag::InvWire;
     }
@@ -813,7 +813,7 @@ namespace osuCrypto
 
         //std::cout << j.dump(4) << std::endl;
 
-        if(j["name"].empty() == false)
+        if (j["name"].empty() == false)
             mName = j["name"].get<std::string>();
 
         auto& format = j["format"];
@@ -1074,7 +1074,7 @@ namespace osuCrypto
         read(count, in);
         mGates.resize(count);
         read(mGates.data(), mGates.size(), in);
-        
+
 
         mWireFlags.resize(mWireCount);
         read(mWireFlags.data(), mWireFlags.size(), in);
@@ -1115,12 +1115,233 @@ namespace osuCrypto
         }
     }
 
+    //BetaCircuit BetaCircuit::toBristol() const
+    //{
+    //    return BetaCircuit();
+    //}
+
+    void BetaCircuit::writeBristol(std::ostream & out)const
+    {
+        if (mInputs.size() != 2)
+            throw std::runtime_error("bristol only supports two inputs. Merge into for a single party...");
+
+
+        auto numGates = 0ull;
+        for (u64 i = 0; i < mGates.size(); ++i)
+        {
+            switch (mGates[i].mType)
+            {
+            case GateType::And:
+            case GateType::Xor:
+            case GateType::na:
+                ++numGates;
+                break;
+            case GateType::Nxor:
+                numGates += 2;
+                break;
+            case GateType::a:
+                numGates += 2 * mGates[i].mInput[1];
+                break;
+            default:
+            {
+                std::cout << gateToString(mGates[i].mType) << " not supported" << std::endl;
+                throw std::runtime_error("Bristol only supports {AND, XOR, NOT, Copy} gates. Call toBristol() to convert... " LOCATION);
+            }
+            }
+        }
+        for (u64 i = 0; i < mOutputs.size(); ++i)
+        {
+            for (u64 j = 0; j < mOutputs[i].size(); ++j)
+            {
+                if (isInvert(mOutputs[i].mWires[j]))
+                    ++numGates;
+            }
+        }
+
+        // name
+        out << numGates << " " << mWireCount << "\n";
+        auto numOut = 0ull;
+        for (auto o : mOutputs)
+            numOut += o.size();
+
+        auto inputCount = (mInputs[0].size() + mInputs[1].size());
+        auto internalCount = mWireCount - inputCount - numOut;
+
+        out << mInputs[0].size() << " " << mInputs[1].size() << " " << numOut << "\n\n";
+
+
+        // our outputs are the wires right after the inputs while bristol's 
+        // are at the end. This function fixes this by offsetting the wire 
+        // idxs approperatly.
+        auto translate = [&](u64 idx) {
+
+            // the first (numInput0 + numInput1) wires are inputs.
+            auto isInput = idx < inputCount;
+            if (isInput)
+                return idx;
+
+            // the last numOutputs wires are outputs.
+            auto isOutput = idx < (inputCount + numOut);
+            if (isOutput)
+                return idx + internalCount;
+
+            return idx - numOut;
+        };
+
+        u64 inIdx0, inIdx1, outIdx;
+
+        for (u64 i = 0; i < mGates.size(); ++i)
+        {
+            inIdx0 = translate(mGates[i].mInput[0]);
+            inIdx1 = translate(mGates[i].mInput[1]);
+            outIdx = translate(mGates[i].mOutput);
+
+            switch (mGates[i].mType)
+            {
+            case GateType::And:
+                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " AND\n";
+                --numGates;
+                break;
+            case GateType::Xor:
+                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " XOR\n";
+                --numGates;
+                break;
+            case GateType::na:
+                out << "1 1 " << inIdx0 << " " << outIdx << " INV\n";
+                --numGates;
+                break;
+            case GateType::Nxor:
+                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " XOR\n";
+                out << "1 1 " << outIdx << " " << outIdx << " INV\n";
+                numGates -= 2;
+                break;
+            case GateType::a:
+                for (u64 j = 0; j < mGates[i].mInput[1]; ++j, ++inIdx0, ++outIdx)
+                {
+                    // hack to perform a copy with two INVs
+                    out << "1 1 " << inIdx0 << " " << outIdx << " INV\n";
+                    out << "1 1 " << outIdx << " " << outIdx << " INV\n";
+                }
+                numGates -= 2 * mGates[i].mInput[1];;
+                break;
+            default:
+                break;
+            }
+        }
+
+
+        for (u64 i = 0; i < mOutputs.size(); ++i)
+        {
+            for (u64 j = 0; j < mOutputs[i].size(); ++j)
+            {
+                if (isInvert(mOutputs[i].mWires[j]))
+                {
+                    out << "1 1 " << mOutputs[i].mWires[j] << " " << mOutputs[i].mWires[j] << " NOT\n";
+                    --numGates;
+                }
+            }
+        }
+
+        if (numGates != 0)
+            throw RTE_LOC;
+    }
+
+    void BetaCircuit::readBristol(std::istream & in)
+    {
+        // call the destructor and constructor to make sure this object is empty;
+        //BetaCircuit::~BetaCircuit();
+        //new (this)BetaCircuit();
+
+        if (in.good() == false)
+            throw RTE_LOC;
+
+
+        u64 numGates, wireCount, numInput0, numInput1, numOutputs;
+
+        in >> numGates >> wireCount >> numInput0 >> numInput1 >> numOutputs;
+
+        if (!numGates || !wireCount || !numInput0 || !numInput1 || !numOutputs)
+            throw RTE_LOC;
+
+        BetaBundle input0(numInput0);
+        BetaBundle input1(numInput1);
+        BetaBundle output(numOutputs);
+        BetaBundle internal(wireCount - numInput0 - numInput1 - numOutputs);
+        addInputBundle(input0);
+        addInputBundle(input1);
+        addOutputBundle(output);
+        addTempWireBundle(internal);
+
+
+        
+        // our outputs are the wires right after the inputs while bristol's 
+        // are at the end. This function fixes this by offsetting the wire 
+        // idxs approperatly.
+        auto translate = [&](u64 idx) {
+
+            // the first (numInput0 + numInput1) wires are inputs.
+            auto isInput = idx < (numInput0 + numInput1);
+            if (isInput)
+                return idx;
+
+            // the last numOutputs wires are outputs.
+            auto isOutput = idx >= (wireCount - numOutputs);
+            if (isOutput)
+                return idx - internal.size();
+
+            return idx + numOutputs;
+        };
+
+        std::string gate;
+        u64 fanIn, fanOut, inIdx0, inIdx1, outIdx;
+        GateType gt;
+        for (u64 i = 0; i < numGates; ++i)
+        {
+            in >> fanIn >> fanOut;
+
+            if (fanIn - 1 > 1 || fanOut != 1)
+                throw RTE_LOC;
+
+            if (fanIn == 1)
+            {
+                in >> inIdx0 >> outIdx >> gate;
+
+                inIdx0 = translate(inIdx0);
+                outIdx = translate(outIdx);
+
+                if (gate != "INV")
+                    throw RTE_LOC;
+
+                if (inIdx0 == outIdx)
+                    addInvert(inIdx0);
+                else
+                    addInvert(inIdx0, outIdx);
+            }
+            else
+            {
+                in >> inIdx0 >> inIdx1 >> outIdx >> gate;
+
+                inIdx0 = translate(inIdx0);
+                inIdx1 = translate(inIdx1);
+                outIdx = translate(outIdx);
+
+                if (gate == "AND")
+                    gt = GateType::And;
+                else if (gate == "XOR")
+                    gt = GateType::Xor;
+                else
+                    throw RTE_LOC;
+
+                addGate(inIdx0, inIdx1, gt, outIdx);
+            }
+        }
+    }
 
     block BetaCircuit::hash()const
     {
         SHA1 sha(sizeof(block));
         sha.Update(mWireCount);
-        
+
         sha.Update(mGates.data(), mGates.size());
 
 

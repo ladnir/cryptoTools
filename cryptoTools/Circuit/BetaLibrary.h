@@ -55,6 +55,7 @@ namespace osuCrypto
 		BetaCircuit* int_int_bitwiseOr(u64 aSize, u64 bSize, u64 cSize);
 		BetaCircuit* int_int_bitwiseXor(u64 aSize, u64 bSize, u64 cSize);
 
+        BetaCircuit* aes_exapnded(u64 rounds);
 
 		//BetaCircuit* int_Piecewise_helper(u64 aSize, u64 numThesholds);
 
@@ -235,6 +236,28 @@ namespace osuCrypto
             const BetaBundle & choice,
             const BetaBundle & out,
             const BetaBundle & temp);
+
+
+        void aes_sbox_build(
+            BetaCircuit& cd,
+            const BetaBundle & in,
+            const BetaBundle & out);
+
+        void aes_shiftRows_build(
+            BetaCircuit& cd,
+            const BetaBundle & in,
+            const BetaBundle & out);
+
+        void aes_mixColumns_build(
+            BetaCircuit& cd,
+            const BetaBundle & in,
+            const BetaBundle & out);
+
+        void aes_exapnded_build(
+            BetaCircuit& cd,
+            const BetaBundle & message,
+            const BetaBundle & expandedKey,
+            const BetaBundle & ciphertext);
 
         bool areDistint(const BetaBundle& a1, const BetaBundle& a2);
         //u64 aSize, u64 bSize, u64 cSize);
