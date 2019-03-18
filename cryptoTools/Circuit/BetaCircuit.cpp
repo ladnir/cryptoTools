@@ -1120,115 +1120,105 @@ namespace osuCrypto
     //    return BetaCircuit();
     //}
 
+
+    struct GateNode
+    {
+        GateType mType;
+        std::array<GateNode*, 2> mInputs;
+        i64 mNewOutput = -1;
+    };
+
     void BetaCircuit::writeBristol(std::ostream & out)const
     {
         if (mInputs.size() != 2)
             throw std::runtime_error("bristol only supports two inputs. Merge into for a single party...");
 
 
-        auto numGates = 0ull;
-        for (u64 i = 0; i < mGates.size(); ++i)
-        {
-            switch (mGates[i].mType)
-            {
-            case GateType::And:
-            case GateType::Xor:
-            case GateType::na:
-                ++numGates;
-                break;
-            case GateType::Nxor:
-                numGates += 2;
-                break;
-            case GateType::a:
-                numGates += 2 * mGates[i].mInput[1];
-                break;
-            default:
-            {
-                std::cout << gateToString(mGates[i].mType) << " not supported" << std::endl;
-                throw std::runtime_error("Bristol only supports {AND, XOR, NOT, Copy} gates. Call toBristol() to convert... " LOCATION);
-            }
-            }
-        }
-        for (u64 i = 0; i < mOutputs.size(); ++i)
-        {
-            for (u64 j = 0; j < mOutputs[i].size(); ++j)
-            {
-                if (isInvert(mOutputs[i].mWires[j]))
-                    ++numGates;
-            }
-        }
-
-        // name
-        out << numGates << " " << mWireCount << "\n";
+        auto inputCount = (mInputs[0].size() + mInputs[1].size());
         auto numOut = 0ull;
         for (auto o : mOutputs)
             numOut += o.size();
-
-        auto inputCount = (mInputs[0].size() + mInputs[1].size());
         auto internalCount = mWireCount - inputCount - numOut;
 
-        out << mInputs[0].size() << " " << mInputs[1].size() << " " << numOut << "\n\n";
 
+        std::list<GateNode> nodes;
+        std::vector<GateNode*> wireOwners(mWireCount, nullptr);
 
-        // our outputs are the wires right after the inputs while bristol's 
-        // are at the end. This function fixes this by offsetting the wire 
-        // idxs approperatly.
-        auto translate = [&](u64 idx) {
-
-            // the first (numInput0 + numInput1) wires are inputs.
-            auto isInput = idx < inputCount;
-            if (isInput)
-                return idx;
-
-            // the last numOutputs wires are outputs.
-            auto isOutput = idx < (inputCount + numOut);
-            if (isOutput)
-                return idx + internalCount;
-
-            return idx - numOut;
-        };
-
-        u64 inIdx0, inIdx1, outIdx;
+        for (u64 i = 0; i < inputCount; ++i)
+        {
+            nodes.emplace_back();
+            nodes.back().mNewOutput = i;
+            wireOwners[i] = &nodes.back();
+        }
 
         for (u64 i = 0; i < mGates.size(); ++i)
         {
-            inIdx0 = translate(mGates[i].mInput[0]);
-            inIdx1 = translate(mGates[i].mInput[1]);
-            outIdx = translate(mGates[i].mOutput);
 
             switch (mGates[i].mType)
             {
             case GateType::And:
-                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " AND\n";
-                --numGates;
-                break;
             case GateType::Xor:
-                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " XOR\n";
-                --numGates;
+            {
+                nodes.emplace_back();
+                auto node = &nodes.back();
+
+                node->mInputs[0] = wireOwners[mGates[i].mInput[0]];
+                node->mInputs[1] = wireOwners[mGates[i].mInput[1]];
+                node->mType = mGates[i].mType;
+                wireOwners[mGates[i].mOutput] = node;
                 break;
+            }
             case GateType::na:
-                out << "1 1 " << inIdx0 << " " << outIdx << " INV\n";
-                --numGates;
+            {
+                nodes.emplace_back();
+                auto node = &nodes.back();
+
+                node->mInputs[0] = wireOwners[mGates[i].mInput[0]];
+                node->mType = GateType::na;
+                wireOwners[mGates[i].mOutput] = node;
                 break;
+            }
             case GateType::Nxor:
-                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " XOR\n";
-                out << "1 1 " << outIdx << " " << outIdx << " INV\n";
-                numGates -= 2;
+            {
+                nodes.emplace_back();
+                auto node1 = &nodes.back();
+                nodes.emplace_back();
+                auto node2 = &nodes.back();
+
+                node1->mInputs[0] = wireOwners[mGates[i].mInput[0]];
+                node1->mInputs[1] = wireOwners[mGates[i].mInput[1]];
+                node1->mType = GateType::Xor;
+
+                node2->mInputs[0] = node1;
+                node2->mType = GateType::na;
+                wireOwners[mGates[i].mOutput] = node2;
                 break;
+            }
             case GateType::a:
-                for (u64 j = 0; j < mGates[i].mInput[1]; ++j, ++inIdx0, ++outIdx)
+            {
+
+                for (u64 j = 0; j < mGates[i].mInput[1]; ++j)
                 {
-                    // hack to perform a copy with two INVs
-                    out << "1 1 " << inIdx0 << " " << outIdx << " INV\n";
-                    out << "1 1 " << outIdx << " " << outIdx << " INV\n";
+                    nodes.emplace_back();
+                    auto node1 = &nodes.back();
+                    nodes.emplace_back();
+                    auto node2 = &nodes.back();
+
+                    node1->mInputs[0] = wireOwners[mGates[i].mInput[0]];
+                    node1->mType = GateType::na;
+
+                    node2->mInputs[0] = node1;
+                    node2->mType = GateType::na;
+                    wireOwners[mGates[i].mOutput] = node2;
                 }
-                numGates -= 2 * mGates[i].mInput[1];;
                 break;
+            }
             default:
+                std::cout << gateToString(mGates[i].mType) << " not supported" << std::endl;
+                throw std::runtime_error("Currently only supports {AND, XOR, NXOR, NOT, Copy} gates. " LOCATION);
                 break;
             }
         }
-
 
         for (u64 i = 0; i < mOutputs.size(); ++i)
         {
@@ -1236,14 +1226,62 @@ namespace osuCrypto
             {
                 if (isInvert(mOutputs[i].mWires[j]))
                 {
-                    out << "1 1 " << mOutputs[i].mWires[j] << " " << mOutputs[i].mWires[j] << " NOT\n";
-                    --numGates;
+                    nodes.emplace_back();
+                    auto node = &nodes.back();
+
+                    node->mInputs[0] = wireOwners[mOutputs[i].mWires[j]];
+                    node->mType = GateType::na;
+                    wireOwners[mOutputs[i].mWires[j]] = node;
                 }
             }
         }
 
-        if (numGates != 0)
-            throw RTE_LOC;
+        auto gateCount = nodes.size() - inputCount;
+        u64 nextWire = nodes.size() - numOut;
+        for (u64 i = 0; i < mOutputs.size(); ++i)
+        {
+            for (u64 j = 0; j < mOutputs[i].size(); ++j)
+            {
+                auto node = wireOwners[mOutputs[i].mWires[j]];
+                node->mNewOutput = nextWire++;
+            }
+        }
+
+        nextWire = inputCount;
+
+        out << gateCount << " " << nodes.size() << "\n";
+        out << mInputs[0].size() << " " << mInputs[1].size() << " " << numOut << "\n\n";
+
+
+        u64 inIdx0, inIdx1, outIdx;
+        auto nodeIter = nodes.begin();
+        std::advance(nodeIter, inputCount);
+        for (u64 i = inputCount; i < nodes.size(); ++i, ++nodeIter)
+        {
+            if (nodeIter->mNewOutput == -1)
+                nodeIter->mNewOutput = nextWire++;
+
+            inIdx0 = nodeIter->mInputs[0]->mNewOutput;
+            outIdx = nodeIter->mNewOutput;
+
+            switch (nodeIter->mType)
+            {
+            case GateType::And:
+                inIdx1 = nodeIter->mInputs[1]->mNewOutput;
+                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " AND\n";
+                break;
+            case GateType::Xor:
+                inIdx1 = nodeIter->mInputs[1]->mNewOutput;
+                out << "2 1 " << inIdx0 << " " << inIdx1 << " " << outIdx << " XOR\n";
+                break;
+            case GateType::na:
+                out << "1 1 " << inIdx0 << " " << outIdx << " INV\n";
+                break;
+            default:
+                throw RTE_LOC;
+            }
+        }
+
     }
 
     void BetaCircuit::readBristol(std::istream & in)
@@ -1273,7 +1311,7 @@ namespace osuCrypto
         addTempWireBundle(internal);
 
 
-        
+
         // our outputs are the wires right after the inputs while bristol's 
         // are at the end. This function fixes this by offsetting the wire 
         // idxs approperatly.

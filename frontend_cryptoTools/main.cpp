@@ -17,7 +17,17 @@ using namespace osuCrypto;
 
 void print_aes_bristol()
 {
-    for (auto rounds : { 10, 12, 14 })//
+
+    //{
+    //    auto name = "./AES-expanded.txt";
+
+    //    std::ifstream file(name);
+
+    //    BetaCircuit cir2;
+    //    cir2.readBristol(file);
+    //    std::cout << "and " << cir2.mNonlinearGateCount << std::endl;
+    //}
+    for (auto rounds : { 10, /*12, */14 })//
     {
         BetaLibrary lib;
         BetaCircuit cir;
@@ -28,8 +38,8 @@ void print_aes_bristol()
         BetaBundle c(128);
 
 
-        cir.addInputBundle(input1);
         cir.addInputBundle(k);
+        cir.addInputBundle(input1);
         cir.addOutputBundle(c);
 
 
@@ -51,7 +61,7 @@ void print_aes_bristol()
         // c = c ^ cMask
         lib.int_int_bitwiseXor_build(cir, c, cMask, c);
 
-        auto name = "./aes_" + std::to_string(rounds) + ".brist";
+        auto name = "./aes_r_" + std::to_string(rounds) + ".txt";
 
         {
             std::ofstream ofile(name);
@@ -65,25 +75,25 @@ void print_aes_bristol()
         cir2.readBristol(file);
 
         std::vector<BitVector> in(2), out1(1), out2(1);
-        in[0].resize(input1.size());
-        in[1].resize(k.size());
+        in[0].resize(k.size());
+        in[1].resize(input1.size());
         out1[0].resize(128);
         out2[0].resize(128);
 
         PRNG prng(ZeroBlock);
         AES aes(prng.get<block>());
 
-        for (u64 i = 0; i < 1; ++i)
+        for (u64 i = 0; i < 3; ++i)
         {
 
-            in[0].randomize(prng);
+            in[1].randomize(prng);
             if (rounds == 10)
             {
-                memcpy(in[1].data(), aes.mRoundKey, 11 * 16);
+                memcpy(in[0].data(), aes.mRoundKey, 11 * 16);
             }
             else
             {
-                in[1].randomize(prng);
+                in[0].randomize(prng);
             }
 
 
@@ -100,8 +110,8 @@ void print_aes_bristol()
             {
                 if (rounds == 10)
                 {
-                    block message = in[0].getSpan<block>()[0];
-                    block mask = in[0].getSpan<block>()[1];
+                    block message = in[1].getSpan<block>()[0];
+                    block mask = in[1].getSpan<block>()[1];
                     block ctxt = aes.ecbEncBlock(message) ^ mask;
 
                     if (neq(ctxt, out1[0].getSpan<block>()[0]))
@@ -118,6 +128,11 @@ void print_aes_bristol()
                     std::cout << "passed " << std::endl;
                 }
             }
+
+            std::cout
+                << "k  " << in[0] << "\n"
+                << "m  " << in[1] << "\n"
+                << "c  " << out1[0] << std::endl;
         }
 
     }
