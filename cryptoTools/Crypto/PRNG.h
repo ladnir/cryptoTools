@@ -38,6 +38,24 @@ namespace osuCrypto
 		// Return the seed for this PRNG.
         const block getSeed() const;
 
+
+        struct AnyPOD
+        {
+            PRNG& mPrng;
+
+            template<typename T, typename U = std::enable_if<std::is_pod<T>::value, T>::type>
+                operator T()
+            {
+                return mPrng.get<T>();
+            }
+
+        };
+
+        AnyPOD get()
+        {
+            return { *this };
+        }
+
 		// Templated function that returns the a random element
 		// of the given type T. 
 		// Required: T must be a POD type.
