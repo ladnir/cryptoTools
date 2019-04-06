@@ -43,7 +43,7 @@ namespace osuCrypto
         {
             PRNG& mPrng;
 
-            template<typename T, typename U = std::enable_if<std::is_pod<T>::value, T>::type>
+            template<typename T, typename U = typename std::enable_if<std::is_pod<T>::value, T>::type>
                 operator T()
             {
                 return mPrng.get<T>();
