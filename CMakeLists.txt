@@ -55,6 +55,7 @@ find_program(NASM nasm)
 option(ENABLE_MIRACL "use the miracl library" OFF)
 option(ENABLE_RELIC "use the relic library" OFF)
 option(ENABLE_CIRCUITS "compile the circuit module" OFF)
+option(ENABLE_FULL_GSL "compile with the full GSL (c++14)" ON)
 
 if(NOT NASM)
 	option(ENABLE_NASM "compile using NASM" OFF)
@@ -65,7 +66,13 @@ endif(NOT NASM)
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
+message(STATUS "Option: ENABLE_FULL_GSL   = ${ENABLE_FULL_GSL}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
+
+
+if(NOT ENABLE_FULL_GSL)
+	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
+endif()
 
 configure_file(cryptoTools/Common/config.h.in cryptoTools/Common/config.h)
 

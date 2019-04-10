@@ -8,6 +8,9 @@ extern "C" {
 #include "relic/relic_fp.h"
 }
 
+#if !defined(GSL_UNLIKELY)
+#define GSL_UNLIKELY(x) x
+#endif
 namespace osuCrypto
 {
 

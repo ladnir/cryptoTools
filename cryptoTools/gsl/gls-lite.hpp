@@ -30,7 +30,12 @@
 #include <utility>
 #include <vector>
 
+
 #define  gsl_lite_VERSION "0.28.0"
+
+
+#define GSL_UNLIKELY(x) x
+#define GSL_LIKELY(x) x
 
 // gsl-lite backward compatibility:
 

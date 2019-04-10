@@ -10,8 +10,8 @@
 // compile the circuit library
 #cmakedefine ENABLE_CIRCUITS @ENABLE_CIRCUITS@ 
 
-// include the full GLS header (C++14). If not defined, uses gsl_lite (c++11)
-#define ENABLE_FULL_GSL
+// include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
+#cmakedefine ENABLE_FULL_GSL @ENABLE_FULL_GSL@ 
 
 // enables the use of assembly based SHA1
 #cmakedefine ENABLE_NASM @ENABLE_NASM@

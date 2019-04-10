@@ -8,10 +8,10 @@
 #define ENABLE_RELIC ON 
 
 // compile the circuit library
-#define ENABLE_CIRCUITS
+/* #undef ENABLE_CIRCUITS */
 
-// include the full GLS header (C++14). If not defined, uses gsl_lite (c++11)
-#define ENABLE_FULL_GSL
+// include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
+#define ENABLE_FULL_GSL ON
 
 // enables the use of assembly based SHA1
 /* #undef ENABLE_NASM */

@@ -18,9 +18,9 @@ namespace osuCrypto
     }
     void TestCollection::add(std::string name, std::function<void()> fn)
     {
-        mTests.push_back({ std::move(name),[func = std::move(fn)](const CLP& cmd)
+        mTests.push_back({ std::move(name),[fn](const CLP& cmd)
         {
-            func();
+            fn();
         } });
     }
 
