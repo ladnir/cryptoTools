@@ -1,4 +1,7 @@
 # CryptoTools 
+<div style="float:right;width:50%;" align="left">
+    <img  align="right" src="icon.png" alt="cryptoTools Logo">
+</div>
 
 CryptoTools is a portable c++11 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (miracl, Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
 
