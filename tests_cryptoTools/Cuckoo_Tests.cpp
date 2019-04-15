@@ -123,7 +123,7 @@ namespace tests_cryptoTools
 		//u64 h = 2;
 		CuckooIndex<ThreadSafe> hashMap;
 
-		hashMap.init(setSize, 40, 5, 3);
+		hashMap.init(setSize, 40, 5, 2);
 
 		std::vector<block> items(setSize);
 		PRNG prng(ZeroBlock);
