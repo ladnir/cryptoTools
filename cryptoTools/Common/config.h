@@ -11,7 +11,10 @@
 /* #undef ENABLE_CIRCUITS */
 
 // include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
-#define ENABLE_FULL_GSL ON
+/* #undef ENABLE_FULL_GSL */
+
+// defined if we should use cpp 14 and undefined means cpp 11
+/* #undef ENABLE_CPP_14 */
 
 // enables the use of assembly based SHA1
 /* #undef ENABLE_NASM */

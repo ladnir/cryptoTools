@@ -1204,6 +1204,7 @@ namespace gsl {
 	public:
 		typedef gsl_CONFIG_SPAN_INDEX_TYPE index_type;  // p0122r3 uses std::ptrdiff_t
 
+        typedef index_type size_type;
         typedef T value_type;
         typedef T element_type;
 		typedef T & reference;
