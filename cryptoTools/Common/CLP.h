@@ -112,24 +112,33 @@ namespace osuCrypto
             throw CommandLineParserError();
         }
 
+		// Return the values associated with the key.
+		template<typename T>
+		std::vector<T> getManyOr(const std::string& name, std::vector<T>alt)const
+		{
+			if (isSet(name))
+			{
+				auto& vs = mKeyValues.at(name);
+				std::vector<T> ret(vs.size());
+				auto iter = vs.begin();
+				for (u64 i = 0; i < ret.size(); ++i)
+				{
+					std::stringstream ss(*iter++);
+					ss >> ret[i];
+				}
+				return ret;
+			}
+			return alt;
+		}
+
         // Return the values associated with the key.
         template<typename T>
         std::vector<T> getMany(const std::string& name)const
         {
-            if (isSet(name))
-            {
-                auto& vs = mKeyValues.at(name);
-                std::vector<T> ret(vs.size());
-                auto iter = vs.begin();
-                for (u64 i = 0; i < ret.size(); ++i)
-                {
-                    std::stringstream ss(*iter++);
-                    ss >> ret[i];
-                }
-                return ret;
-            }
-            return{};
+			return getManyOr<T>(name, {});
         }
+
+
 
         // Return the values associated with the key.
         template<typename T>
