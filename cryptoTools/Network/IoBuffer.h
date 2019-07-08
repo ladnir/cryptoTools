@@ -508,7 +508,7 @@ namespace osuCrypto {
 
             BasicSizedBuff(const u8* data, u64 size)
                 : mHeaderSize(size_header_type(size))
-                , mBuff{ (u8*)data,  i64(size) }
+                , mBuff{ (u8*)data,  span<u8>::size_type(size) }
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
             }
@@ -516,7 +516,7 @@ namespace osuCrypto {
             void set(const u8* data, u64 size)
             {
                 Expects(size < std::numeric_limits<size_header_type>::max());
-                mBuff = {(u8*)data, i64(size)};
+                mBuff = {(u8*)data, span<u8>::size_type(size)};
             }
 
             inline u64 getHeaderSize() const { return mHeaderSize; }

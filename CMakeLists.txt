@@ -1,5 +1,13 @@
 cmake_minimum_required (VERSION 2.8)
 
+
+option(ENABLE_MIRACL   "use the miracl library" OFF)
+option(ENABLE_RELIC    "use the relic library" OFF)
+option(ENABLE_CIRCUITS "compile the circuit module" OFF)
+option(ENABLE_CPP_14   "compile with the c++14" ON)
+set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
+
+
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 
 	############################################
@@ -12,7 +20,13 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 
 	
 	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
-	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}  -std=c++14")
+	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
+
+	if(ENABLE_CPP_14)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
+	else() 	
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	endif()
 
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
@@ -46,16 +60,12 @@ endif()
 
 
 #############################################
-#                  CONGIFURE                #
+#                  CONFIGURE                #
 #############################################
 find_program(NASM nasm)
 
 
 
-option(ENABLE_MIRACL "use the miracl library" OFF)
-option(ENABLE_RELIC "use the relic library" OFF)
-option(ENABLE_CIRCUITS "compile the circuit module" OFF)
-option(ENABLE_FULL_GSL "compile with the full GSL (c++14)" ON)
 
 if(NOT NASM)
 	option(ENABLE_NASM "compile using NASM" OFF)
@@ -66,11 +76,11 @@ endif(NOT NASM)
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
-message(STATUS "Option: ENABLE_FULL_GSL   = ${ENABLE_FULL_GSL}")
+message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
 
 
-if(NOT ENABLE_FULL_GSL)
+if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
 endif()
 
