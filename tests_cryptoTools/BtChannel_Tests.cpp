@@ -198,12 +198,14 @@ namespace tests_cryptoTools
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);
     void BtNetwork_ServerMode_Test()
     {
-        u64 numConnect = 128;
+        u64 numConnect = 25;
         IOService ioService(0);
         std::vector<std::array<Channel, 2>> srvChls(numConnect), clientChls(numConnect);
 
         for (u64 i = 0; i < numConnect; ++i)
         {
+            
+            //std::cout << " " <<i<<std::flush;
             Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
             Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
             srvChls[i][0] = s1.addChannel();
@@ -211,10 +213,24 @@ namespace tests_cryptoTools
             clientChls[i][0] = c1.addChannel();
             clientChls[i][1] = c1.addChannel();
 
+            //std::cout << "x" <<std::flush;
             std::string m0("c0");
+            
+            //if(i == 62 || i == 3)
+            //{
+            //    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            //    std::cout << "client\n==========================\n"<<
+            //    clientChls[i][0].mBase->mLog << "\n\nserver\n==============================\n"
+            //    << srvChls[i][0].mBase->mLog << "\n===============================\n\nAcceptor\n"
+            //    << srvChls[i][0].mBase->mSession->mAcceptor->mLog << "\n==============================="<< std::endl ;
+            //
+            //}
+            
             clientChls[i][0].asyncSend(std::move(m0));
+            //std::cout << "y" <<std::flush;
             std::string m1("c1");
             clientChls[i][1].asyncSend(std::move(m1));
+            //std::cout << "z" <<std::flush;
         }
 
         for (u64 i = 0; i < numConnect; ++i)
@@ -229,6 +245,7 @@ namespace tests_cryptoTools
 
         for (u64 i = 0; i < numConnect; ++i)
         {
+            //ıstd::cout << " " <<i<<std::flush;
             Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
             Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
             clientChls[i][0] = c1.addChannel();
@@ -237,11 +254,15 @@ namespace tests_cryptoTools
             srvChls[i][0] = s1.addChannel();
             srvChls[i][1] = s1.addChannel();
 
+            //std::cout << "a" <<std::flush;
             std::string m0("c0");
             srvChls[i][0].asyncSend(std::move(m0));
+ 
+            //std::cout << "b" <<std::flush;
             std::string m1("c1");
             srvChls[i][1].asyncSend(std::move(m1));
 
+            //std::cout << "c" <<std::flush;
         }
         //auto s = ioService.mAcceptors.size();
         //auto& a = ioService.mAcceptors.front();
@@ -348,8 +369,9 @@ namespace tests_cryptoTools
             std::vector<u8> srvRecv;
             chl.recv(srvRecv);
 
-
-            if (chl.getTotalDataRecv() != oneMegabyte.size() + 4)
+            auto act = chl.getTotalDataRecv();
+            auto exp = oneMegabyte.size() + 4;
+            if (act != exp)
                 throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
 
 

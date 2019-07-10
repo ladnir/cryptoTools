@@ -445,7 +445,7 @@ namespace osuCrypto {
         }
 
         mSendSocketAvailable = false;
-        boost::asio::dispatch(mRecvStrand, [this] {
+        boost::asio::dispatch(mSendStrand, [this] {
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalSentData += bytesTransferred;
@@ -670,8 +670,12 @@ namespace osuCrypto {
     {
 
         if (mIos.mPrint)
-            std::cout << reason << std::endl;
-
+        {
+            lout << reason << std::endl;
+#ifdef CHANNEL_LOGGING
+            lout << mLog << std::endl;
+#endif
+        }
         boost::asio::dispatch(mRecvStrand, [&, reason]() {
 
             LOG_MSG("Recv error: " + reason);
@@ -684,7 +688,13 @@ namespace osuCrypto {
     void ChannelBase::setSendFatalError(std::string reason)
     {
         if (mIos.mPrint)
+        {
             std::cout << reason << std::endl;
+#ifdef CHANNEL_LOGGING
+            lout << mLog << std::endl;
+#endif
+        }
+        
 
         boost::asio::dispatch(mSendStrand, [&, reason]() {
 

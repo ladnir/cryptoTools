@@ -87,9 +87,9 @@ namespace osuCrypto
             PendingSocket(boost::asio::io_service& ios) : mSock(ios) {}
             boost::asio::ip::tcp::socket mSock;
             std::string mBuff;
-#ifdef CHANNEL_LOGGING
+//#ifdef CHANNEL_LOGGING
             u64 mIdx;
-#endif
+//#endif
         };
 
         // A single socket that has been named by client. Next it will be paired with 
