@@ -68,14 +68,14 @@ namespace osuCrypto
 
 
 
-        void int_int_add_build_so(
+        static void int_int_add_build_so(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & sum,
             const BetaBundle & temps);
 
-		void int_int_add_build_do(
+		static void int_int_add_build_do(
 			BetaCircuit& cd,
 			const BetaBundle & a1,
 			const BetaBundle & a2,
@@ -83,7 +83,7 @@ namespace osuCrypto
 			const BetaBundle & temps);
 
 
-        void int_int_add_build_do(
+		static void int_int_add_build_do(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
@@ -94,21 +94,21 @@ namespace osuCrypto
             int_int_add_build_do(cd, a1, a2, sum, temps);
         }
 
-		void int_int_add_msb_build_do(
+		static void int_int_add_msb_build_do(
 			BetaCircuit& cd,
 			const BetaBundle & a1,
 			const BetaBundle & a2,
 			const BetaBundle & sum,
 			const BetaBundle & temps);
 
-        void uint_uint_add_build(
+		static void uint_uint_add_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & sum,
             const BetaBundle & temps);
 
-        void int_int_subtract_build(
+		static void int_int_subtract_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
@@ -116,14 +116,14 @@ namespace osuCrypto
             const BetaBundle & temps);
 
 
-        void uint_uint_subtract_build(
+		static void uint_uint_subtract_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & diff,
             const BetaBundle & temps);
 
-        void int_int_mult_build(
+		static void int_int_mult_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
@@ -131,7 +131,7 @@ namespace osuCrypto
 			Optimized o,
             bool useTwoComplement);
 
-        void int_int_div_rem_build(
+		static void int_int_div_rem_build(
             BetaCircuit& cd,
             const BetaBundle& a1,
             const BetaBundle& a2,
@@ -141,7 +141,7 @@ namespace osuCrypto
             //bool checkDivByZero
         );
 
-        void uint_uint_div_rem_build(
+		static void uint_uint_div_rem_build(
             BetaCircuit& cd,
             const BetaBundle& a1,
             const BetaBundle& a2,
@@ -151,85 +151,85 @@ namespace osuCrypto
             //bool checkDivByZero
         );
 
-        void int_isZero_build(
+		static void int_isZero_build(
             BetaCircuit& cd,
             BetaBundle & a1,
             BetaBundle & out);
 
-        void int_int_eq_build(
+		static void int_int_eq_build(
             BetaCircuit& cd,
             BetaBundle & a1,
             BetaBundle & a2,
             BetaBundle & out);
 
-        void int_int_lt_build(
+		static void int_int_lt_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & out);
 
-        void int_int_gteq_build(
+		static void int_int_gteq_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & out);
 
-        void uint_uint_lt_build(
+		static void uint_uint_lt_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & out);
 
-        void uint_uint_gteq_build(
+		static void uint_uint_gteq_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & out);
 
-        void int_removeSign_build(
+		static void int_removeSign_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & out,
             const BetaBundle & temp);
 
-        void int_addSign_build(
+		static void int_addSign_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & sign,
             const BetaBundle & out,
             const BetaBundle & temp);
 
-        void int_bitInvert_build(
+		static void int_bitInvert_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & out);
 
-        void int_negate_build(
+		static void int_negate_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & out,
             const BetaBundle & temp);
 
-        void int_int_bitwiseAnd_build(
+		static void int_int_bitwiseAnd_build(
             BetaCircuit& cd,
             const BetaBundle & a1,
             const BetaBundle & a2,
             const BetaBundle & out);
 
-		void int_int_bitwiseOr_build(
+		static void int_int_bitwiseOr_build(
 			BetaCircuit& cd,
 			const BetaBundle & a1,
 			const BetaBundle & a2,
 			const BetaBundle & out);
 
-		void int_int_bitwiseXor_build(
+		static void int_int_bitwiseXor_build(
 			BetaCircuit& cd,
 			const BetaBundle & a1,
 			const BetaBundle & a2,
 			const BetaBundle & out);
 
 		// if choice = 1, the take the first parameter (ifTrue). Otherwise take the second parameter (ifFalse).
-        void int_int_multiplex_build(
+		static void int_int_multiplex_build(
             BetaCircuit& cd,
             const BetaBundle & ifTrue,
             const BetaBundle & ifFalse,
@@ -238,28 +238,28 @@ namespace osuCrypto
             const BetaBundle & temp);
 
 
-        void aes_sbox_build(
+		static void aes_sbox_build(
             BetaCircuit& cd,
             const BetaBundle & in,
             const BetaBundle & out);
 
-        void aes_shiftRows_build(
+		static void aes_shiftRows_build(
             BetaCircuit& cd,
             const BetaBundle & in,
             const BetaBundle & out);
 
-        void aes_mixColumns_build(
+		static void aes_mixColumns_build(
             BetaCircuit& cd,
             const BetaBundle & in,
             const BetaBundle & out);
 
-        void aes_exapnded_build(
+		static void aes_exapnded_build(
             BetaCircuit& cd,
             const BetaBundle & message,
             const BetaBundle & expandedKey,
             const BetaBundle & ciphertext);
 
-        bool areDistint(const BetaBundle& a1, const BetaBundle& a2);
+		static bool areDistint(const BetaBundle& a1, const BetaBundle& a2);
         //u64 aSize, u64 bSize, u64 cSize);
 
     };

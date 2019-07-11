@@ -6,6 +6,7 @@
 #endif
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/MatrixView.h>
+#include <cstring>
 
 namespace osuCrypto
 {

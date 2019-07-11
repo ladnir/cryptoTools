@@ -44,10 +44,9 @@ namespace osuCrypto
         mPort = port;
 
         boost::asio::ip::tcp::resolver resolver(mIOService.mIoService);
-        boost::asio::ip::tcp::resolver::query
-            query(ip, pStr);
+        //boost::asio::ip::tcp::resolver::query query(ip, pStr);
 
-        auto addrIter = resolver.resolve(query, ec);
+        auto addrIter = resolver.resolve(ip, pStr, ec);
 
         if (ec)
         {
@@ -87,9 +86,9 @@ namespace osuCrypto
                 mPendingSockets.emplace_back(mIOService.mIoService);
                 auto sockIter = mPendingSockets.end(); --sockIter;
 
-#ifdef CHANNEL_LOGGING
+//#ifdef CHANNEL_LOGGING
                 sockIter->mIdx = mPendingSocketIdx++;
-#endif
+//#endif
                 LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
                     " at " + mAddress.address().to_string() +" : "+ std::to_string(mAddress.port()));
 
@@ -152,8 +151,13 @@ namespace osuCrypto
 
                                 LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
 
+                                
+                                //if(ec2.value() !=)
+                                
                                 boost::asio::dispatch(mStrand, [&, sockIter]()
                                 {
+                                    boost::system::error_code ec3;
+                                    sockIter->mSock.close(ec3);
                                     mPendingSockets.erase(sockIter);
                                     if (stopped() && mPendingSockets.size() == 0)
                                         mPendingSocketsEmptyProm.set_value();
@@ -165,7 +169,15 @@ namespace osuCrypto
                     else
                     {
                         LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " +ec.message());
-
+                        
+                        // if the error code is not for operation canceled, print it to the terminal.
+                        if(ec.value() != boost::asio::error::operation_aborted)
+                            std::cout<< "Acceptor.listen failed for socket#" <<std::to_string(sockIter->mIdx)
+                            << " ~~ "<< ec.message() << " " << ec.value() << std::endl;
+                        
+                        if(ec.value() == boost::asio::error::no_descriptors)
+                            std::cout << "Too many sockets have been opened and the OS is refusing to give more. Increase the maximum number of file descriptors or use fewer sockets" << std::endl;
+                        
                         boost::asio::dispatch(mStrand, [&, sockIter]()
                         {
                             mPendingSockets.erase(sockIter);
@@ -328,12 +340,14 @@ namespace osuCrypto
                         auto ePtr = std::make_exception_ptr(
                             std::runtime_error("network bind error: " + ec.message()));
                         p.set_exception(ePtr);
+                        return;
                     }
 
                     start();
                 }
-
+                
                 p.set_value();
+                
             }
         });
 
@@ -417,7 +431,11 @@ namespace osuCrypto
     void Acceptor::asyncGetSocket(std::shared_ptr<ChannelBase> chl)
     {
         if (stopped()) throw std::runtime_error(LOCATION);
-
+        LOG_MSG("queuing getSocket(...) Channel "
+                + chl->mSession->mName + " "
+                + chl->mLocalName + " "
+                + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
+        
         boost::asio::dispatch(mStrand, [&, chl]() {
 
             auto& sessionGroup = chl->mSession->mGroup;
