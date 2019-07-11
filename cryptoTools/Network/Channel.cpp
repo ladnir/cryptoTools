@@ -445,7 +445,7 @@ namespace osuCrypto {
         }
 
         mSendSocketAvailable = false;
-        boost::asio::dispatch(mRecvStrand, [this] {
+        boost::asio::dispatch(mSendStrand, [this] {
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalSentData += bytesTransferred;

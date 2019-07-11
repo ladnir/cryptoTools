@@ -84,8 +84,10 @@ namespace osuCrypto
                     mBase->mRecvBuffer = getRecvBuffer();
                     mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this](const error_code& ec, u64 bt)
                     {
-                        if (!ec) mPromise.set_value();
 
+                        if (!ec) mPromise.set_value();
+                        else mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
+                        
                         if (!mComHandle)
                             throw std::runtime_error(LOCATION);
 
@@ -96,6 +98,8 @@ namespace osuCrypto
                 {
                     // forward the error.
                     mComHandle(ec, bytesTransferred);
+                    mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
+
                 }
             });
 
