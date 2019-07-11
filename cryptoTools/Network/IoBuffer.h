@@ -445,7 +445,7 @@ namespace osuCrypto {
     {
         SBO_ptr<T> t;
         t.template New<U>(std::forward<Args>(args)...);
-        return std::move(t);
+        return (t);
     }
 
 

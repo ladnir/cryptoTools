@@ -64,7 +64,7 @@ namespace osuCrypto
 	enum class IoStream
 	{
 		lock,
-		unlock
+	unlock
 	};
 
 	extern std::mutex gIoStreamMtx;
@@ -125,7 +125,7 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
-            return std::move(r);
+            return (r);
         }
 
         template<typename T>
@@ -133,25 +133,25 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
-            return std::move(r);
+            return (r);
         }
         ostreamLock operator<< (std::ostream& (*v)(std::ostream&))
         {
             ostreamLock r(out);
             r << v;
-            return std::move(r);
+            return (r);
         }
         ostreamLock operator<< (std::ios& (*v)(std::ios&))
         {
             ostreamLock r(out);
             r << v;
-            return std::move(r);
+            return (r);
         }
         ostreamLock operator<< (std::ios_base& (*v)(std::ios_base&))
         {
             ostreamLock r(out);
             r << v;
-            return std::move(r);
+            return (r);
         }
     };
     extern ostreamLocker lout;
