@@ -98,7 +98,7 @@ namespace osuCrypto
                 {
                     // forward the error.
                     mComHandle(ec, bytesTransferred);
-                    mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
+                    //mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
 
                 }
             });
