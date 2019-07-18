@@ -124,6 +124,11 @@ inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::
 	return _mm_add_epi64(lhs, rhs);
 }
 
+inline osuCrypto::block operator-(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+{
+	return _mm_sub_epi64(lhs, rhs);
+}
+
 
 #ifdef ENABLE_RELIC
 #pragma comment(lib, "relic_s.lib")
