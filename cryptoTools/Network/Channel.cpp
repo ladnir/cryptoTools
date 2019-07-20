@@ -496,7 +496,8 @@ namespace osuCrypto {
         if (stopped() == false)
         {
             mOpenFut.get();
-
+            std::atomic<u8> c(2);
+            std::promise<void> checkProm;
             boost::asio::dispatch(mSendStrand, [&]() {
                 mSendStatus = Channel::Status::Stopped;
                 if (mSendQueue.isEmpty() && mSendQueueEmpty == false)
@@ -504,6 +505,8 @@ namespace osuCrypto {
                     mSendQueueEmpty = true;
                     mSendQueueEmptyProm.set_value();
                 }
+
+                if (--c == 0) checkProm.set_value();
             });
 
             boost::asio::dispatch(mRecvStrand, [&]() {
@@ -517,10 +520,13 @@ namespace osuCrypto {
                 {
                     cancelRecvQueuedOperations();
                 }
+
+                if (--c == 0) checkProm.set_value();
             });
 
             mSendQueueEmptyFuture.get();
             mRecvQueueEmptyFuture.get();
+            checkProm.get_future().get();
 
             // ok, the send and recv queues are empty. Lets close the socket
             if (mHandle)mHandle->close();
