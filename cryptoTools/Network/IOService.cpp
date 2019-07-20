@@ -756,7 +756,7 @@ namespace osuCrypto
     {
         std::promise<std::list<Acceptor>::iterator> p;
         std::future<std::list<Acceptor>::iterator> f = p.get_future();
-
+        //boost::asio::post
         boost::asio::dispatch(mStrand, [&]()
         {
             // see if there already exists an acceptor that this endpoint can use.
@@ -779,6 +779,11 @@ namespace osuCrypto
 
             p.set_value(acceptorIter);
         });
+        
+        // contribute this thread to running the dispatch. Sometimes needed.
+        while(f.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            mIoService.run_one();
+
         auto acceptorIter = f.get();
         acceptorIter->subscribe(session);
 
