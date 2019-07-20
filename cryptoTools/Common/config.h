@@ -5,7 +5,7 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-#define ENABLE_RELIC ON 
+/* #undef ENABLE_RELIC */
 
 // compile the circuit library
 /* #undef ENABLE_CIRCUITS */

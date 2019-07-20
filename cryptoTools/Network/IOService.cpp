@@ -392,7 +392,9 @@ namespace osuCrypto
 
     void Acceptor::cancelPendingChannel(ChannelBase* chl)
     {
-        boost::asio::dispatch(mStrand, [=]() {
+        std::promise<void> prom;
+        
+        boost::asio::dispatch(mStrand, [this,chl, &prom]() {
             auto iter = chl->mSession->mGroup;
 
             auto chlIter = std::find_if(iter->mChannels.begin(), iter->mChannels.end(),
@@ -415,7 +417,11 @@ namespace osuCrypto
                         stopListening();
                 }
             }
+
+            prom.set_value();
         });
+
+        prom.get_future().get();
     }
 
 

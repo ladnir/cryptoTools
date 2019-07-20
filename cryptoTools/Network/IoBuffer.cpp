@@ -7,6 +7,7 @@ namespace osuCrypto
 {
     namespace details
     {
+        operation_canceled opCancel;
 
         void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle&& completionHandle)
         {
@@ -96,9 +97,8 @@ namespace osuCrypto
                 }
                 else
                 {
-                    // forward the error.
+
                     mComHandle(ec, bytesTransferred);
-                    //mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
 
                 }
             });

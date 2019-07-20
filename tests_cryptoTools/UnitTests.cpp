@@ -31,6 +31,7 @@ namespace tests_cryptoTools
         th.add("BtNetwork_AnonymousMode_Test            ", BtNetwork_AnonymousMode_Test);
         th.add("BtNetwork_CancelChannel_Test            ", BtNetwork_CancelChannel_Test);
         th.add("BtNetwork_ServerMode_Test               ", BtNetwork_ServerMode_Test);
+        th.add("BtNetwork_clientClose_Test              ", BtNetwork_clientClose_Test);
 
         th.add("AES                                     ", AES_EncDec_Test);
 

@@ -20,6 +20,7 @@ namespace tests_cryptoTools
 
     void BtNetwork_recvErrorHandler_Test();
     void BtNetwork_closeOnError_Test();
+    void BtNetwork_clientClose_Test();
 
 
 	void BtNetwork_SocketInterface_Test();

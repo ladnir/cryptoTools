@@ -10,6 +10,8 @@
 #include <system_error>
 #include  <type_traits>
 #include <list>
+#include <boost/variant.hpp>
+
 //#define CHANNEL_LOGGING
 
 namespace osuCrypto {
@@ -452,6 +454,14 @@ namespace osuCrypto {
     namespace details
     {
 
+        class operation_canceled :
+            public boost::system::error_category
+        {
+        public:
+            const char *name() const noexcept { return "cryptoTools"; }
+            std::string message(int ev) const { return "local party called cancel on the operation."; }
+        };
+        extern operation_canceled opCancel;
 
         class SendOperation
         {
@@ -626,6 +636,7 @@ namespace osuCrypto {
             {}
         };
 
+
         class FixedRecvBuff : public BasicSizedBuff, public RecvOperation
         {
         public:
@@ -659,6 +670,11 @@ namespace osuCrypto {
                 mPromise.set_exception(
                     std::make_exception_ptr(
                         CanceledOperation(std::move(reason))));
+
+                //error_code ec{ 1, opCancel };
+
+                //mComHandle(ec, 0);
+                    
             };
             std::string toString() const override;
 
@@ -726,8 +742,9 @@ namespace osuCrypto {
                 : T(std::move(v))
                 , mCallback(std::move(v.mCallback))
             {}
-
-            std::function<void()> mCallback;
+            boost::variant<
+                std::function<void()>,
+                std::function<void(const error_code&)>>mCallback;
             io_completion_handle mWithCBCompletionHandle;
 
             void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override
@@ -736,10 +753,39 @@ namespace osuCrypto {
 
                 T::asyncPerform(base, [this](const error_code& ec, u64 bytes) mutable
                 {
-                    mCallback();
+                    if (mCallback.which() == 0)
+                    {
+                        auto& c = boost::get<std::function<void()>>(mCallback);
+                        if(c)
+                            c();
+                        c = {};
+                    }
+                    else
+                    {
+                        auto& c = boost::get<std::function<void(const error_code&)>>(mCallback);
+                        if (c)
+                            c(ec);
+                        c = {};
+                    }
+
                     mWithCBCompletionHandle(ec, bytes);
                 });
             }
+
+            void cancel(std::string reason) override
+            {
+                T::cancel(reason);
+
+                if (mCallback.which() == 1)
+                {
+                    error_code ec{ 1, opCancel };
+                    auto& c = boost::get<std::function<void(const error_code&)>>(mCallback);
+                    if (c)
+                        c(ec);
+                    c = {};
+                }
+            }
+
         };
 
         template< typename T>
@@ -781,9 +827,9 @@ namespace osuCrypto {
             {
                 mPromise.set_exception(
                     std::make_exception_ptr(
-                        CanceledOperation(std::move(reason))));
+                        CanceledOperation(reason)));
 
-                T::cancel(reason);
+                T::cancel(std::move(reason));
             }
         };
 

@@ -931,6 +931,42 @@ namespace tests_cryptoTools
 
     }
 
+    void BtNetwork_clientClose_Test()
+    {
+        u64 trials(100);
+        u64 count = 0;
+
+        for (u64 i = 0; i < trials; ++i)
+        {
+            IOService ios;
+            ios.mPrint = false;
+
+            Session server(ios, "127.0.0.1", 1212, SessionMode::Server);
+            Session client(ios, "127.0.0.1", 1212, SessionMode::Client);
+
+
+            auto sChl = server.addChannel();
+            auto cChl = client.addChannel();
+
+            int k(0);
+            cChl.send(k);
+            sChl.recv(k);
+
+            std::vector<u8> kk;
+            sChl.asyncRecv(kk, [&](const error_code& ec) {
+                if (ec)
+                    ++count;
+                //std::cout << " ec " << ec.message() << std::endl;
+                }
+            );
+
+            cChl.close();
+        }
+
+        if (count != trials)
+            throw UnitTestFail(LOCATION);
+    }
+
 
     class Pipe
     {

@@ -229,6 +229,16 @@ namespace osuCrypto {
 			has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>::type
 			asyncRecv(Container& c, std::function<void()> fn);
 
+        // Receive data over the network asynchronously. The function returns right away,
+        // before the data has been received. When all the data has benn received the 
+        // future is set and the callback fn is called. The container must be the correct 
+        // size to fit the data received.
+        template <class Container>
+        typename std::enable_if<
+            is_container<Container>::value &&
+            has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>::type
+            asyncRecv(Container& c, std::function<void(const error_code&)> fn);
+
 
 		//////////////////////////////////////////////////////////////////////////////
 		//						   Utility functions								//
@@ -528,6 +538,27 @@ namespace osuCrypto {
 
 		return future;
 	}
+
+
+    template <class Container>
+    typename std::enable_if<
+        is_container<Container>::value &&
+        has_resize<Container, void(typename Container::size_type)>::value, std::future<void>>::type
+        Channel::asyncRecv(Container & c, std::function<void(const error_code&)> fn)
+    {
+        using namespace details;
+        using namespace std;
+
+        // not zero and less that 32 bits
+        Expects(mBase->mRecvStatus == Status::Normal);
+
+        std::future<void> future;
+        auto op = make_SBO_ptr<RecvOperation,
+            WithCallback<ResizableRefRecvBuff<Container>>>(std::move(fn), c, future);
+        mBase->recvEnque(std::move(op));
+
+        return future;
+    }
 
     template<class Container>
     typename std::enable_if<is_container<Container>::value, void>::type Channel::send(const Container & buf)
