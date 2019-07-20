@@ -754,13 +754,15 @@ namespace osuCrypto
 
     void IOService::aquireAcceptor(std::shared_ptr<SessionBase>& session)
     {
-        std::promise<std::list<Acceptor>::iterator> p;
-        std::future<std::list<Acceptor>::iterator> f = p.get_future();
+        std::atomic<bool> flag(false);
+        std::list<Acceptor>::iterator acceptorIter;
+        //std::promise<std::list<Acceptor>::iterator> p;
+        //std::future<std::list<Acceptor>::iterator> f = p.get_future();
         //boost::asio::post
         boost::asio::dispatch(mStrand, [&]()
         {
             // see if there already exists an acceptor that this endpoint can use.
-            auto acceptorIter = std::find_if(
+            acceptorIter = std::find_if(
                 mAcceptors.begin(),
                 mAcceptors.end(), [&](const Acceptor& acptr)
             {
@@ -777,14 +779,15 @@ namespace osuCrypto
                 //std::cout << "creating acceptor on " + std::to_string(session->mPort) << std::endl;
             }
 
-            p.set_value(acceptorIter);
+            flag = true;
+            //p.set_value(acceptorIter);
         });
         
         // contribute this thread to running the dispatch. Sometimes needed.
-        while(f.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+        while(!flag)
             mIoService.run_one();
 
-        auto acceptorIter = f.get();
+        //auto acceptorIter = f.get();
         acceptorIter->subscribe(session);
 
     }
