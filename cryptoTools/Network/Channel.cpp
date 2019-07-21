@@ -113,7 +113,20 @@ namespace osuCrypto {
             else
             {
                 boost::asio::ip::tcp::no_delay option(true);
-                sock.set_option(option);
+                error_code ec2;
+                sock.set_option(option, ec2);
+
+                if (ec2 && stopped() == false)
+                {
+                    auto msg = "async connect. Failed to set option ~ ec=" + ec.message() + "\n"
+                        + " isOpen=" + std::to_string(sock.is_open())
+                        + " stopped=" + std::to_string(stopped());
+
+                    LOG_MSG(msg);
+
+                    sock.close();
+                    sock.async_connect(address, mConnectCallback);
+                }
 
                 std::stringstream sss;
                 sss << mSession->mName << '`'
@@ -124,12 +137,16 @@ namespace osuCrypto {
 
 
                 LOG_MSG("Success: async connect to server. ConnectionString = " + str);
+#ifdef CHANNEL_LOGGING
+                mIos.mLog.push("connectionString = " + str);
+#endif
+                using namespace details;
+                auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
 
-                boost::asio::dispatch(mSendStrand,[this, str,address]() mutable
+                boost::asio::dispatch(mSendStrand,[this, op,address]() mutable
                 {
                     LOG_MSG("async connect. Sending ConnectionString");
-                    using namespace details;
-                    auto op = std::make_shared<MoveSendBuff<std::string>>(std::move(str));
+                    
 
                     op->asyncPerform(this, [this, op, address](error_code ec, u64 bytesTransferred) {
 

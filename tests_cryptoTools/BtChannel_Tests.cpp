@@ -139,20 +139,22 @@ namespace tests_cryptoTools
                 auto ch0 = s1.addChannel();
 
 
+                bool throws = false;
+                std::vector<u8> rr;
+                auto f = ch1.asyncRecv(rr);
                 auto thrd = std::thread([&]() {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     ch1.cancel();
                 });
 
-                bool throws = false;
-                std::vector<u8> rr;
-                try { ch1.recv(rr); }
+                try { f.get(); }
                 catch (...) { throws = true; }
 
-                if (throws == false)
-                    throw UnitTestFail();
-
                 thrd.join();
+
+                if (throws == false)
+                    throw UnitTestFail("" LOCATION);
+
             }
             if (ioService.mAcceptors.front().hasSubscriptions())
                 throw UnitTestFail();
@@ -163,26 +165,27 @@ namespace tests_cryptoTools
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
                 auto ch1 = c1.addChannel();
 
+                std::vector<u8> rr(10);
+                auto f = ch1.asyncSendFuture(rr.data(), rr.size());
 
                 auto thrd = std::thread([&]() {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     ch1.cancel();
                 });
 
                 bool throws = false;
-                std::vector<u8> rr(10);
                 try {
-                    ch1.send(rr);
+                    f.get();
                 }
                 catch (...) { throws = true; }
 
+                thrd.join();
                 if (throws == false)
-                    throw UnitTestFail();
+                    throw UnitTestFail(LOCATION);
 
                 if (ch1.isConnected())
-                    throw UnitTestFail();
+                    throw UnitTestFail(LOCATION);
 
-                thrd.join();
             }
 
             if (ioService.mAcceptors.front().hasSubscriptions())
@@ -675,7 +678,7 @@ namespace tests_cryptoTools
             chl1.waitForConnection();
 
             if (chl1.isConnected() == false) throw UnitTestFail();
-
+            chl2.waitForConnection();
         }
         catch (...)
         {

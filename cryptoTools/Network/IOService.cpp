@@ -80,118 +80,118 @@ namespace osuCrypto
     void Acceptor::start()
     {
         boost::asio::dispatch(mStrand, [&]()
-        {
-            if (isListening())
             {
-                mPendingSockets.emplace_back(mIOService.mIoService);
-                auto sockIter = mPendingSockets.end(); --sockIter;
-
-//#ifdef CHANNEL_LOGGING
-                sockIter->mIdx = mPendingSocketIdx++;
-//#endif
-                LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
-                    " at " + mAddress.address().to_string() +" : "+ std::to_string(mAddress.port()));
-
-                //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
-                mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
+                if (isListening())
                 {
-                    //std::cout << "async_accept cb socket#" + std::to_string(sockIter->mIdx) << " " << ec.message() <<  std::endl;
+                    mPendingSockets.emplace_back(mIOService.mIoService);
+                    auto sockIter = mPendingSockets.end(); --sockIter;
 
-                    start();
+                    //#ifdef CHANNEL_LOGGING
+                    sockIter->mIdx = mPendingSocketIdx++;
+                    //#endif
+                    LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
+                        " at " + mAddress.address().to_string() + " : " + std::to_string(mAddress.port()));
 
-                    if (!ec)
-                    {
-                        LOG_MSG("Connected with socket#" + std::to_string(sockIter->mIdx));
-
-                        boost::asio::ip::tcp::no_delay option(true);
-                        sockIter->mSock.set_option(option);
-                        sockIter->mBuff.resize(sizeof(u32));
-
-                        sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
-                            [sockIter, this](const boost::system::error_code& ec2, u64 bytesTransferred)
+                    //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
+                    mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
                         {
-                            if (!ec2)
-                            {
-                                LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
+                            //std::cout << "async_accept cb socket#" + std::to_string(sockIter->mIdx) << " " << ec.message() <<  std::endl;
 
-                                auto size = *(u32*)sockIter->mBuff.data();
-                                sockIter->mBuff.resize(size);
+                            start();
+
+                            if (!ec)
+                            {
+                                LOG_MSG("Connected with socket#" + std::to_string(sockIter->mIdx));
+
+                                boost::asio::ip::tcp::no_delay option(true);
+                                sockIter->mSock.set_option(option);
+                                sockIter->mBuff.resize(sizeof(u32));
 
                                 sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
-                                    
-                                    bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
-                                {
-                                    if (!ec3)
+                                    [sockIter, this](const boost::system::error_code& ec2, u64 bytesTransferred)
                                     {
-                                        LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
+                                        if (!ec2)
+                                        {
+                                            LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
 
-                                        asyncSetSocket(
-                                            std::move(sockIter->mBuff),
-                                            std::move(std::unique_ptr<BoostSocketInterface>(
-                                                new BoostSocketInterface(std::move(sockIter->mSock)))));
-                                    }
-                                    else
-                                    {
-                                        std::cout << "socket header body failed: " << ec3.message() << std::endl;
-                                        LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
-                                    }
+                                            auto size = *(u32*)sockIter->mBuff.data();
+                                            sockIter->mBuff.resize(size);
 
-                                    mPendingSockets.erase(sockIter);
-                                    if (stopped() && mPendingSockets.size() == 0)
-                                        mPendingSocketsEmptyProm.set_value();
-                                }));
+                                            sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
 
+                                                bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
+                                                    {
+                                                        if (!ec3)
+                                                        {
+                                                            LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
+
+                                                            asyncSetSocket(
+                                                                std::move(sockIter->mBuff),
+                                                                std::move(std::unique_ptr<BoostSocketInterface>(
+                                                                    new BoostSocketInterface(std::move(sockIter->mSock)))));
+                                                        }
+                                                        else
+                                                        {
+                                                            std::cout << "socket header body failed: " << ec3.message() << std::endl;
+                                                            LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
+                                                        }
+
+                                                        mPendingSockets.erase(sockIter);
+                                                        if (stopped() && mPendingSockets.size() == 0)
+                                                            mPendingSocketsEmptyProm.set_value();
+                                                    }));
+
+                                        }
+                                        else
+                                        {
+                                            std::cout << "async_accept error, failed to receive first header on connection handshake."
+                                                << " Other party may have closed the connection. Error code:"
+                                                << ec2.message() << "  " << LOCATION << std::endl;
+
+
+                                            LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
+
+
+                                            //if(ec2.value() !=)
+
+                                            boost::asio::dispatch(mStrand, [&, sockIter]()
+                                                {
+                                                    boost::system::error_code ec3;
+                                                    sockIter->mSock.close(ec3);
+                                                    mPendingSockets.erase(sockIter);
+                                                    if (stopped() && mPendingSockets.size() == 0)
+                                                        mPendingSocketsEmptyProm.set_value();
+                                                });
+                                        }
+
+                                    });
                             }
                             else
                             {
-                                std::cout << "async_accept error, failed to receive first header on connection handshake."
-                                	<< " Other party may have closed the connection. Error code:" 
-                                    << ec2.message() << "  " << LOCATION << std::endl;
-                                
+                                LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec.message());
 
-                                LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
+                                // if the error code is not for operation canceled, print it to the terminal.
+                                if (ec.value() != boost::asio::error::operation_aborted)
+                                    std::cout << "Acceptor.listen failed for socket#" << std::to_string(sockIter->mIdx)
+                                    << " ~~ " << ec.message() << " " << ec.value() << std::endl;
 
-                                
-                                //if(ec2.value() !=)
-                                
+                                if (ec.value() == boost::asio::error::no_descriptors)
+                                    std::cout << "Too many sockets have been opened and the OS is refusing to give more. Increase the maximum number of file descriptors or use fewer sockets" << std::endl;
+
                                 boost::asio::dispatch(mStrand, [&, sockIter]()
-                                {
-                                    boost::system::error_code ec3;
-                                    sockIter->mSock.close(ec3);
-                                    mPendingSockets.erase(sockIter);
-                                    if (stopped() && mPendingSockets.size() == 0)
-                                        mPendingSocketsEmptyProm.set_value();
-                                });
+                                    {
+                                        mPendingSockets.erase(sockIter);
+                                        if (stopped() && mPendingSockets.size() == 0)
+                                            mPendingSocketsEmptyProm.set_value();
+                                    });
                             }
-
                         });
-                    }
-                    else
-                    {
-                        LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " +ec.message());
-                        
-                        // if the error code is not for operation canceled, print it to the terminal.
-                        if(ec.value() != boost::asio::error::operation_aborted)
-                            std::cout<< "Acceptor.listen failed for socket#" <<std::to_string(sockIter->mIdx)
-                            << " ~~ "<< ec.message() << " " << ec.value() << std::endl;
-                        
-                        if(ec.value() == boost::asio::error::no_descriptors)
-                            std::cout << "Too many sockets have been opened and the OS is refusing to give more. Increase the maximum number of file descriptors or use fewer sockets" << std::endl;
-                        
-                        boost::asio::dispatch(mStrand, [&, sockIter]()
-                        {
-                            mPendingSockets.erase(sockIter);
-                            if (stopped() && mPendingSockets.size() == 0)
-                                mPendingSocketsEmptyProm.set_value();
-                        });
-                    }
-                });
-            }
-            else
-            {
-                LOG_MSG("Stopped listening");
-            }
-        });
+                }
+                else
+                {
+                    LOG_MSG("Stopped listening");
+                }
+            });
 
     }
 
@@ -204,6 +204,9 @@ namespace osuCrypto
                 {
                     mStopped = true;
                     mListening = false;
+
+                    LOG_MSG("accepter Stopped");
+
 
                     // stop listening.
 
@@ -223,7 +226,7 @@ namespace osuCrypto
                     if (hasSubscriptions() == false)
                         mStoppedPromise.set_value();
                 }
-            });
+                });
 
             // wait for the pending events.
             std::chrono::seconds timeout(4);
@@ -234,6 +237,18 @@ namespace osuCrypto
                 status = mPendingSocketsEmptyFuture.wait_for(timeout);
                 std::cout << "waiting on acceptor to close " << mPendingSockets.size() << " pending socket" << std::endl;
             }
+
+            status = mStoppedFuture.wait_for(timeout);
+            while (status == std::future_status::timeout)
+            {
+                status = mStoppedFuture.wait_for(timeout);
+                std::cout << "waiting on acceptor to close. hasSubsciptions() = " << hasSubscriptions() << std::endl;
+#ifdef CHANNEL_LOGGING
+                std::cout << mLog << std::endl;
+                std::cout << mIOService.mLog << std::endl;
+#endif
+            }
+
 
             mPendingSocketsEmptyFuture.get();
             mStoppedFuture.get();
@@ -252,22 +267,32 @@ namespace osuCrypto
     }
     void Acceptor::stopListening()
     {
-        if (isListening())
-        {
-            boost::asio::dispatch(mStrand, [&]() {
-                if (hasSubscriptions() == false)
+
+        boost::asio::dispatch(mStrand, [&]() {
+            if (hasSubscriptions() == false)
+            {
+
+                mListening = false;
+
+                //std::cout << IoStream::lock << "stop listening " << std::endl << IoStream::unlock;
+                mHandle.close();
+
+                if (stopped())
                 {
-
-                    mListening = false;
-
-                    //std::cout << IoStream::lock << "stop listening " << std::endl << IoStream::unlock;
-                    mHandle.close();
-
-                    if (stopped() && hasSubscriptions() == false)
-                        mStoppedPromise.set_value();
+                    LOG_MSG("stopping prom funfilled");
+                    mStoppedPromise.set_value();
                 }
-            });
-        }
+                else
+                {
+                    LOG_MSG("stopped listening but not prom funfilled");
+                }
+            }
+            else
+            {
+                LOG_MSG("stopped listening called but deferred..");
+            }
+        });
+
     }
 
     void Acceptor::unsubscribe(SessionBase* session)
@@ -290,7 +315,7 @@ namespace osuCrypto
                 stopListening();
 
             p.set_value();
-        });
+            });
 
         f.get();
     }
@@ -345,11 +370,11 @@ namespace osuCrypto
 
                     start();
                 }
-                
+
                 p.set_value();
-                
+
             }
-        });
+            });
 
         // may throw
         f.get();
@@ -393,8 +418,8 @@ namespace osuCrypto
     void Acceptor::cancelPendingChannel(ChannelBase* chl)
     {
         std::promise<void> prom;
-        
-        boost::asio::dispatch(mStrand, [this,chl, &prom]() {
+
+        boost::asio::dispatch(mStrand, [this, chl, &prom]() {
             auto iter = chl->mSession->mGroup;
 
             auto chlIter = std::find_if(iter->mChannels.begin(), iter->mChannels.end(),
@@ -419,7 +444,7 @@ namespace osuCrypto
             }
 
             prom.set_value();
-        });
+            });
 
         prom.get_future().get();
     }
@@ -438,10 +463,10 @@ namespace osuCrypto
     {
         if (stopped()) throw std::runtime_error(LOCATION);
         LOG_MSG("queuing getSocket(...) Channel "
-                + chl->mSession->mName + " "
-                + chl->mLocalName + " "
-                + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
-        
+            + chl->mSession->mName + " "
+            + chl->mLocalName + " "
+            + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
+
         boost::asio::dispatch(mStrand, [&, chl]() {
 
             auto& sessionGroup = chl->mSession->mGroup;
@@ -459,7 +484,7 @@ namespace osuCrypto
                 // will pair them up once the matching socket is connected                
                 sessionGroup->add(chl, this);
                 LOG_MSG("getSocket(...) Channel " + sessionName + " " + chl->mLocalName + " " + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
-                
+
                 // remove this session group if it is no longer active.
                 if (sessionGroup->hasSubscriptions() == false)
                 {
@@ -496,7 +521,7 @@ namespace osuCrypto
                 // merge the group of sockets into the SessionGroup.
                 sessionGroup->merge(*socketGroup, this);
 
-                
+
                 LOG_MSG("Session group " + sessionName + " " + std::to_string(sessionID)
                     + " matched up with a socket group on channel " + chl->mLocalName + " " + chl->mRemoteName);
 
@@ -529,7 +554,7 @@ namespace osuCrypto
                     sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
                 }
             }
-        });
+            });
     }
 
 
@@ -582,7 +607,7 @@ namespace osuCrypto
                 if (group->hasSubscriptions() == false)
                 {
                     LOG_MSG("SessionGroup " + fullKey + " is empty. Removing it.")
-                    group->removeMapping();
+                        group->removeMapping();
                     mGroups.erase(group);
 
                     // check if the Acceptor in general has no more objects
@@ -641,12 +666,20 @@ namespace osuCrypto
                 if (sessionGroup->hasSubscriptions() == false)
                 {
                     LOG_MSG("Session Group " + fullKey + " is empty via merge. Removing it.")
-                    mGroups.erase(sessionGroup);
+                        mGroups.erase(sessionGroup);
 
                     // check if the accept in general has no more objects
                     // wanting sockets. If so, stop listening.
                     if (hasSubscriptions() == false)
-                        stopListening();
+                    {
+                        LOG_MSG("Session Group " + fullKey + " stopping listening... ")
+                            stopListening();
+                    }
+                    else
+                    {
+                        LOG_MSG("Session Group " + fullKey + " NOT stopping listening... ")
+
+                    }
                 }
                 else
                 {
@@ -663,13 +696,13 @@ namespace osuCrypto
                     sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
                 }
             }
-        });
+            });
 
     }
 
 
-    extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
-    extern std::vector<std::string> split(const std::string &s, char delim);
+    //extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
+    //extern std::vector<std::string> split(const std::string &s, char delim);
 
     IOService::IOService(u64 numThreads)
         :
@@ -693,12 +726,12 @@ namespace osuCrypto
         {
             // Create a server worker thread and pass the completion port to the thread
             thrd = std::thread([&, i]()
-            {
-                setThreadName("io_Thrd_" + std::to_string(i));
-                mIoService.run();
+                {
+                    setThreadName("io_Thrd_" + std::to_string(i));
+                    mIoService.run();
 
-                //std::cout << "io_Thrd_" + std::to_string(i) << " closed" << std::endl;
-            });
+                    //std::cout << "io_Thrd_" + std::to_string(i) << " closed" << std::endl;
+                });
             ++i;
         }
     }
@@ -742,7 +775,7 @@ namespace osuCrypto
 
     void IOService::printError(std::string msg)
     {
-        if(mPrint)
+        if (mPrint)
             std::cerr << msg << std::endl;
     }
 
@@ -760,32 +793,32 @@ namespace osuCrypto
         //std::future<std::list<Acceptor>::iterator> f = p.get_future();
         //boost::asio::post
         boost::asio::dispatch(mStrand, [&]()
-        {
-            // see if there already exists an acceptor that this endpoint can use.
-            acceptorIter = std::find_if(
-                mAcceptors.begin(),
-                mAcceptors.end(), [&](const Acceptor& acptr)
             {
-                return acptr.mPort == session->mPort;
+                // see if there already exists an acceptor that this endpoint can use.
+                acceptorIter = std::find_if(
+                    mAcceptors.begin(),
+                    mAcceptors.end(), [&](const Acceptor& acptr)
+                    {
+                        return acptr.mPort == session->mPort;
+                    });
+
+                if (acceptorIter == mAcceptors.end())
+                {
+                    // an acceptor does not exist for this port. Lets create one.
+                    mAcceptors.emplace_back(*this);
+                    acceptorIter = mAcceptors.end(); --acceptorIter;
+                    acceptorIter->mPort = session->mPort;
+
+                    //std::cout << "creating acceptor on " + std::to_string(session->mPort) << std::endl;
+                }
+
+                //flag = true;
+                p.set_value();
             });
 
-            if (acceptorIter == mAcceptors.end())
-            {
-                // an acceptor does not exist for this port. Lets create one.
-                mAcceptors.emplace_back(*this);
-                acceptorIter = mAcceptors.end(); --acceptorIter;
-                acceptorIter->mPort = session->mPort;
-
-                //std::cout << "creating acceptor on " + std::to_string(session->mPort) << std::endl;
-            }
-
-            //flag = true;
-            p.set_value();
-        });
-        
         auto f = p.get_future();
         // contribute this thread to running the dispatch. Sometimes needed.
-        while(f.wait_for(std::chrono::microseconds(1)) != std::future_status::ready)
+        while (f.wait_for(std::chrono::microseconds(1)) != std::future_status::ready)
             mIoService.poll_one();
 
         f.get();
@@ -800,10 +833,10 @@ namespace osuCrypto
     {
         auto iter = std::find_if(mChannels.begin(), mChannels.end(),
             [&](const std::shared_ptr<ChannelBase>& chl)
-        {
-            return chl->mLocalName == s.mLocalName &&
-                chl->mRemoteName == s.mRemoteName;
-        });
+            {
+                return chl->mLocalName == s.mLocalName &&
+                    chl->mRemoteName == s.mRemoteName;
+            });
 
         if (iter != mChannels.end())
         {
@@ -820,10 +853,10 @@ namespace osuCrypto
     {
         auto iter = std::find_if(mSockets.begin(), mSockets.end(),
             [&](const NamedSocket& s)
-        {
-            return chl->mLocalName == s.mLocalName &&
-                chl->mRemoteName == s.mRemoteName;
-        });
+            {
+                return chl->mLocalName == s.mLocalName &&
+                    chl->mRemoteName == s.mRemoteName;
+            });
 
         if (iter != mSockets.end())
         {
@@ -840,20 +873,20 @@ namespace osuCrypto
     {
         return mChannels.end() != std::find_if(mChannels.begin(), mChannels.end(),
             [&](const std::shared_ptr<ChannelBase>& chl)
-        {
-            return chl->mLocalName == s.mLocalName &&
-                chl->mRemoteName == s.mRemoteName;
-        });
+            {
+                return chl->mLocalName == s.mLocalName &&
+                    chl->mRemoteName == s.mRemoteName;
+            });
     }
 
     bool details::SocketGroup::hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const
     {
         return mSockets.end() != std::find_if(mSockets.begin(), mSockets.end(),
             [&](const NamedSocket& s)
-        {
-            return chl->mLocalName == s.mLocalName &&
-                chl->mRemoteName == s.mRemoteName;
-        });
+            {
+                return chl->mLocalName == s.mLocalName &&
+                    chl->mRemoteName == s.mRemoteName;
+            });
     }
 
     void details::SessionGroup::merge(details::SocketGroup& merge, Acceptor* a)

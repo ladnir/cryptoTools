@@ -74,6 +74,10 @@ namespace osuCrypto
         void printError(std::string msg);
 
         bool mPrint = true;
+
+#ifdef CHANNEL_LOGGING
+        Log mLog;
+#endif
     };
 
 
