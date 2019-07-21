@@ -453,16 +453,20 @@ namespace tests_cryptoTools
 
             for (u64 i = 0; i < numChannels; i++)
             {
-                threads.emplace_back([i, &buff, &endpoint, messageCount, print, channelName]()
+                auto chl = endpoint.addChannel();
+                threads.emplace_back([i, &buff, chl, messageCount, print, channelName]()mutable
                 {
                     setThreadName("Test_client_" + std::to_string(i));
-                    auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
                     std::vector<u8> mH;
 
                     for (u64 j = 0; j < messageCount; j++)
                     {
                         chl.recv(mH);
-                        if (buff != mH)throw UnitTestFail();
+                        if (buff != mH)
+                        {
+                            std::cout << "-----------failed------------" LOCATION << std::endl;
+                            throw UnitTestFail();
+                        }
                         chl.asyncSend(std::move(mH));
                     }
 
@@ -482,10 +486,10 @@ namespace tests_cryptoTools
 
         for (u64 i = 0; i < numChannels; i++)
         {
-            threads.emplace_back([i, &endpoint, &buff, messageCount, print, channelName]()
+            auto chl = endpoint.addChannel();
+            threads.emplace_back([i, chl, &buff, messageCount, print, channelName]() mutable
             {
                 setThreadName("Test_Host_" + std::to_string(i));
-                auto chl = endpoint.addChannel(channelName + std::to_string(i), channelName + std::to_string(i));
                 std::vector<u8> mH(buff);
 
                 for (u64 j = 0; j < messageCount; j++)
@@ -493,7 +497,11 @@ namespace tests_cryptoTools
                     chl.asyncSendCopy(mH);
                     chl.recv(mH);
 
-                    if (buff != mH)throw UnitTestFail();
+                    if (buff != mH)
+                    {
+                        std::cout << "-----------failed------------" LOCATION << std::endl;
+                        throw UnitTestFail();
+                    }
                 }
             });
         }

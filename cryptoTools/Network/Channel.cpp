@@ -441,7 +441,7 @@ namespace osuCrypto {
                             LOG_MSG("Recv queue stopped.");
                             mRecvQueueEmpty = true;
                             mRecvQueueEmptyProm.set_value();
-                            mRecvQueueEmptyProm = std::promise<void>();
+                            //mRecvQueueEmptyProm = std::promise<void>();
                         }
                     });
                 }
