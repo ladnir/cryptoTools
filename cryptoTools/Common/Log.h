@@ -14,7 +14,7 @@ namespace osuCrypto
     class Log
     {
     public:
-        std::vector<std::pair<u64,std::string>> mMessages;
+        std::vector<std::pair<u64, std::string>> mMessages;
         std::mutex mLock;
 
         void push(const std::string& msg)
@@ -34,82 +34,82 @@ namespace osuCrypto
         std::lock_guard<std::mutex>l(log.mLock);
         for (u64 i = 0; i < log.mMessages.size(); ++i)
         {
-            o << "[" << i <<", "<< log.mMessages[i].first<<"]  " << log.mMessages[i].second << std::endl;
+            o << "[" << i << ", " << log.mMessages[i].first << "]  " << log.mMessages[i].second << std::endl;
         }
 
         return o;
     }
 
-	enum class Color {
-		LightGreen = 2,
-		LightGrey = 3,
-		LightRed = 4,
-		OffWhite1 = 5,
-		OffWhite2 = 6,
-		Grey = 8,
-		Green = 10,
-		Blue = 11,
-		Red = 12,
-		Pink = 13,
-		Yellow = 14,
-		White = 15,
+    enum class Color {
+        LightGreen = 2,
+        LightGrey = 3,
+        LightRed = 4,
+        OffWhite1 = 5,
+        OffWhite2 = 6,
+        Grey = 8,
+        Green = 10,
+        Blue = 11,
+        Red = 12,
+        Pink = 13,
+        Yellow = 14,
+        White = 15,
         Default
-	};
+    };
 
-	extern const Color ColorDefault;
+    extern const Color ColorDefault;
 
 
-	std::ostream& operator<<(std::ostream& out, Color color);
+    std::ostream& operator<<(std::ostream& out, Color color);
 
-	enum class IoStream
-	{
-		lock,
-	unlock
-	};
+    enum class IoStream
+    {
+        lock,
+        unlock
+    };
 
-	extern std::mutex gIoStreamMtx;
+    extern std::mutex gIoStreamMtx;
 
-	struct ostreamLock
-	{
-		std::ostream& out;
-		std::unique_lock<std::mutex> mLock;
+    struct ostreamLock
+    {
+        std::ostream& out;
+        std::unique_lock<std::mutex> mLock;
 
-		ostreamLock(ostreamLock&&) = default;
+        ostreamLock(ostreamLock&&) = default;
 
-		ostreamLock(std::ostream& o, std::mutex& lock = gIoStreamMtx) :
-			out(o),
-			mLock(lock)
-		{}
+        ostreamLock(std::ostream& o, std::mutex& lock = gIoStreamMtx) :
+            out(o),
+            mLock(lock)
+        {}
 
-		template<typename T>
-		ostreamLock& operator<<(const T& v)
-		{
-			out << v;
-			return *this;
-		}
+        template<typename T>
+        ostreamLock& operator<<(const T& v)
+        {
+            out << v;
+            return *this;
+        }
 
-		template<typename T>
-		ostreamLock& operator<<(T& v)
-		{
-			out << v;
-			return *this;
-		}
-		ostreamLock& operator<< (std::ostream& (*v)(std::ostream&))
-		{
-			out << v;
-			return *this;
-		}
-		ostreamLock& operator<< (std::ios& (*v)(std::ios&))
-		{
-			out << v;
-			return *this;
-		}
-		ostreamLock& operator<< (std::ios_base& (*v)(std::ios_base&))
-		{
-			out << v;
-			return *this;
-		}
-	};
+        template<typename T>
+        ostreamLock& operator<<(T& v)
+        {
+            out << v;
+            return *this;
+        }
+        ostreamLock& operator<< (std::ostream& (*v)(std::ostream&))
+        {
+            out << v;
+            return *this;
+        }
+        ostreamLock& operator<< (std::ios& (*v)(std::ios&))
+        {
+            out << v;
+            return *this;
+        }
+        ostreamLock& operator<< (std::ios_base& (*v)(std::ios_base&))
+        {
+            out << v;
+            return *this;
+        }
+    };
 
 
     struct ostreamLocker
@@ -125,7 +125,7 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
-            return (r);
+            return std::move(r);
         }
 
         template<typename T>
@@ -133,33 +133,33 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
-            return (r);
+            return std::move(r);
         }
         ostreamLock operator<< (std::ostream& (*v)(std::ostream&))
         {
             ostreamLock r(out);
             r << v;
-            return (r);
+            return std::move(r);
         }
         ostreamLock operator<< (std::ios& (*v)(std::ios&))
         {
             ostreamLock r(out);
             r << v;
-            return (r);
+            return std::move(r);
         }
         ostreamLock operator<< (std::ios_base& (*v)(std::ios_base&))
         {
             ostreamLock r(out);
             r << v;
-            return (r);
+            return std::move(r);
         }
     };
     extern ostreamLocker lout;
 
-	std::ostream& operator<<(std::ostream& out, IoStream color);
+    std::ostream& operator<<(std::ostream& out, IoStream color);
 
 
-	void setThreadName(const std::string name);
-	void setThreadName(const char* name);
+    void setThreadName(const std::string name);
+    void setThreadName(const char* name);
 
 }
