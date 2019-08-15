@@ -337,7 +337,7 @@ namespace osuCrypto {
     {
     public:
         ChannelBase(Session& endpoint, std::string localName, std::string remoteName);
-        //ChannelBase(IOService& ios, SocketInterface* sock);
+        ChannelBase(IOService& ios, SocketInterface* sock);
         ~ChannelBase()
         {
             close();
