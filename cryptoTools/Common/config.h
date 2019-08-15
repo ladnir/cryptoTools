@@ -20,7 +20,7 @@
 /* #undef ENABLE_NASM */
 
 // Turn on Channel logging for debugging.
-#define ENABLE_NET_LOG OFF
+//#define ENABLE_NET_LOG ON
 
 // Force BLAKE2 to be used as the random oracle 
 //#define USE_BLAKE2_AS_RANDOM_ORACLE
