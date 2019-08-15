@@ -1,12 +1,6 @@
 cmake_minimum_required (VERSION 2.8)
 
 
-option(ENABLE_MIRACL   "use the miracl library" OFF)
-option(ENABLE_RELIC    "use the relic library" OFF)
-option(ENABLE_CIRCUITS "compile the circuit module" OFF)
-option(ENABLE_CPP_14   "compile with the c++14" ON)
-set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
-
 
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 
@@ -65,7 +59,12 @@ endif()
 find_program(NASM nasm)
 
 
-
+option(ENABLE_MIRACL    "use the miracl library" OFF)
+option(ENABLE_RELIC     "use the relic library" OFF)
+option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
+option(ENABLE_CPP_14    "compile with the c++14" ON)
+option(ENABLE_NET_LOG   "compile with network logging" OFF)
+set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
 if(NOT NASM)
 	option(ENABLE_NASM "compile using NASM" OFF)
@@ -78,6 +77,7 @@ message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
+message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 
 
 if(NOT ENABLE_CPP_14)

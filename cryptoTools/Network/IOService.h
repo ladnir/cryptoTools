@@ -75,7 +75,7 @@ namespace osuCrypto
 
         bool mPrint = true;
 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
         Log mLog;
 #endif
     };
@@ -91,7 +91,7 @@ namespace osuCrypto
             PendingSocket(boost::asio::io_service& ios) : mSock(ios) {}
             boost::asio::ip::tcp::socket mSock;
             std::string mBuff;
-//#ifdef CHANNEL_LOGGING
+//#ifdef ENABLE_NET_LOG
             u64 mIdx;
 //#endif
         };
@@ -280,7 +280,7 @@ namespace osuCrypto
 
 
 		std::string print() const;
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
         Log mLog;
 #endif
 

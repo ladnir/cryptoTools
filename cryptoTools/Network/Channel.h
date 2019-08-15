@@ -5,7 +5,7 @@
 #include <cryptoTools/Network/SocketAdapter.h>
 
 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
 #include <cryptoTools/Common/Log.h>
 #endif
 #include <future>
@@ -415,7 +415,7 @@ namespace osuCrypto {
 
         void printError(std::string s);
 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
         u32 mRecvIdx = 0, mSendIdx = 0;
         Log mLog;
 #endif

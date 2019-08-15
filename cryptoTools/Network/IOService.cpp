@@ -14,7 +14,7 @@
 
 namespace osuCrypto
 {
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
 #define LOG_MSG(m) mLog.push(m);
 #else
 #define LOG_MSG(m)
@@ -86,7 +86,7 @@ namespace osuCrypto
                     mPendingSockets.emplace_back(mIOService.mIoService);
                     auto sockIter = mPendingSockets.end(); --sockIter;
 
-                    //#ifdef CHANNEL_LOGGING
+                    //#ifdef ENABLE_NET_LOG
                     sockIter->mIdx = mPendingSocketIdx++;
                     //#endif
                     LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
@@ -144,9 +144,10 @@ namespace osuCrypto
                                         }
                                         else
                                         {
-                                            std::cout << "async_accept error, failed to receive first header on connection handshake."
-                                                << " Other party may have closed the connection. Error code:"
-                                                << ec2.message() << "  " << LOCATION << std::endl;
+                                            if (ec2.value() != boost::asio::error::operation_aborted)
+                                                std::cout << "async_accept error, failed to receive first header on connection handshake."
+                                                    << " Other party may have closed the connection. Error code:"
+                                                    << ec2.message() << "  " << LOCATION << std::endl;
 
 
                                             LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
@@ -243,7 +244,7 @@ namespace osuCrypto
             {
                 status = mStoppedFuture.wait_for(timeout);
                 std::cout << "waiting on acceptor to close. hasSubsciptions() = " << hasSubscriptions() << std::endl;
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 std::cout << mLog << std::endl;
                 std::cout << mIOService.mLog << std::endl;
 #endif
@@ -840,11 +841,17 @@ namespace osuCrypto
 
         if (iter != mChannels.end())
         {
+#ifdef ENABLE_NET_LOG
+            a->mLog.push("handing Channel the socket -> " + s.mLocalName + "`"+s.mRemoteName);
+#endif
             (*iter)->startSocket(std::move(s.mSocket));
             mChannels.erase(iter);
         }
         else
         {
+#ifdef ENABLE_NET_LOG
+            a->mLog.push("storing in group the socket -> " + s.mLocalName + "`" + s.mRemoteName);
+#endif
             mSockets.emplace_back(std::move(s));
         }
     }

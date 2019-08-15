@@ -11,8 +11,11 @@
 #include  <type_traits>
 #include <list>
 #include <boost/variant.hpp>
+#ifdef ENABLE_NET_LOG
+#include <cryptoTools/Common/Log.h>
+#endif
 
-//#define CHANNEL_LOGGING
+//#define ENABLE_NET_LOG
 
 namespace osuCrypto {
     using error_code = boost::system::error_code;
@@ -476,8 +479,10 @@ namespace osuCrypto {
             virtual void cancel(std::string reason) = 0;
             virtual std::string toString() const;
 
-#ifdef CHANNEL_LOGGING
-            u64 mIdx;
+#ifdef ENABLE_NET_LOG
+            u64 mIdx = 0;
+            Log* mLog = nullptr;
+            void log(std::string msg) { if (mLog) mLog->push(msg); }
 #endif
         };
 
@@ -494,8 +499,10 @@ namespace osuCrypto {
             virtual void cancel(std::string reason) = 0;
             virtual std::string toString() const;
 
-#ifdef CHANNEL_LOGGING
-            u64 mIdx;
+#ifdef ENABLE_NET_LOG
+            u64 mIdx = 0;
+            Log* mLog = nullptr;
+            void log(std::string msg) { if (mLog) mLog->push(msg); }
 #endif
         };
 

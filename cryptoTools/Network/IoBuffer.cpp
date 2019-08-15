@@ -92,12 +92,24 @@ namespace osuCrypto
                         if (!mComHandle)
                             throw std::runtime_error(LOCATION);
 
+
+#ifdef ENABLE_NET_LOG
+                        if(ec)
+                            log("FixedRecvBuff error " + std::to_string(mIdx) + "   " +  LOCATION);
+                        else
+                            log("FixedRecvBuff success " + std::to_string(mIdx) + "   " + LOCATION);
+
+#endif
+
                         mComHandle(ec, bt);
                     });
                 }
                 else
                 {
 
+#ifdef ENABLE_NET_LOG
+                    log("FixedRecvBuff error " + std::to_string(mIdx) + "   " + LOCATION);
+#endif
                     mComHandle(ec, bytesTransferred);
 
                 }
@@ -107,7 +119,7 @@ namespace osuCrypto
         std::string RecvOperation::toString() const
         {
             return std::string("RecvOperation #") 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 + std::to_string(mIdx)
 #endif
                 ;
@@ -115,7 +127,7 @@ namespace osuCrypto
         std::string SendOperation::toString() const
         {
             return std::string("SendOperation #") 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 + std::to_string(mIdx)
 #endif
                 ;
@@ -124,7 +136,7 @@ namespace osuCrypto
         std::string FixedSendBuff::toString() const
         {
             return std::string("FixedSendBuff #")
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 + std::to_string(mIdx) 
 #endif
                 + " ~ " + std::to_string(getBufferSize()) + " bytes";
@@ -133,7 +145,7 @@ namespace osuCrypto
         std::string FixedRecvBuff::toString() const
         {
             return std::string("FixedRecvBuff #") 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 + std::to_string(mIdx) 
 #endif
                 + " ~ " + std::to_string(getBufferSize()) + " bytes";

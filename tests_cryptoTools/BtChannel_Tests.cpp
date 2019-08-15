@@ -83,17 +83,17 @@ namespace tests_cryptoTools
     void BtNetwork_CancelChannel_Test()
     {
         u64 trials = 10;
-        IOService ioService;
-        ioService.showErrorMessages(false);
         //Timer& t = gTimer;
 
         for (u64 i = 0; i < trials; ++i)
         {
+            IOService ioService;
+            ioService.showErrorMessages(false);
 
             {
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
 
-                auto ch1 = c1.addChannel();
+                auto ch1 = c1.addChannel("t1");
 
                 ch1.cancel();
 
@@ -126,6 +126,8 @@ namespace tests_cryptoTools
                 if (ch1.isConnected())
                     throw UnitTestFail();
             }
+            if (ioService.mAcceptors.size() != 1)
+                throw UnitTestFail();
 
             if (ioService.mAcceptors.front().hasSubscriptions())
                 throw UnitTestFail();
@@ -135,27 +137,35 @@ namespace tests_cryptoTools
             {
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
                 Session s1(ioService, "127.0.0.1", 1212, SessionMode::Client);
-                auto ch1 = c1.addChannel();
-                auto ch0 = s1.addChannel();
+                auto ch1 = c1.addChannel("t2");
+                auto ch0 = s1.addChannel("t2");
 
 
                 bool throws = false;
                 std::vector<u8> rr;
                 auto f = ch1.asyncRecv(rr);
-                auto thrd = std::thread([&]() {
-                    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                //auto thrd = std::thread([&]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(i));
                     ch1.cancel();
-                });
+                //});
 
                 try { f.get(); }
                 catch (...) { throws = true; }
 
-                thrd.join();
+                //thrd.join();
 
                 if (throws == false)
+                {
+#ifdef ENABLE_NET_LOG
+                    std::cout << ch1.mBase->mLog << std::endl;
+#endif
                     throw UnitTestFail("" LOCATION);
+                }
 
             }
+
+            if (ioService.mAcceptors.size() != 1)
+                throw UnitTestFail();
             if (ioService.mAcceptors.front().hasSubscriptions())
                 throw UnitTestFail();
             if (ioService.mAcceptors.front().isListening())
@@ -163,7 +173,7 @@ namespace tests_cryptoTools
 
             {
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
-                auto ch1 = c1.addChannel();
+                auto ch1 = c1.addChannel("t3");
 
                 std::vector<u8> rr(10);
                 auto f = ch1.asyncSendFuture(rr.data(), rr.size());
@@ -180,12 +190,21 @@ namespace tests_cryptoTools
                 catch (...) { throws = true; }
 
                 thrd.join();
-                if (throws == false)
-                    throw UnitTestFail(LOCATION);
 
                 if (ch1.isConnected())
-                    throw UnitTestFail(LOCATION);
-
+                {
+#ifdef ENABLE_NET_LOG
+                    std::cout << ch1.mBase->mLog << std::endl;
+#endif
+                    throw UnitTestFail("channel incorrectly connected." LOCATION);
+                }
+                if (throws == false)
+                {
+#ifdef ENABLE_NET_LOG
+                    std::cout << ch1.mBase->mLog << std::endl;
+#endif
+                    throw UnitTestFail("did not throw on cancel. " LOCATION);
+                }
             }
 
             if (ioService.mAcceptors.front().hasSubscriptions())
@@ -361,7 +380,7 @@ namespace tests_cryptoTools
         memset(oneMegabyte.data() + 100, 0xcc, 1000000 - 100);
 
         IOService ioService(0);
-
+        
         auto thrd = std::thread([&]()
         {
             setThreadName("Test_Client");
@@ -371,16 +390,19 @@ namespace tests_cryptoTools
 
             std::vector<u8> srvRecv;
             chl.recv(srvRecv);
+            auto copy = srvRecv;
+            chl.asyncSend(std::move(copy));
+            chl.close();
 
             auto act = chl.getTotalDataRecv();
             auto exp = oneMegabyte.size() + 4;
+
             if (act != exp)
                 throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
 
+            if (srvRecv != oneMegabyte) 
+                throw UnitTestFail("channel recv the wrong value." LOCATION); 
 
-            if (srvRecv != oneMegabyte) throw UnitTestFail();
-
-            chl.asyncSend(std::move(srvRecv));
         });
 
 
@@ -400,6 +422,7 @@ namespace tests_cryptoTools
         std::vector<u8> clientRecv;
         chl.asyncSend(oneMegabyte);
         chl.recv(clientRecv);
+        chl.close();
 
         if (chl.getTotalDataSent() != oneMegabyte.size() + 4)
             throw UnitTestFail("channel send statistics incorrectly increased." LOCATION);
@@ -885,7 +908,7 @@ namespace tests_cryptoTools
             chl1.recv(vec_u32);
 
         }
-        catch (std::runtime_error& e)
+        catch (std::runtime_error& )
         {
             throws = true;
         }
@@ -928,7 +951,7 @@ namespace tests_cryptoTools
             chl2.recv(vec_u32);
 
         }
-        catch (std::runtime_error& e)
+        catch (std::runtime_error& )
         {
             throws = true;
         }

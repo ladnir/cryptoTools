@@ -10,6 +10,7 @@ using namespace osuCrypto;
 #include <sstream>
 #include <fstream>
 
+#include <cryptoTools/Common/Backtrace.h>
 
 #ifdef ENABLE_CIRCUITS
 #include <cryptoTools/Circuit/BetaLibrary.h>

@@ -194,7 +194,7 @@ namespace osuCrypto
     void REccNumber::init()
     {
         bn_new(mVal);
-        bn_init(mVal, sizeDigits());
+        bn_init(mVal, static_cast<int>(sizeDigits()));
     }
 
     void REccNumber::reduce()
@@ -446,7 +446,7 @@ namespace osuCrypto
                 std::cout << "fp_size_str " << fp_size_str(c, radix) << std::endl;
                 throw std::runtime_error(LOCATION);
             }
-            fp_write_str(&buff[0], buff.size(), c, radix);
+            fp_write_str(&buff[0], static_cast<int>(buff.size()), c, radix);
             if (GSL_UNLIKELY(err_get_code()))
                 throw std::runtime_error("Relic write error " LOCATION);
 
@@ -596,14 +596,14 @@ namespace osuCrypto
 
     void REccPoint::toBytes(u8 * dest) const
     {
-        ep_write_bin(dest, sizeBytes(), *this, 1);
+        ep_write_bin(dest, static_cast<int>(sizeBytes()), *this, 1);
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic ep_write error " LOCATION);
     }
 
     void REccPoint::fromBytes(u8 * src)
     {
-        ep_read_bin(*this, src, sizeBytes());
+        ep_read_bin(*this, src, static_cast<int>(sizeBytes()));
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic ep_read error " LOCATION);
     }
@@ -640,14 +640,14 @@ namespace osuCrypto
 
     void REccNumber::toBytes(u8 * dest) const
     {
-        bn_write_bin(dest, sizeBytes(), *this);
+        bn_write_bin(dest, static_cast<int>(sizeBytes()), *this);
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic write error " LOCATION);
     }
 
     void REccNumber::fromBytes(const u8 * src)
     {
-        bn_read_bin(*this, src, sizeBytes());
+        bn_read_bin(*this, src, static_cast<int>(sizeBytes()));
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic read error " LOCATION);
     }
@@ -655,7 +655,7 @@ namespace osuCrypto
     void REccNumber::fromHex(const char * src)
     {
         auto len = std::strlen(src);
-        bn_read_str(*this, src, len, 16);
+        bn_read_str(*this, src, static_cast<int>(len), 16);
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic read error " LOCATION);
     }

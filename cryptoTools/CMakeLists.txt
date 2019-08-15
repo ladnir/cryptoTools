@@ -152,3 +152,7 @@ ENDIF(INSTALL_BOOST)
 #file(COPY ${Boost_LIBRARIES}  DESTINATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
 #FILE(COPY "${Boost_INCLUDE_DIR}/boost" DESTINATION "${CMAKE_SOURCE_DIR}/include/boost")
 message(STATUS "Boost_include  ${Boost_INCLUDE_DIR}" )
+
+
+
+target_link_libraries(cryptoTools "dl")

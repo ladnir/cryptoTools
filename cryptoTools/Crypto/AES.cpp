@@ -474,7 +474,7 @@ namespace osuCrypto {
     {
         const i32 step = 8;
         i32 idx = 0;
-        i32 length = blockLength - blockLength % step;
+        i32 length = i32(blockLength - blockLength % step);
 
         //std::array<block, step> temp;
 		block temp[step];

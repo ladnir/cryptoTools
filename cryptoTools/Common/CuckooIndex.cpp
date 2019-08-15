@@ -394,7 +394,7 @@ namespace osuCrypto
 					std::cout << "cuckoo stash overflow" << std::endl;
 
 					auto jj = find(mHashes[inputIdxs[i]]);
-					if (jj != u64(-1))
+					if (jj)
 					{
 						std::cout << "already inserted." << std::endl;
 					}

@@ -41,6 +41,9 @@ namespace osuCrypto {
         mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
     {
+        std::stringstream ss;
+        ss << "created socket base " << std::hex << u64(this) << " " << mLocalName << "`" << mRemoteName;
+        mIos.mLog.push(ss.str());
     }
 
     ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
@@ -60,6 +63,9 @@ namespace osuCrypto {
         mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
     {
         mOpenProm.set_value();
+        std::stringstream ss;
+        ss << "created socket base " << std::hex << u64(this) << " " << mLocalName << "`" << mRemoteName << " with socket.";
+        mIos.mLog.push(ss.str());
     }
 
     Channel::~Channel()
@@ -67,7 +73,7 @@ namespace osuCrypto {
     }
 
 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
 #define LOG_MSG(m) mLog.push(m);
 #else
 #define LOG_MSG(m)
@@ -137,7 +143,7 @@ namespace osuCrypto {
 
 
                 LOG_MSG("Success: async connect to server. ConnectionString = " + str);
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
                 mIos.mLog.push("connectionString = " + str);
 #endif
                 using namespace details;
@@ -269,7 +275,7 @@ namespace osuCrypto {
     void Channel::close()
     {
         if (mBase) mBase->close();
-        mBase = nullptr;
+        //mBase = nullptr;
     }
 
     void Channel::cancel()
@@ -286,8 +292,9 @@ namespace osuCrypto {
         {
             mSendStatus = Channel::Status::Stopped;
             mRecvStatus = Channel::Status::Stopped;
+            bool isClient = mSession->mMode == SessionMode::Client;
 
-            if (mHandle) mHandle->close();
+            if (isClient) mHandle->close();
             if (mSession && mSession->mAcceptor) mSession->mAcceptor->cancelPendingChannel(this);
 
             try { mOpenFut.get(); }
@@ -298,6 +305,10 @@ namespace osuCrypto {
                 cancelRecvQueuedOperations();
                 cancelSendQueuedOperations();
             }
+
+            if (!isClient && mHandle)
+                mHandle->close();
+
             std::promise<void> checkSendQueue, checkRecvQueue;
             std::future<void> 
                 checkSendQueueFut(checkSendQueue.get_future()), 
@@ -339,7 +350,7 @@ namespace osuCrypto {
 
     void ChannelBase::recvEnque(SBO_ptr<details::RecvOperation>&& op)
     {
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
         op->mIdx = mRecvIdx++;
 #endif
 
@@ -375,7 +386,7 @@ namespace osuCrypto {
     void ChannelBase::sendEnque(SBO_ptr<details::SendOperation>&& op)
     {
 
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
         op->mIdx = mSendIdx++;
 #endif
         LOG_MSG("queuing Send op " + op->toString());
@@ -409,6 +420,9 @@ namespace osuCrypto {
         mRecvSocketAvailable = false;
         mIos.mIoService.dispatch([this] {
 
+#ifdef ENABLE_NET_LOG
+            mRecvQueue.front()->mLog = &mLog;
+#endif
             mRecvQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalRecvData += bytesTransferred;
@@ -455,7 +469,7 @@ namespace osuCrypto {
 
         if (mSendSocketAvailable == false)
         {
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
             std::cout << mLog << std::endl;
 #endif
             throw std::runtime_error(LOCATION);
@@ -463,6 +477,9 @@ namespace osuCrypto {
 
         mSendSocketAvailable = false;
         boost::asio::dispatch(mSendStrand, [this] {
+#ifdef ENABLE_NET_LOG
+            mSendQueue.front()->mLog = &mLog;
+#endif
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalSentData += bytesTransferred;
@@ -478,7 +495,7 @@ namespace osuCrypto {
                     boost::asio::dispatch(mSendStrand, [this]()
                     {
                         LOG_MSG("completed send #" + mSendQueue.front()->toString());
-
+                         
                         mSendSocketAvailable = true;
                         mSendQueue.pop_front();
 
@@ -604,6 +621,7 @@ namespace osuCrypto {
 
     void ChannelBase::startSocket(std::unique_ptr<SocketInterface> socket)
     {
+        LOG_MSG("Recved socket, starting up the queues...");
 
         mHandle = std::move(socket);
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -618,7 +636,7 @@ namespace osuCrypto {
             bool isEmpty = mRecvQueue.isEmpty();
             LOG_MSG("startSocket Recv, queue is isEmpty = " + std::to_string(isEmpty));
 
-            if (isEmpty == false)
+            if (!isEmpty)
             {
                 asyncPerformRecv();
             }
@@ -665,18 +683,26 @@ namespace osuCrypto {
     {
         mBase->mTotalSentData = 0;
         mBase->mTotalRecvData = 0;
-        //mBase->mMaxOutstandingSendData = 0;
-        //mBase->mOutstandingSendData = 0;
     }
 
     u64 Channel::getTotalDataSent() const
     {
-        return mBase->mTotalSentData;
+        std::promise<u64> prom;
+        boost::asio::dispatch(mBase->mSendStrand, [&]() {
+            prom.set_value(mBase->mTotalSentData);
+            }
+        );
+        return prom.get_future().get();
     }
 
     u64 Channel::getTotalDataRecv() const
     {
-        return mBase->mTotalRecvData;
+        std::promise<u64> prom;
+        boost::asio::dispatch(mBase->mRecvStrand, [&]() {
+            prom.set_value(mBase->mTotalRecvData);
+            }
+        );
+        return prom.get_future().get();
     }
 
     //u64 Channel::getMaxOutstandingSendData() const
@@ -695,7 +721,7 @@ namespace osuCrypto {
         if (mIos.mPrint)
         {
             lout << reason << std::endl;
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
             lout << mLog << std::endl;
 #endif
         }
@@ -713,7 +739,7 @@ namespace osuCrypto {
         if (mIos.mPrint)
         {
             std::cout << reason << std::endl;
-#ifdef CHANNEL_LOGGING
+#ifdef ENABLE_NET_LOG
             lout << mLog << std::endl;
 #endif
         }
