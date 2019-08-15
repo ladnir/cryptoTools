@@ -48,29 +48,29 @@ namespace osuCrypto {
 //#endif
     }
 
-//    ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
-//        :
-//        mIos(ios),
-//        mWork(new boost::asio::io_service::work(ios.mIoService)),
-//        mHandle(sock),
-//        mTimer(ios.mIoService),
-//        mSendStrand(ios.mIoService.get_executor()),
-//        mRecvStrand(ios.mIoService.get_executor()),
-//        mOpenProm(),
-//        mOpenFut(mOpenProm.get_future()),
-//        mOpenCount(0),
-//        mRecvSocketAvailable(true),
-//        mSendSocketAvailable(true),
-//        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
-//        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
-//    {
-//        mOpenProm.set_value();
+    ChannelBase::ChannelBase(IOService& ios, SocketInterface * sock)
+        :
+        mIos(ios),
+        mWork(new boost::asio::io_service::work(ios.mIoService)),
+        mHandle(sock),
+        mTimer(ios.mIoService),
+        mSendStrand(ios.mIoService.get_executor()),
+        mRecvStrand(ios.mIoService.get_executor()),
+        mOpenProm(),
+        mOpenFut(mOpenProm.get_future()),
+        mOpenCount(0),
+        mRecvSocketAvailable(true),
+        mSendSocketAvailable(true),
+        mSendQueueEmptyFuture(mSendQueueEmptyProm.get_future()),
+        mRecvQueueEmptyFuture(mRecvQueueEmptyProm.get_future())
+    {
+        mOpenProm.set_value();
 //#ifdef ENABLE_NET_LOG
 //        std::stringstream ss;
 //        ss << "created socket base " << std::hex << u64(this) << " " << mLocalName << "`" << mRemoteName << " with socket.";
 //        mIos.mLog.push(ss.str());
 //#endif
-//    }
+    }
 
     Channel::~Channel()
     {
