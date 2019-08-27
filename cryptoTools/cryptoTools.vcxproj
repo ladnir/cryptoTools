@@ -147,7 +147,6 @@
     <ClInclude Include="Circuit\betacircuit.h" />
     <ClInclude Include="Circuit\BetaLibrary.h" />
     <ClInclude Include="Circuit\Gate.h" />
-    <ClInclude Include="Common\Backtrace.h" />
     <ClInclude Include="Common\BitIterator.h" />
     <ClInclude Include="Common\BitVector.h" />
     <ClInclude Include="Common\CLP.h" />
