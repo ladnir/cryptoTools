@@ -1,5 +1,6 @@
 #include "IoBuffer.h"
 #include "Channel.h"
+#include "IOService.h"
 #include <sstream>
 #include <exception>
 
@@ -7,10 +8,17 @@ namespace osuCrypto
 {
     namespace details
     {
-        operation_canceled opCancel;
+        //operation_canceled opCancel;
 
         void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle&& completionHandle)
         {
+            if (base->mHandle == nullptr)
+            {
+                lout << "null handle" << std::endl;
+
+                lout << base->mLog << std::endl;
+            }
+
             base->mSendBuffers = getSendBuffer();
             base->mHandle->async_send(base->mSendBuffers, 
                 std::forward<io_completion_handle>(completionHandle));
@@ -27,13 +35,8 @@ namespace osuCrypto
 
             // first we have to receive the header which tells us how much.
             base->mRecvBuffer = getRecvHeaderBuffer();
-            base->mHandle->async_recv({&base->mRecvBuffer, 1}, [this](const error_code& ec, u64 bytesTransferred) {
-
-				mBase->mTotalRecvData += bytesTransferred;
-
-                if (!mComHandle)
-                    throw std::runtime_error(LOCATION);
-
+            base->mHandle->async_recv({&base->mRecvBuffer, 1}, [this](const error_code& ec, u64 bt1) {
+                
                 if (!ec)
                 {
                     // check that the buffer has enough space. Resize if not.
@@ -52,46 +55,29 @@ namespace osuCrypto
                             // make the channel to know that a receive has a partial failure.
                             // The partial error can be cleared if the following lambda is 
                             // called by the user. This will complete the receive operation.
-                            mBase->setBadRecvErrorState(ss.str());
+                            //mBase->setBadRecvErrorState(ss.str());
 
                             // give the user a chance to give us another location 
                             // by passing out an exception which they can call.
                             mPromise.set_exception(std::make_exception_ptr(
-                                BadReceiveBufferSize(ss.str(), getHeaderSize(), [this](u8* dest)
-                            {
-                                bool error;
-                                u64 bytesTransferred;
+                                BadReceiveBufferSize(ss.str(), getHeaderSize())));
 
-                                // clear the receive error.
-                                mBase->clearBadRecvErrorState();
-
-                                // perform the write.
-                                mBase->mRecvBuffer = boost::asio::buffer(dest, getHeaderSize());
-                                mBase->mHandle->recv({ &mBase->mRecvBuffer, 1 }, error, bytesTransferred);
-
-                                // convert the return value to an error_code and call 
-                                // the completion handle.
-                                auto ec = error
-                                    ? boost::system::errc::make_error_code(boost::system::errc::io_error)
-                                    : boost::system::errc::make_error_code(boost::system::errc::success);
-                                mComHandle(ec, bytesTransferred);
-                            })));
-
+                            auto ec = boost::system::errc::make_error_code(boost::system::errc::no_buffer_space);
+                            mComHandle(ec, sizeof(u32));
                             return;
                         }
                     }
 
                     // the normal case that the buffer is the right size or was correctly resized.
                     mBase->mRecvBuffer = getRecvBuffer();
-                    mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this](const error_code& ec, u64 bt)
+                    mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this, bt1](const error_code& ec, u64 bt2)
                     {
 
                         if (!ec) mPromise.set_value();
-                        else mPromise.set_exception(std::make_exception_ptr(std::runtime_error(LOCATION)));
+                        else mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
                         
                         if (!mComHandle)
                             throw std::runtime_error(LOCATION);
-
 
 #ifdef ENABLE_NET_LOG
                         if(ec)
@@ -100,18 +86,16 @@ namespace osuCrypto
                             log("FixedRecvBuff success " + std::to_string(mIdx) + "   " + LOCATION);
 
 #endif
-
-                        mComHandle(ec, bt);
+                        mComHandle(ec, bt1 + bt2);
                     });
                 }
                 else
                 {
-
 #ifdef ENABLE_NET_LOG
-                    log("FixedRecvBuff error " + std::to_string(mIdx) + "   " + LOCATION);
+                    log("FixedRecvBuff error " + std::to_string(mIdx) + " " + ec.message() +"  " + LOCATION);
 #endif
-                    mComHandle(ec, bytesTransferred);
-
+                    mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+                    mComHandle(ec, bt1);
                 }
             });
 
@@ -152,5 +136,14 @@ namespace osuCrypto
         }
 
         
+        //void Callback::asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle)
+        //{
+        //    auto ec = boost::system::errc::make_error_code(boost::system::errc::success);
+        //    boost::asio::post(base->mIos.mIoService.get_executor(), [c = std::move(mComm), ec](){
+        //        c(ec);
+        //    });
+        //    completionHandle(ec, 0);
+        //}
+
     }
 }

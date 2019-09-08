@@ -341,22 +341,21 @@ void networkTutorial()
     // are thrown when the receive buffer does not match the incoming
     // data and can not be resized. Consider the following example
     {
+        Channel chl0e = client.addChannel();
+        Channel chl1e = server.addChannel();
+
         std::array<int, 4> data{ 0,1,2,3 };
-        chl0.send(data);
+        chl0e.send(data);
 
         std::array<int, 2> dest;
         try
         {
             // will throw, dest.size() != dat.size(); and no resize() member.
-            chl1.recv(dest);
+            chl1e.recv(dest);
         }
-        catch (BadReceiveBufferSize& b)
+        catch (BadReceiveBufferSize&)
         {
-            // catch the error, creat a new dest in bytes.
-            std::vector<u8> backup(b.mSize);
-
-            // tell the
-            b.mRescheduler(backup.data());
+            // close the channel...
         }
     }
 

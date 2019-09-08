@@ -15,9 +15,11 @@
 namespace osuCrypto
 {
 #ifdef ENABLE_NET_LOG
-#define LOG_MSG(m) mLog.push(m);
+#define LOG_MSG(m) mLog.push(m)
+#define IF_LOG(m) m
 #else
 #define LOG_MSG(m)
+#define IF_LOG(m)
 #endif
 
     Acceptor::Acceptor(IOService& ioService)
@@ -146,8 +148,8 @@ namespace osuCrypto
                                         {
                                             if (ec2.value() != boost::asio::error::operation_aborted)
                                                 std::cout << "async_accept error, failed to receive first header on connection handshake."
-                                                    << " Other party may have closed the connection. Error code:"
-                                                    << ec2.message() << "  " << LOCATION << std::endl;
+                                                << " Other party may have closed the connection. Error code:"
+                                                << ec2.message() << "  " << LOCATION << std::endl;
 
 
                                             LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
@@ -244,10 +246,8 @@ namespace osuCrypto
             {
                 status = mStoppedFuture.wait_for(timeout);
                 std::cout << "waiting on acceptor to close. hasSubsciptions() = " << hasSubscriptions() << std::endl;
-#ifdef ENABLE_NET_LOG
-                std::cout << mLog << std::endl;
-                std::cout << mIOService.mLog << std::endl;
-#endif
+                IF_LOG(lout << mLog << std::endl
+                    << mIOService.mLog << std::endl);
             }
 
 
@@ -292,8 +292,15 @@ namespace osuCrypto
             {
                 LOG_MSG("stopped listening called but deferred..");
             }
-        });
+            });
 
+    }
+    template<typename T>
+    std::string ptrStr(const T* ptr)
+    {
+        std::stringstream ss;
+        ss << std::hex << (u64)ptr;
+        return ss.str();
     }
 
     void Acceptor::unsubscribe(SessionBase* session)
@@ -302,7 +309,13 @@ namespace osuCrypto
         std::future<void> f(p.get_future());
         auto iter = session->mGroup;
 
-        boost::asio::dispatch(mStrand, [&, iter]() {
+        //if (session->mSessionID == 0)
+        //    lout << "session 0" << std::endl;
+
+        boost::asio::dispatch(mStrand, [&, iter, session]() {
+
+            IF_LOG(mLog.push("session " + std::to_string(session->mSessionID) + " " + ptrStr(session) + " unsubscribe."));
+
             iter->mBase.reset();
 
             if (iter->hasSubscriptions() == false)
@@ -341,6 +354,10 @@ namespace osuCrypto
                 mGroups.emplace_back();
                 auto iter = mGroups.end(); --iter;
 
+                std::stringstream s;
+                s << std::hex << (u64) & *session;
+                LOG_MSG("subscribe(" + s.str() + ")");
+
                 iter->mBase = session;
                 session->mGroup = iter;
 
@@ -351,6 +368,7 @@ namespace osuCrypto
 
                 iter->removeMapping = [&, deleteIter, key]()
                 {
+
                     collection.erase(deleteIter);
                     if (collection.size() == 0)
                         mUnclaimedGroups.erase(mUnclaimedGroups.find(key));
@@ -381,7 +399,14 @@ namespace osuCrypto
         f.get();
     }
 
-    Acceptor::SocketGroupList::iterator Acceptor::getSocketGroup(const std::string & sessionName, u64 sessionID)
+    //void Acceptor::subscribe(std::shared_ptr<ChannelBase>& chl)
+    //{
+    //    boost::asio::dispatch(mStrand, [chl]() {
+    //        chl->mSession->mGroup->mPendingChls++;
+    //        });
+    //}
+
+    Acceptor::SocketGroupList::iterator Acceptor::getSocketGroup(const std::string& sessionName, u64 sessionID)
     {
 
         auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
@@ -418,21 +443,19 @@ namespace osuCrypto
 
     void Acceptor::cancelPendingChannel(ChannelBase* chl)
     {
-        std::promise<void> prom;
+        //std::promise<void> prom;
 
-        boost::asio::dispatch(mStrand, [this, chl, &prom]() {
+        boost::asio::dispatch(mStrand, [this, chl]() {
             auto iter = chl->mSession->mGroup;
 
             auto chlIter = std::find_if(iter->mChannels.begin(), iter->mChannels.end(),
                 [&](const std::shared_ptr<ChannelBase>& c) { return c.get() == chl; });
 
-            if (chlIter != iter->mChannels.end())
+            if (chlIter == iter->mChannels.end())
+                lout << "logic error " LOCATION << std::endl;
+            else
             {
-                auto ePtr = std::make_exception_ptr(SocketConnectError("Acceptor canceled the socket request. " LOCATION));
-                (*chlIter)->mOpenProm.set_exception(ePtr);
-
                 iter->mChannels.erase(chlIter);
-
 
                 if (iter->hasSubscriptions() == false)
                 {
@@ -444,10 +467,10 @@ namespace osuCrypto
                 }
             }
 
-            prom.set_value();
+            //prom.set_value();
             });
 
-        prom.get_future().get();
+        //prom.get_future().get();
     }
 
 
@@ -474,16 +497,17 @@ namespace osuCrypto
             auto& sessionName = chl->mSession->mName;
             auto& sessionID = chl->mSession->mSessionID;
 
+            // add this channel to the list of channels in this session
+            // that are looking for a matching socket. If a existing socket 
+            // is a match, they are paired up. Otherwise the acceptor 
+            // will pair them up once the matching socket is connected                
+            sessionGroup->add(chl, this);
+
             // check if this session has already been paired up with
             // sockets. When this happens the client gives the session
             // a unqiue ID.
             if (sessionID)
             {
-                // add this channel to the list of channels in this session
-                // that are looking for a matching socket. If a existing socket 
-                // is a match, they are paired up. Otherwise the acceptor 
-                // will pair them up once the matching socket is connected                
-                sessionGroup->add(chl, this);
                 LOG_MSG("getSocket(...) Channel " + sessionName + " " + chl->mLocalName + " " + chl->mRemoteName + " matched = " + std::to_string(chl->mHandle == nullptr));
 
                 // remove this session group if it is no longer active.
@@ -495,64 +519,64 @@ namespace osuCrypto
                     if (hasSubscriptions() == false)
                         stopListening();
                 }
-                return;
             }
-
-            auto socketGroup = mSockets.end();
-
-            // check to see if there is a socket group with the same session name
-            // and has a socket with the same name as this channel.
-            auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
-            if (unclaimedSocketIter != mUnclaimedSockets.end())
+            else
             {
-                auto& groups = unclaimedSocketIter->second;
-                auto matchIter = std::find_if(groups.begin(), groups.end(),
-                    [&](const SocketGroupList::iterator& g) { return g->hasMatchingSocket(chl); });
 
-                if (matchIter != groups.end())
-                    socketGroup = *matchIter;
-            }
+                auto socketGroup = mSockets.end();
 
-            // add this channel to this session group. 
-            sessionGroup->add(chl, this);
-
-            // check if we have matching sockets.
-            if (socketGroup != mSockets.end())
-            {
-                // merge the group of sockets into the SessionGroup.
-                sessionGroup->merge(*socketGroup, this);
-
-
-                LOG_MSG("Session group " + sessionName + " " + std::to_string(sessionID)
-                    + " matched up with a socket group on channel " + chl->mLocalName + " " + chl->mRemoteName);
-
-                // erase the mapping for these sockets being unclaimed.
-                socketGroup->removeMapping();
-                sessionGroup->removeMapping();
-
-                // erase the sockets.
-                mSockets.erase(socketGroup);
-
-                // check if we can erase this session group (session closed).
-                if (sessionGroup->hasSubscriptions() == false)
+                // check to see if there is a socket group with the same session name
+                // and has a socket with the same name as this channel.
+                auto unclaimedSocketIter = mUnclaimedSockets.find(sessionName);
+                if (unclaimedSocketIter != mUnclaimedSockets.end())
                 {
-                    mGroups.erase(sessionGroup);
-                    if (hasSubscriptions() == false)
-                        stopListening();
+                    auto& groups = unclaimedSocketIter->second;
+                    auto matchIter = std::find_if(groups.begin(), groups.end(),
+                        [&](const SocketGroupList::iterator& g) { return g->hasMatchingSocket(chl); });
+
+                    if (matchIter != groups.end())
+                        socketGroup = *matchIter;
                 }
-                else
+
+                // check if we have matching sockets.
+                if (socketGroup != mSockets.end())
                 {
-                    // If not then add this SessionGroup to the list of claimed
-                    // sessions. Remove the unclaimed channel mapping
-                    auto fullKey = sessionName + std::to_string(sessionID);
+                    // merge the group of sockets into the SessionGroup.
+                    sessionGroup->merge(*socketGroup, this);
 
-                    auto pair = mClaimedGroups.insert({ fullKey, sessionGroup });
-                    auto s = pair.second;
-                    auto location = pair.first;
-                    if (s == false)
-                        throw std::runtime_error(LOCATION);
 
-                    sessionGroup->removeMapping = [&, location]() { mClaimedGroups.erase(location); };
+                    LOG_MSG("Session group " + sessionName + " " + std::to_string(sessionID)
+                        + " matched up with a socket group on channel " + chl->mLocalName + " " + chl->mRemoteName);
+
+                    // erase the mapping for these sockets being unclaimed.
+                    socketGroup->removeMapping();
+                    sessionGroup->removeMapping();
+
+                    // erase the sockets.
+                    mSockets.erase(socketGroup);
+
+                    // check if we can erase this session group (session closed).
+                    if (sessionGroup->hasSubscriptions() == false)
+                    {
+                        mGroups.erase(sessionGroup);
+                        if (hasSubscriptions() == false)
+                            stopListening();
+                    }
+                    else
+                    {
+                        // If not then add this SessionGroup to the list of claimed
+                        // sessions. Remove the unclaimed channel mapping
+                        auto fullKey = sessionName + std::to_string(sessionID);
+
+                        auto pair = mClaimedGroups.insert({ fullKey, sessionGroup });
+                        auto s = pair.second;
+                        auto location = pair.first;
+                        if (s == false)
+                            throw std::runtime_error(LOCATION);
+
+                        sessionGroup->removeMapping = [&, location]() {
+                            mClaimedGroups.erase(location); };
+                    }
                 }
             }
             });
@@ -607,8 +631,8 @@ namespace osuCrypto
                 // this group.
                 if (group->hasSubscriptions() == false)
                 {
-                    LOG_MSG("SessionGroup " + fullKey + " is empty. Removing it.")
-                        group->removeMapping();
+                    LOG_MSG("SessionGroup " + fullKey + " is empty. Removing it.");
+                    group->removeMapping();
                     mGroups.erase(group);
 
                     // check if the Acceptor in general has no more objects
@@ -649,7 +673,13 @@ namespace osuCrypto
             // the socket group with the session group
             if (sessionGroup != mGroups.end())
             {
-                LOG_MSG("Socket group " + fullKey + " matched up with a session group on channel " + localName + " " + remoteName);
+
+                std::stringstream s;
+                s << std::hex << (u64) & *sessionGroup->mBase.lock();
+
+                LOG_MSG("Socket group " + fullKey + " matched up with a session group on channel "
+                    + localName + " " + remoteName + " of "
+                    + std::to_string(unclaimedLocalIter->second.size()) + " ~~ " + s.str());
 
                 // merge the sockets into the group of cahnnels.
                 sessionGroup->merge(*socketGroup, this);
@@ -666,19 +696,19 @@ namespace osuCrypto
                 // check if we can erase this session group (session closed and all channels have socket).
                 if (sessionGroup->hasSubscriptions() == false)
                 {
-                    LOG_MSG("Session Group " + fullKey + " is empty via merge. Removing it.")
-                        mGroups.erase(sessionGroup);
+                    LOG_MSG("Session Group " + fullKey + " is empty via merge. Removing it.");
+                    mGroups.erase(sessionGroup);
 
                     // check if the accept in general has no more objects
                     // wanting sockets. If so, stop listening.
                     if (hasSubscriptions() == false)
                     {
-                        LOG_MSG("Session Group " + fullKey + " stopping listening... ")
-                            stopListening();
+                        LOG_MSG("Session Group " + fullKey + " stopping listening... ");
+                        stopListening();
                     }
                     else
                     {
-                        LOG_MSG("Session Group " + fullKey + " NOT stopping listening... ")
+                        LOG_MSG("Session Group " + fullKey + " NOT stopping listening... ");
 
                     }
                 }
@@ -830,6 +860,13 @@ namespace osuCrypto
 
 
 
+    osuCrypto::details::SessionGroup::~SessionGroup()
+    {
+        if (hasSubscriptions())
+            lout << "logic error " LOCATION << std::endl;
+
+    }
+
     void details::SessionGroup::add(NamedSocket s, Acceptor* a)
     {
         auto iter = std::find_if(mChannels.begin(), mChannels.end(),
@@ -842,9 +879,10 @@ namespace osuCrypto
         if (iter != mChannels.end())
         {
 #ifdef ENABLE_NET_LOG
-            a->mLog.push("handing Channel the socket -> " + s.mLocalName + "`"+s.mRemoteName);
+            a->mLog.push("handing Channel the socket -> " + s.mLocalName + "`" + s.mRemoteName);
 #endif
-            (*iter)->startSocket(std::move(s.mSocket));
+            auto ec = boost::system::errc::make_error_code(boost::system::errc::success);
+            (*iter)->mStartOp->setSocket(std::move(s.mSocket), ec);
             mChannels.erase(iter);
         }
         else
@@ -858,6 +896,8 @@ namespace osuCrypto
 
     void details::SessionGroup::add(const std::shared_ptr<ChannelBase>& chl, Acceptor* a)
     {
+
+
         auto iter = std::find_if(mSockets.begin(), mSockets.end(),
             [&](const NamedSocket& s)
             {
@@ -867,7 +907,8 @@ namespace osuCrypto
 
         if (iter != mSockets.end())
         {
-            chl->startSocket(std::move(iter->mSocket));
+            auto ec = boost::system::errc::make_error_code(boost::system::errc::success);
+            chl->mStartOp->setSocket(std::move(iter->mSocket), ec);
             mSockets.erase(iter);
         }
         else
@@ -876,7 +917,7 @@ namespace osuCrypto
         }
     }
 
-    bool details::SessionGroup::hasMatchingChannel(const NamedSocket & s) const
+    bool details::SessionGroup::hasMatchingChannel(const NamedSocket& s) const
     {
         return mChannels.end() != std::find_if(mChannels.begin(), mChannels.end(),
             [&](const std::shared_ptr<ChannelBase>& chl)
@@ -884,6 +925,12 @@ namespace osuCrypto
                 return chl->mLocalName == s.mLocalName &&
                     chl->mRemoteName == s.mRemoteName;
             });
+    }
+
+    details::SocketGroup::~SocketGroup()
+    {
+        //if (mSockets.size() && )
+        //    lout << "logic error " LOCATION << std::endl;
     }
 
     bool details::SocketGroup::hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const

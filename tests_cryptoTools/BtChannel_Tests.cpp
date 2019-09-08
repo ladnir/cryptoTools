@@ -30,6 +30,12 @@ namespace tests_cryptoTools
     void BtNetwork_AnonymousMode_Test()
     {
         IOService ioService(0);
+
+        // creat a dummy server channel to make the acceptor start.
+        //Session dummy(ioService, "127.0.0.1", 1212, SessionMode::Server, "----");
+        //auto dummyC = dummy.addChannel();
+        //Finally f([&]() { dummyC.cancel(); });
+
         Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
         Session s2(ioService, "127.0.0.1", 1212, SessionMode::Server);
 
@@ -38,13 +44,15 @@ namespace tests_cryptoTools
 
         auto c1c1 = c1.addChannel();
         auto c1c2 = c1.addChannel();
+
         auto s1c1 = s1.addChannel();
-        auto s1c2 = s1.addChannel();
-        auto c2c1 = c2.addChannel();
-        auto c2c2 = c2.addChannel();
         auto s2c1 = s2.addChannel();
+        auto s1c2 = s1.addChannel();
         auto s2c2 = s2.addChannel();
 
+        c1c2.waitForConnection();
+        auto c2c1 = c2.addChannel();
+        auto c2c2 = c2.addChannel();
         std::string m1 = "m1";
         std::string m2 = "m2";
 
@@ -72,9 +80,11 @@ namespace tests_cryptoTools
         if (c1c1.getName() != s1c1.getName()) throw UnitTestFail();
         if (c2c1.getName() != s2c1.getName()) throw UnitTestFail();
         if (c1c2.getName() != s1c2.getName()) throw UnitTestFail();
-        if (c2c2.getName() != s2c2.getName()) throw UnitTestFail();
+        if (c2c2.getName() != s2c2.getName()) 
+            throw UnitTestFail();
 
-        if (s1.getSessionID() != c1.getSessionID()) throw UnitTestFail();
+        if (s1.getSessionID() != c1.getSessionID()) 
+            throw UnitTestFail();
         if (s2.getSessionID() != c2.getSessionID()) throw UnitTestFail();
 
     }
@@ -113,7 +123,7 @@ namespace tests_cryptoTools
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
                 auto ch1 = c1.addChannel();
 
-                ch1.cancel();
+                ch1.cancel();  
 
                 bool throws = false;
 
@@ -140,6 +150,9 @@ namespace tests_cryptoTools
                 auto ch1 = c1.addChannel("t2");
                 auto ch0 = s1.addChannel("t2");
 
+                int i = 8;
+                ch0.send(i);
+                ch1.recv(i);
 
                 bool throws = false;
                 std::vector<u8> rr;
@@ -159,7 +172,7 @@ namespace tests_cryptoTools
 #ifdef ENABLE_NET_LOG
                     std::cout << ch1.mBase->mLog << std::endl;
 #endif
-                    throw UnitTestFail("" LOCATION);
+                    throw UnitTestFail();
                 }
 
             }
@@ -196,14 +209,14 @@ namespace tests_cryptoTools
 #ifdef ENABLE_NET_LOG
                     std::cout << ch1.mBase->mLog << std::endl;
 #endif
-                    throw UnitTestFail("channel incorrectly connected." LOCATION);
+                    throw UnitTestFail("channel incorrectly connected.");
                 }
                 if (throws == false)
                 {
 #ifdef ENABLE_NET_LOG
                     std::cout << ch1.mBase->mLog << std::endl;
 #endif
-                    throw UnitTestFail("did not throw on cancel. " LOCATION);
+                    throw UnitTestFail("did not throw on cancel. ");
                 }
             }
 
@@ -346,6 +359,7 @@ namespace tests_cryptoTools
             if (recvMsg != msg) throw UnitTestFail();
 
             chl1.asyncSend(std::move(recvMsg));
+            chl1.close();
         });
 
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
@@ -360,10 +374,38 @@ namespace tests_cryptoTools
         if (clientRecv != msg) throw UnitTestFail();
 
         //std::cout << "chl1: " << chl1.mBase->mLog << std::endl;
-
+        chl2.close();
+        endpoint.stop();
+        ioService.stop();
 
         //std::cout << "acpt: " << ioService.mAcceptors.begin()->mLog << std::endl;
         //std::cout << "chl2: " << chl2.mBase->mLog << std::endl;
+    }
+
+    void BtNetwork_BadConnect_Test()
+    {
+        IOService ios;
+
+        Session server(ios, "127.0.0.1:1212", SessionMode::Server);
+        auto chl = server.addChannel();
+
+        boost::asio::ip::tcp::socket sock(ios.mIoService);
+
+        boost::asio::ip::tcp::resolver resolver(ios.mIoService);
+        boost::asio::ip::tcp::resolver::query query("127.0.0.1", "1212");
+        boost::asio::ip::tcp::endpoint addr = *resolver.resolve(query);
+
+        error_code ec;
+        sock.connect(addr, ec);
+        
+
+        sock.close(ec);
+
+
+        Session client(ios, "127.0.0.1:1212", SessionMode::Client);
+        auto chl2 = client.addChannel();
+
+        //chl.waitForConnection(std::chrono::seconds(1));
     }
 
 
@@ -696,19 +738,27 @@ namespace tests_cryptoTools
             Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
             chl1 = ep1.addChannel(channelName, channelName);
 
-            if (chl1.isConnected() == true) throw UnitTestFail();
+            if (chl1.isConnected() == true) 
+                throw UnitTestFail(LOCATION);
 
 
             Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
-            if (chl1.isConnected() == true) throw UnitTestFail();
+            if (chl1.isConnected() == true) 
+                throw UnitTestFail(LOCATION);
 
             //std::cout << "add 2" << std::endl;
             chl2 = ep2.addChannel(channelName, channelName);
 
+
             chl1.waitForConnection();
 
-            if (chl1.isConnected() == false) throw UnitTestFail();
+            if (chl1.isConnected() == false)
+            {
+                lout << "ec " << !chl1.mBase->mStartOp->mEC <<" " << chl1.mBase->mStartOp->mEC.message() << std::endl;
+                lout << "ic " << chl1.mBase->mStartOp->mIsComplete << std::endl;
+                throw UnitTestFail(LOCATION);
+            }
             chl2.waitForConnection();
         }
         catch (...)
@@ -853,24 +903,24 @@ namespace tests_cryptoTools
             if (e.mSize != vec_u32.size() * sizeof(u32))
                 throw UnitTestFail();
 
-            std::vector<u32> backup(vec_u32.size());
+            //std::vector<u32> backup(vec_u32.size());
 
-            e.mRescheduler((u8*)backup.data());
+            //e.mRescheduler((u8*)backup.data());
 
-            if (std::mismatch(vec_u32.begin(), vec_u32.end(), backup.begin()).first != vec_u32.end())
-                throw UnitTestFail("send vec, recv backup");
+            //if (std::mismatch(vec_u32.begin(), vec_u32.end(), backup.begin()).first != vec_u32.end())
+            //    throw UnitTestFail("send vec, recv backup");
         }
 
         if (throws == false)
             throw UnitTestFail("No throw on back recv size");
 
 
-        std::array<u32, 10> arr_u32_10;
-        chl1.send(vec_u32);
-        chl2.recv(arr_u32_10);
+        //std::array<u32, 10> arr_u32_10;
+        //chl1.send(vec_u32);
+        //chl2.recv(arr_u32_10);
 
-        if (std::mismatch(vec_u32.begin(), vec_u32.end(), arr_u32_10.begin()).first != vec_u32.end())
-            throw UnitTestFail("failed to recover bad recv size.");
+        //if (std::mismatch(vec_u32.begin(), vec_u32.end(), arr_u32_10.begin()).first != vec_u32.end())
+        //    throw UnitTestFail("failed to recover bad recv size.");
     }
 
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_closeOnError_Test);

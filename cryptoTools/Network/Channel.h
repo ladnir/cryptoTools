@@ -10,6 +10,7 @@
 #endif
 #include <future>
 #include <ostream>
+#include <list>
 #include <deque>
 
 
@@ -33,7 +34,6 @@ namespace osuCrypto {
 
 		// Special constructor used to construct a Channel from some socket.
         Channel(IOService& ios, SocketInterface* sock);
-        ~Channel();
 
 		// Default assignment
         Channel& operator=(Channel&& move);
@@ -279,6 +279,8 @@ namespace osuCrypto {
 		// Returns if the connection has been made. 
 		void waitForConnection();
 
+        void onConnect(completion_handle handle);
+
         // Close this channel to denote that no more data will be sent or received.
 		// blocks until all pending operations have completed.
         void close();
@@ -332,69 +334,149 @@ namespace osuCrypto {
 
 	struct SessionBase;
 
+
+
+    struct StartSocketOp
+    {
+
+        StartSocketOp(std::shared_ptr<ChannelBase> chl);
+
+        void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle, bool sendOp);
+        void cancel();
+
+
+
+        bool stopped() const;
+        void asyncConnectToServer();
+        void setSocket(std::unique_ptr<SocketInterface> socket, const error_code& ec);
+
+
+        completion_handle mConnectCallback;
+
+
+        void addComHandle(completion_handle&& comHandle) 
+        {
+            boost::asio::dispatch(mStrand, [this, ch = std::forward<completion_handle>(comHandle)]() mutable {
+                if (mIsComplete)
+                {
+                    ch(mEC);
+                }
+                else
+                    mComHandles.emplace_back(std::forward<completion_handle>(ch));
+                }
+            );
+        }
+
+
+        boost::asio::deadline_timer mTimer;
+        //u64 mPerformCount = 2;
+
+        enum class ComHandleStatus { Uninit, Init, Eval };
+        ComHandleStatus mSendStatus = ComHandleStatus::Uninit;
+        ComHandleStatus mRecvStatus = ComHandleStatus::Uninit;
+
+        boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
+
+        details::MoveSendBuff<std::string> mHandshakeSendOp;
+
+        //std::unique_ptr<BoostSocketInterface> mBoostInterface;
+        boost::asio::ip::tcp::socket* mSock;
+
+        bool mIsComplete = false, mCanceled = false;
+        error_code mEC;
+
+        ChannelBase* mChl;
+        //std::shared_ptr<ChannelBase> mSharedChl;
+        io_completion_handle mSendComHandle, mRecvComHandle;
+        std::list<completion_handle> mComHandles;
+
+    };
+
+
+    struct StartSocketSendOp : public details::SendOperation
+    {
+        StartSocketOp* mBase;
+
+        StartSocketSendOp(StartSocketOp* base)
+            : mBase(base) {}
+
+        void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
+            mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), true);
+        }
+        void asyncCancelPending(ChannelBase* base) override { mBase->cancel(); }
+
+
+        std::string toString() const override { return std::string("StartSocketSendOp # ")
+#ifdef ENABLE_NET_LOG
+            + std::to_string(mIdx)
+#endif
+            ; }
+    };
+
+    struct StartSocketRecvOp : public details::RecvOperation
+    {
+        StartSocketOp* mBase;
+        StartSocketRecvOp(StartSocketOp* base)
+            : mBase(base) {}
+
+        void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
+            mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), false);
+        }
+        void asyncCancelPending(ChannelBase* base) override { mBase->cancel(); }
+
+        std::string toString() const override {
+            return std::string("StartSocketRecvOp # ")
+#ifdef ENABLE_NET_LOG
+                + std::to_string(mIdx)
+#endif
+                ;
+        }
+    };
+
+
 	// The Channel base class the actually holds a socket. 
     class ChannelBase
     {
     public:
         ChannelBase(Session& endpoint, std::string localName, std::string remoteName);
         ChannelBase(IOService& ios, SocketInterface* sock);
-        ~ChannelBase()
-        {
-            close();
-        }
+        ~ChannelBase();
 
         IOService& mIos;
 		std::unique_ptr<boost::asio::io_service::work> mWork;
+        std::unique_ptr<StartSocketOp> mStartOp;
 
 		std::shared_ptr<SessionBase> mSession;
         std::string mRemoteName, mLocalName;
 
-        //u32 mRecvSizeBuff, mSendSizeBuff;
 
         Channel::Status mRecvStatus = Channel::Status::Normal;
         Channel::Status mSendStatus = Channel::Status::Normal;
 
+        bool mRecvSocketAvailable = true;
+        bool mSendSocketAvailable = true;
+
         std::unique_ptr<SocketInterface> mHandle;
-		boost::asio::deadline_timer mTimer;
 
         boost::asio::strand<boost::asio::io_context::executor_type> mSendStrand, mRecvStrand;
 
-
-        std::promise<void> mOpenProm;
-        std::shared_future<void> mOpenFut;
-
-        std::atomic<u8> mOpenCount;
-        bool mRecvSocketAvailable = false;
-        bool mSendSocketAvailable = false;
-
-        std::string mRecvErrorMessage, mSendErrorMessage;
         u64 mTotalSentData = 0;
         u64 mTotalRecvData = 0;
 
+        std::atomic<u8> mCloseCount;
+        std::function<void()> mCloseHandle;
 
-		bool mRecvQueueEmpty = false, mSendQueueEmpty = false;
-        std::promise<void> mSendQueueEmptyProm, mRecvQueueEmptyProm;
-        std::future<void> mSendQueueEmptyFuture, mRecvQueueEmptyFuture;
+        void cancelRecvQueue();
+        void cancelSendQueue();
 
-
-		void asyncConnectToServer(const boost::asio::ip::tcp::endpoint&address);
-		std::function<void(const boost::system::error_code&)> mConnectCallback;
-		
-        void setRecvFatalError(std::string reason);
-        void setSendFatalError(std::string reason);
-
-        void setBadRecvErrorState(std::string reason);
-        void clearBadRecvErrorState();
-
-        void cancelRecvQueuedOperations();
-        void cancelSendQueuedOperations();
-
-		void close();
+        void close();
+        void asyncClose(std::function<void()> completionHandle);
 		void cancel();
+        void asyncCancel(std::function<void()> completionHandle);
+
         IOService& getIOService() { return mIos; }
 
         bool stopped() { return mSendStatus == Channel::Status::Stopped && mRecvStatus == Channel::Status::Stopped; }
-        void startSocket(std::unique_ptr<SocketInterface> socket);
 
 		bool mActiveRecvSizeError = false;
 		bool activeRecvSizeError() const { return mActiveRecvSizeError; }
@@ -421,6 +503,8 @@ namespace osuCrypto {
 #endif
 
     };
+
+
 
     template<class Container>
     typename std::enable_if<is_container<Container>::value, void>::type Channel::asyncSend(std::unique_ptr<Container> c)

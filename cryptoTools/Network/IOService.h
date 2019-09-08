@@ -113,6 +113,8 @@ namespace osuCrypto
 			SocketGroup() = default;
 			SocketGroup(SocketGroup&&) = default;
 
+            ~SocketGroup();
+
             // returns whether this socket group has a socket with a matching 
             // name session name and channel name.
 			bool hasMatchingSocket(const std::shared_ptr<ChannelBase>& chl) const;
@@ -137,11 +139,12 @@ namespace osuCrypto
 		struct SessionGroup
 		{
 			SessionGroup() = default;
+            ~SessionGroup();
 
             // return true if there are active channels waiting for a socket
             // or if there is an active session associated with this group.
 			bool hasSubscriptions() const {
-				return mChannels.size() || mBase.expired() == false;
+                return mChannels.size() || mBase.expired() == false;// || mPendingChls;
 			}
 
             // Add a newly accepted socket to this group. If there is a matching
@@ -178,6 +181,9 @@ namespace osuCrypto
 
             // The list of unmatched Channels what are associated with this session.
 			std::list<std::shared_ptr<ChannelBase>> mChannels;
+
+
+            //u64 mPendingChls = 0;
 		};
 	}
 
@@ -263,6 +269,8 @@ namespace osuCrypto
         // Make this session as interested in accepting connecctions. Will create
         // a SessionGroup.
 		void subscribe(std::shared_ptr<SessionBase>& session);
+
+        //void subscribe(std::shared_ptr<ChannelBase>& chl);
 
         // returns a pointer to the session group that has the provided name and 
         // seesion ID. If no such socket group exists, one is created and returned.

@@ -6,6 +6,9 @@ namespace tests_cryptoTools
 
 
     void BtNetwork_Connect1_Test();
+    void BtNetwork_BadConnect_Test();
+
+
     void BtNetwork_RapidConnect_Test();
     void BtNetwork_OneMegabyteSend_Test();
     void BtNetwork_ConnectMany_Test();

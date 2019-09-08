@@ -143,21 +143,6 @@ namespace osuCrypto {
 
 		// construct the basic channel. Has no socket.
 		Channel chl(*this, localName, remoteName);
-		//auto chlBase = chl.mBase;
-		//auto epBase = mBase;
-
-		if (mBase->mMode == SessionMode::Server)
-		{
-			// the acceptor will do the handshake, set chl.mHandel and
-			// kick off any send and receives which may happen after this
-			// call but before the handshake completes
-			mBase->mAcceptor->asyncGetSocket(chl.mBase);
-		}
-		else
-		{
-			chl.mBase->asyncConnectToServer(mBase->mRemoteAddr);
-		}
-
 		return (chl);
 	}
 
