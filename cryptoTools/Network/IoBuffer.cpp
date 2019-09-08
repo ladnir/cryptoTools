@@ -12,12 +12,12 @@ namespace osuCrypto
 
         void FixedSendBuff::asyncPerform(ChannelBase * base, io_completion_handle&& completionHandle)
         {
-            if (base->mHandle == nullptr)
-            {
-                lout << "null handle" << std::endl;
+            //if (base->mHandle == nullptr)
+            //{
+            //    lout << "null handle" << std::endl;
 
-                lout << base->mLog << std::endl;
-            }
+            //    lout << base->mLog << std::endl;
+            //}
 
             base->mSendBuffers = getSendBuffer();
             base->mHandle->async_send(base->mSendBuffers, 
