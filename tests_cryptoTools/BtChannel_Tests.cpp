@@ -385,6 +385,7 @@ namespace tests_cryptoTools
     void BtNetwork_BadConnect_Test()
     {
         IOService ios;
+        ios.showErrorMessages(false);
 
         Session server(ios, "127.0.0.1:1212", SessionMode::Server);
         auto chl = server.addChannel();
@@ -1020,21 +1021,32 @@ namespace tests_cryptoTools
         u64 trials(100);
         u64 count = 0;
 
+        Timer timer;
+        auto start = timer.setTimePoint("start");
+
+        IOService ios;
+        ios.mPrint = false;
+
         for (u64 i = 0; i < trials; ++i)
         {
-            IOService ios;
-            ios.mPrint = false;
+
+            {
+
+            timer.setTimePoint("io serivce");
 
             Session server(ios, "127.0.0.1", 1212, SessionMode::Server);
             Session client(ios, "127.0.0.1", 1212, SessionMode::Client);
+            timer.setTimePoint("sessions");
 
 
             auto sChl = server.addChannel();
             auto cChl = client.addChannel();
+            timer.setTimePoint("add chls");
 
             int k(0);
             cChl.send(k);
             sChl.recv(k);
+            timer.setTimePoint("send recv");
 
             std::vector<u8> kk;
             sChl.asyncRecv(kk, [&](const error_code& ec) {
@@ -1045,7 +1057,25 @@ namespace tests_cryptoTools
             );
 
             cChl.close();
+            timer.setTimePoint("client close");
+
+            sChl.close();
+            timer.setTimePoint("server close");
+
+            client.stop();
+            timer.setTimePoint("client stop");
+
+            server.stop();
+            timer.setTimePoint("server stop");
+
+            //timer.setTimePoint("print");
+            //lout << cChl.mBase->mLog << std::endl << std::endl;
+            }
+            timer.setTimePoint("desctruct");
+
         }
+
+        //lout << timer << std::endl;
 
         if (count != trials)
             throw UnitTestFail(LOCATION);

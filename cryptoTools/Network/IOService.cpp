@@ -134,7 +134,9 @@ namespace osuCrypto
                                                         }
                                                         else
                                                         {
-                                                            std::cout << "socket header body failed: " << ec3.message() << std::endl;
+                                                            std::stringstream ss;
+                                                            ss << "socket header body failed: " << ec3.message() << std::endl;
+                                                            mIOService.printError(ss.str());
                                                             LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
                                                         }
 
@@ -147,9 +149,13 @@ namespace osuCrypto
                                         else
                                         {
                                             if (ec2.value() != boost::asio::error::operation_aborted)
-                                                std::cout << "async_accept error, failed to receive first header on connection handshake."
+                                            {
+                                                std::stringstream ss;
+                                                ss << "async_accept error, failed to receive first header on connection handshake."
                                                 << " Other party may have closed the connection. Error code:"
                                                 << ec2.message() << "  " << LOCATION << std::endl;
+                                                mIOService.printError(ss.str());
+                                            }
 
 
                                             LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
@@ -179,7 +185,11 @@ namespace osuCrypto
                                     << " ~~ " << ec.message() << " " << ec.value() << std::endl;
 
                                 if (ec.value() == boost::asio::error::no_descriptors)
-                                    std::cout << "Too many sockets have been opened and the OS is refusing to give more. Increase the maximum number of file descriptors or use fewer sockets" << std::endl;
+                                {
+                                    mIOService.printError("Too many sockets have been opened and the OS is refusing"
+                                        " to give more. Increase the maximum number of file descriptors or use fewer sockets\n");
+
+                                }
 
                                 boost::asio::dispatch(mStrand, [&, sockIter]()
                                     {

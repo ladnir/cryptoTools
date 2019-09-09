@@ -381,6 +381,7 @@ namespace osuCrypto {
 
         //std::unique_ptr<BoostSocketInterface> mBoostInterface;
         boost::asio::ip::tcp::socket* mSock;
+        double mBackoff = 1;
 
         bool mIsComplete = false, mCanceled = false;
         error_code mEC;

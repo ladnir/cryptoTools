@@ -109,6 +109,10 @@ namespace osuCrypto {
 
     void StartSocketOp::asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle, bool sendOp)
     {
+        IF_LOG(mChl->mLog.push(
+            "calling StartSocketOp::asyncPerform(...) send="
+            + std::to_string(sendOp)));
+
         if (sendOp)
             mSendComHandle = completionHandle;
         else
@@ -138,7 +142,7 @@ namespace osuCrypto {
 
     void StartSocketOp::cancel()
     {
-        //IF_LOG(mChl->mLog.push("calling StartSocketOp::cancel(...) " + time()));
+        IF_LOG(mChl->mLog.push("calling StartSocketOp::cancel(...) " + time()));
         //lout << "calling StartSocketOp::cancel(...) " << time() << std::endl;
 
         boost::asio::post(mStrand, [this]() {
@@ -205,7 +209,7 @@ namespace osuCrypto {
             if (mRecvStatus == ComHandleStatus::Init)
             {
                 mRecvStatus = ComHandleStatus::Eval;
-                mRecvComHandle(mEC, 0); 
+                mRecvComHandle(mEC, 0);
             }
 
             }
@@ -213,7 +217,7 @@ namespace osuCrypto {
     }
 
 
-    bool StartSocketOp::stopped() const { return mChl->stopped(); }
+    bool StartSocketOp::stopped() const { return mChl->stopped() || mCanceled; }
 
     void StartSocketOp::asyncConnectToServer()
     {
@@ -234,9 +238,9 @@ namespace osuCrypto {
         mConnectCallback = [this](const boost::system::error_code& ec)
         {
             //lout << "calling StartSocketOp::asyncConnectToServer(...) cb1 " << time() << std::endl;
-            
-            IF_LOG(mChl->mLog.push("calling StartSocketOp::asyncConnectToServer(...) cb1 "  
-                + std::to_string((u64)mChl->mHandle.get())));
+
+            IF_LOG(mChl->mLog.push("in StartSocketOp::asyncConnectToServer(...) cb1 "
+                + ec.message()));
 
 
             auto& sock = *mSock;
@@ -247,9 +251,24 @@ namespace osuCrypto {
                 // try to connect again...
                 if (stopped() == false)
                 {
-                    IF_LOG(mChl->mLog.push("retry async connect to server"));
+                    IF_LOG(mChl->mLog.push("retry async connect to server (delay 10ms)"));
 
-                    mTimer.expires_from_now(boost::posix_time::millisec(10));
+                    mTimer.expires_from_now(
+                        boost::posix_time::millisec(static_cast<u64>(mBackoff)));
+                    mBackoff = std::min(mBackoff * 1.2, 1000.0);
+                    if (mBackoff >= 1000.0)
+                    {
+                        switch (ec.value())
+                        {
+                        case boost::system::errc::operation_canceled:
+                        case boost::system::errc::connection_refused:
+                            break;
+                        default:
+                            mChl->mIos.printError("client socket connect error: " + ec.message());
+                        }
+
+                    }
+
                     mTimer.async_wait([&](const boost::system::error_code& ec)
                         {
                             if (ec)
@@ -297,7 +316,7 @@ namespace osuCrypto {
                     mHandshakeSendOp.set((const u8*)mHandshakeSendOp.mObj.data(), mHandshakeSendOp.mObj.size());
 
                     IF_LOG(mChl->mLog.push("Success: async connect to server. ConnectionString = " \
-                        + mHandshakeSendOp.mObj +" "+ std::to_string((u64)&*mChl->mHandle)));
+                        + mHandshakeSendOp.mObj + " " + std::to_string((u64) & *mChl->mHandle)));
 
                     using namespace details;
 
@@ -386,7 +405,7 @@ namespace osuCrypto {
             //auto deadline = std::chrono::high_resolution_clock::now() + timeout;
 
             auto status = fut.wait_for(timeout);
-            if (status != std::future_status::timeout || 
+            if (status != std::future_status::timeout ||
                 timeout == std::chrono::hours::max())
             {
                 //if (status == std::future_status::deferred)
@@ -608,8 +627,8 @@ namespace osuCrypto {
     void ChannelBase::cancel()
     {
         std::promise<void> prom;
-        asyncCancel([&]() { 
-            
+        asyncCancel([&]() {
+
             prom.set_value();
             //lout << "cancel(...) done " << time() << std::endl;
             });
