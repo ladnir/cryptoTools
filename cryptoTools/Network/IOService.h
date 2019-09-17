@@ -73,6 +73,9 @@ namespace osuCrypto
 
         void printError(std::string msg);
 
+        void workUntil(std::future<void>& fut);
+
+
         bool mPrint = true;
 
 #ifdef ENABLE_NET_LOG
@@ -182,8 +185,7 @@ namespace osuCrypto
             // The list of unmatched Channels what are associated with this session.
 			std::list<std::shared_ptr<ChannelBase>> mChannels;
 
-
-            //u64 mPendingChls = 0;
+            std::list<std::shared_ptr<details::SessionGroup>>::iterator mSelfIter;
 		};
 	}
 
@@ -216,7 +218,7 @@ namespace osuCrypto
         // completed the initial handshake which allows them to be named.
 		std::list<details::PendingSocket> mPendingSockets;
 		
-		typedef std::list<details::SessionGroup> GroupList;
+		typedef std::list<std::shared_ptr<details::SessionGroup>> GroupList;
 		typedef std::list<details::SocketGroup> SocketGroupList;
 
         // The full list of unmatched named sockets groups associated with this Acceptor. 
@@ -256,7 +258,7 @@ namespace osuCrypto
 
         // Remove this channel from the list of channels awaiting
         // a matching socket. effectively undoes asyncGetSocket(...);
-		void cancelPendingChannel(ChannelBase* chl);
+		void cancelPendingChannel(std::shared_ptr<ChannelBase> chl);
 
         // return true if any sessions are still accepting connections or
         // if there are still some channels with unmatched sockets.
@@ -268,7 +270,7 @@ namespace osuCrypto
 
         // Make this session as interested in accepting connecctions. Will create
         // a SessionGroup.
-		void subscribe(std::shared_ptr<SessionBase>& session);
+		void asyncSubscribe(std::shared_ptr<SessionBase>& session, completion_handle ch);
 
         //void subscribe(std::shared_ptr<ChannelBase>& chl);
 

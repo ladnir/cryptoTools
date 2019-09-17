@@ -33,6 +33,8 @@ namespace tests_cryptoTools
         th.add("BtNetwork_ServerMode_Test               ", BtNetwork_ServerMode_Test);
         th.add("BtNetwork_clientClose_Test              ", BtNetwork_clientClose_Test);
         th.add("BtNetwork_BadConnect_Test               ", BtNetwork_BadConnect_Test);
+        th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
+
 
         th.add("AES                                     ", AES_EncDec_Test);
 

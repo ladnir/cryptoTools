@@ -132,9 +132,6 @@
     <ClInclude Include="Common\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Backtrace.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp">

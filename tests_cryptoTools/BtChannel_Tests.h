@@ -33,6 +33,10 @@ namespace tests_cryptoTools
 	void BtNetwork_CancelChannel_Test();
 
 
+    void BtNetwork_oneWorker_Test();
+
+
+
     void SBO_ptr_test();
 
 }

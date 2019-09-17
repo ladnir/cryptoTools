@@ -145,5 +145,10 @@ namespace osuCrypto
         //    completionHandle(ec, 0);
         //}
 
-    }
+        boost::asio::io_context& getIOService(ChannelBase* base)
+        {
+            return base->mIos.mIoService;
+        }
+
+}
 }

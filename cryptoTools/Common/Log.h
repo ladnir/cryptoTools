@@ -14,6 +14,13 @@ namespace osuCrypto
     class Log
     {
     public:
+        Log() = default;
+        Log(const Log& c) {
+
+            std::lock_guard<std::mutex>l(const_cast<std::mutex&>(c.mLock));
+            mMessages = c.mMessages;
+        }
+
         std::vector<std::pair<u64, std::string>> mMessages;
         std::mutex mLock;
 

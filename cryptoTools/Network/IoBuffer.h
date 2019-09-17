@@ -777,7 +777,7 @@ namespace osuCrypto
 
 
 
-
+        boost::asio::io_context& getIOService(ChannelBase* base);
 
         template< typename T>
         class WithCallback : public T
@@ -803,21 +803,25 @@ namespace osuCrypto
             {
                 mWithCBCompletionHandle = std::move(completionHandle);
 
-                T::asyncPerform(base, [this](const error_code& ec, u64 bytes) mutable
+                T::asyncPerform(base, [this, base](const error_code& ec, u64 bytes) mutable
                     {
                         if (mCallback.which() == 0)
                         {
                             auto& c = boost::get<std::function<void()>>(mCallback);
                             if (c)
-                                c();
-                            c = {};
+                            {
+                                boost::asio::post(getIOService(base).get_executor(), std::move(c));
+                            }
                         }
                         else
                         {
                             auto& c = boost::get<std::function<void(const error_code&)>>(mCallback);
                             if (c)
-                                c(ec);
-                            c = {};
+                            {
+                                boost::asio::post(getIOService(base).get_executor(), [cc = std::move(c), ec](){
+                                    cc(ec);
+                                });
+                            }
                         }
 
                         mWithCBCompletionHandle(ec, bytes);

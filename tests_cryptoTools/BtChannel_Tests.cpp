@@ -80,10 +80,10 @@ namespace tests_cryptoTools
         if (c1c1.getName() != s1c1.getName()) throw UnitTestFail();
         if (c2c1.getName() != s2c1.getName()) throw UnitTestFail();
         if (c1c2.getName() != s1c2.getName()) throw UnitTestFail();
-        if (c2c2.getName() != s2c2.getName()) 
+        if (c2c2.getName() != s2c2.getName())
             throw UnitTestFail();
 
-        if (s1.getSessionID() != c1.getSessionID()) 
+        if (s1.getSessionID() != c1.getSessionID())
             throw UnitTestFail();
         if (s2.getSessionID() != c2.getSessionID()) throw UnitTestFail();
 
@@ -123,7 +123,7 @@ namespace tests_cryptoTools
                 Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server);
                 auto ch1 = c1.addChannel();
 
-                ch1.cancel();  
+                ch1.cancel();
 
                 bool throws = false;
 
@@ -158,8 +158,8 @@ namespace tests_cryptoTools
                 std::vector<u8> rr;
                 auto f = ch1.asyncRecv(rr);
                 //auto thrd = std::thread([&]() {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(i));
-                    ch1.cancel();
+                std::this_thread::sleep_for(std::chrono::milliseconds(i));
+                ch1.cancel();
                 //});
 
                 try { f.get(); }
@@ -194,7 +194,7 @@ namespace tests_cryptoTools
                 auto thrd = std::thread([&]() {
                     //std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     ch1.cancel();
-                });
+                    });
 
                 bool throws = false;
                 try {
@@ -230,6 +230,81 @@ namespace tests_cryptoTools
         //std::cout << t << std::endl << std::endl;
     }
 
+    void BtNetwork_oneWorker_Test()
+    {
+        IOService ioService(1);
+
+        auto trials = 1;
+        Session s1, c1;
+        Channel chs1, chs2, chc1, chc2;
+
+        std::string msg("3421341234");
+        for (u64 t = 0; t < trials; ++t)
+        {
+            std::future<void> f1, f2;
+            std::promise<void> prom;
+            std::atomic<u64> cntr(0);
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                s1.start(ioService, "127.0.0.1", 1212, SessionMode::Server);
+                if (cntr++ != 0)
+                    lout << "logic error" << std::endl;
+                });
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                c1.start(ioService, "127.0.0.1", 1212, SessionMode::Client);
+                if (cntr++ != 1)
+                    lout << "logic error" << std::endl;
+                });
+
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chs1 = s1.addChannel();
+                if (cntr++ != 2)
+                    lout << "logic error" << std::endl;
+                });
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chs2 = s1.addChannel();
+                if (cntr++ != 3)
+                    lout << "logic error" << std::endl;
+                    });
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chc1 = c1.addChannel();
+                if (cntr++ != 4)
+                    lout << "logic error" << std::endl;
+                });
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chc2 = c1.addChannel();
+                if (cntr++ != 5)
+                    lout << "logic error" << std::endl;
+                });
+
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chs1.asyncSend(msg);
+                if (cntr++ != 6)
+                    lout << "logic error" << std::endl;
+                });
+
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                f1 = chc1.asyncRecv(msg);
+                if (cntr++ != 7)
+                    lout << "logic error" << std::endl;
+                });
+
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                chc2.asyncSend(msg);
+                if (cntr++ != 8)
+                    lout << "logic error" << std::endl;
+                });
+
+            boost::asio::dispatch(ioService.mIoService, [&]() {
+                f2 = chs2.asyncRecv(msg);
+                if (cntr++ != 9)
+                    lout << "logic error" << std::endl;
+                prom.set_value();
+                });
+
+            prom.get_future().get();
+        }
+    }
+
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);
     void BtNetwork_ServerMode_Test()
     {
@@ -239,7 +314,7 @@ namespace tests_cryptoTools
 
         for (u64 i = 0; i < numConnect; ++i)
         {
-            
+
             //std::cout << " " <<i<<std::flush;
             Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server);
             Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client);
@@ -250,7 +325,7 @@ namespace tests_cryptoTools
 
             //std::cout << "x" <<std::flush;
             std::string m0("c0");
-            
+
             //if(i == 62 || i == 3)
             //{
             //    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -260,7 +335,7 @@ namespace tests_cryptoTools
             //    << srvChls[i][0].mBase->mSession->mAcceptor->mLog << "\n==============================="<< std::endl ;
             //
             //}
-            
+
             clientChls[i][0].asyncSend(std::move(m0));
             //std::cout << "y" <<std::flush;
             std::string m1("c1");
@@ -292,7 +367,7 @@ namespace tests_cryptoTools
             //std::cout << "a" <<std::flush;
             std::string m0("c0");
             srvChls[i][0].asyncSend(std::move(m0));
- 
+
             //std::cout << "b" <<std::flush;
             std::string m1("c1");
             srvChls[i][1].asyncSend(std::move(m1));
@@ -347,20 +422,20 @@ namespace tests_cryptoTools
         IOService ioService(0);
         Channel chl1, chl2;
         auto thrd = std::thread([&]()
-        {
-            setThreadName("Test_Client");
+            {
+                setThreadName("Test_Client");
 
-            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-            chl1 = endpoint.addChannel(channelName, channelName);
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+                chl1 = endpoint.addChannel(channelName, channelName);
 
-            std::string recvMsg;
-            chl1.recv(recvMsg);
+                std::string recvMsg;
+                chl1.recv(recvMsg);
 
-            if (recvMsg != msg) throw UnitTestFail();
+                if (recvMsg != msg) throw UnitTestFail();
 
-            chl1.asyncSend(std::move(recvMsg));
-            chl1.close();
-        });
+                chl1.asyncSend(std::move(recvMsg));
+                chl1.close();
+            });
 
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
         chl2 = endpoint.addChannel(channelName, channelName);
@@ -398,7 +473,7 @@ namespace tests_cryptoTools
 
         error_code ec;
         sock.connect(addr, ec);
-        
+
 
         sock.close(ec);
 
@@ -423,30 +498,30 @@ namespace tests_cryptoTools
         memset(oneMegabyte.data() + 100, 0xcc, 1000000 - 100);
 
         IOService ioService(0);
-        
+
         auto thrd = std::thread([&]()
-        {
-            setThreadName("Test_Client");
+            {
+                setThreadName("Test_Client");
 
-            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-            Channel chl = endpoint.addChannel(channelName, channelName);
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+                Channel chl = endpoint.addChannel(channelName, channelName);
 
-            std::vector<u8> srvRecv;
-            chl.recv(srvRecv);
-            auto copy = srvRecv;
-            chl.asyncSend(std::move(copy));
-            chl.close();
+                std::vector<u8> srvRecv;
+                chl.recv(srvRecv);
+                auto copy = srvRecv;
+                chl.asyncSend(std::move(copy));
+                chl.close();
 
-            auto act = chl.getTotalDataRecv();
-            auto exp = oneMegabyte.size() + 4;
+                auto act = chl.getTotalDataRecv();
+                auto exp = oneMegabyte.size() + 4;
 
-            if (act != exp)
-                throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
+                if (act != exp)
+                    throw UnitTestFail("channel recv statistics incorrectly increased." LOCATION);
 
-            if (srvRecv != oneMegabyte) 
-                throw UnitTestFail("channel recv the wrong value." LOCATION); 
+                if (srvRecv != oneMegabyte)
+                    throw UnitTestFail("channel recv the wrong value." LOCATION);
 
-        });
+            });
 
 
         Finally f([&] { thrd.join(); });
@@ -509,40 +584,40 @@ namespace tests_cryptoTools
         buff.data()[44] = 2;
 
         std::thread serverThrd = std::thread([&]()
-        {
-            IOService ioService;
-            setThreadName("Test_client");
-
-            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
-
-            std::vector<std::thread> threads;
-
-            for (u64 i = 0; i < numChannels; i++)
             {
-                auto chl = endpoint.addChannel();
-                threads.emplace_back([i, &buff, chl, messageCount, print, channelName]()mutable
+                IOService ioService;
+                setThreadName("Test_client");
+
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
+
+                std::vector<std::thread> threads;
+
+                for (u64 i = 0; i < numChannels; i++)
                 {
-                    setThreadName("Test_client_" + std::to_string(i));
-                    std::vector<u8> mH;
-
-                    for (u64 j = 0; j < messageCount; j++)
-                    {
-                        chl.recv(mH);
-                        if (buff != mH)
+                    auto chl = endpoint.addChannel();
+                    threads.emplace_back([i, &buff, chl, messageCount, print, channelName]()mutable
                         {
-                            std::cout << "-----------failed------------" LOCATION << std::endl;
-                            throw UnitTestFail();
-                        }
-                        chl.asyncSend(std::move(mH));
-                    }
+                            setThreadName("Test_client_" + std::to_string(i));
+                            std::vector<u8> mH;
 
-                });
-            }
+                            for (u64 j = 0; j < messageCount; j++)
+                            {
+                                chl.recv(mH);
+                                if (buff != mH)
+                                {
+                                    std::cout << "-----------failed------------" LOCATION << std::endl;
+                                    throw UnitTestFail();
+                                }
+                                chl.asyncSend(std::move(mH));
+                            }
+
+                        });
+                }
 
 
-            for (auto& thread : threads)
-                thread.join();
-        });
+                for (auto& thread : threads)
+                    thread.join();
+            });
 
         IOService ioService;
 
@@ -554,22 +629,22 @@ namespace tests_cryptoTools
         {
             auto chl = endpoint.addChannel();
             threads.emplace_back([i, chl, &buff, messageCount, print, channelName]() mutable
-            {
-                setThreadName("Test_Host_" + std::to_string(i));
-                std::vector<u8> mH(buff);
-
-                for (u64 j = 0; j < messageCount; j++)
                 {
-                    chl.asyncSendCopy(mH);
-                    chl.recv(mH);
+                    setThreadName("Test_Host_" + std::to_string(i));
+                    std::vector<u8> mH(buff);
 
-                    if (buff != mH)
+                    for (u64 j = 0; j < messageCount; j++)
                     {
-                        std::cout << "-----------failed------------" LOCATION << std::endl;
-                        throw UnitTestFail();
+                        chl.asyncSendCopy(mH);
+                        chl.recv(mH);
+
+                        if (buff != mH)
+                        {
+                            std::cout << "-----------failed------------" LOCATION << std::endl;
+                            throw UnitTestFail();
+                        }
                     }
-                }
-            });
+                });
         }
 
 
@@ -615,7 +690,7 @@ namespace tests_cryptoTools
             endpoint.stop();
 
             ioService.stop();
-        });
+            });
         IOService ioService(0);
         Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
@@ -713,7 +788,7 @@ namespace tests_cryptoTools
                         failed = true;
                 }
 
-            });
+                });
         }
 
         for (u64 i = 0; i < nodeCount; ++i)
@@ -739,13 +814,13 @@ namespace tests_cryptoTools
             Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, "endpoint");
             chl1 = ep1.addChannel(channelName, channelName);
 
-            if (chl1.isConnected() == true) 
+            if (chl1.isConnected() == true)
                 throw UnitTestFail(LOCATION);
 
 
             Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, "endpoint");
 
-            if (chl1.isConnected() == true) 
+            if (chl1.isConnected() == true)
                 throw UnitTestFail(LOCATION);
 
             //std::cout << "add 2" << std::endl;
@@ -756,7 +831,7 @@ namespace tests_cryptoTools
 
             if (chl1.isConnected() == false)
             {
-                lout << "ec " << !chl1.mBase->mStartOp->mEC <<" " << chl1.mBase->mStartOp->mEC.message() << std::endl;
+                lout << "ec " << !chl1.mBase->mStartOp->mEC << " " << chl1.mBase->mStartOp->mEC.message() << std::endl;
                 lout << "ic " << chl1.mBase->mStartOp->mIsComplete << std::endl;
                 throw UnitTestFail(LOCATION);
             }
@@ -799,7 +874,7 @@ namespace tests_cryptoTools
             ep1.stop();
             ep2.stop();
             ioService.stop();
-        });
+            });
 
 
         std::vector<u32> vec_u32{ 0,1,2,3,4,5,6,7,8,9 };
@@ -884,7 +959,7 @@ namespace tests_cryptoTools
             ep1.stop();
             ep2.stop();
             ioService.stop();
-        });
+            });
 
 
         std::vector<u32> vec_u32{ 0,1,2,3,4,5,6,7,8,9 };
@@ -947,7 +1022,7 @@ namespace tests_cryptoTools
                 ep1.stop();
                 ep2.stop();
                 ioService.stop();
-            });
+                });
 
 
             {
@@ -959,7 +1034,7 @@ namespace tests_cryptoTools
             chl1.recv(vec_u32);
 
         }
-        catch (std::runtime_error& )
+        catch (std::runtime_error&)
         {
             throws = true;
         }
@@ -1002,7 +1077,7 @@ namespace tests_cryptoTools
             chl2.recv(vec_u32);
 
         }
-        catch (std::runtime_error& )
+        catch (std::runtime_error&)
         {
             throws = true;
         }
@@ -1032,44 +1107,44 @@ namespace tests_cryptoTools
 
             {
 
-            timer.setTimePoint("io serivce");
+                timer.setTimePoint("io serivce");
 
-            Session server(ios, "127.0.0.1", 1212, SessionMode::Server);
-            Session client(ios, "127.0.0.1", 1212, SessionMode::Client);
-            timer.setTimePoint("sessions");
+                Session server(ios, "127.0.0.1", 1212, SessionMode::Server);
+                Session client(ios, "127.0.0.1", 1212, SessionMode::Client);
+                timer.setTimePoint("sessions");
 
 
-            auto sChl = server.addChannel();
-            auto cChl = client.addChannel();
-            timer.setTimePoint("add chls");
+                auto sChl = server.addChannel();
+                auto cChl = client.addChannel();
+                timer.setTimePoint("add chls");
 
-            int k(0);
-            cChl.send(k);
-            sChl.recv(k);
-            timer.setTimePoint("send recv");
+                int k(0);
+                cChl.send(k);
+                sChl.recv(k);
+                timer.setTimePoint("send recv");
 
-            std::vector<u8> kk;
-            sChl.asyncRecv(kk, [&](const error_code& ec) {
-                if (ec)
-                    ++count;
-                //std::cout << " ec " << ec.message() << std::endl;
-                }
-            );
+                std::vector<u8> kk;
+                sChl.asyncRecv(kk, [&](const error_code& ec) {
+                    if (ec)
+                        ++count;
+                    //std::cout << " ec " << ec.message() << std::endl;
+                    }
+                );
 
-            cChl.close();
-            timer.setTimePoint("client close");
+                cChl.close();
+                timer.setTimePoint("client close");
 
-            sChl.close();
-            timer.setTimePoint("server close");
+                sChl.close();
+                timer.setTimePoint("server close");
 
-            client.stop();
-            timer.setTimePoint("client stop");
+                client.stop();
+                timer.setTimePoint("client stop");
 
-            server.stop();
-            timer.setTimePoint("server stop");
+                server.stop();
+                timer.setTimePoint("server stop");
 
-            //timer.setTimePoint("print");
-            //lout << cChl.mBase->mLog << std::endl << std::endl;
+                //timer.setTimePoint("print");
+                //lout << cChl.mBase->mLog << std::endl << std::endl;
             }
             timer.setTimePoint("desctruct");
 
@@ -1157,7 +1232,7 @@ namespace tests_cryptoTools
 
             ioService.showErrorMessages(false);
 
-            u64 trials = 100;
+            u64 trials = 10;
 
             for (u64 i = 0; i < trials; ++i)
             {
@@ -1252,7 +1327,7 @@ namespace tests_cryptoTools
         MoveOnly() = delete;
         MoveOnly(std::string s) :mStr(std::move(s)) {};
         MoveOnly(const MoveOnly&) = delete;
-        MoveOnly(MoveOnly&&m) = default;
+        MoveOnly(MoveOnly&& m) = default;
 
 
         std::string print() override { return mStr; }

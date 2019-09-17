@@ -109,7 +109,7 @@ namespace osuCrypto {
 		std::unique_ptr<boost::asio::io_service::work> mWorker;
 
 		//bool mHasGroup = false;
-		std::list<details::SessionGroup>::iterator mGroup;
+		std::shared_ptr<details::SessionGroup> mGroup;
 
 		std::mutex mAddChannelMtx;
 		std::string mName;

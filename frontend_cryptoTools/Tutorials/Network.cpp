@@ -263,7 +263,7 @@ void networkTutorial()
         int size = 4;
         u8* data = new u8[size]();
 
-        chl0.asyncSend(data, size, [data]()
+        chl0.asyncSend(span<u8>(data, size), [data]()
         {
             // we are done with data now, delete it.
             delete[] data;

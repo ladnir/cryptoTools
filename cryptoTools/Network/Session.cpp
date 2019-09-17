@@ -19,7 +19,7 @@ namespace osuCrypto {
 	void Session::start(IOService& ioService, std::string remoteIP, u32 port, SessionMode type, std::string name)
 	{
 		if (mBase && mBase->mStopped == false)
-			throw std::runtime_error("rt error at " LOCATION);
+			throw std::runtime_error("rt error at " LOCATION); 
 
 		mBase.reset(new SessionBase(ioService.mIoService));
 		mBase->mIP = (remoteIP);
@@ -84,7 +84,8 @@ namespace osuCrypto {
 	Session::Session(const Session & v)
 		: mBase(v.mBase)
 	{
-		++mBase->mRealRefCount;
+        if(mBase)
+		    ++mBase->mRealRefCount;
 	}
 
 	Session::Session(const std::shared_ptr<SessionBase>& c)
@@ -95,9 +96,12 @@ namespace osuCrypto {
 
 	Session::~Session()
 	{
-		--mBase->mRealRefCount;
-		if (mBase->mRealRefCount == 0)
-			mBase->stop();
+        if (mBase)
+        {
+		    --mBase->mRealRefCount;
+		    if (mBase->mRealRefCount == 0)
+			    mBase->stop();
+        }
 	}
 
 	std::string Session::getName() const
@@ -126,6 +130,9 @@ namespace osuCrypto {
 
 	Channel Session::addChannel(std::string localName, std::string remoteName)
 	{
+        if (mBase == nullptr)
+            throw std::runtime_error("Session is not initialized");
+
 		// if the user does not provide a local name, use the following.
 		if (localName == "") {
 			if (remoteName != "") throw std::runtime_error("remote name must be empty is local name is empty. " LOCATION);
