@@ -289,6 +289,12 @@ namespace osuCrypto
 		bool isListening() const { return mListening; };
 
 
+        void sendServerMessage(std::list<details::PendingSocket>::iterator iter);
+
+        void recvConnectionString(std::list<details::PendingSocket>::iterator iter);
+        void erasePendingSocket(std::list<details::PendingSocket>::iterator iter);
+
+
 		std::string print() const;
 #ifdef ENABLE_NET_LOG
         Log mLog;

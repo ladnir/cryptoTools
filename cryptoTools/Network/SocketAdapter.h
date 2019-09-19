@@ -146,7 +146,8 @@ namespace osuCrypto
         void close() override {
 			boost::system::error_code ec;
 			mSock.close(ec);
-			if (ec) std::cout <<"BoostSocketInterface::close() error: "<< ec.message() << std::endl; 
+			if (ec) 
+                std::cout <<"BoostSocketInterface::close() error: "<< ec.message() << std::endl; 
 		}
 
         void async_recv(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn) override

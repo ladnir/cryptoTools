@@ -378,6 +378,12 @@ namespace osuCrypto {
 
         bool canceled() const;
         void asyncConnectToServer();
+        void recvServerMessage();
+        void sendConnectionString();
+        void retryConnect(const error_code& ec);
+
+
+        char mRecvChar;
         void setSocket(std::unique_ptr<SocketInterface> socket, const error_code& ec);
 
 
@@ -407,10 +413,11 @@ namespace osuCrypto {
 
         boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
 
-        details::MoveSendBuff<std::string> mHandshakeSendOp;
+        std::vector<u8> mSendBuffer;
+        //details::MoveSendBuff<std::string> mHandshakeSendOp;
 
-        //std::unique_ptr<BoostSocketInterface> mBoostInterface;
-        boost::asio::ip::tcp::socket* mSock;
+        std::unique_ptr<BoostSocketInterface> mSock;
+        //boost::asio::ip::tcp::socket* mSock;
         double mBackoff = 1;
 
         bool mIsComplete = false, mCanceled = false;

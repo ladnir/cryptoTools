@@ -60,12 +60,12 @@ namespace osuCrypto
         mHandle.open(mAddress.protocol());
         mHandle.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
 
-//#ifdef _MSC_VER
-//        typedef boost::asio::detail::socket_option::boolean<BOOST_ASIO_OS_DEF(SOL_SOCKET), SO_EXCLUSIVEADDRUSE> excluse_address; 
-//        mHandle.set_option(excluse_address(true));
-//#endif // _MSC_VER
+        //#ifdef _MSC_VER
+        //        typedef boost::asio::detail::socket_option::boolean<BOOST_ASIO_OS_DEF(SOL_SOCKET), SO_EXCLUSIVEADDRUSE> excluse_address; 
+        //        mHandle.set_option(excluse_address(true));
+        //#endif // _MSC_VER
 
-        
+
         mHandle.bind(mAddress, ec);
 
         if (mAddress.port() != port)
@@ -87,131 +87,156 @@ namespace osuCrypto
 
     void Acceptor::start()
     {
-        boost::asio::dispatch(mStrand, [&]()
+        boost::asio::dispatch(mStrand, [&]() {
+            if (isListening())
             {
-                if (isListening())
-                {
-                    mPendingSockets.emplace_back(mIOService.mIoService);
-                    auto sockIter = mPendingSockets.end(); --sockIter;
+                mPendingSockets.emplace_back(mIOService.mIoService);
+                auto sockIter = mPendingSockets.end(); --sockIter;
 
-                    //#ifdef ENABLE_NET_LOG
-                    sockIter->mIdx = mPendingSocketIdx++;
-                    //#endif
-                    LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
-                        " at " + mAddress.address().to_string() + " : " + std::to_string(mAddress.port()));
+                //#ifdef ENABLE_NET_LOG
+                sockIter->mIdx = mPendingSocketIdx++;
+                //#endif
+                LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
+                    " at " + mAddress.address().to_string() + " : " + std::to_string(mAddress.port()));
 
-                    //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
-                    mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
+                //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
+                mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
+                    {
+                        //std::cout << "async_accept cb socket#" + std::to_string(sockIter->mIdx) << " " << ec.message() <<  std::endl;
+
+                        start();
+
+                        if (!ec)
                         {
-                            //std::cout << "async_accept cb socket#" + std::to_string(sockIter->mIdx) << " " << ec.message() <<  std::endl;
 
-                            start();
+                            boost::asio::ip::tcp::no_delay option(true);
+                            boost::system::error_code ec2;
+                            sockIter->mSock.set_option(option, ec2);
+                            if (ec2)
+                                erasePendingSocket(sockIter);
+                            else
+                                sendServerMessage(sockIter);
+                        }
+                        else
+                        {
+                            LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec.message());
 
-                            if (!ec)
+                            // if the error code is not for operation canceled, print it to the terminal.
+                            if (ec.value() != boost::asio::error::operation_aborted)
+                                std::cout << "Acceptor.listen failed for socket#" << std::to_string(sockIter->mIdx)
+                                << " ~~ " << ec.message() << " " << ec.value() << std::endl;
+
+                            if (ec.value() == boost::asio::error::no_descriptors)
                             {
-                                LOG_MSG("Connected with socket#" + std::to_string(sockIter->mIdx));
+                                mIOService.printError("Too many sockets have been opened and the OS is refusing"
+                                    " to give more. Increase the maximum number of file descriptors or use fewer sockets\n");
 
-                                boost::asio::ip::tcp::no_delay option(true);
-                                sockIter->mSock.set_option(option);
-                                sockIter->mBuff.resize(sizeof(u32));
+                            }
 
-                                sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
-                                    [sockIter, this](const boost::system::error_code& ec2, u64 bytesTransferred)
-                                    {
-                                        if (!ec2)
-                                        {
-                                            LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
+                            erasePendingSocket(sockIter);
+                        }
+                    });
+            }
+            else
+            {
+                LOG_MSG("Stopped listening");
+            }
+            });
 
-                                            auto size = *(u32*)sockIter->mBuff.data();
-                                            sockIter->mBuff.resize(size);
-
-                                            sockIter->mSock.async_receive(boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size()),
-
-                                                bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2)
-                                                    {
-                                                        if (!ec3)
-                                                        {
-                                                            LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
-
-                                                            asyncSetSocket(
-                                                                std::move(sockIter->mBuff),
-                                                                std::move(std::unique_ptr<BoostSocketInterface>(
-                                                                    new BoostSocketInterface(std::move(sockIter->mSock)))));
-                                                        }
-                                                        else
-                                                        {
-                                                            std::stringstream ss;
-                                                            ss << "socket header body failed: " << ec3.message() << std::endl;
-                                                            mIOService.printError(ss.str());
-                                                            LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
-                                                        }
-
-                                                        mPendingSockets.erase(sockIter);
-                                                        if (stopped() && mPendingSockets.size() == 0)
-                                                            mPendingSocketsEmptyProm.set_value();
-                                                    }));
-
-                                        }
-                                        else
-                                        {
-                                            if (ec2.value() != boost::asio::error::operation_aborted)
-                                            {
-                                                std::stringstream ss;
-                                                ss << "async_accept error, failed to receive first header on connection handshake."
-                                                << " Other party may have closed the connection. Error code:"
-                                                << ec2.message() << "  " << LOCATION << std::endl;
-                                                mIOService.printError(ss.str());
-                                            }
+    }
 
 
-                                            LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec2.message());
+    void Acceptor::erasePendingSocket(std::list<details::PendingSocket>::iterator sockIter)
+    {
+        boost::asio::dispatch(mStrand, [&, sockIter]() {
+
+            boost::system::error_code ec3;
+            sockIter->mSock.close(ec3);
+
+            mPendingSockets.erase(sockIter);
+            if (stopped() && mPendingSockets.size() == 0)
+                mPendingSocketsEmptyProm.set_value();
+            });
+    }
+
+    void Acceptor::sendServerMessage(std::list<details::PendingSocket>::iterator sockIter)
+    {
+        sockIter->mBuff.resize(1);
+        sockIter->mBuff[0] = 'q';
+        auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
+
+        sockIter->mSock.async_send(buffer, [this, sockIter](const error_code& ec, u64 bytesTransferred) {
+            if (ec || bytesTransferred != 1)
+                erasePendingSocket(sockIter);
+            else
+                recvConnectionString(sockIter);
+
+            }
+        );
+    }
+
+    void Acceptor::recvConnectionString(std::list<details::PendingSocket>::iterator sockIter)
+    {
+        LOG_MSG("Connected with socket#" + std::to_string(sockIter->mIdx));
 
 
-                                            //if(ec2.value() !=)
+        sockIter->mBuff.resize(sizeof(u32));
+        auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
+        sockIter->mSock.async_receive(buffer,
+            [sockIter, this](const boost::system::error_code& ec, u64 bytesTransferred)
+            {
+                if (!ec)
+                {
+                    LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
 
-                                            boost::asio::dispatch(mStrand, [&, sockIter]()
-                                                {
-                                                    boost::system::error_code ec3;
-                                                    sockIter->mSock.close(ec3);
-                                                    mPendingSockets.erase(sockIter);
-                                                    if (stopped() && mPendingSockets.size() == 0)
-                                                        mPendingSocketsEmptyProm.set_value();
-                                                });
-                                        }
+                    auto size = *(u32*)sockIter->mBuff.data();
 
-                                    });
+                    sockIter->mBuff.resize(size);
+                    auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
+
+                    sockIter->mSock.async_receive(buffer,
+                        bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2) {
+                            if (!ec3)
+                            {
+                                LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
+
+                                asyncSetSocket(
+                                    std::move(sockIter->mBuff),
+                                    std::move(std::unique_ptr<BoostSocketInterface>(
+                                        new BoostSocketInterface(std::move(sockIter->mSock)))));
                             }
                             else
                             {
-                                LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec.message());
-
-                                // if the error code is not for operation canceled, print it to the terminal.
-                                if (ec.value() != boost::asio::error::operation_aborted)
-                                    std::cout << "Acceptor.listen failed for socket#" << std::to_string(sockIter->mIdx)
-                                    << " ~~ " << ec.message() << " " << ec.value() << std::endl;
-
-                                if (ec.value() == boost::asio::error::no_descriptors)
-                                {
-                                    mIOService.printError("Too many sockets have been opened and the OS is refusing"
-                                        " to give more. Increase the maximum number of file descriptors or use fewer sockets\n");
-
-                                }
-
-                                boost::asio::dispatch(mStrand, [&, sockIter]()
-                                    {
-                                        mPendingSockets.erase(sockIter);
-                                        if (stopped() && mPendingSockets.size() == 0)
-                                            mPendingSocketsEmptyProm.set_value();
-                                    });
+                                std::stringstream ss;
+                                ss << "socket header body failed: " << ec3.message() << std::endl;
+                                mIOService.printError(ss.str());
+                                LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
                             }
-                        });
+
+                            erasePendingSocket(sockIter);
+                            }
+                        )
+                    );
+
                 }
                 else
                 {
-                    LOG_MSG("Stopped listening");
-                }
-            });
+                    if (ec.value() != boost::asio::error::operation_aborted)
+                    {
+                        std::stringstream ss;
+                        ss << "async_accept error, failed to receive first header on connection handshake."
+                            << " Other party may have closed the connection. Error code:"
+                            << ec.message() << "  " << LOCATION << std::endl;
+                        mIOService.printError(ss.str());
+                    }
 
+                    LOG_MSG("Recv header failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec.message());
+
+                    erasePendingSocket(sockIter);
+                }
+
+            }
+        );
     }
 
     void Acceptor::stop()
@@ -475,6 +500,11 @@ namespace osuCrypto
 
             if (chlIter != group->mChannels.end())
             {
+                LOG_MSG("cancelPendingChannel(...) Channel "
+                    + chl->mSession->mName + " "
+                    + std::to_string(chl->mSession->mSessionID) + " "
+                    + chl->mLocalName + " " + chl->mRemoteName);
+
                 group->mChannels.erase(chlIter);
 
                 if (group->hasSubscriptions() == false)
@@ -685,7 +715,7 @@ namespace osuCrypto
             {
                 auto& groups = unclaimedLocalIter->second;
                 auto matchIter = std::find_if(groups.begin(), groups.end(),
-                    [&](const GroupList::iterator& g) { 
+                    [&](const GroupList::iterator& g) {
                         return (*g)->hasMatchingChannel(socket); });
 
                 if (matchIter != groups.end())
@@ -924,7 +954,7 @@ namespace osuCrypto
         if (iter != mChannels.end())
         {
 #ifdef ENABLE_NET_LOG
-            a->mLog.push("handing Channel the socket -> " + s.mLocalName + "`" + s.mRemoteName);
+            a->mLog.push("handing the socket to Channel : " + s.mLocalName + "`" + s.mRemoteName);
 #endif
             auto ec = boost::system::errc::make_error_code(boost::system::errc::success);
             (*iter)->mStartOp->setSocket(std::move(s.mSocket), ec);
@@ -993,9 +1023,6 @@ namespace osuCrypto
         if (mSockets.size())
             throw std::runtime_error(LOCATION);
 
-        for (auto& s : merge.mSockets) add(std::move(s), a);
-        merge.mSockets.clear();
-
         auto session = mBase.lock();
         if (session)
         {
@@ -1004,9 +1031,17 @@ namespace osuCrypto
                 session->mSessionID)
                 throw std::runtime_error(LOCATION);
 
-            session->mName = std::move(merge.mName);
             session->mSessionID = merge.mSessionID;
         }
+        else if (mChannels.size())
+        {
+            mChannels.front()->mSession->mSessionID = merge.mSessionID;
+
+        }
+
+
+        for (auto& s : merge.mSockets) add(std::move(s), a);
+        merge.mSockets.clear();
     }
 
 
