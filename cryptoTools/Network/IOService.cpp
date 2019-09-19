@@ -121,10 +121,6 @@ namespace osuCrypto
                         {
                             LOG_MSG("Failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec.message());
 
-                            // if the error code is not for operation canceled, print it to the terminal.
-                            if (ec.value() != boost::asio::error::operation_aborted)
-                                std::cout << "Acceptor.listen failed for socket#" << std::to_string(sockIter->mIdx)
-                                << " ~~ " << ec.message() << " " << ec.value() << std::endl;
 
                             if (ec.value() == boost::asio::error::no_descriptors)
                             {
@@ -132,6 +128,11 @@ namespace osuCrypto
                                     " to give more. Increase the maximum number of file descriptors or use fewer sockets\n");
 
                             }
+                            
+                            // if the error code is not for operation canceled, print it to the terminal.
+                            if (ec.value() != boost::asio::error::operation_aborted && mIOService.mPrint)
+                                std::cout << "Acceptor.listen failed for socket#" << std::to_string(sockIter->mIdx) << " at port "<< mPort 
+                                    << " ~~ " << ec.message() << " " << ec.value() << std::endl;
 
                             erasePendingSocket(sockIter);
                         }
