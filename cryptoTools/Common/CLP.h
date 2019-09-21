@@ -12,7 +12,17 @@
 namespace osuCrypto
 {
     // An error that is thrown when the input isn't of the correct form.
-    class CommandLineParserError : public std::exception {  };
+    class CommandLineParserError : public std::exception
+    {
+    public:
+        explicit CommandLineParserError(const char* message) : msg_(message) { }
+        explicit CommandLineParserError(const std::string& message) : msg_(message) {}
+        virtual ~CommandLineParserError() throw () {}
+        virtual const char* what() const throw () { return msg_.c_str(); }
+    protected:
+        std::string msg_;
+    };
+
 
     // Command Line Parser class.
     // Expecting the input to be of form 
@@ -35,7 +45,7 @@ namespace osuCrypto
         std::unordered_map<std::string, std::list<std::string>> mKeyValues;
 
         // parse the command line arguments.
-        void parse(int argc, char const*const* argv);
+        void parse(int argc, char const* const* argv);
 
         // Set the default for the provided key. Keys do not include the leading `-`.
         void setDefault(std::string key, std::string value);
@@ -69,7 +79,7 @@ namespace osuCrypto
         T get(const std::string& name)const
         {
             if (hasValue(name) == false)
-                throw CommandLineParserError();
+                throwError({ &name, 1 });
 
             std::stringstream ss;
             ss << *mKeyValues.at(name).begin();
@@ -97,6 +107,22 @@ namespace osuCrypto
             return alternative;
         }
 
+        void throwError(span<const std::string> names) const
+        {
+            if (names.size() == 0)
+                throw CommandLineParserError("No tags provided.");
+            else
+            {
+                std::stringstream ss;
+                ss << "{ " << names[0];
+                for (u64 i = 1; i < names.size(); ++i)
+                    ss << ", " << names[i];
+                ss << " }";
+
+                throw CommandLineParserError("No values were set for tags " + ss.str());
+            }
+        }
+
 
         // Return the first value associated with the key.
         template<typename T>
@@ -109,33 +135,33 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throw CommandLineParserError();
+            throwError(names);
         }
 
-		// Return the values associated with the key.
-		template<typename T>
-		std::vector<T> getManyOr(const std::string& name, std::vector<T>alt)const
-		{
-			if (isSet(name))
-			{
-				auto& vs = mKeyValues.at(name);
-				std::vector<T> ret(vs.size());
-				auto iter = vs.begin();
-				for (u64 i = 0; i < ret.size(); ++i)
-				{
-					std::stringstream ss(*iter++);
-					ss >> ret[i];
-				}
-				return ret;
-			}
-			return alt;
-		}
+        // Return the values associated with the key.
+        template<typename T>
+        std::vector<T> getManyOr(const std::string& name, std::vector<T>alt)const
+        {
+            if (isSet(name))
+            {
+                auto& vs = mKeyValues.at(name);
+                std::vector<T> ret(vs.size());
+                auto iter = vs.begin();
+                for (u64 i = 0; i < ret.size(); ++i)
+                {
+                    std::stringstream ss(*iter++);
+                    ss >> ret[i];
+                }
+                return ret;
+            }
+            return alt;
+        }
 
         // Return the values associated with the key.
         template<typename T>
         std::vector<T> getMany(const std::string& name)const
         {
-			return getManyOr<T>(name, {});
+            return getManyOr<T>(name, {});
         }
 
 
@@ -163,7 +189,7 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throw CommandLineParserError();
+            throwError(names);
         }
     };
 }

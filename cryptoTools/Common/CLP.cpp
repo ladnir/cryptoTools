@@ -22,7 +22,7 @@ namespace osuCrypto
             auto ptr = argv[i];
             if (*ptr++ != '-')
             {
-                throw CommandLineParserError();
+                throw CommandLineParserError("While parsing the argv string, one of the leading terms did not start with a - indicator.");
             }
 
             std::stringstream ss;
