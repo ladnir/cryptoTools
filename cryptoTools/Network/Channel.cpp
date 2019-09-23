@@ -161,8 +161,8 @@ namespace osuCrypto {
                 {
                     error_code ec;
                     mSock->mSock.close(ec);
-                    if (ec)
-                        IF_LOG(mChl->mLog.push("in StartSocketOp::cancel(...) with ec " + ec.message()));
+                    
+                    IF_LOG(if (ec) mChl->mLog.push("in StartSocketOp::cancel(...) with ec " + ec.message()));
 
                 }
             }
@@ -342,7 +342,9 @@ namespace osuCrypto {
 
         auto str = sss.str();
         mSendBuffer.resize(sizeof(details::size_header_type) + str.size());
-        *(details::size_header_type*)mSendBuffer.data() = str.size();
+        *(details::size_header_type*)mSendBuffer.data() 
+            = static_cast<details::size_header_type>(str.size());
+
         std::copy(str.begin(), str.end(), mSendBuffer.begin() + sizeof(details::size_header_type));
 
 

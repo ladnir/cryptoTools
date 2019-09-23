@@ -1,7 +1,7 @@
 #include "CLP.h"
 #include <sstream>
 #include <iostream>
-
+#include "Defines.h"
 
 namespace osuCrypto
 {
@@ -52,6 +52,7 @@ namespace osuCrypto
             mKeyValues.emplace(keyValues);
         }
     }
+    std::vector<std::string> split(const std::string& s, char delim);
 
     void CLP::setDefault(std::string key, std::string value)
     {
@@ -63,7 +64,8 @@ namespace osuCrypto
             }
             else
             {
-                mKeyValues.emplace(std::make_pair(key, std::list<std::string>{ value }));
+                auto parts = split(value, ' ');
+                mKeyValues.emplace(std::make_pair(key, std::list<std::string>{ parts.begin(), parts.end()}));
             }
         }
 
