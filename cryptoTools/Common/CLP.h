@@ -79,7 +79,7 @@ namespace osuCrypto
         T get(const std::string& name)const
         {
             if (hasValue(name) == false)
-                throwError({ &name, 1 });
+                throwError(span<const std::string>(&name, 1));
 
             std::stringstream ss;
             ss << *mKeyValues.at(name).begin();
@@ -135,7 +135,7 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throwError(names);
+            throwError(span<const std::string>(names.data(), names.size()));
         }
 
         // Return the values associated with the key.
@@ -189,7 +189,7 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throwError(names);
+            throwError(span<const std::string>(names.data(), names.size()));
         }
     };
 }
