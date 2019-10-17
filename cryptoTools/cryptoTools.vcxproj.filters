@@ -200,6 +200,9 @@
     <ClCompile Include="Crypto\RCurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OpenSSLSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Crypto\asm\sha_win64.asm">

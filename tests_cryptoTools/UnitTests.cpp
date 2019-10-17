@@ -10,12 +10,14 @@
 #include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
 
+#include "tests_cryptoTools/WolfSSL_Tests.h"
 
 using namespace osuCrypto;
 
 namespace tests_cryptoTools
 {
     TestCollection Tests([](TestCollection& th) {
+        th.add("wolf_demo                               ", wolf_demo);
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
         th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
         th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);

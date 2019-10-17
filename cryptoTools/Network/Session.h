@@ -7,6 +7,11 @@
 #include <list>
 #include <mutex>
 #include <memory>
+//#include <boost/asio/ssl.hpp>
+//extern "C" {
+//#include <openssl/tls1.h>
+//}
+
 
 namespace osuCrypto {
 
@@ -29,7 +34,6 @@ namespace osuCrypto {
 		// The same name should be used by both sessions. Multiple Sessions can be bound to the same
 		// address if the same IOService is used but with different name.
         void start(IOService& ioService, std::string remoteIp, u32 port, SessionMode type, std::string name = "");
-
 
 		// Start a session for the given address in either Client or Server mode.
 		// The server should use their local address on which the socket should bind.

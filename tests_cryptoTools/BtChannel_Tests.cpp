@@ -22,6 +22,8 @@
 #include <cryptoTools/Common/TestCollection.h>
 #include <chrono>
 #include <thread>
+
+
 using namespace osuCrypto;
 
 namespace tests_cryptoTools
@@ -303,6 +305,17 @@ namespace tests_cryptoTools
 
             prom.get_future().get();
         }
+    }
+
+    void BtNetwork_ssl_Test()
+    {
+        IOService ioService(0);
+
+        //boost::asio::ssl::context serverSsl(boost::asio::ssl::context::tlsv13_server);
+        //serverSsl.set_options(
+        //    boost::asio::ssl::context::default_workarounds
+        //);
+
     }
 
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_ServerMode_Test);

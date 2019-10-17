@@ -35,7 +35,7 @@ namespace tests_cryptoTools
 
     void BtNetwork_oneWorker_Test();
 
-
+    void BtNetwork_ssl_Test();
 
     void SBO_ptr_test();
 
