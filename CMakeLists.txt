@@ -12,16 +12,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
-	
-	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
-	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
-
-	if(ENABLE_CPP_14)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
-	else() 	
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-	endif()
-
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
 	if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
