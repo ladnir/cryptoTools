@@ -43,6 +43,12 @@ endif(ENABLE_NASM)
 file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 
+if(ENABLE_CPP_14)
+  target_compile_features(cryptoTools PRIVATE cxx_std_14)
+else() 	
+  target_compile_features(cryptoTools PRIVATE cxx_std_11)
+endif()
+
 target_compile_options(cryptoTools
         PRIVATE -Wall -Wno-ignored-attributes -Wno-parentheses -Wno-strict-overflow
         PUBLIC -ffunction-sections -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread)
