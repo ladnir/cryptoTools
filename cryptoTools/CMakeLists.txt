@@ -43,6 +43,10 @@ endif(ENABLE_NASM)
 file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
 
+target_compile_options(cryptoTools
+        PRIVATE -Wall -Wno-ignored-attributes -Wno-parentheses -Wno-strict-overflow
+        PUBLIC -ffunction-sections -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread)
+
 # make projects that include cryptoTools use this as an include folder
 target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 add_dependencies(cryptoTools sha_asm)
