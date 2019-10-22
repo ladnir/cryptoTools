@@ -209,18 +209,18 @@ namespace osuCrypto {
 
                 if (mChl->mSession->mMode == SessionMode::Client)
                 {
-                    mChl->mLog.push("tls async_connect()");
+                    IF_LOG(mChl->mLog.push("tls async_connect()"));
                     mTLSSock->async_connect([this](const error_code& ec) 
                     {
-                        mChl->mLog.push("tls async_connect() done, " + ec.message());
+                            IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
                         finalize(std::move(mTLSSock), ec);
                         });
                 }
                 else
                 {
-                    mChl->mLog.push("tls async_accept() " + ec.message());
+                    IF_LOG(mChl->mLog.push("tls async_accept() " + ec.message()));
                     mTLSSock->async_accept([this](const error_code& ec) {
-                        mChl->mLog.push("tls async_accept() done, " + ec.message());
+                        IF_LOG(mChl->mLog.push("tls async_accept() done, " + ec.message()));
                         finalize(std::move(mTLSSock), ec);
                         });
                 }
@@ -1009,80 +1009,5 @@ namespace osuCrypto {
         return prom.get_future().get();
     }
 
-    //u64 Channel::getMaxOutstandingSendData() const
-    //{
-    //    return (u64)mBase->mMaxOutstandingSendData;
-    //}
-
-    //void Channel::dispatch(std::unique_ptr<IOOperation> op)
-    //{
-    //    mBase->getIOService().dispatch(mBase.get(), std::move(op));
-    //}
-
-    //    void ChannelBase::cancelRecvQueue()
-    //    {
-    //
-    //        if (mIos.mPrint)
-    //        {
-    //            //lout << reason << std::endl;
-    //#ifdef ENABLE_NET_LOG
-    //            lout << mLog << std::endl;
-    //#endif
-    //        }
-    //        boost::asio::dispatch(mRecvStrand, [this]() {
-    //
-    //            //LOG_MSG("Recv error: " + reason);
-    //            //mRecvErrorMessage += (reason + "\n");
-    //            mRecvStatus = Channel::Status::Stopped;
-    //                cancelRecvQueue();
-    //            });
-    //    }
-    //
-    //    void ChannelBase::cancelSendQueue()
-    //    {
-    //        if (mIos.mPrint)
-    //        {
-    //            std::cout << reason << std::endl;
-    //#ifdef ENABLE_NET_LOG
-    //            lout << mLog << std::endl;
-    //#endif
-    //        }
-    //
-    //
-    //        boost::asio::dispatch(mSendStrand, [&, reason]() {
-    //
-    //            LOG_MSG("Send error: " + reason);
-    //            mSendErrorMessage = reason;
-    //            mSendStatus = Channel::Status::Stopped;
-    //            cancelSendQueue();
-    //            });
-    //    }
-
-        //void ChannelBase::setBadRecvErrorState(std::string reason)
-        //{
-        //    if (mIos.mPrint)
-        //        std::cout << reason << std::endl;
-
-        //    boost::asio::dispatch(mRecvStrand, [&, reason]() {
-
-        //        LOG_MSG("Recv bad buff size: " + reason);
-        //        if (mRecvStatus == Channel::Status::Normal)
-        //        {
-        //            mRecvErrorMessage = reason;
-        //        }
-        //        });
-        //}
-
-        //void ChannelBase::clearBadRecvErrorState()
-        //{
-        //    boost::asio::dispatch(mRecvStrand, [&]() {
-        //        LOG_MSG("Recv clear bad buff size: ");
-
-        //        if (activeRecvSizeError() && mRecvStatus == Channel::Status::Normal)
-        //        {
-        //            mRecvErrorMessage = {};
-        //        }
-        //        });
-        //}
 
 }

@@ -49,7 +49,7 @@ namespace osuCrypto {
 
         mBase.reset(new SessionBase(ioService.mIoService));
         mBase->mIP = std::move(ip);
-        mBase->mPort = (port);
+        mBase->mPort = static_cast<u32>(port);
         mBase->mMode = (type);
         mBase->mIOService = &(ioService);
         mBase->mStopped = (false);

@@ -601,7 +601,7 @@ namespace osuCrypto
             }
 
         protected:
-            size_header_type mHeaderSize;
+            size_header_type mHeaderSize = 0;
             span<u8> mBuff;
         };
 
@@ -694,7 +694,7 @@ namespace osuCrypto
         public:
 
             io_completion_handle mComHandle;
-            ChannelBase* mBase;
+            ChannelBase* mBase = nullptr;
             std::promise<void> mPromise;
 
 

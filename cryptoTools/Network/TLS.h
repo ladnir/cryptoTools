@@ -7,6 +7,9 @@
 #include <memory>
 
 extern "C" {
+#ifndef WC_NO_HARDEN
+#define WC_NO_HARDEN
+#endif
 #include <wolfssl/ssl.h>
 //#include <wolfssl/test.h>
 //#include <wolfssl/wolfcrypt/settings.h>
@@ -19,9 +22,9 @@ extern "C" {
 #undef min
 #endif
 
-#ifdef ENABLE_NET_LOG
-#define WOLFSSL_LOGGING
-#endif
+//#ifdef ENABLE_NET_LOG
+//#define WOLFSSL_LOGGING
+//#endif
 
 namespace osuCrypto
 {
@@ -166,7 +169,7 @@ namespace osuCrypto
         bool isServer() const {
             if (isInit())
                 return mBase->mIsServer;
-            else false;
+            else return false;
         }
 
         operator bool() const
@@ -198,34 +201,28 @@ namespace osuCrypto
         oc::LogAdapter mLog;
 #endif
         std::vector<buffer> mSendBufs, mRecvBufs;
+
         u64 mSendBufIdx = 0, mRecvBufIdx = 0;
-        struct WolfState
-        {
-            enum class Phase
-            {
-                Uninit,
-                Connect,
-                Accept,
-                Normal,
-                Closed
-            };
-            Phase mPhase = Phase::Uninit;
-            span<char> mPendingSendBuf;
-            span<char> mPendingRecvBuf;
+        u64 mSendBT = 0, mRecvBT = 0;
 
-            bool hasPendingSend() { return mPendingSendBuf.size() > 0; }
-            bool hasPendingRecv() { return mPendingRecvBuf.size() > 0; }
-        };
-
-        WolfState mState;
-
-        u64 mSendBT, mRecvBT;
         error_code mSendEC, mRecvEC, mSetupEC;
 
         io_completion_handle mSendCB, mRecvCB;
         completion_handle mSetupCB, mShutdownCB;
 
         bool mCancelingPending = false;
+
+        struct WolfState
+        {
+            enum class Phase { Uninit, Connect, Accept, Normal, Closed };
+            Phase mPhase = Phase::Uninit;
+            span<char> mPendingSendBuf;
+            span<char> mPendingRecvBuf;
+            bool hasPendingSend() { return mPendingSendBuf.size() > 0; }
+            bool hasPendingRecv() { return mPendingRecvBuf.size() > 0; }
+        };
+
+        WolfState mState;
 
         WolfSocket(boost::asio::io_context& ios, WolfContext& ctx);
         WolfSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, WolfContext& ctx);
@@ -310,6 +307,9 @@ namespace osuCrypto
 
     using TLSSocket = WolfSocket;
 
-
+    extern std::array<u8, 5010> sample_ca_cert_pem;
+    extern std::array<u8, 0x26ef> sample_server_cert_pem;
+    extern std::array<u8, 0x68f> sample_server_key_pem;
+    extern std::array<u8, 0x594> sample_dh2048_pem;
 
 }

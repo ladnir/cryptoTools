@@ -95,7 +95,7 @@ namespace osuCrypto
             boost::asio::ip::tcp::socket mSock;
             std::string mBuff;
 //#ifdef ENABLE_NET_LOG
-            u64 mIdx;
+            u64 mIdx = 0;
 //#endif
         };
 

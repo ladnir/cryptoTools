@@ -1,12 +1,14 @@
 #include "WolfSSL_Tests.h"
-
-
-extern "C" {
-#include <wolfssl/ssl.h>
-#include <wolfssl/test.h>
-#include <wolfssl/wolfcrypt/settings.h>
-#include <../wolfssl/IDE/WIN10/user_settings.h>
-}
+//
+//#ifndef WC_NO_HARDEN
+//#define WC_NO_HARDEN
+//#endif
+//extern "C" {
+////#include <wolfssl/ssl.h>
+////#include <wolfssl/test.h>
+////#include <wolfssl/wolfcrypt/settings.h>
+////#include <../wolfssl/IDE/WIN10/user_settings.h>
+//}
 #ifdef max
 #undef max
 #endif
@@ -54,7 +56,7 @@ int client()
     ctx.initClient(ec);
     if (ec) throwEC(ec);
     //lout << "c 1" << std::endl;
-    ctx.loadCertFile(caCertFile, ec);
+    ctx.loadCert(sample_ca_cert_pem, ec);
     //lout << "c 2" << std::endl;
 
     IOService ios;
@@ -63,7 +65,7 @@ int client()
 
     if (ec)
     {
-        lout << "failed to load " << caCertFile << std::endl;
+        lout << "failed to load cert" << std::endl;
         throw std::runtime_error(ec.message());
     }
 
@@ -91,7 +93,7 @@ int client()
 
         auto sendSz =1 + (rand() % (msg.size()-1));
         for (u64 j = 0; j < sendSz; ++j)
-            msg[j] = j;
+            msg[j] = static_cast<char>(j);
 
         boost::asio::mutable_buffer bufs[2];
         bufs[0] = boost::asio::mutable_buffer((char*)&sendSz, sizeof(int));
@@ -138,7 +140,6 @@ int server()
 
     int    ret = 0;
     int    shutDown = 0;
-    word16 port = wolfSSLPort;
 
 
     IOService ios;
@@ -171,14 +172,12 @@ int server()
     WolfContext ctx;
     ctx.initServer(ec);
     if (ec) throwEC(ec);
-
-    ctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    
+    ctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (ec)
     {
         lout << "failed to load server keys\n" 
-            << svrCertFile << "\n" 
-            << svrKeyFile << "\n"
             << "ec = " << ec.message() << std::endl;
         throw RTE_LOC;
     }
@@ -194,7 +193,7 @@ int server()
         WolfSocket sock(ios.mIoService, ctx);
         //lout << "server 5" << std::endl;
 
-        sock.setDHParamFile(dhParamFile, ec);
+        sock.setDHParam(sample_dh2048_pem, ec);
         if (ec) throwEC(ec);
 
         accpt.accept(sock.mSock, ec);
@@ -248,16 +247,6 @@ int server()
                 printf("client sent break command: closing session!\n");
                 break;
             }
-            else if (strncmp(command.data(), "GET", 3) == 0) {
-                const char resp[] =
-                    "HTTP/1.0 200 ok\r\nContent-type: text/html\r\n\r\n"
-                    "<html><body BGCOLOR=\"#ffffff\"><pre>\r\n"
-                    "greetings from wolfSSL\r\n</body></html>\r\n\r\n";
-
-                echoSz = (int)strlen(resp) + 1;
-                bufs[0] = boost::asio::mutable_buffer(command.data(), echoSz);
-                strncpy(command.data(), resp, command.size());
-            }
             else
             {
                 command[echoSz] = 0;
@@ -307,7 +296,6 @@ void wolf_echoServer_test(const osuCrypto::CLP& cmd)
 void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
 {
 
-    word16 port = wolfSSLPort;
     error_code ec;
     IOService ios;
     u64 bt;
@@ -328,18 +316,18 @@ void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
     if (ec) throwEC(ec);
     sctx.requestClientCert(ec);
     if (ec) throwEC(ec);
-    sctx.loadCertFile(caCertFile, ec);
+    sctx.loadCert(sample_ca_cert_pem, ec);
     if (ec) throwEC(ec);
-    sctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
     if (ec) throwEC(ec);
 
 
     WolfContext cctx;
     cctx.initClient(ec);
     if (ec) throwEC(ec);
-    cctx.loadCertFile(caCertFile, ec);
+    cctx.loadCert(sample_ca_cert_pem, ec);
     if (ec) throwEC(ec);
-    cctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
     if (ec) throwEC(ec);
     WolfSocket csock(ios.mIoService, cctx);
     csock.mSock.connect(addr, ec);
@@ -350,7 +338,7 @@ void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
         });
     
     WolfSocket ssock(ios.mIoService, sctx);
-    ssock.setDHParamFile(dhParamFile, ec);
+    ssock.setDHParam(sample_dh2048_pem, ec);
     if (ec) throwEC(ec);
 
     accpt.accept(ssock.mSock, ec);
@@ -387,12 +375,12 @@ void wolf_channel_test(const osuCrypto::CLP& cmd)
 
     if (!ec) sctx.initServer(ec);
     if (!ec) sctx.requestClientCert(ec);
-    if (!ec) sctx.loadCertFile(caCertFile, ec);
-    if (!ec) sctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (!ec) cctx.initClient(ec);
-    if (!ec) cctx.loadCertFile(caCertFile, ec);
-    if (!ec) cctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (ec) throwEC(ec);
 
@@ -424,12 +412,12 @@ void wolf_CancelChannel_Test()
 
     if (!ec) sctx.initServer(ec);
     if (!ec) sctx.requestClientCert(ec);
-    if (!ec) sctx.loadCertFile(caCertFile, ec);
-    if (!ec) sctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (!ec) cctx.initClient(ec);
-    if (!ec) cctx.loadCertFile(caCertFile, ec);
-    if (!ec) cctx.loadKeyPairFile(svrCertFile, svrKeyFile, ec);
+    if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (ec) throwEC(ec);
 
