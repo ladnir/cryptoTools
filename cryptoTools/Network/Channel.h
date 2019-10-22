@@ -13,6 +13,7 @@
 #include <list>
 #include <deque>
 
+#include "TLS.h"
 
 namespace osuCrypto {
 
@@ -388,8 +389,9 @@ namespace osuCrypto {
 
 
         char mRecvChar;
-        void setSocket(std::unique_ptr<SocketInterface> socket, const error_code& ec);
+        void setSocket(std::unique_ptr<BoostSocketInterface> socket, const error_code& ec);
 
+        void finalize(std::unique_ptr<SocketInterface> sock, error_code ec);
 
         completion_handle mConnectCallback;
 
@@ -409,7 +411,6 @@ namespace osuCrypto {
 
 
         boost::asio::deadline_timer mTimer;
-        //u64 mPerformCount = 2;
 
         enum class ComHandleStatus { Uninit, Init, Eval };
         ComHandleStatus mSendStatus = ComHandleStatus::Uninit;
@@ -418,17 +419,15 @@ namespace osuCrypto {
         boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
 
         std::vector<u8> mSendBuffer;
-        //details::MoveSendBuff<std::string> mHandshakeSendOp;
 
         std::unique_ptr<BoostSocketInterface> mSock;
-        //boost::asio::ip::tcp::socket* mSock;
+        std::unique_ptr<TLSSocket> mTLSSock;
         double mBackoff = 1;
 
         bool mIsComplete = false, mCanceled = false;
         error_code mEC;
 
         ChannelBase* mChl;
-        //std::shared_ptr<ChannelBase> mSharedChl;
         io_completion_handle mSendComHandle, mRecvComHandle;
         std::list<completion_handle> mComHandles;
 
@@ -445,7 +444,7 @@ namespace osuCrypto {
         void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
             mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), true);
         }
-        void asyncCancelPending(ChannelBase* base) override { mBase->cancel(); }
+        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { mBase->cancel(); }
 
 
         std::string toString() const override {
@@ -466,7 +465,7 @@ namespace osuCrypto {
         void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
             mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), false);
         }
-        void asyncCancelPending(ChannelBase* base) override { mBase->cancel(); }
+        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { mBase->cancel(); }
 
         std::string toString() const override {
             return std::string("StartSocketRecvOp # ")
@@ -503,7 +502,6 @@ namespace osuCrypto {
         bool mSendCancelNew = false;
 
 
-        bool mPrintClose = false;
         std::unique_ptr<SocketInterface> mHandle;
 
         boost::asio::strand<boost::asio::io_context::executor_type> mSendStrand, mRecvStrand;
@@ -514,8 +512,8 @@ namespace osuCrypto {
         std::atomic<u8> mCloseCount;
         std::function<void()> mCloseHandle;
 
-        void cancelRecvQueue();
-        void cancelSendQueue();
+        void cancelRecvQueue(const error_code& ec);
+        void cancelSendQueue(const error_code& ec);
 
         void close();
         void cancel();

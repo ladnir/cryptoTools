@@ -17,7 +17,6 @@ using namespace osuCrypto;
 namespace tests_cryptoTools
 {
     TestCollection Tests([](TestCollection& th) {
-        th.add("wolf_demo                               ", wolf_demo);
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
         th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
         th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
@@ -37,6 +36,10 @@ namespace tests_cryptoTools
         th.add("BtNetwork_BadConnect_Test               ", BtNetwork_BadConnect_Test);
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
 
+        th.add("wolf_echoServer_test                    ", wolf_echoServer_test);
+        th.add("wolf_mutualAuth_test                    ", wolf_mutualAuth_test);
+        th.add("wolf_channel_test                       ", wolf_channel_test);
+        th.add("wolf_CancelChannel_Test                 ", wolf_CancelChannel_Test);
 
         th.add("AES                                     ", AES_EncDec_Test);
 

@@ -46,6 +46,35 @@ namespace osuCrypto
 
         return o;
     }
+    class LogAdapter
+    {
+    public:
+        Log* mLog = nullptr;
+
+        LogAdapter() = default;
+        LogAdapter(const LogAdapter&) = default;
+        LogAdapter(Log& log) : mLog(&log) {}
+
+        void push(const std::string& msg)
+        {
+            if (mLog)
+                mLog->push(msg);
+        }
+
+        void setLog(Log& log)
+        {
+            mLog = &log;
+        }
+    };
+
+    inline std::ostream& operator<<(std::ostream& o, LogAdapter& log)
+    {
+        if (log.mLog)
+            o << *log.mLog;
+        else
+            o << "{null log}";
+        return o;
+    }
 
     enum class Color {
         LightGreen = 2,

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29409.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptoTools", "cryptoTools\cryptoTools.vcxproj", "{B707F703-490A-447F-9737-C6A70B8D7A61}"
 EndProject
@@ -14,12 +14,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests_cryptoTools", "tests_cryptoTools\tests_cryptoTools.vcxproj", "{10DCA769-B168-4E7F-914E-E8A525333327}"
 	ProjectSection(ProjectDependencies) = postProject
 		{B707F703-490A-447F-9737-C6A70B8D7A61} = {B707F703-490A-447F-9737-C6A70B8D7A61}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsVS_cryptoTools", "testsVS_cryptoTools\testsVS_cryptoTools.vcxproj", "{E0912377-D59C-4B08-B397-A7209C04B966}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B707F703-490A-447F-9737-C6A70B8D7A61} = {B707F703-490A-447F-9737-C6A70B8D7A61}
-		{10DCA769-B168-4E7F-914E-E8A525333327} = {10DCA769-B168-4E7F-914E-E8A525333327}
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B6997DC9-9F5D-4917-82EE-D571981CD2C7}"
@@ -56,16 +50,11 @@ Global
 		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.ActiveCfg = Release|x64
 		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x64.Build.0 = Release|x64
 		{10DCA769-B168-4E7F-914E-E8A525333327}.Release|x86.ActiveCfg = Release|x64
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x64.ActiveCfg = Debug|x64
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x64.Build.0 = Debug|x64
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x86.ActiveCfg = Debug|Win32
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Debug|x86.Build.0 = Debug|Win32
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Release|x64.ActiveCfg = Release|x64
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Release|x64.Build.0 = Release|x64
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Release|x86.ActiveCfg = Release|Win32
-		{E0912377-D59C-4B08-B397-A7209C04B966}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FD177988-0905-4CAE-92A6-A112893FF386}
 	EndGlobalSection
 EndGlobal

@@ -1,6 +1,7 @@
 #pragma once
 #include <boost/asio.hpp>
 #include <cryptoTools/Common/Defines.h>
+#include "IoBuffer.h"
 
 namespace osuCrypto
 {
@@ -16,50 +17,41 @@ namespace osuCrypto
         virtual ~SocketInterface() {};
 
 
-        // REQURIED: Sends one or more buffers of data over the socket. See SocketAdapter<T> for an example.
+        // REQUIRED -- buffers contains a list of buffers that are allocated
+        // by the caller. The callee should recv data into those buffers. The
+        // callee should take a move of the callback fn. When the IO is complete
+        // the callee should call the callback fn.
+        // @buffers [output]: is the vector of buffers that should be recved.
+        // @fn [input]:   A call back that should be called on completion of the IO.
+        virtual void async_recv(
+            span<boost::asio::mutable_buffer> buffers, 
+            io_completion_handle&& fn) = 0;
+
+        // REQUIRED -- buffers contains a list of buffers that are allocated
+        // by the caller. The callee should send the data in those buffers. The
+        // callee should take a move of the callback fn. When the IO is complete
+        // the callee should call the callback fn.
         // @buffers [input]: is the vector of buffers that should be sent.
-        // @error [output]:   indicates what soemthing went wrong.
-        // @bytesTransfered [output]: the number of bytes that were sent.
-        //         should be all the buffers sizes but is some cases it may not be.
-        virtual void send(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
+        // @fn [input]:   A call back that should be called on completion of the IO
+        virtual void async_send(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) = 0;
 
-        // REQURIED: Receive one or more buffers of data over the socket. See SocketAdapter<T> for an example.
-        // @buffers [output]: is the vector of buffers that should be sent.
-        // @error [output]:   indicates what soemthing went wrong.
-        // @bytesTransfered [output]: the number of bytes that were sent.
-        //         should be all the buffers sizes but is some cases it may not be.
-        virtual void recv(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) = 0;
-
-
-        //////////////////////////////////   OPTIONAL //////////////////////////////////
 
         // OPTIONAL -- no-op close is default. Will be called when all Channels that refernece it are destructed/
         virtual void close() {};
 
-        // OPTIONAL -- default implementation of async_recv is synchronous
-        // @buffers [output]: is the vector of buffers that should be sent.
-        // @fn [input]:   A call back that should be called on completion of the IO
-        virtual void async_recv(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn)
+        // OPTIONAL -- no-op close is default. Will be called right after 
+        virtual void async_accept(io_completion_handle&& fn)
         {
-            bool error;
-            u64 bytesTransfered;
-            recv(buffers, error, bytesTransfered);
-            auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
-            fn(ec, bytesTransfered);
-        };
+            error_code ec;
+            fn(ec, 0);
+        }
 
-        // OPTIONAL -- default implementation of async_send is synchronous
-        // @buffers [input]: is the vector of buffers that should be sent.
-        // @fn [input]:   A call back that should be called on completion of the IO
-        virtual void async_send(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn)
+        // OPTIONAL -- no-op close is default. Will be called when all Channels that refernece it are destructed/
+        virtual void async_connect(io_completion_handle&& fn)
         {
-            bool error;
-            u64 bytesTransfered;
-            send(buffers, error, bytesTransfered);
-            auto ec = error ? boost::system::errc::make_error_code(boost::system::errc::io_error) : boost::system::errc::make_error_code(boost::system::errc::success);
-            fn(ec, bytesTransfered);
-        };
-
+            error_code ec;
+            fn(ec, 0);
+        }
 
     };
 
@@ -76,46 +68,65 @@ namespace osuCrypto
 
         ~SocketAdapter() override {}
 
-        void send(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
+        void async_send(
+            span<boost::asio::mutable_buffer> buffers, 
+            io_completion_handle&& fn) override
         {
-            bytesTransfered = 0;
+
+            error_code ec;
+            u64 bytesTransfered = 0;
             for (u64 i = 0; i < u64( buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
                     auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
                     auto size = boost::asio::buffer_size(buffers[i]);
 
-                    // may throw
+                    // NOTE: I am assuming that this is blocking. 
+                    // Blocking here cause the networking code to deadlock 
+                    // in some senarios. E.g. all threads blocks on recving data
+                    // that is not being sent since the threads are blocks. 
+                    // Make sure to give the IOService enought threads or make this 
+                    // non blocking somehow.
                     mChl.send(data, size);
                     bytesTransfered += size;
                 }
                 catch (...) {
-                    error = true;
-                    return;
+                    ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
+                    break;
                 }
             }
-            error = false;
+
+            // once all the IO is sent (or error), we should call the callback.
+            fn(ec, bytesTransfered);
         }
 
-        void recv(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
+        void async_recv(
+            span<boost::asio::mutable_buffer> buffers, 
+            io_completion_handle&& fn) override
         {
-            bytesTransfered = 0;
+            error_code ec;
+            u64 bytesTransfered = 0;
             for (u64 i = 0; i < u64(buffers.size()); ++i) {
                 try {
                     // Use boost conversions to get normal pointer size
                     auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
                     auto size = boost::asio::buffer_size(buffers[i]);
 
-                    // may throw
+                    // Note that I am assuming that this is blocking. 
+                    // Blocking here cause the networking code to deadlock 
+                    // in some senarios. E.g. all threads blocks on recving data
+                    // that is not being sent since the threads are blocks. 
+                    // Make sure to give the IOService enought threads or make this 
+                    // non blocking somehow.
                     mChl.recv(data, size);
                     bytesTransfered += size;
                 }
                 catch (...) {
-                    error = true;
-                    return;
+                    ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
+                    break;
                 }
             }
-            error = false;
+            fn(ec, bytesTransfered);
         }
     };
 
@@ -133,13 +144,10 @@ namespace osuCrypto
         BoostSocketInterface(boost::asio::ip::tcp::socket&& ios)
             : mSock(std::forward<boost::asio::ip::tcp::socket>(ios))
         {
-            //std::cout << IoStream::lock << "create " << this << std::endl << IoStream::unlock;
         }
 
         ~BoostSocketInterface() override
         {
-            //std::cout << IoStream::lock << "destoy " << this << std::endl << IoStream::unlock;
-
             close();
         }
 
@@ -150,28 +158,14 @@ namespace osuCrypto
                 std::cout <<"BoostSocketInterface::close() error: "<< ec.message() << std::endl; 
 		}
 
-        void async_recv(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn) override
+        void async_recv(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override
         {
-            boost::asio::async_read(mSock, buffers, fn);
+            boost::asio::async_read(mSock, buffers, std::forward<io_completion_handle>(fn));
         }
 
-        void async_send(span<boost::asio::mutable_buffer> buffers, const std::function<void(const boost::system::error_code&, u64 bytesTransfered)>& fn) override
+        void async_send(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override
         {
-            boost::asio::async_write(mSock, buffers, fn);
-        }
-
-        void send(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
-        {
-            boost::system::error_code ec;
-            bytesTransfered = boost::asio::write(mSock, buffers, ec);
-            error = static_cast<bool>(ec);
-        }
-
-        void recv(span<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override
-        {
-            boost::system::error_code ec;
-            bytesTransfered = boost::asio::read(mSock, buffers, ec);
-            error = static_cast<bool>(ec);
+            boost::asio::async_write(mSock, buffers, std::forward<io_completion_handle>(fn));
         }
     };
 }

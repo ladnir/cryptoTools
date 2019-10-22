@@ -912,12 +912,7 @@ namespace osuCrypto
                     mAcceptors.emplace_back(*this);
                     acceptorIter = mAcceptors.end(); --acceptorIter;
                     acceptorIter->mPort = session->mPort;
-
-                    //std::cout << "creating acceptor on " + std::to_string(session->mPort) << std::endl;
                 }
-
-                //flag = true;
-                //p.set_value();
 
                 acceptorIter->asyncSubscribe(session, [&](const error_code& ec) {
                     if (ec)
@@ -927,6 +922,8 @@ namespace osuCrypto
                     });
             });
 
+
+        TODO("do something else that does not require workUntil.");
         auto f = p.get_future();
         // contribute this thread to running the dispatch. Sometimes needed.
         workUntil(f);

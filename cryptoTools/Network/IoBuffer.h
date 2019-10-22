@@ -251,15 +251,16 @@ namespace osuCrypto
             bool isFull() const { return size() == capacity(); }
             bool isEmpty() const { return size() == 0; }
 
-            void push_back(T&& v)
+            T& push_back(T&& v)
             {
                 if (isFull()) // synchonize mPopIdx with #2
                     throw std::runtime_error("Queue is full " LOCATION);
 
                 auto pushIdx = mPushIdx.load(std::memory_order_relaxed) % capacity();
-                new (&mStorage[pushIdx]) T(std::move(v));
+                auto t = new (&mStorage[pushIdx]) T(std::move(v));
 
                 mPushIdx.fetch_add(1, std::memory_order_release); // synchonize storage with #1
+                return *t;
             }
 
             T& front()
@@ -296,7 +297,7 @@ namespace osuCrypto
             return mQueues.back().isEmpty();
         }
 
-        void push_back(T&& v)
+        T& push_back(T&& v)
         {
             std::lock_guard<std::mutex> l(mMtx);
             if (mQueues.back().isFull())
@@ -306,7 +307,7 @@ namespace osuCrypto
                 mQueues.emplace_back(mQueues.back().capacity() * 4);
             }
 
-            mQueues.back().push_back(std::move(v));
+            return mQueues.back().push_back(std::move(v));
         }
 
         T& front()
@@ -502,16 +503,6 @@ namespace osuCrypto
 
     namespace details
     {
-
-        //class operation_canceled :
-        //    public boost::system::error_category
-        //{
-        //public:
-        //    const char* name() const noexcept { return "cryptoTools"; }
-        //    std::string message(int ev) const { return "local party called cancel on the operation."; }
-        //};
-        //extern operation_canceled opCancel;
-
         class ChlOperation
         {
         public:
@@ -526,13 +517,13 @@ namespace osuCrypto
 
             // cancel the operation, this is called durring or after asyncPerform 
             // has been called. If after then it should be a no-op.
-            virtual void asyncCancelPending(ChannelBase* base) { }
+            virtual void asyncCancelPending(ChannelBase* base, const error_code& ec) { }
 
             // cancel the operation, this is called before asyncPerform. 
-            virtual void asyncCancel(ChannelBase* base, io_completion_handle&& completionHandle) 
+            virtual void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) 
             { 
-                auto ec = boost::system::errc::make_error_code(boost::system::errc::success);
-                completionHandle(ec, 0);
+                auto ec2 = boost::system::errc::make_error_code(boost::system::errc::success);
+                completionHandle(ec2, 0);
             }
 
             virtual std::string toString() const = 0;
@@ -554,7 +545,7 @@ namespace osuCrypto
                 completionHandle(ec, 0);
             }
 
-            void asyncCancel(ChannelBase* base, io_completion_handle&& completionHandle)
+            void asyncCancel(ChannelBase* base, const error_code&, io_completion_handle&& completionHandle)
             {
                 asyncPerform(base, std::forward<io_completion_handle>(completionHandle));
             }
@@ -709,6 +700,7 @@ namespace osuCrypto
 
             FixedRecvBuff(FixedRecvBuff&& v)
                 : BasicSizedBuff(v.getBufferData(), v.getBufferSize())
+                , RecvOperation(static_cast<RecvOperation&&>(v))
                 , mComHandle(std::move(v.mComHandle))
                 , mBase(v.mBase)
                 , mPromise(std::move(v.mPromise))
@@ -828,20 +820,18 @@ namespace osuCrypto
                     });
             }
 
-            void asyncCancel(ChannelBase* base, io_completion_handle&& completionHandle) override
+            void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) override
             {
 
                 if (mCallback.which() == 1)
                 {
-                    auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                    //error_code ec{ 1, /*opCancel*/ };
                     auto& c = boost::get<std::function<void(const error_code&)>>(mCallback);
                     if (c)
                         c(ec);
                     c = {};
                 }
 
-                T::asyncCancel(base, std::forward<io_completion_handle>(completionHandle));
+                T::asyncCancel(base, ec, std::forward<io_completion_handle>(completionHandle));
             }
 
         };
@@ -881,13 +871,13 @@ namespace osuCrypto
                     });
             }
 
-            void asyncCancel(ChannelBase* base, io_completion_handle&& completionHandle) override
+            void asyncCancel(ChannelBase* base,const error_code& ec, io_completion_handle&& completionHandle) override
             {
                 mPromise.set_exception(
                     std::make_exception_ptr(
-                        CanceledOperation("")));
+                        CanceledOperation(ec.message())));
 
-                T::asyncCancel(base, std::forward<io_completion_handle>(completionHandle));
+                T::asyncCancel(base, ec, std::forward<io_completion_handle>(completionHandle));
             }
         };
 

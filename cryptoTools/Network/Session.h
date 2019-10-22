@@ -7,11 +7,7 @@
 #include <list>
 #include <mutex>
 #include <memory>
-//#include <boost/asio/ssl.hpp>
-//extern "C" {
-//#include <openssl/tls1.h>
-//}
-
+#include "TLS.h"
 
 namespace osuCrypto {
 
@@ -42,11 +38,16 @@ namespace osuCrypto {
 		// address if the same IOService is used but with different name.
         void start(IOService& ioService, std::string address, SessionMode type, std::string name = "");
 
+        void start(IOService& ioService, std::string ip, u64 port, SessionMode type, TLSContext& tls, std::string name = "");
+
+
 		// See start(...)
 		Session(IOService & ioService, std::string address, SessionMode type, std::string name = "");
 
 		// See start(...)
-		Session(IOService & ioService, std::string remoteIP, u32 port, SessionMode type, std::string name = "");
+        Session(IOService& ioService, std::string remoteIP, u32 port, SessionMode type, std::string name = "");
+
+        Session(IOService & ioService, std::string remoteIP, u32 port, SessionMode type, TLSContext& tls, std::string name = "");
 
 		// Default constructor
 		Session();
@@ -114,6 +115,8 @@ namespace osuCrypto {
 
 		//bool mHasGroup = false;
 		std::shared_ptr<details::SessionGroup> mGroup;
+
+        TLSContext mTLSContext;
 
 		std::mutex mAddChannelMtx;
 		std::string mName;
