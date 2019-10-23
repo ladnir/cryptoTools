@@ -14,7 +14,7 @@ namespace osuCrypto
 
     namespace {
 
-        std::mutex mtx;
+        //std::mutex mtx;
         error_code readFile(const std::string& file, std::vector<u8>& buffer)
         {
             std::ifstream t(file);
@@ -44,20 +44,27 @@ namespace osuCrypto
 
     std::mutex WolfInitMtx;
 
-    WolfContext::Base::Base(bool isServer)
+    WolfContext::Base::Base(Mode mode)
     {
         {
             std::lock_guard<std::mutex> lock(WolfInitMtx);
-            if(isServer)
+            switch (mode)
+            {
+            case Mode::Server:
                 mMethod = (wolfSSLv23_server_method());
-            else
+                break;
+            case Mode::Client:
                 mMethod = (wolfSSLv23_client_method());
+                break;
+            default:
+                mMethod = wolfSSLv23_method();
+            }
 
             mCtx = (wolfSSL_CTX_new(mMethod));
         }
         wolfSSL_SetIOSend(mCtx, WolfSocket::sendCallback);
         wolfSSL_SetIORecv(mCtx, WolfSocket::recvCallback);
-        mIsServer = isServer;
+        mMode = mode;
 
     }
     WolfContext::Base::~Base()
@@ -65,30 +72,16 @@ namespace osuCrypto
         wolfSSL_CTX_free(mCtx);
     }
 
-
-    void WolfContext::initServer(error_code& ec)
+    void WolfContext::init(Mode mode, error_code& ec)
     {
         if (isInit())
         {
             ec = make_error_code(TLS_errc::ContextAlreadyInit);
             return;
         }
-        mBase = std::make_shared<Base>(true);
+        mBase = std::make_shared<Base>(mode);
 
         if (isInit() == false)
-            ec = make_error_code(TLS_errc::ContextFailedToInit);
-    }
-
-    void WolfContext::initClient(error_code& ec)
-    {
-        if (isInit())
-        {
-            ec = make_error_code(TLS_errc::ContextAlreadyInit);
-            return;
-        }
-        mBase = std::make_shared<Base>(false);
-
-        if (isInit() == false)            
             ec = make_error_code(TLS_errc::ContextFailedToInit);
     }
 
@@ -149,7 +142,7 @@ namespace osuCrypto
     {
         if (isInit() == false) 
             ec = make_error_code(TLS_errc::ContextNotInit);
-        else  if (mBase->mIsServer == false) 
+        else  if (mBase->mMode == Mode::Client) 
             ec = make_error_code(TLS_errc::OnlyValidForServerContext);
         else
         {

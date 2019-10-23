@@ -137,22 +137,27 @@ namespace osuCrypto
 
     struct WolfContext
     {
+        enum class Mode
+        {
+            Client,
+            Server,
+            Both
+        };
+
         struct Base
         {
             WOLFSSL_METHOD* mMethod = nullptr;
             WOLFSSL_CTX* mCtx = nullptr;
-            bool mIsServer = false;
+            Mode mMode = Mode::Client;
 
-            Base(bool isServer);
+            Base(Mode mode);
             ~Base();
         };
 
         std::shared_ptr<Base> mBase;
 
 
-
-        void initServer(error_code& ec);
-        void initClient(error_code& ec);
+        void init(Mode mode, error_code& ec);
 
         void loadCertFile(std::string path, error_code& ec);
         void loadCert(span<u8> data, error_code& ec);
@@ -166,10 +171,10 @@ namespace osuCrypto
         bool isInit() const {
             return mBase != nullptr;                
         }
-        bool isServer() const {
+        Mode mode() const {
             if (isInit())
-                return mBase->mIsServer;
-            else return false;
+                return mBase->mMode;
+            else return Mode::Both;
         }
 
         operator bool() const

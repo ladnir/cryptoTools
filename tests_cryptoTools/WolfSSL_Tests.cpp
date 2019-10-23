@@ -53,7 +53,7 @@ int client()
     WolfContext ctx;
     error_code ec;
     //lout << "c 0" << std::endl;
-    ctx.initClient(ec);
+    ctx.init(WolfContext::Mode::Client,ec);
     if (ec) throwEC(ec);
     //lout << "c 1" << std::endl;
     ctx.loadCert(sample_ca_cert_pem, ec);
@@ -170,7 +170,7 @@ int server()
     //lout << "server 3" << std::endl;
 
     WolfContext ctx;
-    ctx.initServer(ec);
+    ctx.init(WolfContext::Mode::Server,ec);
     if (ec) throwEC(ec);
     
     ctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
@@ -312,7 +312,7 @@ void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
 
 
     WolfContext sctx;
-    sctx.initServer(ec);
+    sctx.init(WolfContext::Mode::Server,ec);
     if (ec) throwEC(ec);
     sctx.requestClientCert(ec);
     if (ec) throwEC(ec);
@@ -323,7 +323,7 @@ void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
 
 
     WolfContext cctx;
-    cctx.initClient(ec);
+    cctx.init(WolfContext::Mode::Client,ec);
     if (ec) throwEC(ec);
     cctx.loadCert(sample_ca_cert_pem, ec);
     if (ec) throwEC(ec);
@@ -373,12 +373,12 @@ void wolf_channel_test(const osuCrypto::CLP& cmd)
     error_code ec;
     WolfContext sctx, cctx;
 
-    if (!ec) sctx.initServer(ec);
+    if (!ec) sctx.init(WolfContext::Mode::Server,ec);
     if (!ec) sctx.requestClientCert(ec);
     if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
     if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
-    if (!ec) cctx.initClient(ec);
+    if (!ec) cctx.init(WolfContext::Mode::Client,ec);
     if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
     if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
@@ -410,12 +410,12 @@ void wolf_CancelChannel_Test()
     error_code ec;
     WolfContext sctx, cctx;
 
-    if (!ec) sctx.initServer(ec);
+    if (!ec) sctx.init(WolfContext::Mode::Server,ec);
     if (!ec) sctx.requestClientCert(ec);
     if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
     if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
-    if (!ec) cctx.initClient(ec);
+    if (!ec) cctx.init(WolfContext::Mode::Client,ec);
     if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
     if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 

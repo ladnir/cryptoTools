@@ -61,12 +61,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;wolfssl.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -77,14 +77,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;wolfssl.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -95,14 +95,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)..\cryptoTools\thirdparty\win\boost\stage\lib;C:/libs/boost\stage\lib;$(OutDir);$(ProjectDir)..\cryptoTools\thirdparty\win\;C:/libs/;C:/libs/Miracl/x64/$(Configuration);$(ProjectDir)..\cryptoTools/thirdparty\win/Miracl/x64/$(Configuration);C:/libs/lib;$(SolutionDir)../wolfssl/x64/$(Configuration)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cryptoTools.lib;tests_cryptoTools.lib;Miracl\x64\$(Configuration)\miracl.lib;wolfssl.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
