@@ -119,6 +119,29 @@ if (ENABLE_RELIC)
 
 endif (ENABLE_RELIC)
 
+## WolfSSL
+###########################################################################
+
+if(ENABLE_WOLFSSL)
+
+  #set(WolfSLL_Dir "/usr/local/include")
+  set(WolfSSL_Lib_DIR "/usr/local/lib")
+
+  find_library(WOLFSSL_LIB NAMES wolfssl  HINTS "${WolfSSL_Lib_DIR}")
+
+  
+  # if we cant fint it, throw an error
+  if(NOT WOLFSSL_LIB)
+      message(FATAL_ERROR "Failed to find WolfSSL at " ${WolfSSL_Lib_DIR})
+  endif()
+  message(STATUS "WOLFSSL_LIB:  ${WOLFSSL_LIB}")
+
+
+  target_include_directories(cryptoTools PUBLIC "${WOLFSSL_LIB_INCLUDE_DIRS}") 
+  target_link_libraries(cryptoTools ${WOLFSSL_LIB})
+
+endif(ENABLE_WOLFSSL)
+
 ## Boost
 ###########################################################################
 
@@ -128,17 +151,14 @@ set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)
 
-find_package(Boost 1.66.0 COMPONENTS system thread)
+find_package(Boost 1.69.0 COMPONENTS system thread)
 
 
 
 if(NOT Boost_FOUND)
-    message(FATAL_ERROR "Failed to find boost 1.66.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
+    message(FATAL_ERROR "Failed to find boost 1.69.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
 endif()
 
-
-#MESSAGE(STATUS "boost ---  ${Boost_LIBRARIES}")
-#include_directories(${Boost_INCLUDE_DIR}) 
 
 target_include_directories(cryptoTools PUBLIC ${Boost_INCLUDE_DIR}) 
 target_link_libraries(cryptoTools ${Boost_LIBRARIES})

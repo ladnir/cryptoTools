@@ -28,27 +28,14 @@ using namespace oc;
 
 
 
-
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_WOLFSSL
 
 #define SVR_COMMAND_SIZE 256
 #define throwEC(ec) {lout << "throwing " << ec.message() << " @ " <<LOCATION << std::endl; throw std::runtime_error(ec.message() + LOCATION);}
 
 int client()
 {
+
     u64 trials = 10;
     WolfContext ctx;
     error_code ec;
@@ -271,9 +258,10 @@ int server()
     }
     return 0;
 }
-
-void wolf_echoServer_test(const osuCrypto::CLP& cmd)
+#endif
+void wolfSSL_echoServer_test(const osuCrypto::CLP& cmd)
 {
+#ifdef ENABLE_WOLFSSL
 
     //StartTCP();
     //lout << "start" << std::endl;
@@ -291,10 +279,14 @@ void wolf_echoServer_test(const osuCrypto::CLP& cmd)
     }
 
     thrd.join();
+#else
+    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+#endif
 }
 
-void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
+void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
 {
+#ifdef ENABLE_WOLFSSL
 
     error_code ec;
     IOService ios;
@@ -364,10 +356,15 @@ void wolf_mutualAuth_test(const osuCrypto::CLP& cmd)
     bufs[0] = boost::asio::mutable_buffer(resp.data(), resp.size());
     ssock.recv(bufs, ec, bt);
     if (ec) throwEC(ec);
+
+#else
+    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+#endif
 }
 
-void wolf_channel_test(const osuCrypto::CLP& cmd)
+void wolfSSL_channel_test(const osuCrypto::CLP& cmd)
 {
+#ifdef ENABLE_WOLFSSL
 
     IOService ios;
     error_code ec;
@@ -399,12 +396,16 @@ void wolf_channel_test(const osuCrypto::CLP& cmd)
     schl.recv(data2);
     if (data != data2)
         throw UnitTestFail(LOCATION);
-    
+
+#else
+    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+#endif
 }
 
 
-void wolf_CancelChannel_Test()
+void wolfSSL_CancelChannel_Test()
 {
+#ifdef ENABLE_WOLFSSL
     u64 trials = 3;
 
     error_code ec;
@@ -466,6 +467,8 @@ void wolf_CancelChannel_Test()
         if (ioService.mAcceptors.front().isListening())
             throw UnitTestFail(LOCATION);
 
+        //std::cout << "1" << std::endl;
+
         {
             Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server, sctx);
             Session s1(ioService, "127.0.0.1", 1212, SessionMode::Client, cctx);
@@ -479,7 +482,8 @@ void wolf_CancelChannel_Test()
             std::this_thread::sleep_for(std::chrono::milliseconds(i));
             ch1.cancel();
             //});
-
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            //std::cout << ch1.mBase->mLog << std::endl;
             try { f.get(); }
             catch (...) { throws = true; }
 
@@ -493,7 +497,10 @@ void wolf_CancelChannel_Test()
                 throw UnitTestFail(LOCATION);
             }
 
+            ch0.cancel();
+
         }
+        //std::cout << "2" << std::endl;
 
         if (ioService.mAcceptors.front().hasSubscriptions())
             throw UnitTestFail(LOCATION);
@@ -502,5 +509,8 @@ void wolf_CancelChannel_Test()
 
     }
 
+#else
+    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+#endif
     //std::cout << t << std::endl << std::endl;
 }

@@ -1,4 +1,8 @@
 #pragma once
+#include "cryptoTools/Common/config.h"
+
+#ifdef ENABLE_WOLFSSL
+
 #include <string>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/strand.hpp>
@@ -6,15 +10,17 @@
 #include <cryptoTools/Common/Log.h>
 #include <memory>
 
-extern "C" {
 #ifndef WC_NO_HARDEN
 #define WC_NO_HARDEN
 #endif
+
+#ifdef _MSC_VER
+#define WOLFSSL_USER_SETTINGS
+#define WOLFSSL_LIB
+#endif
+
 #include <wolfssl/ssl.h>
-//#include <wolfssl/test.h>
-//#include <wolfssl/wolfcrypt/settings.h>
-//#include <../wolfssl/IDE/WIN10/user_settings.h>
-}
+
 #ifdef max
 #undef max
 #endif
@@ -22,13 +28,18 @@ extern "C" {
 #undef min
 #endif
 
-//#ifdef ENABLE_NET_LOG
-//#define WOLFSSL_LOGGING
-//#endif
+#if defined(_MSC_VER) && !defined(KEEP_PEER_CERT)
+#error "please compile wolfSSl with KEEP_PEER_CERT. add this to the user_setting.h file in wolfssl..."
+#endif
+
+#ifdef ENABLE_NET_LOG
+#define WOLFSSL_LOGGING
+#endif
 
 namespace osuCrypto
 {
     using error_code = boost::system::error_code;
+    error_code readFile(const std::string& file, std::vector<u8>& buffer);
 
     enum class WolfSSL_errc
     {
@@ -192,6 +203,28 @@ namespace osuCrypto
 
     using TLSContext = WolfContext;
 
+
+    struct WolfCertX509
+    {
+        WOLFSSL_X509* mCert = nullptr;
+
+        std::string commonName()
+        {
+            return wolfSSL_X509_get_subjectCN(mCert);
+        }
+
+        //std::string notAfter()
+        //{
+        //    return wolfSSL_X509_get_notAfter(mCert);
+        //}
+
+
+        //std::string notBefore()
+        //{
+        //    return wolfSSL_X509_get_notBefore(mCert);
+        //}
+    };
+
     struct WolfSocket : public SocketInterface, public LogAdapter
     {
 
@@ -203,7 +236,6 @@ namespace osuCrypto
         WOLFSSL* mSSL = nullptr;
 #ifdef WOLFSSL_LOGGING
         oc::Log mLog_;
-        oc::LogAdapter mLog;
 #endif
         std::vector<buffer> mSendBufs, mRecvBufs;
 
@@ -254,6 +286,7 @@ namespace osuCrypto
         void setDHParamFile(std::string path, error_code& ec);
         void setDHParam(span<u8> paramData, error_code& ec);
 
+        WolfCertX509 getCert();
 
         bool hasRecvBuffer() { return mRecvBufIdx < mRecvBufs.size(); }
         buffer& curRecvBuffer() { return mRecvBufs[mRecvBufIdx]; }
@@ -318,3 +351,9 @@ namespace osuCrypto
     extern std::array<u8, 0x594> sample_dh2048_pem;
 
 }
+#else
+namespace osuCrypto
+{
+    struct TLSContext {};
+}
+#endif

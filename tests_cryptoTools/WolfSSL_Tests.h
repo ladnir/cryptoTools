@@ -2,7 +2,7 @@
 #include <cryptoTools/Common/CLP.h>
 
 
-void wolf_echoServer_test(const osuCrypto::CLP& cmd);
-void wolf_mutualAuth_test(const osuCrypto::CLP& cmd); 
-void wolf_channel_test(const osuCrypto::CLP& cmd);
-void wolf_CancelChannel_Test();
+void wolfSSL_echoServer_test(const osuCrypto::CLP& cmd);
+void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd); 
+void wolfSSL_channel_test(const osuCrypto::CLP& cmd);
+void wolfSSL_CancelChannel_Test();

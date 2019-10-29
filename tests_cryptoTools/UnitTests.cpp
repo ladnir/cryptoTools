@@ -36,10 +36,10 @@ namespace tests_cryptoTools
         th.add("BtNetwork_BadConnect_Test               ", BtNetwork_BadConnect_Test);
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
 
-        th.add("wolf_echoServer_test                    ", wolf_echoServer_test);
-        th.add("wolf_mutualAuth_test                    ", wolf_mutualAuth_test);
-        th.add("wolf_channel_test                       ", wolf_channel_test);
-        th.add("wolf_CancelChannel_Test                 ", wolf_CancelChannel_Test);
+        th.add("wolfSSL_echoServer_test                 ", wolfSSL_echoServer_test);
+        th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);
+        th.add("wolfSSL_channel_test                    ", wolfSSL_channel_test);
+        th.add("wolfSSL_CancelChannel_Test              ", wolfSSL_CancelChannel_Test);
 
         th.add("AES                                     ", AES_EncDec_Test);
 
@@ -62,8 +62,6 @@ namespace tests_cryptoTools
         th.add("SBO_ptr_test                            ", SBO_ptr_test);
 
 #ifdef ENABLE_CIRCUITS
-
-
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);
         th.add("BetaCircuit_int_Adder_Test              ", BetaCircuit_int_Adder_Test);
         th.add("BetaCircuit_int_Adder_const_Test        ", BetaCircuit_int_Adder_const_Test);

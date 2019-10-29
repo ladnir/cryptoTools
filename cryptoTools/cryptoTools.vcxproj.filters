@@ -203,9 +203,6 @@
     <ClCompile Include="Crypto\RCurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OpenSSLSocket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Network\TLS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

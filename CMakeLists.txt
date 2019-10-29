@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 2.8)
-
+cmake_minimum_required (VERSION 3.12)
+project(cryptoTools)
 
 
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
@@ -16,11 +16,11 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
 
-	if(ENABLE_CPP_14)
+	#if(ENABLE_CPP_14)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
-	else() 	
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-	endif()
+	#else() 	
+	#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	#endif()
 
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
@@ -64,6 +64,7 @@ option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
+option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
 if(NOT NASM)
@@ -78,7 +79,7 @@ message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
-
+message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
 
 if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")

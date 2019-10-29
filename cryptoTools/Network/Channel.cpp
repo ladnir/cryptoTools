@@ -153,26 +153,26 @@ namespace osuCrypto {
 
                 mCanceled = true;
 
+#ifdef ENABLE_WOLFSSL
+                if (mTLSSock)
+                {
+                    mTLSSock->close();
+                    //auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+                    //finalize(std::move(mTLSSock), ec);
+                }
+                else 
+#endif
                 if (mChl->mSession->mAcceptor)
                 {
-                    if (mTLSSock)
-                        mTLSSock->close();
-                    else
-                        mChl->mSession->mAcceptor->cancelPendingChannel(mChl->shared_from_this());
+                    mChl->mSession->mAcceptor->cancelPendingChannel(mChl->shared_from_this());
                 }
-                else if (mSock)
+                else  if (mSock)
                 {
                     error_code ec;
-
-                    if (mTLSSock)
-                        mTLSSock->close();
-                    else
-                        mSock->mSock.close(ec);
-
-                    IF_LOG(if (ec) mChl->mLog.push("in StartSocketOp::cancel(...) with ec " + ec.message()));
-
+                    mSock->mSock.close(ec);
                 }
             }
+            
             }
         );
     }
@@ -201,11 +201,12 @@ namespace osuCrypto {
                 }
             }
 
+#ifdef ENABLE_WOLFSSL
             if (mChl->mSession->mTLSContext && !ec)
             {
                 mTLSSock.reset(new TLSSocket(mChl->mIos.mIoService, std::move(s->mSock), mChl->mSession->mTLSContext));
                 
-                //mTLSSock->mLog.setLog(mChl->mLog);
+                IF_LOG(mTLSSock->setLog(mChl->mLog));
 
                 if (mChl->mSession->mMode == SessionMode::Client)
                 {
@@ -227,6 +228,7 @@ namespace osuCrypto {
                 //mChl->mSession->mTLSContext.
             }
             else
+#endif
             {
                 finalize(std::move(s), ec);
             }
@@ -575,6 +577,23 @@ namespace osuCrypto {
         else completionHandle();
     }
 
+    std::string osuCrypto::Channel::commonName()
+    {
+        if(mBase)
+            return mBase->commonName();
+        return {};
+    }
+
+    std::string ChannelBase::commonName()
+    {
+#ifdef ENABLE_WOLFSSL
+        auto tls = dynamic_cast<TLSSocket*>(mHandle.get());
+        if (tls)
+            return tls->getCert().commonName();
+#endif
+        return {};
+    }
+
     void ChannelBase::recvEnque(SBO_ptr<details::RecvOperation>&& op)
     {
 #ifdef ENABLE_NET_LOG
@@ -585,8 +604,9 @@ namespace osuCrypto {
 
         auto& movedOp = mRecvQueue.push_back(std::move(op));
         
+#ifdef ENABLE_NET_LOG
         assert(movedOp->mIdx == mRecvIdx - 1);
-
+#endif
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         boost::asio::dispatch(mRecvStrand, [this]()
             {
@@ -947,7 +967,7 @@ namespace osuCrypto {
         if (!mRecvQueue.isEmpty())
         {
             auto& front = mRecvQueue.front();
-            LOG_MSG("recv cancel op: " + std::to_string(front->mIdx));
+            LOG_MSG("recv cancel op: " + front->toString());
 
             front->asyncCancel(this, ec, [this, ec](const error_code& ec2, u64 bt) {
                 boost::asio::dispatch(mRecvStrand, [ec, ec2, this]() {

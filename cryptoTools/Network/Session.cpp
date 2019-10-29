@@ -42,11 +42,12 @@ namespace osuCrypto {
     {
         if (mBase && mBase->mStopped == false)
             throw std::runtime_error("rt error at " LOCATION);
-
+#ifdef ENABLE_WOLFSSL
         if (tls && 
             (tls.mode() != WolfContext::Mode::Both) &&
-            (tls.mode() != WolfContext::Mode::Server) != (type == SessionMode::Server))
+            (tls.mode() == WolfContext::Mode::Server) != (type == SessionMode::Server))
             throw std::runtime_error("TLS context isServer does not match SessionMode");
+#endif
 
 
         mBase.reset(new SessionBase(ioService.mIoService));

@@ -309,6 +309,7 @@ namespace osuCrypto {
 
         enum class Status { Normal, Closing, Closed, Canceling, Canceled };
 
+        std::string commonName();
 
         std::shared_ptr<ChannelBase> mBase;
 
@@ -421,7 +422,10 @@ namespace osuCrypto {
         std::vector<u8> mSendBuffer;
 
         std::unique_ptr<BoostSocketInterface> mSock;
+
+#ifdef ENABLE_WOLFSSL
         std::unique_ptr<TLSSocket> mTLSSock;
+#endif
         double mBackoff = 1;
 
         bool mIsComplete = false, mCanceled = false;
@@ -536,6 +540,8 @@ namespace osuCrypto {
 
         void asyncPerformRecv();
         void asyncPerformSend();
+
+        std::string commonName();
 
 
         std::array<boost::asio::mutable_buffer, 2> mSendBuffers;

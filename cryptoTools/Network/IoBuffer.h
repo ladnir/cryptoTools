@@ -719,6 +719,16 @@ namespace osuCrypto
 
             void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override;
  
+            //void asyncCancelPending(ChannelBase* base, const error_code& ec) override {
+            //    //mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+            //}
+
+            void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) override
+            {
+                mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+                completionHandle(ec, 0);
+            }
+
 
             std::string toString() const override;
 
