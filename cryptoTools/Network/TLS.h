@@ -354,6 +354,11 @@ namespace osuCrypto
 #else
 namespace osuCrypto
 {
-    struct TLSContext {};
+    struct TLSContext {
+        operator bool() const
+        {
+            return false;
+        }
+};
 }
 #endif
