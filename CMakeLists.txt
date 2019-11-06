@@ -67,11 +67,7 @@ option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
-if(NOT NASM)
-	option(ENABLE_NASM "compile using NASM" OFF)
-else(NOT NASM)
-	option(ENABLE_NASM "compile using NASM" ON)
-endif(NOT NASM)
+option(ENABLE_NASM "compile using NASM" OFF)
 
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
@@ -85,7 +81,7 @@ if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
 endif()
 
-configure_file(cryptoTools/Common/config.h.in cryptoTools/Common/config.h)
+configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )
 
 #############################################
 #       cryptoTools, tests, frontend        #
