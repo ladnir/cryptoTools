@@ -40,17 +40,17 @@ namespace osuCrypto
         virtual void close() {};
 
         // OPTIONAL -- no-op close is default. Will be called right after 
-        virtual void async_accept(io_completion_handle&& fn)
+        virtual void async_accept(completion_handle&& fn)
         {
             error_code ec;
-            fn(ec, 0);
+            fn(ec);
         }
 
         // OPTIONAL -- no-op close is default. Will be called when all Channels that refernece it are destructed/
-        virtual void async_connect(io_completion_handle&& fn)
+        virtual void async_connect(completion_handle&& fn)
         {
             error_code ec;
-            fn(ec, 0);
+            fn(ec);
         }
 
     };

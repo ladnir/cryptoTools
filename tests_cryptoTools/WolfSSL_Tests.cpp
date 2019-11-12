@@ -125,7 +125,7 @@ int server()
 {
     try {
 
-    int    ret = 0;
+    //int    ret = 0;
     int    shutDown = 0;
 
 

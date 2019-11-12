@@ -161,7 +161,12 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
+
+#ifndef NO_RETURN_ELISION
+            return r;
+#else
             return std::move(r);
+#endif
         }
 
         template<typename T>
@@ -169,25 +174,41 @@ namespace osuCrypto
         {
             ostreamLock r(out);
             r << v;
+#ifndef NO_RETURN_ELISION
+            return r;
+#else
             return std::move(r);
+#endif
         }
         ostreamLock operator<< (std::ostream& (*v)(std::ostream&))
         {
             ostreamLock r(out);
             r << v;
+#ifndef NO_RETURN_ELISION
+            return r;
+#else
             return std::move(r);
+#endif
         }
         ostreamLock operator<< (std::ios& (*v)(std::ios&))
         {
             ostreamLock r(out);
             r << v;
+#ifndef NO_RETURN_ELISION
+            return r;
+#else
             return std::move(r);
+#endif
         }
         ostreamLock operator<< (std::ios_base& (*v)(std::ios_base&))
         {
             ostreamLock r(out);
             r << v;
+#ifndef NO_RETURN_ELISION
+            return r;
+#else
             return std::move(r);
+#endif
         }
     };
     extern ostreamLocker lout;

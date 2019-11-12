@@ -20,6 +20,7 @@
 #endif
 
 #include <wolfssl/ssl.h>
+#undef ALIGN16
 
 #ifdef max
 #undef max
@@ -315,11 +316,11 @@ namespace osuCrypto
 
 
         void connect(error_code& ec);
-        void async_connect(completion_handle&& cb);
+        void async_connect(completion_handle&& cb) override;
         void connectNext();
 
         void accept(error_code& ec);
-        void async_accept(completion_handle&& cb);
+        void async_accept(completion_handle&& cb) override;
         void acceptNext();
 
 #ifdef WOLFSSL_LOGGING

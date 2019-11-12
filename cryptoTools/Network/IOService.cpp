@@ -203,8 +203,8 @@ namespace osuCrypto
 
                                 asyncSetSocket(
                                     std::move(sockIter->mBuff),
-                                    std::move(std::unique_ptr<BoostSocketInterface>(
-                                        new BoostSocketInterface(std::move(sockIter->mSock)))));
+                                    std::unique_ptr<BoostSocketInterface>(
+                                        new BoostSocketInterface(std::move(sockIter->mSock))));
                             }
                             else
                             {
@@ -479,7 +479,7 @@ namespace osuCrypto
         group.emplace_back(socketIter);
         auto deleteIter = group.end(); --deleteIter;
 
-        socketIter->removeMapping = [&group, &socketIter, this, sessionName, deleteIter]() {
+        socketIter->removeMapping = [&group, this, sessionName, deleteIter]() {
             group.erase(deleteIter);
             if (group.size() == 0) mUnclaimedSockets.erase(mUnclaimedSockets.find(sessionName));
         };

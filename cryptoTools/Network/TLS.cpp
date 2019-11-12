@@ -242,7 +242,7 @@ namespace osuCrypto
             auto size = curSendBuffer().size();
 
             int err = 0, ret = 0;
-            auto wasPending = mState.hasPendingSend();
+            //auto wasPending = mState.hasPendingSend();
 
             // this will call sslRequextSendCB(...)
             ret = wolfSSL_write(mSSL, buf, static_cast<int>(size));
@@ -427,7 +427,7 @@ namespace osuCrypto
             auto size = curRecvBuffer().size();
 
             int err = 0, ret = 0;
-            auto wasPending = mState.hasPendingRecv();
+            //auto wasPending = mState.hasPendingRecv();
 
             // this will call sslRequextRecvCB(...)
             ret = wolfSSL_read(mSSL, buf, static_cast<int>(size));

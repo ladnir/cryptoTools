@@ -21,8 +21,8 @@ namespace osuCrypto
 {
     enum class Errc
     {
-        success = 0,
-        CloseChannel = 1 // error indicating we should call the close handler.
+        success = 0
+        //CloseChannel = 1 // error indicating we should call the close handler.
     };
 }
 namespace boost {
@@ -45,8 +45,11 @@ namespace { // anonymous namespace
         {
             switch (static_cast<osuCrypto::Errc>(ev))
             {
-            case osuCrypto::Errc::CloseChannel:
-                return "the channel should be closed.";
+            case osuCrypto::Errc::success:
+                return "Success";
+
+            // case osuCrypto::Errc::CloseChannel:
+            //     return "the channel should be closed.";
 
             default:
                 return "(unrecognized error)";
@@ -517,14 +520,14 @@ namespace osuCrypto
 
             // cancel the operation, this is called durring or after asyncPerform 
             // has been called. If after then it should be a no-op.
-            virtual void asyncCancelPending(ChannelBase* base, const error_code& ec) { }
+            virtual void asyncCancelPending(ChannelBase* base, const error_code& ec) = 0;
 
             // cancel the operation, this is called before asyncPerform. 
-            virtual void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) 
-            { 
-                auto ec2 = boost::system::errc::make_error_code(boost::system::errc::success);
-                completionHandle(ec2, 0);
-            }
+            virtual void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) = 0; 
+            // { 
+            //     auto ec2 = boost::system::errc::make_error_code(boost::system::errc::success);
+            //     completionHandle(ec2, 0);
+            // }
 
             virtual std::string toString() const = 0;
 
@@ -535,21 +538,42 @@ namespace osuCrypto
 #endif
         };
 
-        class RecvOperation : public ChlOperation { public: std::string toString() const override; };
-        class SendOperation : public ChlOperation { public: std::string toString() const override; };
+        class RecvOperation : public ChlOperation { };
+        class SendOperation : public ChlOperation { };
 
-        struct CloseOp : public RecvOperation, SendOperation
+        template<typename Base>
+        struct BaseCallbackOp : public Base
         {
+            std::function<void()> mCallback;
+
+            BaseCallbackOp(const std::function<void()>& cb) : mCallback(cb){}
+            BaseCallbackOp(std::function<void()>&& cb) : mCallback(std::move(cb)){}
+
             void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
-                error_code ec = make_error_code(Errc::CloseChannel);
+                error_code ec = make_error_code(Errc::success);
+                mCallback();
                 completionHandle(ec, 0);
             }
 
-            void asyncCancel(ChannelBase* base, const error_code&, io_completion_handle&& completionHandle)
+            void asyncCancelPending(ChannelBase* base, const error_code& ec) override {}
+
+            void asyncCancel(ChannelBase* base, const error_code&, io_completion_handle&& completionHandle) override
             {
                 asyncPerform(base, std::forward<io_completion_handle>(completionHandle));
             }
+
+            std::string toString() const override
+            {
+                return std::string("CallbackOp #") 
+    #ifdef ENABLE_NET_LOG
+                    + std::to_string(Base::mIdx)
+    #endif
+                    ;
+            }
         };
+
+        using RecvCallbackOp = BaseCallbackOp<RecvOperation>;
+        using SendCallbackOp = BaseCallbackOp<SendOperation>;
 
         using size_header_type = u32;
 
@@ -620,6 +644,12 @@ namespace osuCrypto
 
             void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override;
             
+            void asyncCancelPending(ChannelBase* base, const error_code& ec) override {}
+
+            void asyncCancel(ChannelBase* base, const error_code&, io_completion_handle&& completionHandle) override {
+                error_code ec = make_error_code(Errc::success);
+                completionHandle(ec , 0);
+            }
 
             std::string toString() const override;
         };
@@ -718,16 +748,14 @@ namespace osuCrypto
             }
 
             void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override;
- 
-            //void asyncCancelPending(ChannelBase* base, const error_code& ec) override {
-            //    //mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
-            //}
 
             void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) override
             {
                 mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
                 completionHandle(ec, 0);
             }
+            
+            void asyncCancelPending(ChannelBase* base, const error_code& ec) override {}
 
 
             std::string toString() const override;
@@ -843,6 +871,8 @@ namespace osuCrypto
 
                 T::asyncCancel(base, ec, std::forward<io_completion_handle>(completionHandle));
             }
+            
+            void asyncCancelPending(ChannelBase* base, const error_code& ec) override {}
 
         };
 
@@ -889,6 +919,8 @@ namespace osuCrypto
 
                 T::asyncCancel(base, ec, std::forward<io_completion_handle>(completionHandle));
             }
+
+
         };
 
 
