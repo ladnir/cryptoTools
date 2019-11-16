@@ -79,8 +79,7 @@ namespace osuCrypto {
         mRemoteName(remoteName),
         mLocalName(localName),
         mChannelRefCount(1),
-        mSendStrand(endpoint.getIOService().mIoService.get_executor()),
-        mRecvStrand(endpoint.getIOService().mIoService.get_executor())
+        mStrand(endpoint.getIOService().mIoService.get_executor())
     {
     }
 
@@ -90,8 +89,7 @@ namespace osuCrypto {
         mWork(new boost::asio::io_service::work(ios.mIoService)),
         mChannelRefCount(1),
         mHandle(sock),
-        mSendStrand(ios.mIoService.get_executor()),
-        mRecvStrand(ios.mIoService.get_executor())
+        mStrand(ios.mIoService.get_executor())
     {
     }
 
@@ -103,7 +101,7 @@ namespace osuCrypto {
 
     StartSocketOp::StartSocketOp(std::shared_ptr<ChannelBase> chl) :
         mTimer(chl->mIos.mIoService),
-        mStrand(chl->mIos.mIoService.get_executor()),
+        mStrand(chl->mStrand),
         mSock(nullptr),
         mChl(chl.get())
     {}
@@ -674,7 +672,7 @@ namespace osuCrypto {
         auto lifetime = shared_from_this();
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        boost::asio::dispatch(mRecvStrand, [this, str, lifetime = std::move(lifetime)]() mutable
+        boost::asio::dispatch(mStrand, [this, str, lifetime = std::move(lifetime)]() mutable
         {
             // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
             // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
@@ -709,7 +707,7 @@ namespace osuCrypto {
         auto lifetime = shared_from_this();
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        boost::asio::dispatch(mSendStrand, [this, str, lifetime = std::move(lifetime)]() mutable
+        boost::asio::dispatch(mStrand, [this, str, lifetime = std::move(lifetime)]() mutable
         {
             auto hasItems = (mSendQueue.isEmpty() == false);
             auto avaliable = sendSocketAvailable();
@@ -728,7 +726,7 @@ namespace osuCrypto {
     void ChannelBase::asyncPerformRecv()
     {
         LOG_MSG("recv start: " + mRecvQueue.front()->toString());
-        assert(mRecvStrand.running_in_this_thread());
+        assert(mStrand.running_in_this_thread());
 
 #ifdef ENABLE_NET_LOG
         mRecvQueue.front()->mLog = &mLog;
@@ -741,7 +739,7 @@ namespace osuCrypto {
 
                 mTotalRecvData += bytesTransferred;
 
-                boost::asio::dispatch(mRecvStrand, [this, ec]() {
+                boost::asio::dispatch(mStrand, [this, ec]() {
                     if (!ec)
                     {
                         LOG_MSG("recv completed: " + mRecvQueue.front()->toString());
@@ -780,7 +778,7 @@ namespace osuCrypto {
     void ChannelBase::asyncPerformSend()
     {
         LOG_MSG("send start: " + mSendQueue.front()->toString());
-        assert(mSendStrand.running_in_this_thread());
+        assert(mStrand.running_in_this_thread());
     
 #ifdef ENABLE_NET_LOG
         mSendQueue.front()->mLog = &mLog;
@@ -792,7 +790,7 @@ namespace osuCrypto {
 
                 mTotalSentData += bytesTransferred;
 
-                boost::asio::dispatch(mSendStrand, [this, ec]() {
+                boost::asio::dispatch(mStrand, [this, ec]() {
                     if (!ec)
                     {
                         LOG_MSG("send completed: " + mSendQueue.front()->toString());
@@ -848,39 +846,45 @@ namespace osuCrypto {
 
         if (stopped() == false)
         {
-            mStatus = Channel::Status::Canceling;
-            auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-            mRecvCancelNew = true;
-            mSendCancelNew = true;
-
-            auto count = std::make_shared<std::atomic<u32>>(2);
-            auto cb = [&, ch = std::move(completionHandle), count]() mutable{
-                if(--*count == 0)
-                {
-                    mHandle.reset(nullptr);
-                    mWork.reset(nullptr);
-
-                    LOG_MSG("cancel callback.");
-
-                    auto c = std::move(ch);
-                    c();
-                }
+            struct CancelState
+            {
+                std::atomic<u32> mCount;
+                std::function<void()> mFn;
+                std::shared_ptr<ChannelBase> mLifetime;
+                CancelState(std::function<void()>&& fn, std::shared_ptr<ChannelBase>&& p)
+                    : mCount(2)
+                    , mFn(std::move(fn))
+                    , mLifetime(std::move(p)){}
             };
 
-            if (mHandle)
-            {
-                mHandle->close();
-            }
+            auto state = std::make_shared<CancelState>(std::move(completionHandle), shared_from_this());
+            //auto lifetime = shared_from_this();
+            boost::asio::dispatch(mStrand, [this, state]() mutable{
+                mStatus = Channel::Status::Canceling;
+                auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+                mRecvCancelNew = true;
+                mSendCancelNew = true;
 
-            auto lifetime = shared_from_this();
+    
+                auto cb = [this,state]() mutable{
+                    if(--state->mCount == 0)
+                    {
+                        LOG_MSG("cancel callback.");
+                        mHandle.reset(nullptr);
+                        mWork.reset(nullptr);
+                        state->mFn();
+                    }
+                };
 
-            //details::SendCallbackOp ss(cb);
+                if (mHandle)
+                {
+                    mHandle->close();
+                }
 
-            // cancel the front item. Closing the socket will likely
-            // also cancel the front item but in case not we give the
-            // operation another chance to be cancel.
-            boost::asio::dispatch(mSendStrand, [this, lifetime, ec, cb]() mutable{
-                sendEnque(make_SBO_ptr<details::SendOperation, details::SendCallbackOp>(std::move(cb)));
+                // cancel the front item. Closing the socket will likely
+                // also cancel the front item but in case not we give the
+                // operation another chance to be cancel.
+                sendEnque(make_SBO_ptr<details::SendOperation, details::SendCallbackOp>(cb));
                 if (mSendQueue.isEmpty() == false && sendSocketAvailable() == false)
                 {
                     LOG_MSG("cancel send asyncCancelPending(...). ");
@@ -891,8 +895,7 @@ namespace osuCrypto {
                     LOG_MSG("cancel cancelSendQueue(...).");
                     cancelSendQueue(ec);
                 }
-                });
-            boost::asio::dispatch(mRecvStrand, [this, lifetime, ec, cb]() mutable {
+
                 recvEnque(make_SBO_ptr<details::RecvOperation, details::RecvCallbackOp>(std::move(cb)));
                 if (mRecvQueue.isEmpty() == false && recvSocketAvailable() == false)
                 {
@@ -904,13 +907,12 @@ namespace osuCrypto {
                     LOG_MSG("cancel cancelRecvQueue(...).");
                     cancelRecvQueue(ec);
                 }
-                });
+            });
         }
         else
         {
 
-            if (mStatus == Channel::Status::Closing ||
-                mStatus == Channel::Status::Canceling)
+            if (mStatus == Channel::Status::Closing)
             {
                 lout << "Warning, asyncCancel() called on a canceling or closing channel " << mSession->mName << " " << mLocalName << std::endl;
             }
@@ -986,7 +988,7 @@ namespace osuCrypto {
             auto& front = mSendQueue.front();
             front->asyncCancel(this, ec,[this, ec](const error_code& ec2, u64 bt) {
 
-                boost::asio::dispatch(mSendStrand, [this, ec]() {
+                boost::asio::dispatch(mStrand, [this, ec]() {
                     auto& front = mSendQueue.front();
                     LOG_MSG("send cancel op: " + std::to_string(front->mIdx));
                     mSendQueue.pop_front();
@@ -1019,7 +1021,7 @@ namespace osuCrypto {
             LOG_MSG("recv cancel op: " + front->toString());
 
             front->asyncCancel(this, ec, [this, ec](const error_code& ec2, u64 bt) {
-                boost::asio::dispatch(mRecvStrand, [ec, this]() {
+                boost::asio::dispatch(mStrand, [ec, this]() {
 
 
                     LOG_MSG("recv pop from cancel queue");
@@ -1060,7 +1062,7 @@ namespace osuCrypto {
     u64 Channel::getTotalDataSent() const
     {
         std::promise<u64> prom;
-        boost::asio::dispatch(mBase->mSendStrand, [&]() {
+        boost::asio::dispatch(mBase->mStrand, [&]() {
             prom.set_value(mBase->mTotalSentData);
             }
         );
@@ -1070,7 +1072,7 @@ namespace osuCrypto {
     u64 Channel::getTotalDataRecv() const
     {
         std::promise<u64> prom;
-        boost::asio::dispatch(mBase->mRecvStrand, [&]() {
+        boost::asio::dispatch(mBase->mStrand, [&]() {
             prom.set_value(mBase->mTotalRecvData);
             }
         );

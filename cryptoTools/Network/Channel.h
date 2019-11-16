@@ -403,7 +403,7 @@ namespace osuCrypto {
         ComHandleStatus mSendStatus = ComHandleStatus::Uninit;
         ComHandleStatus mRecvStatus = ComHandleStatus::Uninit;
 
-        boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
+        boost::asio::strand<boost::asio::io_context::executor_type>& mStrand;
         std::vector<u8> mSendBuffer;
         std::unique_ptr<BoostSocketInterface> mSock;
 
@@ -505,16 +505,12 @@ namespace osuCrypto {
         bool mRecvCancelNew = false;
         bool mSendCancelNew = false;
 
-
         std::unique_ptr<SocketInterface> mHandle;
 
-        boost::asio::strand<boost::asio::io_context::executor_type> mSendStrand, mRecvStrand;
+        boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
 
         u64 mTotalSentData = 0;
         u64 mTotalRecvData = 0;
-
-        //std::atomic<u8> mCloseCount;
-        //std::function<void()> mCloseHandle;
 
         void cancelRecvQueue(const error_code& ec);
         void cancelSendQueue(const error_code& ec);
