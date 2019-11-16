@@ -109,10 +109,10 @@ namespace osuCrypto {
     {}
 
 
-    void StartSocketOp::asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle, bool sendOp)
+    void StartSocketOp::setHandle(io_completion_handle&& completionHandle, bool sendOp)
     {
         IF_LOG(mChl->mLog.push(
-            "calling StartSocketOp::asyncPerform(...) send="
+            "calling StartSocketOp::setHandle(...) send="
             + std::to_string(sendOp)));
 
         if (sendOp)
@@ -127,13 +127,13 @@ namespace osuCrypto {
             else
                 mRecvStatus = ComHandleStatus::Init;
 
-            if (mSendStatus == ComHandleStatus::Init && mIsComplete)
+            if (mSendStatus == ComHandleStatus::Init && mFinalized)
             {
                 mSendStatus = ComHandleStatus::Eval;
                 mSendComHandle(mEC, 0);
             }
 
-            if (mRecvStatus == ComHandleStatus::Init && mIsComplete)
+            if (mRecvStatus == ComHandleStatus::Init && mFinalized)
             {
                 mRecvStatus = ComHandleStatus::Eval;
                 mRecvComHandle(mEC, 0);
@@ -142,47 +142,59 @@ namespace osuCrypto {
         );
     }
 
-    void StartSocketOp::cancel()
+    void StartSocketOp::cancelPending(bool sendOp)
     {
-        IF_LOG(mChl->mLog.push("calling StartSocketOp::cancel(...) " + time()));
-        //lout << "calling StartSocketOp::cancel(...) " << time() << std::endl;
+        IF_LOG(mChl->mLog.push("calling StartSocketOp::cancel(...), sender=" +std::to_string(sendOp)+ ", t=" + time()));
+        
         auto lifetime = mChl->shared_from_this();
-        boost::asio::post(mStrand, [this, lifetime]() {
+        boost::asio::post(mStrand, [this, lifetime,sendOp]() {
 
-            if (mIsComplete == false && canceled() == false)
+            // While posting this cancel request, the other queue 
+            // (send or recv) may have already canceled the operation.
+            // Aternatively, we may have completed while in the mean 
+            // time in which case we ignore the cancel.
+            if (mFinalized == false && canceled() == false)
             {
-                IF_LOG(mChl->mLog.push("in StartSocketOp::cancel(...) " + time()));
+                IF_LOG(mChl->mLog.push("in StartSocketOp::cancel(...), sender=" +std::to_string(sendOp)+", t=" + time()));
 
+                mTimer.cancel();
                 mCanceled = true;
 
 #ifdef ENABLE_WOLFSSL
                 if (mTLSSock)
                 {
+                    // If this unique_ptr is set, then we are 
+                    // currently doing the TLS handshake. Calling
+                    // close on it will cancel the operation and
+                    // then it will call finalize with an error.
                     mTLSSock->close();
-                    //auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                    //finalize(std::move(mTLSSock), ec);
                 }
                 else 
 #endif
                 if (mChl->mSession->mAcceptor)
                 {
+                    // If we are still waiting for the socket from 
+                    // the acceptor, then tell it to cancel that
+                    // request.
                     mChl->mSession->mAcceptor->cancelPendingChannel(mChl->shared_from_this());
                 }
                 else  if (mSock)
                 {
+                    // If this unique_ptr is set then we are currently
+                    // trying to connect to the server, calling close
+                    // will cancel this operation.
                     error_code ec;
                     mSock->mSock.close(ec);
                 }
             }
-            
             }
         );
     }
 
     void StartSocketOp::setSocket(std::unique_ptr<BoostSocketInterface> socket, const error_code& ec)
     {
-        //lout << "calling StartSocketOp::setSocket(...) " << time() << std::endl;
-        IF_LOG(mChl->mLog.push("Recved socket, starting up the queues..."));
+        IF_LOG(mChl->mLog.push("Recved socket="+std::to_string(socket != nullptr)
+            +", starting up the queues..."));
 
         boost::asio::post(mStrand, [this, ec, s = std::move(socket)]() mutable {
 
@@ -206,6 +218,8 @@ namespace osuCrypto {
 #ifdef ENABLE_WOLFSSL
             if (mChl->mSession->mTLSContext && !ec)
             {
+                assert(s && "socket was null but no error code");
+                
                 mTLSSock.reset(new TLSSocket(mChl->mIos.mIoService, std::move(s->mSock), mChl->mSession->mTLSContext));
                 
                 IF_LOG(mTLSSock->setLog(mChl->mLog));
@@ -215,9 +229,10 @@ namespace osuCrypto {
                     IF_LOG(mChl->mLog.push("tls async_connect()"));
                     mTLSSock->async_connect([this](const error_code& ec) 
                     {
-                            IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
+                        TODO("send a hash of the connection string to make sure that things have not changed by the Adv.");
+                        IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
                         finalize(std::move(mTLSSock), ec);
-                        });
+                    });
                 }
                 else
                 {
@@ -242,12 +257,12 @@ namespace osuCrypto {
     void StartSocketOp::finalize(std::unique_ptr<SocketInterface> sock, error_code ec)
     {
         boost::asio::dispatch(mStrand, [this, s = std::move(sock), ec]() mutable {
-            assert(mIsComplete == false);
+            assert(mFinalized == false);
 
             mChl->mHandle = std::move(s);
             mEC = ec;
 
-            mIsComplete = true;
+            mFinalized = true;
             while (mComHandles.size())
             {
                 boost::asio::post(mChl->mIos.mIoService.get_executor(),
@@ -281,64 +296,96 @@ namespace osuCrypto {
         IF_LOG(mChl->mLog.push("start async connect to server at " +
             address.address().to_string() + " : " + std::to_string(address.port())));
 
-        mSock.reset(new BoostSocketInterface(
-            boost::asio::ip::tcp::socket(mChl->getIOService().mIoService)));
+        if(!mSock)
+            mSock.reset(new BoostSocketInterface(
+                boost::asio::ip::tcp::socket(mChl->getIOService().mIoService)));
 
-        //mSock = &ptr->mSock;
-        //mChl->mHandle.reset(ptr);
-
-        mConnectCallback = [this](const boost::system::error_code& ec)
+        auto count = static_cast<u64>(mBackoff) * 100;
+        mBackoff = std::min(mBackoff * 1.2, 1000.0);
+        if (mBackoff >= 1000.0)
         {
-            IF_LOG(mChl->mLog.push("calling StartSocketOp::asyncConnectToServer(...) cb1 "));
-
-            boost::asio::dispatch(mStrand, [this, ec] {
-                // lout << "calling StartSocketOp::asyncConnectToServer(...) cb1 " << time() << std::endl;
-
-                IF_LOG(mChl->mLog.push("in StartSocketOp::asyncConnectToServer(...) cb1 "
-                    + ec.message()));
-
-                auto& sock = mSock->mSock;
-
-                if (canceled() || ec == boost::system::errc::operation_canceled)
+            mChl->mIos.printError("client socket connect error (hangs).");
+        }
+        
+        mIsFirst = true;
+        mTimer.expires_from_now(boost::posix_time::millisec(count));
+        mTimer.async_wait([this](const error_code& ec) {
+            boost::asio::dispatch(mStrand, [this](){
+                
+                if (mIsFirst)
                 {
-                    auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                    setSocket(nullptr, ec2);
-                }
-                else if (ec)
-                {
+                    // timed out.
+                    IF_LOG(mChl->mLog.push("async_connect time out. "));
 
+                    auto ec = boost::system::errc::make_error_code(boost::system::errc::timed_out);
                     retryConnect(ec);
+                }
+                else {
+                    connectCallback(mConnectEC);
+                }
+                mIsFirst = false;
+            });
+        });
+
+        mSock->mSock.async_connect(address, [this](const error_code& ec){
+            boost::asio::dispatch(mStrand, [this, ec](){
+                mConnectEC = ec;
+                if(mIsFirst)
+                    mTimer.cancel();
+                mIsFirst = false;
+            });
+        });
+
+    }
+
+    void StartSocketOp::connectCallback(const error_code& ec)
+    {
+        IF_LOG(mChl->mLog.push("calling StartSocketOp::asyncConnectToServer(...) cb1 "));
+
+        boost::asio::dispatch(mStrand, [this, ec] {
+            // lout << "calling StartSocketOp::asyncConnectToServer(...) cb1 " << time() << std::endl;
+
+            IF_LOG(mChl->mLog.push("in StartSocketOp::asyncConnectToServer(...) cb1 "
+                + ec.message()));
+
+            auto& sock = mSock->mSock;
+
+            if (canceled() || ec == boost::system::errc::operation_canceled)
+            {
+                auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+                setSocket(nullptr, ec2);
+            }
+            else if (ec)
+            {
+
+                retryConnect(ec);
+            }
+            else
+            {
+                boost::asio::ip::tcp::no_delay option(true);
+                error_code ec2;
+                sock.set_option(option, ec2);
+
+                if (ec2)
+                {
+                    auto msg = "async connect. Failed to set option ~ ec=" + ec2.message() + "\n"
+                        + " isOpen=" + std::to_string(sock.is_open())
+                        + " stopped=" + std::to_string(canceled());
+
+                    IF_LOG(mChl->mLog.push(msg));
+
+                    // retry.
+                    retryConnect(ec2);
                 }
                 else
                 {
-                    boost::asio::ip::tcp::no_delay option(true);
-                    error_code ec2;
-                    sock.set_option(option, ec2);
-
-                    if (ec2)
-                    {
-                        auto msg = "async connect. Failed to set option ~ ec=" + ec2.message() + "\n"
-                            + " isOpen=" + std::to_string(sock.is_open())
-                            + " stopped=" + std::to_string(canceled());
-
-                        IF_LOG(mChl->mLog.push(msg));
-
-                        // retry.
-                        retryConnect(ec2);
-                    }
-                    else
-                    {
-                        recvServerMessage();
-                    }
+                    recvServerMessage();
                 }
-                }
-            );
-        };
-
-
-        mSock->mSock.async_connect(address, mConnectCallback);
+            }
+            }
+        );
     }
-
+    
     void StartSocketOp::recvServerMessage()
     {
         auto buffer = boost::asio::buffer((char*)&mRecvChar, 1);
@@ -438,6 +485,7 @@ namespace osuCrypto {
             mChl->mLog.push("error closing boost socket (3), ec = " + ec2.message()));
 
         auto count = static_cast<u64>(mBackoff);
+        
         mTimer.expires_from_now(boost::posix_time::millisec(count));
 
 
@@ -456,17 +504,15 @@ namespace osuCrypto {
         }
         IF_LOG(mChl->mLog.push("retry async connect to server (delay " + std::to_string(count) + "ms), ec = " + ec.message()));
 
-
         mTimer.async_wait([this](const boost::system::error_code& ec) {
             if (ec)
             {
+                IF_LOG(mChl->mLog.push("retry timer returned error " + ec.message()));
                 setSocket(nullptr, ec);
             }
             else
             {
-
-                auto& address = mChl->mSession->mRemoteAddr;
-                mSock->mSock.async_connect(address, mConnectCallback);
+                asyncConnectToServer();
             }
             }
         );
@@ -515,7 +561,7 @@ namespace osuCrypto {
     bool Channel::isConnected()
     {
         if (mBase->mStartOp)
-            return mBase->mStartOp->mIsComplete && !mBase->mStartOp->mEC;
+            return mBase->mStartOp->mFinalized && !mBase->mStartOp->mEC;
 
         return true;
     }
@@ -619,69 +665,66 @@ namespace osuCrypto {
     {
 #ifdef ENABLE_NET_LOG
         op->mIdx = mRecvIdx++;
-#endif
         auto str = op->toString();
         LOG_MSG("recv queuing op " + str);
-
-        auto& movedOp = mRecvQueue.push_back(std::move(op));
-        
-#ifdef ENABLE_NET_LOG
-        assert(movedOp->mIdx == mRecvIdx - 1);
+#else
+        char str= 0;
 #endif
+        mRecvQueue.push_back(std::move(op));
+        auto lifetime = shared_from_this();
+
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        boost::asio::dispatch(mRecvStrand, [this, str]()
+        boost::asio::dispatch(mRecvStrand, [this, str, lifetime = std::move(lifetime)]() mutable
+        {
+            // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
+            // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
+            bool hasItems = (mRecvQueue.isEmpty() == false);
+            bool available = recvSocketAvailable();
+            bool startRecving = hasItems && available;
+
+            LOG_MSG("recv queuing "+str+": start = " + std::to_string(startRecving) + " = " + std::to_string(hasItems) + " && " + std::to_string(available));
+            // the queue must be guarded from concurrent access, so add the op within the strand
+            // queue up the operation.
+            if (startRecving)
             {
-
-
-                // check to see if we should kick off a new set of recv operations. If the size >= 1, then there
-                // is already a set of recv operations that will kick off the newly queued recv when its turn comes around.
-                bool hasItems = (mRecvQueue.isEmpty() == false);
-                bool available = recvSocketAvailable();
-                bool startRecving = hasItems && available;
-
-                LOG_MSG("recv queuing "+str+": start = " + std::to_string(startRecving) + " = " + std::to_string(hasItems) + " && " + std::to_string(available));
-                // the queue must be guarded from concurrent access, so add the op within the strand
-                // queue up the operation.
-                if (startRecving)
-                {
-                    // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
-                    // will be kicked off at the completion of this operation.
-                    mRecvLoopLifetime = shared_from_this();
-                    asyncPerformRecv();
-                }
-            });
+                // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
+                // will be kicked off at the completion of this operation.
+                mRecvLoopLifetime = std::move(lifetime);
+                asyncPerformRecv();
+            }
+        });
     }
 
     void ChannelBase::sendEnque(SBO_ptr<details::SendOperation>&& op)
     {
-
 #ifdef ENABLE_NET_LOG
         op->mIdx = mSendIdx++;
-#endif
         auto str = op->toString();
         LOG_MSG("send queuing op " + str);
+#else
+        char str = 0;
+#endif
 
         mSendQueue.push_back(std::move(op));
+        auto lifetime = shared_from_this();
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
-        boost::asio::dispatch(mSendStrand, [this, str]()
+        boost::asio::dispatch(mSendStrand, [this, str, lifetime = std::move(lifetime)]() mutable
+        {
+            auto hasItems = (mSendQueue.isEmpty() == false);
+            auto avaliable = sendSocketAvailable();
+            auto startSending = hasItems && avaliable;
+
+            LOG_MSG("send queuing "+str+": start = " + std::to_string(startSending) + " = " + std::to_string(hasItems)
+                + " & " + std::to_string(avaliable));
+
+            if (startSending)
             {
-                auto hasItems = (mSendQueue.isEmpty() == false);
-                auto avaliable = sendSocketAvailable();
-                auto startSending = hasItems && avaliable;
-
-                LOG_MSG("send queuing "+str+": start = " + std::to_string(startSending) + " = " + std::to_string(hasItems)
-                    + " & " + std::to_string(avaliable));
-
-                if (startSending)
-                {
-                    mSendLoopLifetime = shared_from_this();
-                    asyncPerformSend();
-                }
-            });
+                mSendLoopLifetime = std::move(lifetime);
+                asyncPerformSend();
+            }
+        });
     }
-
-
     void ChannelBase::asyncPerformRecv()
     {
         LOG_MSG("recv start: " + mRecvQueue.front()->toString());
@@ -693,7 +736,8 @@ namespace osuCrypto {
 
         if (mRecvCancelNew == false)
         {
-            mRecvQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
+            mRecvQueue.front()->asyncPerform(this, [this]
+                (error_code ec, u64 bytesTransferred) {
 
                 mTotalRecvData += bytesTransferred;
 
@@ -701,10 +745,7 @@ namespace osuCrypto {
                     if (!ec)
                     {
                         LOG_MSG("recv completed: " + mRecvQueue.front()->toString());
-
                         mRecvQueue.pop_front();
-
-                        LOG_MSG("recv pop from main");  
                         if (!mRecvQueue.isEmpty())
                             asyncPerformRecv();
                         else
@@ -712,17 +753,16 @@ namespace osuCrypto {
                     }
                     else
                     {
-                        LOG_MSG("recv pop from main error");  
-                        mRecvQueue.pop_front();
-                        auto reason = std::string("network receive error (") +
-                            mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
-                            + ec.message() + "\n at  " + LOCATION;
-
-                        LOG_MSG(reason);
-
                         if (mIos.mPrint)
+                        {
+                            auto reason = std::string("network receive error (") +
+                                mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
+                                + ec.message() + "\n at  " + LOCATION;
                             lout << reason << std::endl;
+                        }
 
+                        LOG_MSG("net recv error: " + ec.message());
+                        mRecvQueue.pop_front();
                         cancelRecvQueue(ec);
                     }
                     });
@@ -740,7 +780,6 @@ namespace osuCrypto {
     void ChannelBase::asyncPerformSend()
     {
         LOG_MSG("send start: " + mSendQueue.front()->toString());
-
         assert(mSendStrand.running_in_this_thread());
     
 #ifdef ENABLE_NET_LOG
@@ -749,7 +788,6 @@ namespace osuCrypto {
 
         if (mSendCancelNew == false)
         {
-
             mSendQueue.front()->asyncPerform(this, [this](error_code ec, u64 bytesTransferred) {
 
                 mTotalSentData += bytesTransferred;
@@ -762,34 +800,30 @@ namespace osuCrypto {
                         mSendQueue.pop_front();
 
                         if (!mSendQueue.isEmpty())
-                        {
-                            //LOG_MSG("has more sends ...");
                             asyncPerformSend();
-                        }
                         else
                             mSendLoopLifetime = nullptr;
                     }
                     else
                     {
-                        auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
-                        LOG_MSG(reason);
-                         
-                        mSendQueue.pop_front();
-
                         if (mIos.mPrint)
+                        {
+                            auto reason = std::string("network send error: ") + ec.message() + "\n at  " + LOCATION;
                             lout << reason << std::endl;
+                        }
 
+                        LOG_MSG("net senmd error: " + ec.message());
+                        mSendQueue.pop_front();
                         cancelSendQueue(ec);
                     }
-                    });
                 });
+            });
         }
         else
         {
             auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
             cancelSendQueue(ec);
         }
-        
     }
 
     void ChannelBase::printError(std::string s)
@@ -798,16 +832,12 @@ namespace osuCrypto {
         mIos.printError(s);
     }
 
-
-
     void ChannelBase::cancel()
     {
         std::promise<void> prom;
         asyncCancel([&]() {
-
             prom.set_value();
-            //lout << "cancel(...) done " << time() << std::endl;
-            });
+        });
 
         prom.get_future().get();
     }
@@ -820,8 +850,8 @@ namespace osuCrypto {
         {
             mStatus = Channel::Status::Canceling;
             auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-            // mRecvCancelNew = true;
-            // mSendCancelNew = true;
+            mRecvCancelNew = true;
+            mSendCancelNew = true;
 
             auto count = std::make_shared<std::atomic<u32>>(2);
             auto cb = [&, ch = std::move(completionHandle), count]() mutable{
@@ -853,7 +883,7 @@ namespace osuCrypto {
                 sendEnque(make_SBO_ptr<details::SendOperation, details::SendCallbackOp>(std::move(cb)));
                 if (mSendQueue.isEmpty() == false && sendSocketAvailable() == false)
                 {
-                    LOG_MSG("cancel send asyncCancelPending(...).");
+                    LOG_MSG("cancel send asyncCancelPending(...). ");
                     mSendQueue.front()->asyncCancelPending(this, ec);
                 }
                 else
@@ -903,8 +933,9 @@ namespace osuCrypto {
         {
             mStatus = Channel::Status::Closing;
 
+            auto lifetime = shared_from_this();
             auto count = std::make_shared<std::atomic<u32>>(2);
-            auto cb = [&, ch = std::move(completionHandle), count]() mutable {
+            auto cb = [&, ch = std::move(completionHandle), count,lifetime]() mutable {
 
                 if(--*count == 0)
                 {

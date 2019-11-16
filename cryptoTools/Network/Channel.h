@@ -370,30 +370,23 @@ namespace osuCrypto {
 
         StartSocketOp(std::shared_ptr<ChannelBase> chl);
 
-        void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle, bool sendOp);
-        void cancel();
-
-
-
+        void setHandle(io_completion_handle&& completionHandle, bool sendOp);
+        void cancelPending(bool sendOp);
+        void connectCallback(const error_code& ec);
         bool canceled() const;
         void asyncConnectToServer();
         void recvServerMessage();
         void sendConnectionString();
         void retryConnect(const error_code& ec);
 
-
         char mRecvChar;
         void setSocket(std::unique_ptr<BoostSocketInterface> socket, const error_code& ec);
-
         void finalize(std::unique_ptr<SocketInterface> sock, error_code ec);
-
-        completion_handle mConnectCallback;
-
 
         void addComHandle(completion_handle&& comHandle)
         {
             boost::asio::dispatch(mStrand, [this, ch = std::forward<completion_handle>(comHandle)]() mutable {
-                if (mIsComplete)
+                if (mFinalized)
                 {
                     ch(mEC);
                 }
@@ -411,19 +404,15 @@ namespace osuCrypto {
         ComHandleStatus mRecvStatus = ComHandleStatus::Uninit;
 
         boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
-
         std::vector<u8> mSendBuffer;
-
         std::unique_ptr<BoostSocketInterface> mSock;
 
 #ifdef ENABLE_WOLFSSL
         std::unique_ptr<TLSSocket> mTLSSock;
 #endif
         double mBackoff = 1;
-
-        bool mIsComplete = false, mCanceled = false;
-        error_code mEC;
-
+        bool mFinalized = false, mCanceled = false, mIsFirst;
+        error_code mEC, mConnectEC;
         ChannelBase* mChl;
         io_completion_handle mSendComHandle, mRecvComHandle;
         std::list<completion_handle> mComHandles;
@@ -438,16 +427,17 @@ namespace osuCrypto {
         StartSocketSendOp(StartSocketOp* base)
             : mBase(base) {}
 
-        void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
-            mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), true);
+        void asyncPerform(ChannelBase*, io_completion_handle&& completionHandle) override {
+            mBase->setHandle(std::forward<io_completion_handle>(completionHandle), true);
         }
-        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { mBase->cancel(); }
+        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { 
+            mBase->cancelPending(true); 
+        }
 
         void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) override
         { 
-            assert(0);
-            // mBase->cancel(); 
-            // completionHandle(ec, 0);
+            mBase->setHandle(std::forward<io_completion_handle>(completionHandle), true);
+            mBase->cancelPending(true); 
         }
 
 
@@ -467,14 +457,14 @@ namespace osuCrypto {
             : mBase(base) {}
 
         void asyncPerform(ChannelBase* base, io_completion_handle&& completionHandle) override {
-            mBase->asyncPerform(base, std::forward<io_completion_handle>(completionHandle), false);
+            mBase->setHandle(std::forward<io_completion_handle>(completionHandle), false);
         }
-        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { mBase->cancel(); }
+        void asyncCancelPending(ChannelBase* base, const error_code& ec) override { mBase->cancelPending(false); }
 
         void asyncCancel(ChannelBase* base, const error_code& ec, io_completion_handle&& completionHandle) override
         { 
-            assert(0);
-            // mBase->cancel();
+            mBase->setHandle(std::forward<io_completion_handle>(completionHandle), false);
+            mBase->cancelPending(false);
         }
 
         std::string toString() const override {
@@ -508,8 +498,9 @@ namespace osuCrypto {
         std::atomic<u32> mChannelRefCount;
 
         std::shared_ptr<ChannelBase> mRecvLoopLifetime, mSendLoopLifetime;
-        bool recvSocketAvailable() const { return mRecvLoopLifetime == nullptr;}
-        bool sendSocketAvailable() const { return mSendLoopLifetime == nullptr;}
+
+        bool recvSocketAvailable() const { return !mRecvLoopLifetime;}
+        bool sendSocketAvailable() const { return !mSendLoopLifetime;}
 
         bool mRecvCancelNew = false;
         bool mSendCancelNew = false;

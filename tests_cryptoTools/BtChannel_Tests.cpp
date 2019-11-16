@@ -478,25 +478,28 @@ namespace tests_cryptoTools
                 chl1.close();
             });
 
-        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
-        chl2 = endpoint.addChannel(channelName, channelName);
+        try{
 
-        chl2.asyncSend(msg);
+            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            chl2 = endpoint.addChannel(channelName, channelName);
 
-        std::string clientRecv;
-        chl2.recv(clientRecv);
+            chl2.asyncSend(msg);
 
+            std::string clientRecv;
+            chl2.recv(clientRecv);
+
+            if (clientRecv != msg) 
+                throw UnitTestFail();
+        }
+        catch(std::exception& e)
+        {
+            lout << e.what() << std::endl;
+            thrd.join();
+            throw;
+        }
         thrd.join();
-        if (clientRecv != msg) throw UnitTestFail();
 
-        //std::cout << "chl1: " << chl1.mBase->mLog << std::endl;
-        chl2.close();
-        endpoint.stop();
-        ioService.stop();
-
-        //std::cout << "acpt: " << ioService.mAcceptors.begin()->mLog << std::endl;
-        //std::cout << "chl2: " << chl2.mBase->mLog << std::endl;
-    }
+    } 
 
     void BtNetwork_BadConnect_Test(const CLP& cmd)
     {
@@ -879,7 +882,7 @@ namespace tests_cryptoTools
             if (chl1.isConnected() == false)
             {
                 lout << "ec " << !chl1.mBase->mStartOp->mEC << " " << chl1.mBase->mStartOp->mEC.message() << std::endl;
-                lout << "ic " << chl1.mBase->mStartOp->mIsComplete << std::endl;
+                lout << "ic " << chl1.mBase->mStartOp->mFinalized << std::endl;
                 throw UnitTestFail(LOCATION);
             }
             chl2.waitForConnection();
@@ -1416,6 +1419,7 @@ namespace tests_cryptoTools
 
     void BtNetwork_fastCancel(const CLP& cmd)
     {
+        //throw UnitTestSkipped("known issue");
         std::string ip = "127.0.0.1";
         u32 port = 1212;
         //u64 n = 1;
