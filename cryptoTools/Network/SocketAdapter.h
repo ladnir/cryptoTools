@@ -39,6 +39,12 @@ namespace osuCrypto
         // OPTIONAL -- no-op close is default. Will be called when all Channels that refernece it are destructed/
         virtual void close() {};
 
+        virtual void cancel() {
+            lout << "Please override SocketInterface::cancel() if you"<<
+            " want to properly support cancel operations. Calling std::terminate() " << LOCATION << std::endl;
+            std::terminate();
+        };
+
         // OPTIONAL -- no-op close is default. Will be called right after 
         virtual void async_accept(completion_handle&& fn)
         {
@@ -128,6 +134,11 @@ namespace osuCrypto
             }
             fn(ec, bytesTransfered);
         }
+
+        void cancel() override
+        {
+            mChl.asyncCancel([](){});
+        }
     };
 
 
@@ -157,6 +168,14 @@ namespace osuCrypto
 			if (ec) 
                 std::cout <<"BoostSocketInterface::close() error: "<< ec.message() << std::endl; 
 		}
+
+        void cancel() override
+        {
+			boost::system::error_code ec;
+			mSock.close(ec);
+			if (ec) 
+                std::cout <<"BoostSocketInterface::cancel() error: "<< ec.message() << std::endl; 
+        }
 
         void async_recv(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override
         {

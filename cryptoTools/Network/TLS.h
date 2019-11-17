@@ -276,6 +276,8 @@ namespace osuCrypto
 
         void close() override;
 
+        void cancel() override;
+        
         void async_send(
             span<buffer> buffers,
             io_completion_handle&& fn) override;
@@ -283,6 +285,8 @@ namespace osuCrypto
         void async_recv(
             span<buffer> buffers,
             io_completion_handle&& fn) override;
+
+
 
         void setDHParamFile(std::string path, error_code& ec);
         void setDHParam(span<u8> paramData, error_code& ec);

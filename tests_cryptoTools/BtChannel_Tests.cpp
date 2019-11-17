@@ -1487,9 +1487,9 @@ namespace tests_cryptoTools
         
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-        //chls[0].cancel();
+        chls[0].cancel(false);
 
-        chls[0].mBase->mHandle->close();
+        //chls[0].mBase->mHandle->close();
 
         prom.get_future().get();
 

@@ -895,7 +895,7 @@ namespace osuCrypto {
 
                 if (mHandle)
                 {
-                    mHandle->close();
+                    mHandle->cancel();
                 }
 
                 // cancel the front item. Closing the socket will likely

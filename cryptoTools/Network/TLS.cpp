@@ -185,12 +185,18 @@ namespace osuCrypto
         wolfSSL_SetIOReadCtx(mSSL, this);
     }
 
-
-
     void WolfSocket::close()
     {
         LOG("WolfSocket::close()");
-        mSock.close();
+        boost::system::error_code ec;
+        mSock.close(ec);
+    }
+
+    void WolfSocket::cancel()
+    {
+        LOG("WolfSocket::cancel()");
+        boost::system::error_code ec;
+        mSock.cancel(ec);
     }
 
     void WolfSocket::send(
