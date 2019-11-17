@@ -3,7 +3,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/SocketAdapter.h>
-
+#include <cryptoTools/Network/util.h>
 
 #ifdef ENABLE_NET_LOG
 #include <cryptoTools/Common/Log.h>
@@ -302,11 +302,11 @@ namespace osuCrypto {
         void close();
 
         // Aborts all current operations (connect, send, receive).
-        void cancel();
+        void cancel(bool close = true);
 
         void asyncClose(std::function<void()> completionHandle);
 
-        void asyncCancel(std::function<void()> completionHandle);
+        void asyncCancel(std::function<void()> completionHandle, bool close = true);
 
 
         enum class Status { Normal, Closing, Closed, Canceling};
@@ -486,7 +486,7 @@ namespace osuCrypto {
         ~ChannelBase();
         
         IOService& mIos;
-        std::unique_ptr<boost::asio::io_service::work> mWork;
+        Work mWork;
         std::unique_ptr<StartSocketOp> mStartOp;
 
         std::shared_ptr<SessionBase> mSession;
@@ -516,9 +516,9 @@ namespace osuCrypto {
         void cancelSendQueue(const error_code& ec);
 
         void close();
-        void cancel();
+        void cancel(bool close);
         void asyncClose(std::function<void()> completionHandle);
-        void asyncCancel(std::function<void()> completionHandle);
+        void asyncCancel(std::function<void()> completionHandle, bool close);
 
         IOService& getIOService() { return mIos; }
 

@@ -74,27 +74,34 @@ namespace osuCrypto {
         std::string remoteName)
         :
         mIos(endpoint.getIOService()),
-        mWork(new boost::asio::io_service::work(endpoint.getIOService().mIoService)),
+        mWork(endpoint.getIOService(), "Channel:" + endpoint.mBase->mName + "." + localName 
+            + (endpoint.mBase->mMode == SessionMode::Server ? " (server)" : " (client)")),
         mSession(endpoint.mBase),
         mRemoteName(remoteName),
         mLocalName(localName),
         mChannelRefCount(1),
         mStrand(endpoint.getIOService().mIoService.get_executor())
     {
+        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        mIos.mChannels.insert(this);
     }
 
     ChannelBase::ChannelBase(IOService& ios, SocketInterface* sock)
         :
         mIos(ios),
-        mWork(new boost::asio::io_service::work(ios.mIoService)),
+        mWork(ios, "Channel: SocketInterface." + std::to_string((u64)sock) ),
         mChannelRefCount(1),
         mHandle(sock),
         mStrand(ios.mIoService.get_executor())
     {
+        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        mIos.mChannels.insert(this);
     }
 
     ChannelBase::~ChannelBase()
     {
+        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        mIos.mChannels.erase(mIos.mChannels.find(this));
         assert(mChannelRefCount ==0);
     }
 
@@ -338,7 +345,7 @@ namespace osuCrypto {
 
     void StartSocketOp::connectCallback(const error_code& ec)
     {
-        IF_LOG(mChl->mLog.push("calling StartSocketOp::asyncConnectToServer(...) cb1 "));
+        //IF_LOG(mChl->mLog.push("calling StartSocketOp::asyncConnectToServer(...) cb1 "));
 
         boost::asio::dispatch(mStrand, [this, ec] {
             // lout << "calling StartSocketOp::asyncConnectToServer(...) cb1 " << time() << std::endl;
@@ -366,11 +373,11 @@ namespace osuCrypto {
 
                 if (ec2)
                 {
+                    IF_LOG(
                     auto msg = "async connect. Failed to set option ~ ec=" + ec2.message() + "\n"
                         + " isOpen=" + std::to_string(sock.is_open())
                         + " stopped=" + std::to_string(canceled());
-
-                    IF_LOG(mChl->mLog.push(msg));
+                    mChl->mLog.push(msg));
 
                     // retry.
                     retryConnect(ec2);
@@ -451,11 +458,13 @@ namespace osuCrypto {
                 {
                     auto& sock = mSock->mSock;
 
-                    auto msg = "async connect. Failed to send ConnectionString ~ ec=" + ec.message() + "\n"
+                    IF_LOG(
+                        auto msg = "async connect. Failed to send ConnectionString ~ ec=" + ec.message() + "\n"
                         + " isOpen=" + std::to_string(sock.is_open())
                         + " canceled=" + std::to_string(canceled());
 
-                    IF_LOG(mChl->mLog.push(msg));
+                        mChl->mLog.push(msg)
+                    );
 
                     // Unknown issue where we connect but then the pipe is broken. 
                     // Simply retrying seems to be a workaround.
@@ -474,19 +483,11 @@ namespace osuCrypto {
 
     void osuCrypto::StartSocketOp::retryConnect(const error_code& ec)
     {
-
-
         error_code ec2;
         mSock->mSock.close(ec2);
 
-        IF_LOG(if (ec2)
-            mChl->mLog.push("error closing boost socket (3), ec = " + ec2.message()));
-
         auto count = static_cast<u64>(mBackoff);
-        
         mTimer.expires_from_now(boost::posix_time::millisec(count));
-
-
         mBackoff = std::min(mBackoff * 1.2, 1000.0);
         if (mBackoff >= 1000.0)
         {
@@ -527,16 +528,18 @@ namespace osuCrypto {
 
     Channel& Channel::operator=(Channel&& move)
     {
-        if(mBase) 
-            --mBase->mChannelRefCount;
+        if(mBase && --mBase->mChannelRefCount == 0)
+            mBase->close();
+
         mBase = std::move(move.mBase);
         return *this;
     }
 
     Channel& Channel::operator=(const Channel& copy)
     {
-        if(mBase) 
-            --mBase->mChannelRefCount;
+        if(mBase && --mBase->mChannelRefCount == 0)
+            mBase->close();
+
         mBase = copy.mBase;
         if(mBase)
             ++mBase->mChannelRefCount;
@@ -625,9 +628,9 @@ namespace osuCrypto {
         if (mBase) mBase->close();
     }
 
-    void Channel::cancel()
+    void Channel::cancel(bool close)
     {
-        if (mBase) mBase->cancel();
+        if (mBase) mBase->cancel(close);
     }
 
     void Channel::asyncClose(std::function<void()> completionHandle)
@@ -636,9 +639,9 @@ namespace osuCrypto {
         else completionHandle();
     }
 
-    void Channel::asyncCancel(std::function<void()> completionHandle)
+    void Channel::asyncCancel(std::function<void()> completionHandle, bool close)
     {
-        if (mBase) mBase->asyncCancel(std::move(completionHandle));
+        if (mBase) mBase->asyncCancel(std::move(completionHandle), close);
         else completionHandle();
     }
 
@@ -668,7 +671,7 @@ namespace osuCrypto {
 #else
         char str= 0;
 #endif
-        mRecvQueue.push_back(std::move(op));
+        mRecvQueue.push_back(std::forward<SBO_ptr<details::RecvOperation>>(op));
         auto lifetime = shared_from_this();
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
@@ -680,15 +683,20 @@ namespace osuCrypto {
             bool available = recvSocketAvailable();
             bool startRecving = hasItems && available;
 
-            LOG_MSG("recv queuing "+str+": start = " + std::to_string(startRecving) + " = " + std::to_string(hasItems) + " && " + std::to_string(available));
             // the queue must be guarded from concurrent access, so add the op within the strand
             // queue up the operation.
             if (startRecving)
             {
+                assert(mStatus != Channel::Status::Closed);
+
                 // ok, so there isn't any recv operations currently underway. Lets kick off the first one. Subsequent recvs
                 // will be kicked off at the completion of this operation.
                 mRecvLoopLifetime = std::move(lifetime);
                 asyncPerformRecv();
+            }
+            else
+            {
+                LOG_MSG("recv defered "+str+": " + std::to_string(hasItems) + " && " + std::to_string(available));
             }
         });
     }
@@ -703,23 +711,25 @@ namespace osuCrypto {
         char str = 0;
 #endif
 
-        mSendQueue.push_back(std::move(op));
+        mSendQueue.push_back(std::forward<SBO_ptr<details::SendOperation>>(op));
         auto lifetime = shared_from_this();
 
         // a strand is like a lock. Stuff posted (or dispatched) to a strand will be executed sequentially
         boost::asio::dispatch(mStrand, [this, str, lifetime = std::move(lifetime)]() mutable
         {
             auto hasItems = (mSendQueue.isEmpty() == false);
-            auto avaliable = sendSocketAvailable();
-            auto startSending = hasItems && avaliable;
-
-            LOG_MSG("send queuing "+str+": start = " + std::to_string(startSending) + " = " + std::to_string(hasItems)
-                + " & " + std::to_string(avaliable));
+            auto available = sendSocketAvailable();
+            auto startSending = hasItems && available;
 
             if (startSending)
             {
+                assert(mStatus != Channel::Status::Closed); 
                 mSendLoopLifetime = std::move(lifetime);
                 asyncPerformSend();
+            } 
+            else
+            {
+                LOG_MSG("send defered "+str+": " + std::to_string(hasItems) + " && " + std::to_string(available));
             }
         });
     }
@@ -830,17 +840,17 @@ namespace osuCrypto {
         mIos.printError(s);
     }
 
-    void ChannelBase::cancel()
+    void ChannelBase::cancel(bool close)
     {
         std::promise<void> prom;
         asyncCancel([&]() {
             prom.set_value();
-        });
+        }, close);
 
         prom.get_future().get();
     }
 
-    void ChannelBase::asyncCancel(std::function<void()> completionHandle)
+    void ChannelBase::asyncCancel(std::function<void()> completionHandle, bool close)
     {
         LOG_MSG("cancel()");
 
@@ -851,27 +861,34 @@ namespace osuCrypto {
                 std::atomic<u32> mCount;
                 std::function<void()> mFn;
                 std::shared_ptr<ChannelBase> mLifetime;
-                CancelState(std::function<void()>&& fn, std::shared_ptr<ChannelBase>&& p)
+                bool mClose;
+                CancelState(std::function<void()>&& fn, std::shared_ptr<ChannelBase>&& p, bool close)
                     : mCount(2)
                     , mFn(std::move(fn))
-                    , mLifetime(std::move(p)){}
+                    , mLifetime(std::move(p))
+                    , mClose(close)
+                {}
             };
 
-            auto state = std::make_shared<CancelState>(std::move(completionHandle), shared_from_this());
-            //auto lifetime = shared_from_this();
-            boost::asio::dispatch(mStrand, [this, state]() mutable{
+            auto state = std::make_shared<CancelState>(std::move(completionHandle), shared_from_this(), close);
+
+            boost::asio::post(mStrand, [this, state]() mutable{
+
                 mStatus = Channel::Status::Canceling;
+
                 auto ec = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
                 mRecvCancelNew = true;
                 mSendCancelNew = true;
 
-    
                 auto cb = [this,state]() mutable{
                     if(--state->mCount == 0)
                     {
                         LOG_MSG("cancel callback.");
+
+                        if(state->mClose)
+                            mStatus = Channel::Status::Closed;
+
                         mHandle.reset(nullptr);
-                        mWork.reset(nullptr);
                         state->mFn();
                     }
                 };
@@ -948,7 +965,7 @@ namespace osuCrypto {
                         mHandle->close();
                     }
                     mHandle.reset(nullptr);
-                    mWork.reset(nullptr);
+                    mWork.reset();
                     LOG_MSG("Closed");
 
                     auto c = std::move(ch);

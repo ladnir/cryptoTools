@@ -1392,7 +1392,7 @@ namespace tests_cryptoTools
         // chls[0].send(msg);
         // chls[1].recv(msg);
 
-        chls[0].cancel();
+        chls[0].cancel(false);
 
         chls[0].asyncRecv(msg, [&](const error_code& ec){
             if(!ec)
@@ -1586,4 +1586,35 @@ namespace tests_cryptoTools
             }
         }
     }
+
+    void BtNetwork_queue_Test(const osuCrypto::CLP& cmd)
+    {
+        SpscQueue<int> queue;
+
+        u64 n = 1000;
+        //u64 t = 10;
+
+        std::vector<std::thread> thrds(10);
+
+        for(u64 tt = 0;tt < thrds.size(); ++tt)
+        {
+            thrds[tt] = std::thread([&](){
+                for(u64 i =0; i < n; ++i)
+                {
+                    queue.push_back(i);                    
+                }
+            });
+        }
+
+        u64 total = n * thrds.size();
+        for(u64 i =0; i < total; ++i)
+        {
+            if(queue.isEmpty() == false)
+                queue.pop_front();
+        }
+
+        for(u64 tt = 0;tt < thrds.size(); ++tt)
+            thrds[tt].join();
+    }
+
 }

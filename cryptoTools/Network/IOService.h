@@ -5,6 +5,7 @@
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
+#include <unordered_set>
 
 # if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
 #  error WinSock.h has already been included. Please move the boost headers above the WinNet*.h headers
@@ -40,8 +41,15 @@ namespace osuCrypto
     {
         friend class Channel;
         friend class Session;
-
     public:
+#ifdef ENABLE_NET_LOG
+        Log mLog;
+#endif
+        std::mutex mWorkerMtx;
+        std::unordered_set<ChannelBase*> mChannels;
+        std::unordered_map<void*, std::string> mWorkerLog;
+
+
 
         IOService(const IOService&) = delete;
 
@@ -53,10 +61,10 @@ namespace osuCrypto
         boost::asio::io_service mIoService;
 		boost::asio::strand<boost::asio::io_service::executor_type> mStrand;
 
-        std::unique_ptr<boost::asio::io_service::work> mWorker;
+        Work mWorker;
 
-        std::list<std::thread> mWorkerThrds;
-
+        std::list<std::pair<std::thread, std::promise<void>>> mWorkerThrds;
+        
         // The list of acceptor objects that hold state about the ports that are being listened to. 
         std::list<Acceptor> mAcceptors;
 
@@ -75,13 +83,8 @@ namespace osuCrypto
 
         void workUntil(std::future<void>& fut);
 
-
         bool mPrint = true;
-
-#ifdef ENABLE_NET_LOG
-        Log mLog;
-#endif
-    };
+    }; 
 
 
 	namespace details
