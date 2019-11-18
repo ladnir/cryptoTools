@@ -20,11 +20,11 @@
 /* #undef ENABLE_NASM */
 
 // Turn on Channel logging for debugging.
-#define ENABLE_NET_LOG ON
+//#define ENABLE_NET_LOG ON
 
 
 // enable the wolf ssl socket layer.
-#define ENABLE_WOLFSSL ON
+//#define ENABLE_WOLFSSL ON
 
 
 // Force BLAKE2 to be used as the random oracle 
