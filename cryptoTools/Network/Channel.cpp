@@ -301,9 +301,9 @@ namespace osuCrypto {
         IF_LOG(mChl->mLog.push("start async connect to server at " +
             address.address().to_string() + " : " + std::to_string(address.port())));
 
-        if(!mSock)
-            mSock.reset(new BoostSocketInterface(
-                boost::asio::ip::tcp::socket(mChl->getIOService().mIoService)));
+        //if(!mSock)
+        mSock.reset(new BoostSocketInterface(
+            boost::asio::ip::tcp::socket(mChl->getIOService().mIoService)));
 
         auto count = static_cast<u64>(mBackoff) * 100;
         mBackoff = std::min(mBackoff * 1.2, 1000.0);
@@ -316,14 +316,11 @@ namespace osuCrypto {
         mTimer.expires_from_now(boost::posix_time::millisec(count));
         mTimer.async_wait([this](const error_code& ec) {
             boost::asio::dispatch(mStrand, [this](){
-                
-                if (mIsFirst)
-                {
+                if (mIsFirst) {
                     // timed out.
+                    error_code ec;
+                    mSock->mSock.cancel(ec);
                     IF_LOG(mChl->mLog.push("async_connect time out. "));
-
-                    auto ec = boost::system::errc::make_error_code(boost::system::errc::timed_out);
-                    retryConnect(ec);
                 }
                 else {
                     connectCallback(mConnectEC);
@@ -336,7 +333,14 @@ namespace osuCrypto {
             boost::asio::dispatch(mStrand, [this, ec](){
                 mConnectEC = ec;
                 if(mIsFirst)
+                {
                     mTimer.cancel();
+                }
+                else
+                {
+                    auto ec = boost::system::errc::make_error_code(boost::system::errc::timed_out);
+                    retryConnect(ec);
+                }
                 mIsFirst = false;
             });
         });
