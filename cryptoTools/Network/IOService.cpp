@@ -40,16 +40,15 @@ namespace osuCrypto
 
     void Work::reset()
     {
-#ifdef ENABLE_NET_LOG
         if(mWork)
         {
+#ifdef ENABLE_NET_LOG
             std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
             auto iter = mIos.mWorkerLog.find(mWork.get());
             mIos.mWorkerLog.erase(iter);
-            //mIos.mLog.push("destroy work["+std::to_string((u64)mWork.get())+"]: "+mReason);
+#endif
             mWork.reset(nullptr);
         }
-#endif
     }
 
     Acceptor::Acceptor(IOService& ioService)
