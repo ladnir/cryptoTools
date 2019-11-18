@@ -359,14 +359,8 @@ namespace osuCrypto {
 
             auto& sock = mSock->mSock;
 
-            if (canceled() || ec == boost::system::errc::operation_canceled)
+            if (ec)
             {
-                auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                setSocket(nullptr, ec2);
-            }
-            else if (ec)
-            {
-
                 retryConnect(ec);
             }
             else
@@ -403,12 +397,7 @@ namespace osuCrypto {
         sock.async_receive(buffer, [this](const error_code& ec, u64 bytesTransferred) {
             boost::asio::dispatch(mStrand, [this, ec, bytesTransferred] {
 
-                if (canceled())
-                {
-                    auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                    setSocket(nullptr, ec2);
-                }
-                else if (ec || bytesTransferred != 1)
+                if (ec || bytesTransferred != 1)
                 {
                     retryConnect(ec);
                 }
@@ -453,12 +442,7 @@ namespace osuCrypto {
         sock.async_send(buffer, [this](const error_code& ec, u64 bytesTransferred) {
             boost::asio::dispatch(mStrand, [this, ec, bytesTransferred] {
 
-                if (canceled())
-                {
-                    auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-                    setSocket(nullptr, ec2);
-                }
-                else if (ec || bytesTransferred != mSendBuffer.size())
+                if (ec || bytesTransferred != mSendBuffer.size())
                 {
                     auto& sock = mSock->mSock;
 
@@ -487,38 +471,46 @@ namespace osuCrypto {
 
     void osuCrypto::StartSocketOp::retryConnect(const error_code& ec)
     {
-        error_code ec2;
-        mSock->mSock.close(ec2);
-
-        auto count = static_cast<u64>(mBackoff);
-        mTimer.expires_from_now(boost::posix_time::millisec(count));
-        mBackoff = std::min(mBackoff * 1.2, 1000.0);
-        if (mBackoff >= 1000.0)
+        if (canceled() || ec == boost::system::errc::operation_canceled)
         {
-            switch (ec.value())
-            {
-            case boost::system::errc::operation_canceled:
-            case boost::system::errc::connection_refused:
-                break;
-            default:
-                mChl->mIos.printError("client socket connect error: " + ec.message());
-            }
-
+            auto ec2 = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+            setSocket(nullptr, ec2);
         }
-        IF_LOG(mChl->mLog.push("retry async connect to server (delay " + std::to_string(count) + "ms), ec = " + ec.message()));
+        else
+        {
+            error_code ec2;
+            mSock->mSock.close(ec2);
 
-        mTimer.async_wait([this](const boost::system::error_code& ec) {
-            if (ec)
+            auto count = static_cast<u64>(mBackoff);
+            mTimer.expires_from_now(boost::posix_time::millisec(count));
+            mBackoff = std::min(mBackoff * 1.2, 1000.0);
+            if (mBackoff >= 1000.0)
             {
-                IF_LOG(mChl->mLog.push("retry timer returned error " + ec.message()));
-                setSocket(nullptr, ec);
+                switch (ec.value())
+                {
+                case boost::system::errc::operation_canceled:
+                case boost::system::errc::connection_refused:
+                    break;
+                default:
+                    mChl->mIos.printError("client socket connect error: " + ec.message());
+                }
+
             }
-            else
-            {
-                asyncConnectToServer();
-            }
-            }
-        );
+            IF_LOG(mChl->mLog.push("retry async connect to server (delay " + std::to_string(count) + "ms), ec = " + ec.message()));
+
+            mTimer.async_wait([this](const boost::system::error_code& ec) {
+                if (ec)
+                {
+                    IF_LOG(mChl->mLog.push("retry timer returned error " + ec.message()));
+                    setSocket(nullptr, ec);
+                }
+                else
+                {
+                    asyncConnectToServer();
+                }
+                }
+            );
+        }
     }
 
 

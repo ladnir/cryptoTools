@@ -2,6 +2,7 @@
 #include <boost/asio.hpp>
 #include <cryptoTools/Common/Defines.h>
 #include "IoBuffer.h"
+#include <iostream>
 
 namespace osuCrypto
 {
@@ -40,7 +41,7 @@ namespace osuCrypto
         virtual void close() {};
 
         virtual void cancel() {
-            lout << "Please override SocketInterface::cancel() if you"<<
+            std::cout << "Please override SocketInterface::cancel() if you"<<
             " want to properly support cancel operations. Calling std::terminate() " << LOCATION << std::endl;
             std::terminate();
         };
@@ -172,7 +173,14 @@ namespace osuCrypto
         void cancel() override
         {
 			boost::system::error_code ec;
-			mSock.close(ec);
+#if defined(BOOST_ASIO_MSVC) && (BOOST_ASIO_MSVC >= 1400) \
+  && (!defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0600) \
+  && !defined(BOOST_ASIO_ENABLE_CANCELIO)
+            mSock.close(ec);
+#else
+			mSock.cancel(ec);
+#endif
+
 			if (ec) 
                 std::cout <<"BoostSocketInterface::cancel() error: "<< ec.message() << std::endl; 
         }

@@ -1601,7 +1601,7 @@ namespace tests_cryptoTools
             thrds[tt] = std::thread([&](){
                 for(u64 i =0; i < n; ++i)
                 {
-                    queue.push_back(i);                    
+                    queue.push_back(std::move(i));                    
                 }
             });
         }
