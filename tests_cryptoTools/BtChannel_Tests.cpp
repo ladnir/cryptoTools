@@ -127,6 +127,14 @@ namespace tests_cryptoTools
                 auto ch1 = c1.addChannel("t1");
 
                 ch1.cancel();
+                // auto prom = std::promise<void>();
+                // ch1.asyncCancel([&](){
+                //     prom.set_value();
+                // });
+
+                // // std::this_thread::sleep_for(std::chrono::seconds(3));
+                // // oc::lout <<  ch1.mBase->mLog << std::endl;
+                // prom.get_future().get();
 
                 bool throws = false;
 
@@ -212,10 +220,19 @@ namespace tests_cryptoTools
                 std::vector<u8> rr(10);
                 auto f = ch1.asyncSendFuture(rr.data(), rr.size());
 
-                auto thrd = std::thread([&]() {
+                //auto thrd = std::thread([&]() {
                     //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    ch1.cancel();
-                    });
+                //    ch1.cancel();
+                //    });
+
+                auto prom = std::promise<void>();
+                ch1.asyncCancel([&](){
+                    prom.set_value();
+                });
+
+                //std::this_thread::sleep_for(std::chrono::seconds(3));
+                //oc::lout <<  ch1.mBase->mLog << std::endl;
+                prom.get_future().get();
 
                 bool throws = false;
                 try {
@@ -223,7 +240,7 @@ namespace tests_cryptoTools
                 }
                 catch (...) { throws = true; }
 
-                thrd.join();
+                //thrd.join();
 
                 if (ch1.isConnected())
                 {
@@ -461,25 +478,28 @@ namespace tests_cryptoTools
                 chl1.close();
             });
 
-        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
-        chl2 = endpoint.addChannel(channelName, channelName);
+        try{
 
-        chl2.asyncSend(msg);
+            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            chl2 = endpoint.addChannel(channelName, channelName);
 
-        std::string clientRecv;
-        chl2.recv(clientRecv);
+            chl2.asyncSend(msg);
 
+            std::string clientRecv;
+            chl2.recv(clientRecv);
+
+            if (clientRecv != msg) 
+                throw UnitTestFail();
+        }
+        catch(std::exception& e)
+        {
+            lout << e.what() << std::endl;
+            thrd.join();
+            throw;
+        }
         thrd.join();
-        if (clientRecv != msg) throw UnitTestFail();
 
-        //std::cout << "chl1: " << chl1.mBase->mLog << std::endl;
-        chl2.close();
-        endpoint.stop();
-        ioService.stop();
-
-        //std::cout << "acpt: " << ioService.mAcceptors.begin()->mLog << std::endl;
-        //std::cout << "chl2: " << chl2.mBase->mLog << std::endl;
-    }
+    } 
 
     void BtNetwork_BadConnect_Test(const CLP& cmd)
     {
@@ -601,7 +621,7 @@ namespace tests_cryptoTools
         u64 numChannels(15);
         u64 messageCount(15);
 
-        bool print(false);
+        //bool print(false);
 
         std::vector<u8> buff(64);
 
@@ -622,7 +642,7 @@ namespace tests_cryptoTools
                 for (u64 i = 0; i < numChannels; i++)
                 {
                     auto chl = endpoint.addChannel();
-                    threads.emplace_back([i, &buff, chl, messageCount, print, channelName]()mutable
+                    threads.emplace_back([i, &buff, chl, messageCount]()mutable
                         {
                             setThreadName("Test_client_" + std::to_string(i));
                             std::vector<u8> mH;
@@ -655,7 +675,7 @@ namespace tests_cryptoTools
         for (u64 i = 0; i < numChannels; i++)
         {
             auto chl = endpoint.addChannel();
-            threads.emplace_back([i, chl, &buff, messageCount, print, channelName]() mutable
+            threads.emplace_back([i, chl, &buff, messageCount]() mutable
                 {
                     setThreadName("Test_Host_" + std::to_string(i));
                     std::vector<u8> mH(buff);
@@ -862,7 +882,7 @@ namespace tests_cryptoTools
             if (chl1.isConnected() == false)
             {
                 lout << "ec " << !chl1.mBase->mStartOp->mEC << " " << chl1.mBase->mStartOp->mEC.message() << std::endl;
-                lout << "ic " << chl1.mBase->mStartOp->mIsComplete << std::endl;
+                lout << "ic " << chl1.mBase->mStartOp->mFinalized << std::endl;
                 throw UnitTestFail(LOCATION);
             }
             chl2.waitForConnection();
@@ -1133,7 +1153,7 @@ namespace tests_cryptoTools
         auto tls = getIfTLS(cmd);
 
         Timer timer;
-        auto start = timer.setTimePoint("start");
+        timer.setTimePoint("start");
 
         IOService ios;
         ios.mPrint = false;
@@ -1349,7 +1369,134 @@ namespace tests_cryptoTools
                 throw;
             }
         }
+    }
 
+    void BtNetwork_useAfterCancel_test(const CLP& cmd)
+    {
+        IOService ios;
+        ios.mPrint = false;
+        bool failed = false;
+        std::atomic<u32> counts; counts = 0;
+        u32 countEnd = 1;
+        std::promise<void> prom;
+
+        std::array<oc::Channel, 2> chls{
+            Session(ios, "127.0.0.1:1212", SessionMode::Client).addChannel(),
+            Session(ios, "127.0.0.1:1212", SessionMode::Server).addChannel()
+        };
+
+        chls[0].waitForConnection();
+        chls[1].waitForConnection();
+
+        std::vector<u8> msg(10);
+        // chls[0].send(msg);
+        // chls[1].recv(msg);
+
+        chls[0].cancel(false);
+
+        chls[0].asyncRecv(msg, [&](const error_code& ec){
+            if(!ec)
+                failed = true;
+            if(++counts == countEnd)
+                prom.set_value();
+        });
+
+        // chls[0].asyncSend(std::move(msg), [&](const error_code& ec){
+        //     if(!ec)
+        //         failed = true;
+        //     if(++counts == countEnd)
+        //         prom.set_value();
+        // });
+
+        prom.get_future().get();
+
+        chls[0].close();
+        chls[1].close();
+
+        if(failed)
+            throw UnitTestFail();
+    }
+
+    void BtNetwork_fastCancel(const CLP& cmd)
+    {
+        //throw UnitTestSkipped("known issue");
+        std::string ip = "127.0.0.1";
+        u32 port = 1212;
+        //u64 n = 1;
+        IOService ios;
+        ios.mPrint = false;
+
+        std::array<oc::Channel, 2> chls{
+            Session(ios, ip, port, SessionMode::Client).addChannel(),
+            Session(ios, ip, port, SessionMode::Server).addChannel()
+        };
+
+        bool failed = false;
+
+        std::atomic<u32> count; count = 0;
+        std::promise<void>prom;
+        std::array<oc::completion_handle, 2> recvFuncs;
+        std::array<oc::completion_handle, 2> sendFuncs;
+
+        std::vector<u8> msg(10);
+        
+
+        for (u64 j = 0; j < 2; ++j)
+        {
+            recvFuncs[j] = [&, j](const oc::error_code& ec) mutable {
+                if (!ec)
+                {
+                    auto c = recvFuncs[j];
+                    chls[j].asyncRecv(msg, std::move(c));
+                }
+                else
+                {
+                    if (++count == 4)
+                        prom.set_value();
+                }
+            };
+
+            sendFuncs[j] = [&, j](const oc::error_code& ec)mutable
+            {
+                if (!ec)
+                {
+                    auto c = sendFuncs[j];
+                    auto m = msg;
+                    chls[j].asyncSend(std::move(m), std::move(c));
+                }
+                else
+                {
+                    if (++count == 4)
+                        prom.set_value();
+                }
+            };
+        }
+
+        for (u64 j = 0; j < 2; ++j)
+        {
+            auto r = recvFuncs[j];
+            chls[j].asyncRecv(msg, std::move(r));
+
+            auto s = sendFuncs[j];
+            auto m = msg;
+            chls[j].asyncSend(std::move(m), std::move(s));
+        }
+
+        chls[0].waitForConnection();
+        chls[1].waitForConnection();
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+        chls[0].cancel(false);
+
+        //chls[0].mBase->mHandle->close();
+
+        prom.get_future().get();
+
+        //chls = {};//.clear();
+
+        if (failed)
+            throw UnitTestFail();
     }
 
 
@@ -1439,4 +1586,35 @@ namespace tests_cryptoTools
             }
         }
     }
+
+    void BtNetwork_queue_Test(const osuCrypto::CLP& cmd)
+    {
+        SpscQueue<int> queue;
+
+        u64 n = 1000;
+        //u64 t = 10;
+
+        std::vector<std::thread> thrds(10);
+
+        for(u64 tt = 0;tt < thrds.size(); ++tt)
+        {
+            thrds[tt] = std::thread([&](){
+                for(u64 i =0; i < n; ++i)
+                {
+                    queue.push_back(std::move(i));                    
+                }
+            });
+        }
+
+        u64 total = n * thrds.size();
+        for(u64 i =0; i < total; ++i)
+        {
+            if(queue.isEmpty() == false)
+                queue.pop_front();
+        }
+
+        for(u64 tt = 0;tt < thrds.size(); ++tt)
+            thrds[tt].join();
+    }
+
 }

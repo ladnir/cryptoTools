@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.5)
 project(cryptoTools)
 
 
@@ -28,24 +28,10 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	   SET(CMAKE_BUILD_TYPE Release)
 	endif()
 
-	if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Release")
-	  message(WARNING "\nConfiguration NOT set to Release. Please call cmake with -DCMAKE_BUILD_TYPE=Release  instead of ${CMAKE_BUILD_TYPE}")
-
-		if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-		  #message(WARNING "Debug build.")
-		elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Release") 
-		  #message(WARNING "Release build.")
-		elseif("${CMAKE_BUILD_TYPE}" STREQUAL  "RELWITHDEBINFO")
-		  #message(WARNING "RELWITHDEBINFO=Release with debug info build.")
-		else()
-		  message(ERROR ": Unknown build type - ${CMAKE_BUILD_TYPE}  Please use one of Debug, Release, or RELWITHDEBINFO\n\n" )
-		endif()
-	endif()
-
 	# Select flags.
 	SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
-	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb -rdynamic")
-	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb -rdynamic")
+	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb")
+	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb")
 	
 	
 endif() 
@@ -67,12 +53,9 @@ option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
-if(NOT NASM)
-	option(ENABLE_NASM "compile using NASM" OFF)
-else(NOT NASM)
-	option(ENABLE_NASM "compile using NASM" ON)
-endif(NOT NASM)
+option(ENABLE_NASM "compile using NASM" OFF)
 
+message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
@@ -85,7 +68,7 @@ if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
 endif()
 
-configure_file(cryptoTools/Common/config.h.in cryptoTools/Common/config.h)
+configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )
 
 #############################################
 #       cryptoTools, tests, frontend        #

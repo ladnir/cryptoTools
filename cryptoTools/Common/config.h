@@ -5,7 +5,7 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-/* #undef ENABLE_RELIC */
+//#define ENABLE_RELIC ON 
 
 // compile the circuit library
 /* #undef ENABLE_CIRCUITS */
@@ -20,11 +20,13 @@
 /* #undef ENABLE_NASM */
 
 // Turn on Channel logging for debugging.
-//#define ENABLE_NET_LOG OFF
+
+//#define ENABLE_NET_LOG ON
+/* #undef ENABLE_NET_LOG */
 
 
 // enable the wolf ssl socket layer.
-//#define ENABLE_WOLFSSL OFF
+/* #undef ENABLE_WOLFSSL */
 
 
 // Force BLAKE2 to be used as the random oracle 

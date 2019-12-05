@@ -16,6 +16,12 @@ namespace osuCrypto {
 	//extern std::vector<std::string> split(const std::string &s, char delim);
 
 
+
+	SessionBase::SessionBase(IOService& ios) 
+		: mRealRefCount(1)
+		, mWorker(ios, "Session:" + std::to_string((u64)this)) 
+	{}
+
 	void Session::start(IOService& ioService, std::string remoteIP, u32 port, SessionMode type, std::string name)
 	{
         TLSContext ctx;
@@ -50,7 +56,7 @@ namespace osuCrypto {
 #endif
 
 
-        mBase.reset(new SessionBase(ioService.mIoService));
+        mBase.reset(new SessionBase(ioService));
         mBase->mIP = std::move(ip);
         mBase->mPort = static_cast<u32>(port);
         mBase->mMode = (type);
@@ -186,7 +192,7 @@ namespace osuCrypto {
 			mStopped = true;
 			if (mAcceptor)
 				mAcceptor->unsubscribe(this);
-			mWorker.reset(nullptr);
+			mWorker.reset();
 		}
 	}
 

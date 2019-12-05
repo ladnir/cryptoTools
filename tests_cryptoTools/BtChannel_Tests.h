@@ -34,7 +34,9 @@ namespace tests_cryptoTools
 
 
     void BtNetwork_oneWorker_Test(const osuCrypto::CLP& cmd);
+    void BtNetwork_useAfterCancel_test(const osuCrypto::CLP& cmd);
+    void BtNetwork_fastCancel(const osuCrypto::CLP&cmd);
 
     void SBO_ptr_test();
-
+    void BtNetwork_queue_Test(const osuCrypto::CLP& cmd);
 }

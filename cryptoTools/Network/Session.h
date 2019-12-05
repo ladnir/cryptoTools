@@ -8,6 +8,7 @@
 #include <mutex>
 #include <memory>
 #include "TLS.h"
+#include "util.h"
 
 namespace osuCrypto {
 
@@ -84,13 +85,11 @@ namespace osuCrypto {
     };
 
 	typedef Session Endpoint;
-
+	class IOService;
+	
 	struct SessionBase
 	{
-		SessionBase(boost::asio::io_service& ios) 
-			: mRealRefCount(1)
-			, mWorker(new boost::asio::io_service::work(ios)) {}
-
+		SessionBase(IOService& ios);
 		~SessionBase();
 
 		void stop();
@@ -111,7 +110,7 @@ namespace osuCrypto {
 
 		std::atomic<u32> mRealRefCount;
 
-		std::unique_ptr<boost::asio::io_service::work> mWorker;
+		Work mWorker;
 
 		//bool mHasGroup = false;
 		std::shared_ptr<details::SessionGroup> mGroup;

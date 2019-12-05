@@ -100,22 +100,7 @@ namespace osuCrypto
             });
 
         }
-        std::string RecvOperation::toString() const
-        {
-            return std::string("RecvOperation #") 
-#ifdef ENABLE_NET_LOG
-                + std::to_string(mIdx)
-#endif
-                ;
-        }
-        std::string SendOperation::toString() const
-        {
-            return std::string("SendOperation #") 
-#ifdef ENABLE_NET_LOG
-                + std::to_string(mIdx)
-#endif
-                ;
-        }
+
 
         std::string FixedSendBuff::toString() const
         {

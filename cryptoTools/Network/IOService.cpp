@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <sstream>
+#include "util.h"
 
 namespace osuCrypto
 {
@@ -21,6 +22,34 @@ namespace osuCrypto
 #define LOG_MSG(m)
 #define IF_LOG(m)
 #endif
+
+    Work::Work(IOService& ios, std::string reason)
+        : mWork(new boost::asio::io_service::work(ios.mIoService))
+        , mReason(reason)
+        , mIos(ios)
+    {
+#ifdef ENABLE_NET_LOG
+        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        ios.mWorkerLog.insert({mWork.get(), reason});
+#endif
+    }
+    Work::~Work()
+    {
+        reset();
+    }
+
+    void Work::reset()
+    {
+        if(mWork)
+        {
+#ifdef ENABLE_NET_LOG
+            std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+            auto iter = mIos.mWorkerLog.find(mWork.get());
+            mIos.mWorkerLog.erase(iter);
+#endif
+            mWork.reset(nullptr);
+        }
+    }
 
     Acceptor::Acceptor(IOService& ioService)
         :
@@ -203,8 +232,8 @@ namespace osuCrypto
 
                                 asyncSetSocket(
                                     std::move(sockIter->mBuff),
-                                    std::move(std::unique_ptr<BoostSocketInterface>(
-                                        new BoostSocketInterface(std::move(sockIter->mSock)))));
+                                    std::unique_ptr<BoostSocketInterface>(
+                                        new BoostSocketInterface(std::move(sockIter->mSock))));
                             }
                             else
                             {
@@ -479,7 +508,7 @@ namespace osuCrypto
         group.emplace_back(socketIter);
         auto deleteIter = group.end(); --deleteIter;
 
-        socketIter->removeMapping = [&group, &socketIter, this, sessionName, deleteIter]() {
+        socketIter->removeMapping = [&group, this, sessionName, deleteIter]() {
             group.erase(deleteIter);
             if (group.size() == 0) mUnclaimedSockets.erase(mUnclaimedSockets.find(sessionName));
         };
@@ -804,28 +833,25 @@ namespace osuCrypto
         :
         mIoService(),
         mStrand(mIoService.get_executor()),
-        mWorker(new boost::asio::io_service::work(mIoService))
+        mWorker(*this, "ios")
     {
-
-
-        // Determine how many processors are on the system
-        //SYSTEM_INFO SystemInfo;
-        //GetSystemInfo(&SystemInfo);
-
         // if they provided 0, the use the number of processors worker threads
         numThreads = (numThreads) ? numThreads : std::thread::hardware_concurrency();
         mWorkerThrds.resize(numThreads);
         u64 i = 0;
         // Create worker threads based on the number of processors available on the
         // system. Create two worker threads for each processor
-        for (auto& thrd : mWorkerThrds)
+        for (auto& thrdProm : mWorkerThrds)
         {
+            auto& thrd = thrdProm.first;
+            auto& prom = thrdProm.second;
+
             // Create a server worker thread and pass the completion port to the thread
-            thrd = std::thread([&, i]()
+            thrd = std::thread([this, i, &prom]()
                 {
                     setThreadName("io_Thrd_" + std::to_string(i));
                     mIoService.run();
-
+                    prom.set_value();
                     //std::cout << "io_Thrd_" + std::to_string(i) << " closed" << std::endl;
                 });
             ++i;
@@ -864,13 +890,25 @@ namespace osuCrypto
             // delete all of their state.
             mAcceptors.clear();
 
-
-            mWorker.reset(nullptr);
+            mWorker.reset();
 
             // we can now join on them.
             for (auto& thrd : mWorkerThrds)
             {
-                thrd.join();
+                auto res = thrd.second.get_future().wait_for(std::chrono::seconds(3));
+                if(res != std::future_status::ready && mPrint)
+                {
+                    std::lock_guard<std::mutex> lock(mWorkerMtx);
+                    if(mWorkerLog.size())
+                    {
+                        lout << "IOSerive::stop() is waiting for: \n"; 
+                        for(auto& v : mWorkerLog)
+                            lout << '\t' << v.second << "\n";
+                        lout << std::flush;
+                    }
+                }
+
+                thrd.first.join();
             }
             // clean their state.
             mWorkerThrds.clear();

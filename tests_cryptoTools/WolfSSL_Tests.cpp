@@ -125,7 +125,7 @@ int server()
 {
     try {
 
-    int    ret = 0;
+    //int    ret = 0;
     int    shutDown = 0;
 
 
@@ -263,6 +263,9 @@ void wolfSSL_echoServer_test(const osuCrypto::CLP& cmd)
 {
 #ifdef ENABLE_WOLFSSL
 
+    #ifdef __APPLE__
+    throw UnitTestSkipped("known issue with raw ASIO.connect() for MAC");
+    #endif
     //StartTCP();
     //lout << "start" << std::endl;
 
