@@ -589,13 +589,9 @@ namespace osuCrypto {
         if (mBase->mStartOp)
         {
             auto prom = std::make_shared<std::promise<void>>();
-<<<<<<< HEAD
-            mBase->mStartOp->addComHandle([prom, this](const error_code& ec) {
 
-=======
             mBase->mStartOp->addComHandle([prom](const error_code& ec) {
-                //lout << "is complete " << mBase->mStartOp->mIsComplete << std::endl;
->>>>>>> refs/remotes/origin/master
+
                 if (ec)
                     prom->set_exception(std::make_exception_ptr(SocketConnectError(
                         std::string("failed to connect: ") +
