@@ -213,7 +213,7 @@ namespace osuCrypto {
                     IF_LOG(mChl->mLog.push("tls async_connect()"));
                     mTLSSock->async_connect([this](const error_code& ec) 
                     {
-                            IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
+                        IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
                         finalize(std::move(mTLSSock), ec);
                         });
                 }
@@ -244,6 +244,23 @@ namespace osuCrypto {
 
             mChl->mHandle = std::move(s);
             mEC = ec;
+
+            auto tls = dynamic_cast<TLSSocket*>(mChl->mHandle.get());
+            if (tls && mChl->mIos.mPrint)
+            {
+                auto ptr = wolfSSL_get_peer_certificate(tls->mSSL);
+
+                if (ec && ptr == nullptr)
+                    std::cout << "** failed to get peer cert " << std::endl;
+                else
+                {
+                    WolfCertX509 cert{ ptr };
+                    std::cout << "** cert CN: " << cert.commonName() << std::endl;
+                    std::cout << "** notBefore: " << cert.notBefore() << std::endl;;
+                    std::cout << "** notAfter: " << cert.notAfter() << std::endl;;
+                }
+            }
+
 
             mIsComplete = true;
             while (mComHandles.size())
@@ -505,35 +522,28 @@ namespace osuCrypto {
         {
             auto prom = std::make_shared<std::promise<void>>();
             mBase->mStartOp->addComHandle([prom, this](const error_code& ec) {
-                //lout << "is complete " << mBase->mStartOp->mIsComplete << std::endl;
+
                 if (ec)
-                    prom->set_exception(std::make_exception_ptr(SocketConnectError("failed to connect. ")));
+                    prom->set_exception(std::make_exception_ptr(SocketConnectError(
+                        std::string("failed to connect: ") +
+                        ec.category().name() +", " + ec.message()
+                    )));
                 else
                     prom->set_value();
                 });
 
             auto fut = prom->get_future();
-
-            //auto deadline = std::chrono::high_resolution_clock::now() + timeout;
-
             auto status = fut.wait_for(timeout);
             if (status != std::future_status::timeout ||
                 timeout == std::chrono::hours::max())
             {
-                //if (status == std::future_status::deferred)
-                //    lout << "odd ........." << std::endl;
-                //else
-                //    lout << "status == ready" << std::endl;
-
                 fut.get(); // may throw...
                 return true;
             }
             else
-            {
-                //lout << "status == timeout" << std::endl;
                 return false;
-            }
         }
+
         return true;
     }
 

@@ -34,6 +34,8 @@ namespace osuCrypto {
         Channel(Channel&& move) = default;
 
         // Special constructor used to construct a Channel from some socket.
+        // Note, Channel takes ownership of the socket and will delete it
+        // when done.
         Channel(IOService& ios, SocketInterface* sock);
 
         // Default assignment
@@ -865,20 +867,7 @@ namespace osuCrypto {
     typename std::enable_if<std::is_pod<T>::value, void>::type
         Channel::recv(T* buff, u64 size)
     {
-        try {
-            // schedule the recv.
-            auto request = asyncRecv(buff, size);
-
-            // block until the receive has been completed.
-            // Could throw if the length is wrong.
-            request.get();
-        }
-        catch (BadReceiveBufferSize& bad)
-        {
-            mBase->printError(bad.what());
-
-            throw;
-        }
+        asyncRecv(buff, size).get();
     }
 
     template<typename T>

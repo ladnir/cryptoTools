@@ -381,6 +381,13 @@ void wolfSSL_channel_test(const osuCrypto::CLP& cmd)
 
     if (ec) throwEC(ec);
 
+    //wolfSSL_CTX_set_verify(cctx.mBase->mCtx, SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 
+    //    [](int i, WOLFSSL_X509_STORE_CTX* c) {
+
+    //        return i;
+    //    });
+    //
+
     Session sses, cses;
 
     sses.start(ios, "127.0.0.1", 1212, SessionMode::Server, sctx);
@@ -388,6 +395,9 @@ void wolfSSL_channel_test(const osuCrypto::CLP& cmd)
 
     auto schl = sses.addChannel();
     auto cchl = cses.addChannel();
+
+    schl.waitForConnection();
+
 
     std::array<char, 10> data{32,34,3,4,5,55,3}, data2;
     schl.send(data);

@@ -34,15 +34,26 @@ void networkTutorial()
     // This object must stay in scope until everything is cleaned up.
     IOService ios(4);
 
-    std::string serversIpAddress = "127.0.0.1:1212";
+    // By default, ios will print when things so wrong
+    // such as a bad buffer size or connection close.
+    // However, some applications handle these errors
+    // gracefully in which case you will want to set
+    // this to false and avoid unwanted printing.
+    ios.showErrorMessages(true);
+
+    auto ip = "127.0.0.1";
+    auto port = 1212;
+
+    std::string serversIpAddress = ip + ':' + std::to_string(port);
 
     // Optional: Session names can be used to help the network 
-	// identify which sessions should be paired up. 
+	// identify which sessions should be paired up. This is used
+    // when there are several "services" offered on a single port.
+    // SessionHint is used to identify the "service" to connect with.
     std::string sessionHint = "party0_party1";
 
-	// create a pair of sessions that connect to eachother. The optional
-	// sessionHint can be used if several sessions are being constructed 
-	// at the same time. Only sessions with matching hints will be paired.
+	// Create a pair of sessions that connect to eachother. Note that
+    // the sessionHint parameter is options.
     Session server(ios, serversIpAddress, SessionMode::Server, sessionHint);
     Session client(ios, serversIpAddress, SessionMode::Client, sessionHint);
 
@@ -50,7 +61,7 @@ void networkTutorial()
     Channel chl0 = client.addChannel();
     Channel chl1 = server.addChannel();
 
-    // Two sessions can have many channels, each independent.
+    // Two sessions can have many channels, each an independent socket.
 	{
 		Channel chl0b = client.addChannel();
 		Channel chl1b = server.addChannel();
@@ -64,7 +75,7 @@ void networkTutorial()
 		Channel namedChl1 = server.addChannel(channelName);
 	}
 
-    // we now have a pair of channels, but it is possible that they have yet
+    // We now have a pair of channels, but it is possible that they have yet
     // to actually connect to each other in the background. To test that the
     // channel has a completed the connection, we can do
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
@@ -74,45 +85,23 @@ void networkTutorial()
 	std::chrono::milliseconds timeout(100);
 	bool open = chl0.waitForConnection(timeout);
 
+    // We can also set a callback for when connection (or error)
+    // happens. If error, ec will hold the reason.
+    chl0.onConnect([](const error_code& ec) {
+        if (ec)
+            std::cout << "chl0 failed to connect: " << ec.message() << std::endl;
+    });
+
 	if (open == false)
 	{
-	    // Wait until the channel is open.
+	    // Wait until the channel is open. This will throw 
+        // on an connection error.
 		chl0.waitForConnection();
 	}
 
     // This call will now always return true.
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
 
-
-	/*#####################################################
-	##                   Server Mode                     ##
-	#####################################################*/
-
-	// It is also possible to dynamically accept connection. 
-	// This is done by having the server set up several session.
-	// Each will correspond to a single party.
-
-	u64 numSession = 10;
-
-	for (u64 i = 0; i < numSession; ++i)
-	{
-		// The server will create many sessions, each will find one 
-		// of the clients. 
-		Session perPartySession(ios, serversIpAddress, SessionMode::Server);
-		
-		// On some other thread/program/computer, a client can complete the
-		// session and add a channel.
-		{
-			Channel clientChl = Session(ios, serversIpAddress, SessionMode::Client).addChannel();
-			clientChl.send(std::string("message"));
-		}
-
-		// Create a channel for this session, even before the client has connected.
-		Channel serverChl = perPartySession.addChannel();
-
-		std::string msg;
-		serverChl.recv(msg);
-	}
 
 
     /*#####################################################
@@ -360,6 +349,95 @@ void networkTutorial()
     }
 
 
+    /*#####################################################
+    ##                   Server Mode                     ##
+    #####################################################*/
+
+    // It is also possible to accept many session with independent
+    // clients. This is done by having the server set up several session.
+    // Each will correspond to a single party.
+
+    u64 numSession = 10;
+
+    for (u64 i = 0; i < numSession; ++i)
+    {
+        // The server will create many sessions, each will find one 
+        // of the clients. Optionally a sessionHint/serviceName can be 
+        // provided
+        Session perPartySession(ios, serversIpAddress, SessionMode::Server /* , serviceName */);
+
+        // On some other thread/program/computer, a client can complete the
+        // session and add a channel.
+        {
+            Channel clientChl = Session(ios, serversIpAddress, SessionMode::Client /* , serviceName */).addChannel();
+            clientChl.send(std::string("message"));
+        }
+
+        // Create a channel for this session, even before the client has connected.
+        Channel serverChl = perPartySession.addChannel();
+
+        std::string msg;
+        serverChl.recv(msg);
+    }
+
+
+    /*#####################################################
+    ##                  TLS channels                     ##
+    #####################################################*/
+
+    // Most realistic protocols require TLS to acheive their
+    // security guarantees. This is supported in cryptoTools
+    // by the WolfSSL or OpenSSL libraries.
+#ifdef ENABLE_WOLFSSL
+    {
+        error_code ec;
+        TLSContext sctx, cctx;
+
+        // Intitialize the context. The mode can either
+        // be client/server specific or it can allow connections
+        // of both types.
+        sctx.init(TLSContext::Mode::Server, ec);
+
+        // If we want client side authentication then we call this.
+        sctx.requestClientCert(ec);
+
+        // Load the CA's that we should respect.
+        sctx.loadCert(sample_ca_cert_pem, ec);
+
+        // Also see.
+        //sctx.loadCertFile("path/to/ca.pem", ec);
+
+        // Load out own private key and cert.
+        sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
+
+        // Also see
+        //sctx.loadKeyPairFile("path/to/myCert.pem", "path/to/myKey.pem", ec);
+
+        // Similar for the server. Except we can't call requestClientCert(...);
+        cctx.init(TLSContext::Mode::Client, ec);
+        cctx.loadCert(sample_ca_cert_pem, ec);
+        cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
+
+        // In general you should check the error_code output parmeter...
+
+        // We can now use these TLS context objects to create sessions.
+        Session tlsSes0(ios, ip, port, SessionMode::Server, sctx);
+        Session tlsSes1(ios, ip, port, SessionMode::Client, cctx);
+
+        Channel tlsChl0 = tlsSes0.addChannel();
+        Channel tlsChl1 = tlsSes1.addChannel();
+
+        // wait for the TLS handshake to complete.
+        tlsChl0.waitForConnection();
+
+        // We can now get the common name of the other party.
+        std::string commonName = tlsChl0.commonName();
+
+
+        // use the TLS channel.
+    }
+#endif // ENABLE_WOLFSSL
+
 	/*#####################################################
 	##              Using your own socket                ##
 	#####################################################*/
@@ -402,11 +480,23 @@ void networkTutorial()
 	// file. You will also have to define a class that inherits the
 	// SocketInterface class and implements:
 	//
-	//    void send(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
-	//    void recv(ArrayView<boost::asio::mutable_buffer> buffers, bool& error, u64& bytesTransfered) override;
+    //    void async_recv(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override;
+    //    void async_send(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override;
 	//
-	// For an example on how to implement these functions, see the
-	// defintion of SocketAdapter<T> in <cryptoTools/Network/SocketAdapter.h>
+	// An example of this is LocalSocket which is in the header of this cpp file.
+    // This socket type communicates over shared memory. And therefore only
+    // works when communicating within a single program.
+    {
+        auto sockPair = LocalSocket::makePair();
+
+        Channel aChl0(ios, sockPair[0]);
+        Channel aChl1(ios, sockPair[1]);
+
+        // We can now use the new channels
+        std::array<int, 4> data{ 0,1,2,3 };
+        aChl0.send(data);
+        aChl1.recv(data);
+    }
 
 
 

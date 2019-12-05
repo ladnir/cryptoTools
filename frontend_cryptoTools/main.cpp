@@ -143,16 +143,21 @@ void print_aes_bristol()
 int main(int argc, char** argv)
 {
     CLP cmd(argc, argv);
-    cmd.set("u");
 
-#ifdef ENABLE_CIRCUITS
-    if (cmd.isSet("aes"))
+    if (cmd.isSet("tut"))
     {
-        print_aes_bristol();
-        return 0;
+        networkTutorial();
     }
-#endif
-
-
-    tests_cryptoTools::Tests.runIf(cmd);
+    else if(cmd.isSet("u"))
+    {
+        tests_cryptoTools::Tests.runIf(cmd);
+    }
+    else
+    {
+        std::cout << "Run the unit tests with:\n\n\t"
+            << Color::Green << cmd.mProgramName << " -u\n\n" << Color::Default
+            << "Run the  network tutorial with:\n\n\t"
+            << Color::Green << cmd.mProgramName << " -tut" << Color::Default
+            << std::endl;
+    }
 }

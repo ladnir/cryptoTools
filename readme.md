@@ -2,15 +2,15 @@
 =====
 
 
-CryptoTools is a portable c++11 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (miracl, Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
+CryptoTools is a portable c++14 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (miracl, Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
 
-
+Thirdparty networking is also supported. See `frontend_cryptoTools/tutorial/Network.cpp` for an example.
   
 
  
 ## Install
  
-The library is *cross platform* and has been tested on both Windows and Linux. The library has worked on Mac but is not regularly tested. There are two library dependencies including [Boost 1.69](http://www.boost.org/) (networking), and two **optional dependencies** on, [Miracl](https://www.miracl.com/index), [Relic](https://github.com/relic-toolkit/relic/) for elliptic curves. The version of Miracl used by this library requires specific configuration and therefore we advise using the cloned repository that we provide. 
+The library is *cross platform* and has been tested on both Windows, Linux and Mac. There are two library dependencies including [Boost 1.69](http://www.boost.org/) (networking), and two **optional dependencies** on, [Miracl](https://www.miracl.com/index), [Relic](https://github.com/relic-toolkit/relic/) for elliptic curves. The version of Miracl used by this library requires specific configuration and therefore we advise using the cloned repository that we provide. 
  
 ### Windows
 

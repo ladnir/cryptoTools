@@ -213,16 +213,22 @@ namespace osuCrypto
             return wolfSSL_X509_get_subjectCN(mCert);
         }
 
-        //std::string notAfter()
-        //{
-        //    return wolfSSL_X509_get_notAfter(mCert);
-        //}
+        std::string notAfter()
+        {
+            WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notAfter(mCert);
+            std::array<char, 1024> buffer;
+            wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
+            return buffer.data();
+        }
 
 
-        //std::string notBefore()
-        //{
-        //    return wolfSSL_X509_get_notBefore(mCert);
-        //}
+        std::string notBefore()
+        {
+            WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notBefore(mCert);
+            std::array<char, 1024> buffer;
+            wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
+            return buffer.data();
+        }
     };
 
     struct WolfSocket : public SocketInterface, public LogAdapter
