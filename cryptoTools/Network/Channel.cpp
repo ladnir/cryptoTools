@@ -234,10 +234,9 @@ namespace osuCrypto {
                     IF_LOG(mChl->mLog.push("tls async_connect()"));
                     mTLSSock->async_connect([this](const error_code& ec) 
                     {
-<<<<<<< HEAD
-=======
+
                         TODO("send a hash of the connection string to make sure that things have not changed by the Adv.");
->>>>>>> refs/remotes/origin/master
+
                         IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
                         finalize(std::move(mTLSSock), ec);
                     });
