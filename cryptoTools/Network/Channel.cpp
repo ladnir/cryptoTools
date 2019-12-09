@@ -234,11 +234,11 @@ namespace osuCrypto {
                     IF_LOG(mChl->mLog.push("tls async_connect()"));
                     mTLSSock->async_connect([this](const error_code& ec) 
                     {
-
-                        TODO("send a hash of the connection string to make sure that things have not changed by the Adv.");
+                        //validateID(mTL)
+                        //TODO("send a hash of the connection string to make sure that things have not changed by the Adv.");
 
                         IF_LOG(mChl->mLog.push("tls async_connect() done, " + ec.message()));
-                        finalize(std::move(mTLSSock), ec);
+                        validateTLS(ec);
                     });
                 }
                 else
@@ -246,8 +246,8 @@ namespace osuCrypto {
                     IF_LOG(mChl->mLog.push("tls async_accept() " + ec.message()));
                     mTLSSock->async_accept([this](const error_code& ec) {
                         IF_LOG(mChl->mLog.push("tls async_accept() done, " + ec.message()));
-                        finalize(std::move(mTLSSock), ec);
-                        });
+                        validateTLS(ec);
+                    });
                 }
                 //mChl->mSession->mTLSContext.
             }
@@ -261,6 +261,43 @@ namespace osuCrypto {
         );
     }
 
+    void StartSocketOp::validateTLS(const error_code& ec)
+    {
+        boost::asio::dispatch(mStrand, [this, ec]{
+
+            if (ec || canceled())
+            {
+                finalize(std::move(mTLSSock), ec);
+            }
+            else
+            {
+                std::array<boost::asio::mutable_buffer,1> buf;
+              
+                if(mChl->mSession->mMode == SessionMode::Client)
+                {
+                    buf[0] = boost::asio::mutable_buffer((char*)&mChl->mSession->mSessionID, sizeof(mChl->mSession->mSessionID)); 
+                    mTLSSock->async_send(buf, [this](const error_code& ec, u64 bt){
+                        finalize(std::move(mTLSSock), ec);
+                    });
+                } 
+                else 
+                {
+                    
+                    static_assert(sizeof(mTLSSessionID) == sizeof(SessionBase::mSessionID), "");
+                    buf[0] = boost::asio::mutable_buffer((char*)&mTLSSessionID, sizeof(mTLSSessionID)); 
+                    mTLSSock->async_recv(buf, [this](const error_code& ec_, u64 bt){
+                        auto ec = ec_;
+
+                        if(!ec && mTLSSessionID != mChl->mSession->mSessionID)
+                            ec = make_error_code(TLS_errc::SessionIDMismatch);
+                        
+                        finalize(std::move(mTLSSock), ec);
+                    });
+                }
+            }
+        });
+    }
+
     void StartSocketOp::finalize(std::unique_ptr<SocketInterface> sock, error_code ec)
     {
         boost::asio::dispatch(mStrand, [this, s = std::move(sock), ec]() mutable {
@@ -269,23 +306,23 @@ namespace osuCrypto {
             mChl->mHandle = std::move(s);
             mEC = ec;
 
-#ifdef ENABLE_WOLFSSL
-            auto tls = dynamic_cast<TLSSocket*>(mChl->mHandle.get());
-            if (tls && mChl->mIos.mPrint)
-            {
-                auto ptr = wolfSSL_get_peer_certificate(tls->mSSL);
+// #ifdef ENABLE_WOLFSSL
+//             auto tls = dynamic_cast<TLSSocket*>(mChl->mHandle.get());
+//             if (tls && mChl->mIos.mPrint)
+//             {
+//                 auto ptr = wolfSSL_get_peer_certificate(tls->mSSL);
 
-                if (ec && ptr == nullptr)
-                    std::cout << "** failed to get peer cert " << std::endl;
-                else
-                {
-                    WolfCertX509 cert{ ptr };
-                    std::cout << "** cert CN: " << cert.commonName() << std::endl;
-                    std::cout << "** notBefore: " << cert.notBefore() << std::endl;;
-                    std::cout << "** notAfter: " << cert.notAfter() << std::endl;;
-                }
-            }
-#endif
+//                 if (ec && ptr == nullptr)
+//                     std::cout << "** failed to get peer cert " << std::endl;
+//                 else
+//                 {
+//                     WolfCertX509 cert{ ptr };
+//                     std::cout << "** cert CN: " << cert.commonName() << std::endl;
+//                     std::cout << "** notBefore: " << cert.notBefore() << std::endl;;
+//                     std::cout << "** notAfter: " << cert.notAfter() << std::endl;;
+//                 }
+//             }
+// #endif
 
             mFinalized = true;
             while (mComHandles.size())

@@ -383,6 +383,9 @@ namespace osuCrypto {
 
         char mRecvChar;
         void setSocket(std::unique_ptr<BoostSocketInterface> socket, const error_code& ec);
+
+        void validateTLS(const error_code& ec);
+
         void finalize(std::unique_ptr<SocketInterface> sock, error_code ec);
 
         void addComHandle(completion_handle&& comHandle)
@@ -411,7 +414,9 @@ namespace osuCrypto {
 
 #ifdef ENABLE_WOLFSSL
         std::unique_ptr<TLSSocket> mTLSSock;
+        u64 mTLSSessionID;
 #endif
+
         double mBackoff = 1;
         bool mFinalized = false, mCanceled = false, mIsFirst;
         error_code mEC, mConnectEC;
@@ -441,7 +446,6 @@ namespace osuCrypto {
             mBase->setHandle(std::forward<io_completion_handle>(completionHandle), true);
             mBase->cancelPending(true); 
         }
-
 
         std::string toString() const override {
             return std::string("StartSocketSendOp # ")

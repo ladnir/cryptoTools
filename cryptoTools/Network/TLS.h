@@ -54,7 +54,8 @@ namespace osuCrypto
         ContextNotInit,
         ContextAlreadyInit,
         ContextFailedToInit,
-        OnlyValidForServerContext
+        OnlyValidForServerContext,
+        SessionIDMismatch
     };
 }
 
@@ -111,7 +112,8 @@ namespace { // anonymous namespace
                 return "TLS context failed to init";
             case osuCrypto::TLS_errc::OnlyValidForServerContext:
                 return "Operation is only valid for server initialized TLC context";
-
+            case osuCrypto::TLS_errc::SessionIDMismatch:
+                return "Critical error on connect. Likely active attack by thirdparty";
             default:
                 return "unknown error";
             }
