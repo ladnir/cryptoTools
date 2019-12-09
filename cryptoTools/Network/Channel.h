@@ -384,8 +384,6 @@ namespace osuCrypto {
         char mRecvChar;
         void setSocket(std::unique_ptr<BoostSocketInterface> socket, const error_code& ec);
 
-        void validateTLS(const error_code& ec);
-
         void finalize(std::unique_ptr<SocketInterface> sock, error_code ec);
 
         void addComHandle(completion_handle&& comHandle)
@@ -413,8 +411,9 @@ namespace osuCrypto {
         std::unique_ptr<BoostSocketInterface> mSock;
 
 #ifdef ENABLE_WOLFSSL
+        void validateTLS(const error_code& ec);
         std::unique_ptr<TLSSocket> mTLSSock;
-        u64 mTLSSessionID;
+        block mTLSSessionIDBuf;
 #endif
 
         double mBackoff = 1;

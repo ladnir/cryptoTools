@@ -121,6 +121,13 @@ namespace osuCrypto {
 		std::string mName;
 
 		u64 mSessionID = 0;
+
+#ifdef ENABLE_WOLFSSL
+		std::mutex mTLSSessionIDMtx;
+		bool mTLSSessionIDIsSet = false;
+		block mTLSSessionID;
+#endif
+
 		boost::asio::ip::tcp::endpoint mRemoteAddr;
 	};
 

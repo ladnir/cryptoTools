@@ -7,6 +7,7 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/SocketAdapter.h>
+#include <cryptoTools/Crypto/AES.h>
 
 #include <stdio.h>
 #include <algorithm>
@@ -829,11 +830,18 @@ namespace osuCrypto
     //extern void split(const std::string &s, char delim, std::vector<std::string> &elems);
     //extern std::vector<std::string> split(const std::string &s, char delim);
 
+    block IOService::getRandom()
+    {
+        return AES(mRandSeed).ecbEncBlock(toBlock(mSeedIndex++));
+    }
+
     IOService::IOService(u64 numThreads)
         :
         mIoService(),
         mStrand(mIoService.get_executor()),
-        mWorker(*this, "ios")
+        mWorker(*this, "ios"),
+        mRandSeed(sysRandomSeed()),
+        mSeedIndex(0)
     {
         // if they provided 0, the use the number of processors worker threads
         numThreads = (numThreads) ? numThreads : std::thread::hardware_concurrency();

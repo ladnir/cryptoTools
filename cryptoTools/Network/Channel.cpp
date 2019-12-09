@@ -261,6 +261,7 @@ namespace osuCrypto {
         );
     }
 
+#ifdef ENABLE_WOLFSSL
     void StartSocketOp::validateTLS(const error_code& ec)
     {
         boost::asio::dispatch(mStrand, [this, ec]{
@@ -275,7 +276,7 @@ namespace osuCrypto {
               
                 if(mChl->mSession->mMode == SessionMode::Client)
                 {
-                    buf[0] = boost::asio::mutable_buffer((char*)&mChl->mSession->mSessionID, sizeof(mChl->mSession->mSessionID)); 
+                    buf[0] = boost::asio::mutable_buffer((char*)&mChl->mSession->mTLSSessionID, sizeof(mChl->mSession->mTLSSessionID)); 
                     mTLSSock->async_send(buf, [this](const error_code& ec, u64 bt){
                         finalize(std::move(mTLSSock), ec);
                     });
@@ -283,13 +284,21 @@ namespace osuCrypto {
                 else 
                 {
                     
-                    static_assert(sizeof(mTLSSessionID) == sizeof(SessionBase::mSessionID), "");
-                    buf[0] = boost::asio::mutable_buffer((char*)&mTLSSessionID, sizeof(mTLSSessionID)); 
+                    buf[0] = boost::asio::mutable_buffer((char*)&mTLSSessionIDBuf, sizeof(mTLSSessionIDBuf)); 
                     mTLSSock->async_recv(buf, [this](const error_code& ec_, u64 bt){
                         auto ec = ec_;
 
-                        if(!ec && mTLSSessionID != mChl->mSession->mSessionID)
-                            ec = make_error_code(TLS_errc::SessionIDMismatch);
+                        if(!ec)
+                        {
+                            std::lock_guard<std::mutex> lock(mChl->mSession->mTLSSessionIDMtx);
+                            if(mChl->mSession->mTLSSessionIDIsSet == false)
+                            {
+                                mChl->mSession->mTLSSessionIDIsSet = true;
+                                mChl->mSession->mTLSSessionID = mTLSSessionIDBuf;
+                            } 
+                            else if(neq(mTLSSessionIDBuf, mChl->mSession->mTLSSessionID))
+                                ec = make_error_code(TLS_errc::SessionIDMismatch);
+                        } 
                         
                         finalize(std::move(mTLSSock), ec);
                     });
@@ -297,6 +306,7 @@ namespace osuCrypto {
             }
         });
     }
+#endif
 
     void StartSocketOp::finalize(std::unique_ptr<SocketInterface> sock, error_code ec)
     {
@@ -305,24 +315,6 @@ namespace osuCrypto {
 
             mChl->mHandle = std::move(s);
             mEC = ec;
-
-// #ifdef ENABLE_WOLFSSL
-//             auto tls = dynamic_cast<TLSSocket*>(mChl->mHandle.get());
-//             if (tls && mChl->mIos.mPrint)
-//             {
-//                 auto ptr = wolfSSL_get_peer_certificate(tls->mSSL);
-
-//                 if (ec && ptr == nullptr)
-//                     std::cout << "** failed to get peer cert " << std::endl;
-//                 else
-//                 {
-//                     WolfCertX509 cert{ ptr };
-//                     std::cout << "** cert CN: " << cert.commonName() << std::endl;
-//                     std::cout << "** notBefore: " << cert.notBefore() << std::endl;;
-//                     std::cout << "** notAfter: " << cert.notAfter() << std::endl;;
-//                 }
-//             }
-// #endif
 
             mFinalized = true;
             while (mComHandles.size())

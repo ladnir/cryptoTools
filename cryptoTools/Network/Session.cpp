@@ -5,6 +5,7 @@
 #include <cryptoTools/Network/IoBuffer.h>
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Common/Timer.h>
+#include <cryptoTools/Crypto/PRNG.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -72,9 +73,11 @@ namespace osuCrypto {
         }
         else
         {
-            std::random_device rd;
-            mBase->mSessionID = (1ULL << 32) * rd() + rd();
-
+			PRNG prng(ioService.getRandom(), sizeof(block) + sizeof(u64));
+			mBase->mSessionID = prng.get();
+#ifdef ENABLE_WOLFSSL
+			mBase->mTLSSessionID = prng.get();
+#endif
             boost::asio::ip::tcp::resolver resolver(ioService.mIoService);
             boost::asio::ip::tcp::resolver::query query(mBase->mIP, boost::lexical_cast<std::string>(port));
             mBase->mRemoteAddr = *resolver.resolve(query);

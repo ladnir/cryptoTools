@@ -49,7 +49,11 @@ namespace osuCrypto
         std::unordered_set<ChannelBase*> mChannels;
         std::unordered_map<void*, std::string> mWorkerLog;
 
+        block mRandSeed;
+        std::atomic<u64> mSeedIndex;
 
+        // returns a unformly random block.
+        block getRandom();
 
         IOService(const IOService&) = delete;
 
@@ -82,6 +86,8 @@ namespace osuCrypto
         void printError(std::string msg);
 
         void workUntil(std::future<void>& fut);
+
+
 
         bool mPrint = true;
     }; 
