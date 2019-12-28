@@ -51,8 +51,9 @@ option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
-set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
+option(USE_SYS_BOOST    "Optionally used the installed boost" OFF)
 
+set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 option(ENABLE_NASM "compile using NASM" OFF)
 
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
@@ -63,6 +64,7 @@ message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
+message(STATUS "Option: USE_SYS_BOOST     = ${USE_SYS_BOOST}")
 
 if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")

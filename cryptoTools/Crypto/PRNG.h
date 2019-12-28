@@ -125,8 +125,8 @@ namespace osuCrypto
 
 		// STL random number interface
         typedef u64 result_type;
-        static result_type min() { return 0; }
-        static result_type max() { return (result_type)-1; }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return (result_type)-1; }
         result_type operator()() {
             return get<result_type>();
         }
