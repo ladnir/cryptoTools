@@ -44,15 +44,16 @@ endif()
 #############################################
 find_program(NASM nasm)
 
-
 option(ENABLE_MIRACL    "use the miracl library" OFF)
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
-option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
+option(ENABLE_OPENSSL   "conpiler with OpenSSL enabled" OFF)
 option(USE_SYS_BOOST    "Optionally used the installed boost" OFF)
 
+#option(ENABLE_CPP_14    "compile with the c++14" ON)
+set(ENABLE_CPP_14 ON)
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 option(ENABLE_NASM "compile using NASM" OFF)
 
@@ -64,6 +65,7 @@ message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NASM       = ${ENABLE_NASM}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
+message(STATUS "Option: ENABLE_OPENSSL    = ${ENABLE_OPENSSL}")
 message(STATUS "Option: USE_SYS_BOOST     = ${USE_SYS_BOOST}")
 
 if(NOT ENABLE_CPP_14)

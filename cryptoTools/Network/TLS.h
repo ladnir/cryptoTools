@@ -1,7 +1,7 @@
 #pragma once
 #include "cryptoTools/Common/config.h"
 
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_SSL
 
 #include <string>
 #include <boost/system/error_code.hpp>
@@ -9,6 +9,13 @@
 #include <cryptoTools/Network/SocketAdapter.h>
 #include <cryptoTools/Common/Log.h>
 #include <memory>
+
+
+#ifdef ENABLE_OPENSSL
+
+#include <openssl/ssl.h>
+
+#else // ENABLE_WOLFSSL
 
 #ifndef WC_NO_HARDEN
 #define WC_NO_HARDEN
@@ -20,17 +27,10 @@
 #endif
 
 #include <wolfssl/ssl.h>
-#undef ALIGN16
-
-#ifdef max
-#undef max
-#endif
-#ifdef min
-#undef min
-#endif
-
 #if defined(_MSC_VER) && !defined(KEEP_PEER_CERT)
-#error "please compile wolfSSl with KEEP_PEER_CERT. add this to the user_setting.h file in wolfssl..."
+    #error "please compile wolfSSl with KEEP_PEER_CERT. add this to the user_setting.h file in wolfssl..."
+#endif
+
 #endif
 
 #ifdef ENABLE_NET_LOG
@@ -42,7 +42,7 @@ namespace osuCrypto
     using error_code = boost::system::error_code;
     error_code readFile(const std::string& file, std::vector<u8>& buffer);
 
-    enum class WolfSSL_errc
+    enum class OpenSSL_errc
     {
         Success = 0,
         Failure = 1
@@ -62,7 +62,7 @@ namespace osuCrypto
 namespace boost {
     namespace system {
         template <>
-        struct is_error_code_enum<osuCrypto::WolfSSL_errc> : true_type {};
+        struct is_error_code_enum<osuCrypto::OpenSSL_errc> : true_type {};
         template <>
         struct is_error_code_enum<osuCrypto::TLS_errc> : true_type {};
     }
@@ -70,23 +70,25 @@ namespace boost {
 
 namespace { // anonymous namespace
 
-    struct WolfSSLErrCategory : boost::system::error_category
+    struct OpenSSLErrCategory : boost::system::error_category
     {
         const char* name() const noexcept override
         {
-            return "osuCrypto_WolfSSL";
+            return "osuCrypto_OpenSSL";
         }
 
         std::string message(int err) const override
         {
-            std::array<char, WOLFSSL_MAX_ERROR_SZ> buffer;
             if (err == 0) return "Success";
             if (err == 1) return "Failure";
-            return wolfSSL_ERR_error_string(err, buffer.data());
+
+            std::terminate();
+            //std::array<char, WOLFSSL_MAX_ERROR_SZ> buffer;
+            //return wolfSSL_ERR_error_string(err, buffer.data());
         }
     };
 
-    const WolfSSLErrCategory WolfSSLCategory{};
+    const OpenSSLErrCategory WolfSSLCategory{};
 
 
     struct TLSErrCategory : boost::system::error_category
@@ -126,10 +128,10 @@ namespace { // anonymous namespace
 
 namespace osuCrypto
 {
-    inline error_code make_error_code(WolfSSL_errc e)
+    inline error_code make_error_code(OpenSSL_errc e)
     {
         auto ee = static_cast<int>(e);
-        return { ee, WolfSSLCategory };
+        return { ee, OpenSSLCategory };
     }
 
     inline error_code make_error_code(TLS_errc e)
@@ -139,17 +141,19 @@ namespace osuCrypto
     }
 
 
-    inline error_code wolfssl_error_code(int ret)
+    inline error_code ssl_error_code(int ret)
     {
+        const auto OPENSSL_SUCCESS = 0;
+        const auto OPENSSL_FAILURE = 1;
         switch (ret)
         {
-        case WOLFSSL_SUCCESS: return make_error_code(WolfSSL_errc::Success);
-        case WOLFSSL_FAILURE: return make_error_code(WolfSSL_errc::Failure);
-        default: return make_error_code(WolfSSL_errc(ret));
+        case OPENSSL_SUCCESS: return make_error_code(OpenSSL_errc::Success);
+        case OPENSSL_FAILURE: return make_error_code(OpenSSL_errc::Failure);
+        default: return make_error_code(OpenSSL_errc(ret));
         }
     }
 
-    struct WolfContext
+    struct OpenSSLContext
     {
         enum class Mode
         {
@@ -160,8 +164,8 @@ namespace osuCrypto
 
         struct Base
         {
-            WOLFSSL_METHOD* mMethod = nullptr;
-            WOLFSSL_CTX* mCtx = nullptr;
+            SSL_METHOD* mMethod = nullptr;
+            SSL_CTX* mCtx = nullptr;
             Mode mMode = Mode::Client;
 
             Base(Mode mode);
@@ -197,44 +201,47 @@ namespace osuCrypto
         }
 
 
-        operator WOLFSSL_CTX* () const
+        operator SSL_CTX* () const
         {
             return mBase ? mBase->mCtx : nullptr;
         }
 
     };
 
-    using TLSContext = WolfContext;
+    using TLSContext = OpenSSLContext;
 
 
-    struct WolfCertX509
+    struct OpenSSLCertX509
     {
-        WOLFSSL_X509* mCert = nullptr;
+        SSL_X509* mCert = nullptr;
 
         std::string commonName()
         {
-            return wolfSSL_X509_get_subjectCN(mCert);
+            std::terminate();
+            //return wolfSSL_X509_get_subjectCN(mCert);
         }
 
         std::string notAfter()
         {
-            WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notAfter(mCert);
-            std::array<char, 1024> buffer;
-            wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
-            return buffer.data();
+            std::terminate();
+            //WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notAfter(mCert);
+            //std::array<char, 1024> buffer;
+            //wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
+            //return buffer.data();
         }
 
 
         std::string notBefore()
         {
-            WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notBefore(mCert);
-            std::array<char, 1024> buffer;
-            wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
-            return buffer.data();
+            std::terminate();
+            //WOLFSSL_ASN1_TIME* ptr = wolfSSL_X509_get_notBefore(mCert);
+            //std::array<char, 1024> buffer;
+            //wolfSSL_ASN1_TIME_to_string(ptr, buffer.data(), buffer.size());
+            //return buffer.data();
         }
     };
 
-    struct WolfSocket : public SocketInterface, public LogAdapter
+    struct OpenSSLSocket : public SocketInterface, public LogAdapter
     {
 
         using buffer = boost::asio::mutable_buffer;
@@ -242,7 +249,7 @@ namespace osuCrypto
         boost::asio::ip::tcp::socket mSock;
         boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
         boost::asio::io_context& mIos;
-        WOLFSSL* mSSL = nullptr;
+        SSL* mSSL = nullptr;
 #ifdef WOLFSSL_LOGGING
         oc::Log mLog_;
 #endif
@@ -258,7 +265,7 @@ namespace osuCrypto
 
         bool mCancelingPending = false;
 
-        struct WolfState
+        struct State
         {
             enum class Phase { Uninit, Connect, Accept, Normal, Closed };
             Phase mPhase = Phase::Uninit;
@@ -268,18 +275,18 @@ namespace osuCrypto
             bool hasPendingRecv() { return mPendingRecvBuf.size() > 0; }
         };
 
-        WolfState mState;
+        State mState;
 
-        WolfSocket(boost::asio::io_context& ios, WolfContext& ctx);
-        WolfSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, WolfContext& ctx);
+        OpenSSLSocket(boost::asio::io_context& ios, OpenSSLContext& ctx);
+        OpenSSLSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, WolfContext& ctx);
 
-        WolfSocket(WolfSocket&&) = delete;
-        WolfSocket(const WolfSocket&) = delete;
+        OpenSSLSocket(OpenSSLSocket&&) = delete;
+        OpenSSLSocket(const OpenSSLSocket&) = delete;
 
-        ~WolfSocket()
+        ~OpenSSLSocket()
         {
             close();
-            if (mSSL) wolfSSL_free(mSSL);
+            if (mSSL) SSL_free(mSSL);
         }
 
         void close() override;
@@ -299,7 +306,7 @@ namespace osuCrypto
         void setDHParamFile(std::string path, error_code& ec);
         void setDHParam(span<u8> paramData, error_code& ec);
 
-        WolfCertX509 getCert();
+        OpenSSLCertX509 getCert();
 
         bool hasRecvBuffer() { return mRecvBufIdx < mRecvBufs.size(); }
         buffer& curRecvBuffer() { return mRecvBufs[mRecvBufIdx]; }
@@ -339,24 +346,24 @@ namespace osuCrypto
         void LOG(std::string X);
 #endif
 
-        static int recvCallback(WOLFSSL* ssl, char* buf, int size, void* ctx)
+        static int recvCallback(SSL* ssl, char* buf, int size, void* ctx)
         {
             //lout << "in recv cb with " << std::hex << u64(ctx) << std::endl;
-            WolfSocket& sock = *(WolfSocket*)ctx;
+            OpenSSLSocket& sock = *(OpenSSLSocket*)ctx;
             assert(sock.mSSL == ssl);
             return sock.sslRquestRecvCB(buf, size);
         }
 
-        static int sendCallback(WOLFSSL* ssl, char* buf, int size, void* ctx)
+        static int sendCallback(SSL* ssl, char* buf, int size, void* ctx)
         {
             //lout << "in send cb with " << std::hex << u64(ctx) << std::endl;
-            WolfSocket& sock = *(WolfSocket*)ctx;
+            OpenSSLSocket& sock = *(OpenSSLSocket*)ctx;
             assert(sock.mSSL == ssl);
             return sock.sslRquestSendCB(buf, size);
         }
     };
 
-    using TLSSocket = WolfSocket;
+    using TLSSocket = OpenSSLSocket;
 
     extern std::array<u8, 5010> sample_ca_cert_pem;
     extern std::array<u8, 0x26ef> sample_server_cert_pem;
@@ -364,6 +371,7 @@ namespace osuCrypto
     extern std::array<u8, 0x594> sample_dh2048_pem;
 
 }
+
 #else
 namespace osuCrypto
 {

@@ -1,14 +1,17 @@
 #include "TLS.h"
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_SSL
 
-#ifndef WOLFSSL_LOGGING
+#ifndef SSL_LOGGING
 #define LOG(X)
 #endif
 #include <fstream>
 
-extern "C" {
-#include "wolfssl/error-ssl.h"
-}
+
+//#ifdef ENABLE_SSL
+//extern "C" {
+//#include "ssl/error-ssl.h"
+//}
+//#endif
 
 namespace osuCrypto
 {
@@ -43,37 +46,37 @@ namespace osuCrypto
         }
     //}
 
-    std::mutex WolfInitMtx;
+    std::mutex InitMtx;
 
-    WolfContext::Base::Base(Mode mode)
+    OpenSSLContext::Base::Base(Mode mode)
     {
         {
-            std::lock_guard<std::mutex> lock(WolfInitMtx);
+            std::lock_guard<std::mutex> lock(InitMtx);
             switch (mode)
             {
             case Mode::Server:
-                mMethod = (wolfSSLv23_server_method());
+                mMethod = (SSLv23_server_method());
                 break;
             case Mode::Client:
-                mMethod = (wolfSSLv23_client_method());
+                mMethod = (SSLv23_client_method());
                 break;
             default:
-                mMethod = wolfSSLv23_method();
+                mMethod = SSLv23_method();
             }
 
-            mCtx = (wolfSSL_CTX_new(mMethod));
+            mCtx = (SSL_CTX_new(mMethod));
         }
-        wolfSSL_SetIOSend(mCtx, WolfSocket::sendCallback);
-        wolfSSL_SetIORecv(mCtx, WolfSocket::recvCallback);
+        SSL_SetIOSend(mCtx, OpenSSLSocket::sendCallback);
+        SSL_SetIORecv(mCtx, OpenSSLSocket::recvCallback);
         mMode = mode;
 
     }
-    WolfContext::Base::~Base()
+    OpenSSLContext::Base::~Base()
     {
-        wolfSSL_CTX_free(mCtx);
+        SSL_CTX_free(mCtx);
     }
 
-    void WolfContext::init(Mode mode, error_code& ec)
+    void OpenSSLContext::init(Mode mode, error_code& ec)
     {
         if (isInit())
         {
@@ -86,7 +89,7 @@ namespace osuCrypto
             ec = make_error_code(TLS_errc::ContextFailedToInit);
     }
 
-    void WolfContext::loadCertFile(std::string path, error_code& ec)
+    void OpenSSLContext::loadCertFile(std::string path, error_code& ec)
     {
         if (isInit() == false)
             ec = make_error_code(TLS_errc::ContextNotInit);
@@ -99,16 +102,16 @@ namespace osuCrypto
         }
     }
 
-    void WolfContext::loadCert(span<u8> data, error_code& ec)
+    void OpenSSLContext::loadCert(span<u8> data, error_code& ec)
     {
         if (isInit() == false)
             ec = make_error_code(TLS_errc::ContextNotInit);
         else
-            ec = wolfssl_error_code(
-                wolfSSL_CTX_load_verify_buffer(*this, data.data(), static_cast<long>(data.size()), WOLFSSL_FILETYPE_PEM));
+            ec = ssl_error_code(
+                SSL_CTX_load_verify_buffer(*this, data.data(), static_cast<long>(data.size()), SSL_FILETYPE_PEM));
     }
 
-    void WolfContext::loadKeyPairFile(std::string pkPath, std::string skPath, error_code& ec)
+    void OpenSSLContext::loadKeyPairFile(std::string pkPath, std::string skPath, error_code& ec)
     {
         if (isInit() == false) {
             ec = make_error_code(TLS_errc::ContextNotInit);
@@ -124,22 +127,22 @@ namespace osuCrypto
         loadKeyPair(pk, sk, ec);
     }
 
-    void WolfContext::loadKeyPair(span<u8> pk, span<u8> sk, error_code& ec)
+    void OpenSSLContext::loadKeyPair(span<u8> pk, span<u8> sk, error_code& ec)
     {
         if (isInit() == false) {
             ec = make_error_code(TLS_errc::ContextNotInit);
             return;
         }
 
-        ec = wolfssl_error_code(
-            wolfSSL_CTX_use_certificate_buffer(*this, pk.data(), static_cast<long>(pk.size()), WOLFSSL_FILETYPE_PEM));
+        ec = ssl_error_code(
+            SSL_CTX_use_certificate_buffer(*this, pk.data(), static_cast<long>(pk.size()), SSL_FILETYPE_PEM));
         if (ec) return;
 
-        ec = wolfssl_error_code(
-            wolfSSL_CTX_use_PrivateKey_buffer(*this, sk.data(), static_cast<long>(sk.size()), WOLFSSL_FILETYPE_PEM));
+        ec = ssl_error_code(
+            SSL_CTX_use_PrivateKey_buffer(*this, sk.data(), static_cast<long>(sk.size()), SSL_FILETYPE_PEM));
     }
 
-    void WolfContext::requestClientCert(error_code& ec)
+    void OpenSSLContext::requestClientCert(error_code& ec)
     {
         if (isInit() == false) 
             ec = make_error_code(TLS_errc::ContextNotInit);
@@ -147,24 +150,24 @@ namespace osuCrypto
             ec = make_error_code(TLS_errc::OnlyValidForServerContext);
         else
         {
-            wolfSSL_CTX_set_verify(*this, SSL_VERIFY_PEER, 0);
+            SSL_CTX_set_verify(*this, SSL_VERIFY_PEER, 0);
             ec = {};
         }
     }
 
-    WolfSocket::WolfSocket(boost::asio::io_context& ios, WolfContext& ctx)
+    OpenSSLSocket::OpenSSLSocket(boost::asio::io_context& ios, OpenSSLContext& ctx)
         : mSock(ios)
         , mStrand(ios.get_executor())
         , mIos(ios)
-        , mSSL(wolfSSL_new(ctx))
+        , mSSL(SSL_new(ctx))
     {
-#ifdef WOLFSSL_LOGGING
+#ifdef SSL_LOGGING
         setLog(mLog_);
 #endif
         if (mSSL)
         {
-            wolfSSL_SetIOWriteCtx(mSSL, this);
-            wolfSSL_SetIOReadCtx(mSSL, this);
+            SSL_SetIOWriteCtx(mSSL, this);
+            SSL_SetIOReadCtx(mSSL, this);
         }
         else
         {
@@ -172,34 +175,34 @@ namespace osuCrypto
         }
     }
 
-    WolfSocket::WolfSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, WolfContext& ctx)
+    OpenSSLSocket::OpenSSLSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, OpenSSLContext& ctx)
         : mSock(std::move(sock))
         , mStrand(ios.get_executor())
         , mIos(ios)
-        , mSSL(wolfSSL_new(ctx))
+        , mSSL(SSL_new(ctx))
     {
-#ifdef WOLFSSL_LOGGING
+#ifdef SSL_LOGGING
         setLog(mLog_);
 #endif
-        wolfSSL_SetIOWriteCtx(mSSL, this);
-        wolfSSL_SetIOReadCtx(mSSL, this);
+        SSL_SetIOWriteCtx(mSSL, this);
+        SSL_SetIOReadCtx(mSSL, this);
     }
 
-    void WolfSocket::close()
+    void OpenSSLSocket::close()
     {
-        LOG("WolfSocket::close()");
+        LOG("OpenSSLSocket::close()");
         boost::system::error_code ec;
         mSock.close(ec);
     }
 
-    void WolfSocket::cancel()
+    void OpenSSLSocket::cancel()
     {
-        LOG("WolfSocket::cancel()");
+        LOG("OpenSSLSocket::cancel()");
         boost::system::error_code ec;
         mSock.cancel(ec);
     }
 
-    void WolfSocket::send(
+    void OpenSSLSocket::send(
         span<buffer> buffers,
         error_code& ec,
         u64& bt)
@@ -212,11 +215,11 @@ namespace osuCrypto
         prom.get_future().get();
     }
 
-    void WolfSocket::async_send(
+    void OpenSSLSocket::async_send(
         span<buffer> buffers,
         io_completion_handle&& fn)
     {
-#ifdef WOLFSSL_LOGGING
+#ifdef SSL_LOGGING
         std::stringstream ss;
         ss << "async_send ";
         for (auto b : buffers)
@@ -237,7 +240,7 @@ namespace osuCrypto
         sendNext();
     }
 
-    void WolfSocket::sendNext()
+    void OpenSSLSocket::sendNext()
     {
         LOG("sendNext");
         assert(hasSendBuffer());
@@ -251,18 +254,18 @@ namespace osuCrypto
             //auto wasPending = mState.hasPendingSend();
 
             // this will call sslRequextSendCB(...)
-            ret = wolfSSL_write(mSSL, buf, static_cast<int>(size));
+            ret = SSL_write(mSSL, buf, static_cast<int>(size));
             if (ret <= 0)
             {
-                err = wolfSSL_get_error(mSSL, 0);
-                if (err == WOLFSSL_ERROR_WANT_WRITE)
+                err = SSL_get_error(mSSL, 0);
+                if (err == SSL_ERROR_WANT_WRITE)
                 {
                     assert(mState.hasPendingSend() == true);
                 }
                 else
                 {
                     assert(err);
-                    mSendEC = wolfssl_error_code(err);
+                    mSendEC = ssl_error_code(err);
                     auto fn = mSendCB;
                     auto bt = mSendBT;
                     mSendBT = 0;
@@ -302,7 +305,7 @@ namespace osuCrypto
 
     }
 
-    int WolfSocket::sslRquestSendCB(char* buf, int size)
+    int OpenSSLSocket::sslRquestSendCB(char* buf, int size)
     {
         LOG("sslRquestSendCB " + std::string(mState.hasPendingSend() ? "complete" : "init"));
 
@@ -323,17 +326,17 @@ namespace osuCrypto
                     
                     switch (mState.mPhase)
                     {
-                    case WolfState::Phase::Normal:
+                    case State::Phase::Normal:
                     {
                         sendNext();
                         break;
                     }
-                    case WolfState::Phase::Connect:
+                    case State::Phase::Connect:
                     {
                         connectNext();
                         break;
                     }
-                    case WolfState::Phase::Accept:
+                    case State::Phase::Accept:
                     {
                         acceptNext();
                         break;
@@ -346,12 +349,12 @@ namespace osuCrypto
                 }
             );
 
-            return WOLFSSL_CBIO_ERR_WANT_WRITE;
+            return SSL_CBIO_ERR_WANT_WRITE;
         }
         else
         {
             if (mSendEC)
-                return WOLFSSL_CBIO_ERR_GENERAL;
+                return SSL_CBIO_ERR_GENERAL;
             assert(mState.mPendingSendBuf.data() == buf && mState.mPendingSendBuf.size() == size);
             mState.mPendingSendBuf = {};
             return size;
@@ -359,7 +362,7 @@ namespace osuCrypto
 
     }
 
-    void WolfSocket::recv(
+    void OpenSSLSocket::recv(
         span<buffer> buffers,
         error_code& ec,
         u64& bt)
@@ -372,12 +375,12 @@ namespace osuCrypto
         prom.get_future().get();
     }
 
-    void WolfSocket::async_recv(
+    void OpenSSLSocket::async_recv(
         span<buffer> buffers,
         io_completion_handle&& fn)
     {
 
-#ifdef WOLFSSL_LOGGING
+#ifdef SSL_LOGGING
         std::stringstream ss;
         ss << "async_recv ";
         for (auto b : buffers)
@@ -397,31 +400,31 @@ namespace osuCrypto
         recvNext();
     }
 
-    void osuCrypto::WolfSocket::setDHParamFile(std::string path, error_code& ec)
+    void osuCrypto::OpenSSLSocket::setDHParamFile(std::string path, error_code& ec)
     {
         std::vector<u8> paramData;
         if (!(ec = readFile(path, paramData)))
             setDHParam(paramData, ec);
     }
 
-    void osuCrypto::WolfSocket::setDHParam(span<u8> data, error_code& ec)
+    void osuCrypto::OpenSSLSocket::setDHParam(span<u8> data, error_code& ec)
     {
-        ec = wolfssl_error_code(
-            wolfSSL_SetTmpDH_buffer(mSSL, data.data(), static_cast<long>(data.size()), WOLFSSL_FILETYPE_PEM));
+        ec = ssl_error_code(
+            SSL_SetTmpDH_buffer(mSSL, data.data(), static_cast<long>(data.size()), SSL_FILETYPE_PEM));
     }
 
-    WolfCertX509 osuCrypto::WolfSocket::getCert()
+    OpenSSLCertX509 osuCrypto::OpenSSLSocket::getCert()
     {
-        auto ptr = wolfSSL_get_peer_certificate(mSSL);
+        auto ptr = SSL_get_peer_certificate(mSSL);
         if (ptr == nullptr)
         {
-            throw std::runtime_error("please compile wolfssl with KEEP_PEER_CERT defined. For example `./configure --enable-all; make`");
+            throw std::runtime_error("please compile ssl with KEEP_PEER_CERT defined. For example `./configure --enable-all; make`");
         }
         return { ptr };
     }
 
 
-    void WolfSocket::recvNext()
+    void OpenSSLSocket::recvNext()
     {
         LOG("recvNext");
 
@@ -436,20 +439,20 @@ namespace osuCrypto
             //auto wasPending = mState.hasPendingRecv();
 
             // this will call sslRequextRecvCB(...)
-            ret = wolfSSL_read(mSSL, buf, static_cast<int>(size));
+            ret = SSL_read(mSSL, buf, static_cast<int>(size));
 
             if (ret <= 0)
             {
-                err = wolfSSL_get_error(mSSL, 0);
+                err = SSL_get_error(mSSL, 0);
                 assert(err);
-                if (err == WOLFSSL_ERROR_WANT_READ)
+                if (err == SSL_ERROR_WANT_READ)
                 {
                     assert(mState.hasPendingRecv() == true);
                     // no op
                 }
                 else
                 {
-                    mRecvEC = wolfssl_error_code(err);
+                    mRecvEC = ssl_error_code(err);
                     auto fn = std::move(mRecvCB);
                     auto bt = mRecvBT;
                     mRecvBT = 0;
@@ -488,7 +491,7 @@ namespace osuCrypto
         );
     }
 
-    int WolfSocket::sslRquestRecvCB(char* buf, int size)
+    int OpenSSLSocket::sslRquestRecvCB(char* buf, int size)
     {
         LOG("sslRquestRecvCB " + std::string(mState.hasPendingRecv() ? "complete" : "init"));
 
@@ -510,17 +513,17 @@ namespace osuCrypto
 
                     switch (mState.mPhase)
                     {
-                    case WolfState::Phase::Normal:
+                    case State::Phase::Normal:
                     {
                         recvNext();
                         break;
                     }
-                    case WolfState::Phase::Connect:
+                    case State::Phase::Connect:
                     {
                         connectNext();
                         break;
                     }
-                    case WolfState::Phase::Accept:
+                    case State::Phase::Accept:
                     {
                         acceptNext();
                         break;
@@ -532,42 +535,42 @@ namespace osuCrypto
                 );
                 }
             );
-            return WOLFSSL_CBIO_ERR_WANT_READ;
+            return SSL_CBIO_ERR_WANT_READ;
         }
         else
         {
             if (mRecvEC)
-                return WOLFSSL_CBIO_ERR_GENERAL;
+                return SSL_CBIO_ERR_GENERAL;
             assert(mState.mPendingRecvBuf.data() == buf && mState.mPendingRecvBuf.size() == size);
             mState.mPendingRecvBuf = {};
             return size;
         }
     }
 
-    void WolfSocket::connect(error_code& ec)
+    void OpenSSLSocket::connect(error_code& ec)
     {
         std::promise<error_code> prom;
         async_connect([&prom](const error_code& ec) { prom.set_value(ec); });
         ec = prom.get_future().get();
     }
 
-    void WolfSocket::async_connect(completion_handle&& cb)
+    void OpenSSLSocket::async_connect(completion_handle&& cb)
     {
         LOG("async_connect");
 
-        assert(mState.mPhase == WolfState::Phase::Uninit);
-        mState.mPhase = WolfState::Phase::Connect;
+        assert(mState.mPhase == State::Phase::Uninit);
+        mState.mPhase = State::Phase::Connect;
         mSetupCB = std::move(cb);
         connectNext();
     }
 
 
-    void WolfSocket::connectNext()
+    void OpenSSLSocket::connectNext()
     {
         LOG("connectNext");
         boost::asio::dispatch(mStrand, [this]() {
 
-            assert(mState.mPhase == WolfState::Phase::Connect);
+            assert(mState.mPhase == State::Phase::Connect);
 
             if (mCancelingPending)
             {
@@ -577,18 +580,18 @@ namespace osuCrypto
             else
             {
                 int ret, err = 0;
-                ret = wolfSSL_connect(mSSL);
-                if (ret != WOLFSSL_SUCCESS)
-                    err = wolfSSL_get_error(mSSL, 0);
+                ret = SSL_connect(mSSL);
+                if (ret != SSL_SUCCESS)
+                    err = SSL_get_error(mSSL, 0);
 
-                if (ret == WOLFSSL_SUCCESS) {
-                    mState.mPhase = WolfState::Phase::Normal;
+                if (ret == SSL_SUCCESS) {
+                    mState.mPhase = State::Phase::Normal;
                     auto fn = std::move(mSetupCB);
                     fn(mSetupEC);
                 }
                 else if (
-                    err != WOLFSSL_ERROR_WANT_READ &&
-                    err != WOLFSSL_ERROR_WANT_WRITE)
+                    err != SSL_ERROR_WANT_READ &&
+                    err != SSL_ERROR_WANT_WRITE)
                 {
 
                     if (mSendEC)
@@ -603,7 +606,7 @@ namespace osuCrypto
                     }
                     else
                     {
-                        mSetupEC = wolfssl_error_code(err);
+                        mSetupEC = ssl_error_code(err);
 
                         if (mState.hasPendingRecv() || mState.hasPendingSend())
                         {
@@ -623,7 +626,7 @@ namespace osuCrypto
         );
     }
 
-    void WolfSocket::accept(error_code& ec)
+    void OpenSSLSocket::accept(error_code& ec)
     {
         std::promise<error_code> prom;
         async_accept([&prom](const error_code& ec) {
@@ -633,21 +636,21 @@ namespace osuCrypto
         ec = prom.get_future().get();
     }
 
-    void WolfSocket::async_accept(completion_handle&& cb)
+    void OpenSSLSocket::async_accept(completion_handle&& cb)
     {
         LOG("async_accept");
-        assert(mState.mPhase == WolfState::Phase::Uninit);
-        mState.mPhase = WolfState::Phase::Accept;
+        assert(mState.mPhase == State::Phase::Uninit);
+        mState.mPhase = State::Phase::Accept;
         mSetupCB = std::move(cb);
         acceptNext();
     }
 
-    void WolfSocket::acceptNext()
+    void OpenSSLSocket::acceptNext()
     {
         LOG("acceptNext");
         boost::asio::dispatch(mStrand, [this]() {
 
-            assert(mState.mPhase == WolfState::Phase::Accept);
+            assert(mState.mPhase == State::Phase::Accept);
 
             if (mCancelingPending)
             {
@@ -657,18 +660,18 @@ namespace osuCrypto
             else
             {
                 int ret, err = 0;
-                ret = wolfSSL_accept(mSSL);
-                if (ret != WOLFSSL_SUCCESS)
-                    err = wolfSSL_get_error(mSSL, 0);
+                ret = SSL_accept(mSSL);
+                if (ret != SSL_SUCCESS)
+                    err = SSL_get_error(mSSL, 0);
 
-                if (ret == WOLFSSL_SUCCESS) {
-                    mState.mPhase = WolfState::Phase::Normal;
+                if (ret == SSL_SUCCESS) {
+                    mState.mPhase = State::Phase::Normal;
                     auto fn = std::move(mSetupCB);
                     fn(mSetupEC);
                 }
                 else if (
-                    err != WOLFSSL_ERROR_WANT_READ &&
-                    err != WOLFSSL_ERROR_WANT_WRITE)
+                    err != SSL_ERROR_WANT_READ &&
+                    err != SSL_ERROR_WANT_WRITE)
                 {
                     if (mSendEC)
                     {
@@ -682,7 +685,7 @@ namespace osuCrypto
                     }
                     else
                     {
-                        mSetupEC = wolfssl_error_code(err);
+                        mSetupEC = ssl_error_code(err);
                         if (mState.hasPendingRecv() || mState.hasPendingSend())
                         {
                             // make sure they both aren't pending. No logic for this case.
@@ -700,10 +703,10 @@ namespace osuCrypto
             }
         );
     }
-#ifdef WOLFSSL_LOGGING
-    void WolfSocket::LOG(std::string X) {
-#ifdef WOLFSSL_LOGGING_VERBODSE
-        if (wolfSSL_is_server(mSSL) == false)
+#ifdef SSL_LOGGING
+    void OpenSSLSocket::LOG(std::string X) {
+#ifdef SSL_LOGGING_VERBODSE
+        if (SSL_is_server(mSSL) == false)
             lout << Color::Red << "client " << (X) << std::endl << Color::Default;
         else
             lout << Color::Green << "server " << (X) << std::endl << Color::Default;

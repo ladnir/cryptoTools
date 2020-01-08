@@ -28,6 +28,11 @@
 // enable the wolf ssl socket layer.
 /* #undef ENABLE_WOLFSSL */
 
+//#define ENABLE_OPENSSL ON
+
+#if defined ENABLE_WOLFSSL || defined ENABLE_OPENSSL
+#define ENABLE_SSL ON
+#endif
 
 // Force BLAKE2 to be used as the random oracle 
 //#define USE_BLAKE2_AS_RANDOM_ORACLE
