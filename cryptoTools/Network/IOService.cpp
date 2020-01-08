@@ -837,11 +837,11 @@ namespace osuCrypto
 
     IOService::IOService(u64 numThreads)
         :
+        mRandSeed(sysRandomSeed()),
+        mSeedIndex(0),
         mIoService(),
         mStrand(mIoService.get_executor()),
-        mWorker(*this, "ios"),
-        mRandSeed(sysRandomSeed()),
-        mSeedIndex(0)
+        mWorker(*this, "ios")
     {
         // if they provided 0, the use the number of processors worker threads
         numThreads = (numThreads) ? numThreads : std::thread::hardware_concurrency();

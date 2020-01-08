@@ -48,9 +48,6 @@
     <ClInclude Include="Crypto\PRNG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\sha1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Finally.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -158,9 +155,6 @@
     <ClCompile Include="Crypto\PRNG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\sha1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Network\Channel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -206,11 +200,6 @@
     <ClCompile Include="Network\TLS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="Crypto\asm\sha_win64.asm">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="Network\gsl\span" />

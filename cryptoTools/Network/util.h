@@ -68,8 +68,8 @@ namespace osuCrypto
                 assert(size() < capacity());
                 auto pushIdx = mPushIdx++ % capacity();
                 void* data = &mStorage[pushIdx];
-                auto tt = new (data) T(std::forward<T>(v));
-                assert(tt && tt == (void*)(&mStorage[pushIdx]));
+                new (data) T(std::forward<T>(v));
+                //assert(tt && tt == (void*)(&mStorage[pushIdx]));
             }
 
             T& front()

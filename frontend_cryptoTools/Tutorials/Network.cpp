@@ -41,7 +41,7 @@ void networkTutorial()
     // this to false and avoid unwanted printing.
     ios.showErrorMessages(true);
 
-    auto ip = "127.0.0.1";
+    auto ip = std::string("127.0.0.1");
     auto port = 1212;
 
     std::string serversIpAddress = ip + ':' + std::to_string(port);

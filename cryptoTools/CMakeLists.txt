@@ -2,50 +2,12 @@ project(cryptoTools)
 
 get_directory_property(hasParent PARENT_DIRECTORY)
 
-
-
-if(ENABLE_NASM)
-  
-    if(NOT NASM)
-        message(FATAL_ERROR "Can not find nasm. Disable it with:    cmake . -DENABLE_NASM=OFF")
-    endif()
-
-    set(shaNasm "${CMAKE_CURRENT_SOURCE_DIR}/Crypto/asm/sha_lnx.S")
-    set(shaNasmOutput "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptoTools.dir/Crypto/sha_lnx.S.o")
-
-    #Default nasm flags
-    set(shaNasmComment ${NASM} -f elf64 ${shaNasm} -o ${shaNasmOutput})
-    set(shaNasmCommand ${NASM} -f elf64 ${shaNasm} -o ${shaNasmOutput})
-
-    #OSX nasm flags
-    IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        set(shaNasmComment ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
-        set(shaNasmCommand ${NASM} --prefix _ -f macho64 ${shaNasm} -o ${shaNasmOutput})
-    ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
-    add_custom_command(
-            OUTPUT ${shaNasmOutput}
-            DEPENDS ${shaNasm} 
-            COMMENT ${shaNasmComment}
-            COMMAND ${shaNasmCommand}
-            VERBATIM)
-
-  # mark this asm output input to everything.
-  add_custom_target(sha_asm DEPENDS ${shaNasmOutput})
-else(ENABLE_NASM)
-  set(shaNasmOutput )
-  add_custom_target(sha_asm)
-endif(ENABLE_NASM)
-
-
-
 # add the source files 
 file(GLOB_RECURSE SRCS *.cpp *.c)
-add_library(cryptoTools STATIC ${SRCS} ${shaNasmOutput})
-
+add_library(cryptoTools STATIC ${SRCS})
 # make projects that include cryptoTools use this as an include folder
 target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
-add_dependencies(cryptoTools sha_asm)
+
 
 #############################################
 #            Install                        #
@@ -156,12 +118,19 @@ set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)
 
-if(NOT USE_SYS_BOOST)
-    set(Boost_NO_SYSTEM_PATHS  ON)
+macro(findBoost)
+  find_package(Boost 1.69.0 COMPONENTS system thread)
+endmacro()
+
+# first look for boost at BOOST_ROOT
+set(Boost_NO_SYSTEM_PATHS  ON)
+findBoost()
+
+# then look at system dirs
+if(NOT Boost_FOUND)
+  set(Boost_NO_SYSTEM_PATHS  OFF)
+  findBoost()
 endif()
-
-find_package(Boost 1.69.0 COMPONENTS system thread)
-
 
 
 if(NOT Boost_FOUND)

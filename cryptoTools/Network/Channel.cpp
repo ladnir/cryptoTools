@@ -493,9 +493,9 @@ namespace osuCrypto {
 
                 if (ec || bytesTransferred != mSendBuffer.size())
                 {
-                    auto& sock = mSock->mSock;
 
                     IF_LOG(
+                        auto& sock = mSock->mSock;
                         auto msg = "async connect. Failed to send ConnectionString ~ ec=" + ec.message() + "\n"
                         + " isOpen=" + std::to_string(sock.is_open())
                         + " canceled=" + std::to_string(canceled());
@@ -1045,7 +1045,7 @@ namespace osuCrypto {
             front->asyncCancel(this, ec,[this, ec](const error_code& ec2, u64 bt) {
 
                 boost::asio::dispatch(mStrand, [this, ec]() {
-                    auto& front = mSendQueue.front();
+                    IF_LOG(auto& front = mSendQueue.front());
                     LOG_MSG("send cancel op: " + std::to_string(front->mIdx));
                     mSendQueue.pop_front();
 

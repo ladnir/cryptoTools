@@ -115,7 +115,7 @@ namespace osuCrypto
             {
                 std::stringstream ss;
                 ss << "{ " << names[0];
-                for (u64 i = 1; i < names.size(); ++i)
+                for (u64 i = 1; i < static_cast<u64>(names.size()); ++i)
                     ss << ", " << names[i];
                 ss << " }";
 
