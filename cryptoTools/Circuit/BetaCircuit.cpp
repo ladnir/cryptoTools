@@ -6,7 +6,7 @@
 #include <set>
 #include <numeric>
 #include "cryptoTools/Common/BitVector.h"
-#include <cryptoTools/Crypto/sha1.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
 
 #ifdef USE_JSON
 #include <nlohmann/json.hpp>
@@ -1377,7 +1377,7 @@ namespace osuCrypto
 
     block BetaCircuit::hash()const
     {
-        SHA1 sha(sizeof(block));
+        RandomOracle sha(sizeof(block));
         sha.Update(mWireCount);
 
         sha.Update(mGates.data(), mGates.size());
