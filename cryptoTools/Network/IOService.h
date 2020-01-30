@@ -44,10 +44,10 @@ namespace osuCrypto
     public:
 #ifdef ENABLE_NET_LOG
         Log mLog;
-#endif
         std::mutex mWorkerMtx;
-        std::unordered_set<ChannelBase*> mChannels;
         std::unordered_map<void*, std::string> mWorkerLog;
+#endif
+        //std::unordered_set<ChannelBase*> mChannels;
 
         block mRandSeed;
         std::atomic<u64> mSeedIndex;

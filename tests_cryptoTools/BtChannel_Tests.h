@@ -7,6 +7,7 @@ namespace tests_cryptoTools
 
     void BtNetwork_Connect1_Test(const osuCrypto::CLP& cmd);
     void BtNetwork_BadConnect_Test(const osuCrypto::CLP& cmd);
+    void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd);
 
 
     void BtNetwork_RapidConnect_Test(const osuCrypto::CLP& cmd);

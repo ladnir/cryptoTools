@@ -38,7 +38,7 @@ namespace tests_cryptoTools
             error_code ec;
             ctx.init(TLSContext::Mode::Both, ec);
             if (!ec) ctx.requestClientCert(ec);
-            if (!ec) ctx.loadCert(sample_ca_cert_pem, ec);
+            if (!ec) ctx.loadCA(sample_ca_cert_pem, ec);
             if (!ec) ctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
             if (ec)
                 throw std::runtime_error(ec.message());
@@ -273,7 +273,7 @@ namespace tests_cryptoTools
         IOService ioService(1);
         auto tls = getIfTLS(cmd);
 
-        u64 trials = 1;
+        auto trials = 1;
         Session s1, c1;
         Channel chs1, chs2, chc1, chc2;
 
@@ -528,6 +528,50 @@ namespace tests_cryptoTools
 
         //chl.waitForConnection(std::chrono::seconds(1));
     }
+
+    void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd)
+    {
+
+        std::array<Channel, 2> chls;
+        IOService ios;
+
+        auto go = [&](int idx)
+        {
+            auto mode = idx ? EpMode::Server : EpMode::Client;
+            Endpoint ep(ios, "localhost", 1213, mode, "none");
+            chls[idx] = ep.addChannel();
+
+            std::vector<u8> buff(100);
+            chls[idx].send(buff);
+            chls[idx].recv(buff);
+            chls[idx].send(buff);
+            chls[idx].recv(buff);
+
+            chls[idx].close();
+            ep.stop();
+        };
+
+        //if (cmd.hasValue(roleTag))
+        //{
+        //    params.mIdx = cmd.get<u32>(roleTag);
+        //    go(params);
+        //}
+        //else
+        {
+            auto thrd = std::thread([&]()
+                {
+                    //auto params2 = params;
+                    //params2.mIdx = 1;
+                    go(1);
+                });
+            //params.mIdx = 0;
+            go(0);
+            thrd.join();
+        }
+
+        ios.stop();
+    }
+    
 
 
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_OneMegabyteSend_Test);

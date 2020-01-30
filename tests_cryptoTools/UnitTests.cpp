@@ -19,6 +19,7 @@ namespace tests_cryptoTools
     TestCollection Tests([](TestCollection& th) {
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
         th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
+        th.add("BtNetwork_shutdown_test                 ", BtNetwork_shutdown_test);
         th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
         th.add("BtNetwork_OneMegabyteSend_Test          ", BtNetwork_OneMegabyteSend_Test);
         th.add("BtNetwork_ConnectMany_Test              ", BtNetwork_ConnectMany_Test);
