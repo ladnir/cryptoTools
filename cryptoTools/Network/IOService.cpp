@@ -906,6 +906,7 @@ namespace osuCrypto
                 auto res = thrd.second.get_future().wait_for(std::chrono::seconds(3));
                 if(res != std::future_status::ready && mPrint)
                 {
+#ifdef ENABLE_NET_LOG
                     std::lock_guard<std::mutex> lock(mWorkerMtx);
                     if(mWorkerLog.size())
                     {
@@ -914,6 +915,9 @@ namespace osuCrypto
                             lout << '\t' << v.second << "\n";
                         lout << std::flush;
                     }
+#else
+                    lout << "IOSerive::stop() is waiting for work to finish" << std::endl;
+#endif
                 }
 
                 thrd.first.join();

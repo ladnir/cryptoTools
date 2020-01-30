@@ -82,8 +82,8 @@ namespace osuCrypto {
         mChannelRefCount(1),
         mStrand(endpoint.getIOService().mIoService.get_executor())
     {
-        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
-        mIos.mChannels.insert(this);
+        //std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        //mIos.mChannels.insert(this);
     }
 
     ChannelBase::ChannelBase(IOService& ios, SocketInterface* sock)
@@ -94,14 +94,14 @@ namespace osuCrypto {
         mHandle(sock),
         mStrand(ios.mIoService.get_executor())
     {
-        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
-        mIos.mChannels.insert(this);
+        //std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        //mIos.mChannels.insert(this);
     }
 
     ChannelBase::~ChannelBase()
     {
-        std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
-        mIos.mChannels.erase(mIos.mChannels.find(this));
+        //std::lock_guard<std::mutex> lock(mIos.mWorkerMtx);
+        //mIos.mChannels.erase(mIos.mChannels.find(this));
         assert(mChannelRefCount ==0);
     }
 
