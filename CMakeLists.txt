@@ -1,4 +1,8 @@
-cmake_minimum_required (VERSION 3.5)
+if(${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+    message("Please consider updating CMake to 3.12+")
+endif()
+cmake_minimum_required (VERSION 3.4)
+
 project(cryptoTools)
 
 
