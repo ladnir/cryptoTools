@@ -208,11 +208,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Crypto\asm\sha_win64.asm">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Network\gsl\span" />
     <None Include="cryptoToolsconfig.cmake" />
     <None Include="Common\config.h.in" />

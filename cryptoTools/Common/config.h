@@ -28,7 +28,7 @@
 // enable the wolf ssl socket layer.
 /* #undef ENABLE_WOLFSSL */
 
-//#define ENABLE_OPENSSL ON
+#define ENABLE_OPENSSL ON
 
 #if defined ENABLE_WOLFSSL || defined ENABLE_OPENSSL
 #define ENABLE_SSL ON

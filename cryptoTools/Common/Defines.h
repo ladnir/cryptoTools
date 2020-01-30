@@ -144,6 +144,11 @@ inline osuCrypto::block operator+(const osuCrypto::block& lhs, const osuCrypto::
 #pragma comment(lib, "wolfssl.lib")
 #endif
 
+#ifdef ENABLE_OPENSSL
+#pragma comment(lib, "libcrypto.lib")
+#pragma comment(lib, "libssl.lib")
+#endif
+
 #endif
 
 namespace oc = osuCrypto;

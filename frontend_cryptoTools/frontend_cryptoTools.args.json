@@ -3,12 +3,8 @@
   "Id": "9816c48c-6316-40c7-929c-4b29505c7e0a",
   "Items": [
     {
-      "Id": "a3ce3d87-99d9-4fb9-945c-cf5f46998676",
-<<<<<<< HEAD
-      "Command": "-u 20"
-=======
+      "Id": "7e5f5bb4-4014-4ef3-bf3b-344f1ee78f37",
       "Command": "-u"
->>>>>>> refs/remotes/origin/master
     }
   ]
 }

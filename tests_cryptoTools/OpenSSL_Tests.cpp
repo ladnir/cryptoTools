@@ -1,4 +1,4 @@
-#include "WolfSSL_Tests.h"
+#include "OpenSSL_Tests.h"
 //
 //#ifndef WC_NO_HARDEN
 //#define WC_NO_HARDEN
@@ -28,7 +28,7 @@ using namespace oc;
 
 
 
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_OPENSSL
 
 #define SVR_COMMAND_SIZE 256
 #define throwEC(ec) {lout << "throwing " << ec.message() << " @ " <<LOCATION << std::endl; throw std::runtime_error(ec.message() + LOCATION);}
@@ -37,17 +37,17 @@ int client()
 {
 
     u64 trials = 10;
-    WolfContext ctx;
+    OpenSSLContext ctx;
     error_code ec;
     //lout << "c 0" << std::endl;
-    ctx.init(WolfContext::Mode::Client,ec);
+    ctx.init(OpenSSLContext::Mode::Client,ec);
     if (ec) throwEC(ec);
     //lout << "c 1" << std::endl;
-    ctx.loadCert(sample_ca_cert_pem, ec);
+    ctx.loadCA(sample_ca_cert_pem, ec);
     //lout << "c 2" << std::endl;
 
     IOService ios;
-    WolfSocket sock(ios.mIoService, ctx);
+    OpenSSLSocket sock(ios.mIoService, ctx);
     //lout << "c 3" << std::endl;
 
     if (ec)
@@ -156,8 +156,8 @@ int server()
 
     //lout << "server 3" << std::endl;
 
-    WolfContext ctx;
-    ctx.init(WolfContext::Mode::Server,ec);
+    OpenSSLContext ctx;
+    ctx.init(OpenSSLContext::Mode::Server,ec);
     if (ec) throwEC(ec);
     
     ctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
@@ -177,7 +177,7 @@ int server()
         std::array<char, SVR_COMMAND_SIZE> command;
         int     echoSz = 0;
 
-        WolfSocket sock(ios.mIoService, ctx);
+        OpenSSLSocket sock(ios.mIoService, ctx);
         //lout << "server 5" << std::endl;
 
         sock.setDHParam(sample_dh2048_pem, ec);
@@ -259,9 +259,9 @@ int server()
     return 0;
 }
 #endif
-void wolfSSL_echoServer_test(const osuCrypto::CLP& cmd)
+void OpenSSL_echoServer_test(const osuCrypto::CLP& cmd)
 {
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_OPENSSL
 
     #ifdef __APPLE__
     throw UnitTestSkipped("known issue with raw ASIO.connect() for MAC");
@@ -283,13 +283,13 @@ void wolfSSL_echoServer_test(const osuCrypto::CLP& cmd)
 
     thrd.join();
 #else
-    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+    throw UnitTestSkipped("ENABLE_OPENSSL not defined");
 #endif
 }
 
-void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
+void OpenSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
 {
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_OPENSSL
 
     error_code ec;
     IOService ios;
@@ -306,25 +306,25 @@ void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
     accpt.listen(boost::asio::socket_base::max_connections);
 
 
-    WolfContext sctx;
-    sctx.init(WolfContext::Mode::Server,ec);
+    OpenSSLContext sctx;
+    sctx.init(OpenSSLContext::Mode::Server,ec);
     if (ec) throwEC(ec);
     sctx.requestClientCert(ec);
     if (ec) throwEC(ec);
-    sctx.loadCert(sample_ca_cert_pem, ec);
+    sctx.loadCA(sample_ca_cert_pem, ec);
     if (ec) throwEC(ec);
     sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
     if (ec) throwEC(ec);
 
 
-    WolfContext cctx;
-    cctx.init(WolfContext::Mode::Client,ec);
+    OpenSSLContext cctx;
+    cctx.init(OpenSSLContext::Mode::Client,ec);
     if (ec) throwEC(ec);
-    cctx.loadCert(sample_ca_cert_pem, ec);
+    cctx.loadCA(sample_ca_cert_pem, ec);
     if (ec) throwEC(ec);
     cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
     if (ec) throwEC(ec);
-    WolfSocket csock(ios.mIoService, cctx);
+    OpenSSLSocket csock(ios.mIoService, cctx);
     csock.mSock.connect(addr, ec);
     if (ec) throwEC(ec);
     std::promise<error_code> prom;
@@ -332,7 +332,7 @@ void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
         prom.set_value(ec); 
         });
     
-    WolfSocket ssock(ios.mIoService, sctx);
+    OpenSSLSocket ssock(ios.mIoService, sctx);
     ssock.setDHParam(sample_dh2048_pem, ec);
     if (ec) throwEC(ec);
 
@@ -361,31 +361,31 @@ void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
     if (ec) throwEC(ec);
 
 #else
-    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+    throw UnitTestSkipped("ENABLE_OPENSSL not defined");
 #endif
 }
 
-void wolfSSL_channel_test(const osuCrypto::CLP& cmd)
+void OpenSSL_channel_test(const osuCrypto::CLP& cmd)
 {
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_OPENSSL
 
     IOService ios;
     error_code ec;
-    WolfContext sctx, cctx;
+    OpenSSLContext sctx, cctx;
 
-    if (!ec) sctx.init(WolfContext::Mode::Server,ec);
+    if (!ec) sctx.init(OpenSSLContext::Mode::Server,ec);
     if (!ec) sctx.requestClientCert(ec);
-    if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) sctx.loadCA(sample_ca_cert_pem, ec);
     if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
-    if (!ec) cctx.init(WolfContext::Mode::Client,ec);
-    if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) cctx.init(OpenSSLContext::Mode::Client,ec);
+    if (!ec) cctx.loadCA(sample_ca_cert_pem, ec);
     if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (ec) throwEC(ec);
 
-    //wolfSSL_CTX_set_verify(cctx.mBase->mCtx, SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 
-    //    [](int i, WOLFSSL_X509_STORE_CTX* c) {
+    //OpenSSL_CTX_set_verify(cctx.mBase->mCtx, SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 
+    //    [](int i, OpenSSL_X509_STORE_CTX* c) {
 
     //        return i;
     //    });
@@ -411,26 +411,26 @@ void wolfSSL_channel_test(const osuCrypto::CLP& cmd)
         throw UnitTestFail(LOCATION);
 
 #else
-    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+    throw UnitTestSkipped("ENABLE_OPENSSL not defined");
 #endif
 }
 
 
-void wolfSSL_CancelChannel_Test()
+void OpenSSL_CancelChannel_Test()
 {
-#ifdef ENABLE_WOLFSSL
+#ifdef ENABLE_OPENSSL
     u64 trials = 3;
 
     error_code ec;
-    WolfContext sctx, cctx;
+    OpenSSLContext sctx, cctx;
 
-    if (!ec) sctx.init(WolfContext::Mode::Server,ec);
+    if (!ec) sctx.init(OpenSSLContext::Mode::Server,ec);
     if (!ec) sctx.requestClientCert(ec);
-    if (!ec) sctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) sctx.loadCA(sample_ca_cert_pem, ec);
     if (!ec) sctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
-    if (!ec) cctx.init(WolfContext::Mode::Client,ec);
-    if (!ec) cctx.loadCert(sample_ca_cert_pem, ec);
+    if (!ec) cctx.init(OpenSSLContext::Mode::Client,ec);
+    if (!ec) cctx.loadCA(sample_ca_cert_pem, ec);
     if (!ec) cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
     if (ec) throwEC(ec);
@@ -523,7 +523,7 @@ void wolfSSL_CancelChannel_Test()
     }
 
 #else
-    throw UnitTestSkipped("ENABLE_WOLFSSL not defined");
+    throw UnitTestSkipped("ENABLE_OPENSSL not defined");
 #endif
     //std::cout << t << std::endl << std::endl;
 }

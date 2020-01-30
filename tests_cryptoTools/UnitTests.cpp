@@ -10,7 +10,7 @@
 #include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
 
-#include "tests_cryptoTools/WolfSSL_Tests.h"
+#include "tests_cryptoTools/OpenSSL_Tests.h"
 
 using namespace osuCrypto;
 
@@ -19,6 +19,7 @@ namespace tests_cryptoTools
     TestCollection Tests([](TestCollection& th) {
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
         th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
+        th.add("BtNetwork_shutdown_test                 ", BtNetwork_shutdown_test);
         th.add("BtNetwork_SocketInterface_Test          ", BtNetwork_SocketInterface_Test);
         th.add("BtNetwork_OneMegabyteSend_Test          ", BtNetwork_OneMegabyteSend_Test);
         th.add("BtNetwork_ConnectMany_Test              ", BtNetwork_ConnectMany_Test);
@@ -40,10 +41,10 @@ namespace tests_cryptoTools
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
         th.add("BtNetwork_queue_Test                    ",BtNetwork_queue_Test);
         
-        th.add("wolfSSL_echoServer_test                 ", wolfSSL_echoServer_test);
-        th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);
-        th.add("wolfSSL_channel_test                    ", wolfSSL_channel_test);
-        th.add("wolfSSL_CancelChannel_Test              ", wolfSSL_CancelChannel_Test);
+        th.add("OpenSSL_echoServer_test                 ", OpenSSL_echoServer_test);
+        th.add("OpenSSL_mutualAuth_test                 ", OpenSSL_mutualAuth_test);
+        th.add("OpenSSL_channel_test                    ", OpenSSL_channel_test);
+        th.add("OpenSSL_CancelChannel_Test              ", OpenSSL_CancelChannel_Test);
 
         th.add("AES                                     ", AES_EncDec_Test);
 

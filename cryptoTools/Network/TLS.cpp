@@ -6,45 +6,27 @@
 #endif
 #include <fstream>
 
-
-//#ifdef ENABLE_SSL
-//extern "C" {
-//#include "ssl/error-ssl.h"
-//}
-//#endif
-
 namespace osuCrypto
 {
 
-    //namespace {
+    error_code readFile(const std::string& file, std::vector<u8>& buffer)
+    {
+        std::ifstream t(file);
 
-        //std::mutex mtx;
-        error_code readFile(const std::string& file, std::vector<u8>& buffer)
-        {
-            std::ifstream t(file);
+        if (t.is_open() == false)
+            return boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
 
-            if (t.is_open() == false)
-                return boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
+        t.seekg(0, std::ios::end);
+        buffer.resize(0);
+        buffer.reserve(t.tellg());
+        t.seekg(0, std::ios::beg);
 
-            t.seekg(0, std::ios::end);
-            buffer.resize(0);
-            buffer.reserve(t.tellg());
-            t.seekg(0, std::ios::beg);
-
-            buffer.insert(buffer.end(), (std::istreambuf_iterator<char>(t)),
-                std::istreambuf_iterator<char>());
+        buffer.insert(buffer.end(), (std::istreambuf_iterator<char>(t)),
+            std::istreambuf_iterator<char>());
 
 
-            //std::lock_guard<std::mutex> lock(mtx);
-            //std::cout << file << "\nstd::array<char, "<<buffer.size()<<"> name = {0x" << std::hex << int(buffer[0]);
-
-            //for (u64 i = 1; i < buffer.size(); ++i)
-            //    std::cout << ", 0x" << std::hex << int(buffer[i]);
-            //std::cout << "};\n";
-
-            return {};
-        }
-    //}
+        return {};
+    }
 
     std::mutex InitMtx;
 
@@ -66,8 +48,7 @@ namespace osuCrypto
 
             mCtx = (SSL_CTX_new(mMethod));
         }
-        SSL_SetIOSend(mCtx, OpenSSLSocket::sendCallback);
-        SSL_SetIORecv(mCtx, OpenSSLSocket::recvCallback);
+
         mMode = mode;
 
     }
@@ -89,42 +70,48 @@ namespace osuCrypto
             ec = make_error_code(TLS_errc::ContextFailedToInit);
     }
 
-    void OpenSSLContext::loadCertFile(std::string path, error_code& ec)
+    void OpenSSLContext::loadCAFile(std::string path, error_code& ec)
     {
         if (isInit() == false)
             ec = make_error_code(TLS_errc::ContextNotInit);
         else
         {
-            std::vector<unsigned char> data;
-            ec = readFile(path, data);
-            if (!ec) 
-                loadCert(data, ec);
+            SSL_CTX_load_verify_file(*this, path.c_str());
+            //std::vector<unsigned char> data;
+            //ec = readFile(path, data);
+            //if (!ec) 
+            //    loadCA(data, ec);
         }
     }
 
-    void OpenSSLContext::loadCert(span<u8> data, error_code& ec)
+    void OpenSSLContext::loadCA(span<u8> data, error_code& ec)
     {
         if (isInit() == false)
             ec = make_error_code(TLS_errc::ContextNotInit);
         else
-            ec = ssl_error_code(
+            std::terminate();
+        /*    ec = ssl_error_code(
                 SSL_CTX_load_verify_buffer(*this, data.data(), static_cast<long>(data.size()), SSL_FILETYPE_PEM));
+        */
     }
 
     void OpenSSLContext::loadKeyPairFile(std::string pkPath, std::string skPath, error_code& ec)
     {
-        if (isInit() == false) {
+        if (isInit() == false) 
             ec = make_error_code(TLS_errc::ContextNotInit);
-            return;
-        }
-        
-        std::vector<unsigned char> pk, sk;
-        ec = readFile(pkPath, pk);
-        if (ec) return;
-        ec = readFile(skPath, sk);
-        if (ec) return;
+        else if (SSL_CTX_use_PrivateKey_file(*this, pkPath.c_str(), SSL_FILETYPE_PEM) != 1)
+            ec = make_error_code(TLS_errc::Failure);
+        else if(SSL_CTX_use_certificate_chain_file(*this, skPath.c_str()) != 1)
+            ec = make_error_code(TLS_errc::Failure);
+        else if(SSL_CTX_check_private_key(*this) != 1)
+            ec = make_error_code(TLS_errc::Failure);
 
-        loadKeyPair(pk, sk, ec);
+        //std::vector<unsigned char> pk, sk;
+        //ec = readFile(pkPath, pk);
+        //if (ec) return;
+        //ec = readFile(skPath, sk);
+        //if (ec) return;
+        //loadKeyPair(pk, sk, ec);
     }
 
     void OpenSSLContext::loadKeyPair(span<u8> pk, span<u8> sk, error_code& ec)
@@ -133,13 +120,13 @@ namespace osuCrypto
             ec = make_error_code(TLS_errc::ContextNotInit);
             return;
         }
+        
+        //ec = ssl_error_code(
+        //    SSL_CTX_use_certificate_buffer(*this, pk.data(), static_cast<long>(pk.size()), SSL_FILETYPE_PEM));
+        //if (ec) return;
 
-        ec = ssl_error_code(
-            SSL_CTX_use_certificate_buffer(*this, pk.data(), static_cast<long>(pk.size()), SSL_FILETYPE_PEM));
-        if (ec) return;
-
-        ec = ssl_error_code(
-            SSL_CTX_use_PrivateKey_buffer(*this, sk.data(), static_cast<long>(sk.size()), SSL_FILETYPE_PEM));
+        //ec = ssl_error_code(
+        //    SSL_CTX_use_PrivateKey_buffer(*this, sk.data(), static_cast<long>(sk.size()), SSL_FILETYPE_PEM));
     }
 
     void OpenSSLContext::requestClientCert(error_code& ec)
@@ -155,6 +142,18 @@ namespace osuCrypto
         }
     }
 
+    void OpenSSLSocket::setBIO()
+    {
+        BIO_METHOD* bioMeth = BIO_meth_new(BIO_get_new_index(), "OpenSSLSocket");
+        BIO_meth_set_write(bioMeth, OpenSSLSocket::sendCallback);
+        BIO_meth_set_read(bioMeth, OpenSSLSocket::recvCallback);
+        BIO_meth_set_puts(bioMeth, OpenSSLSocket::putsCallback);
+        BIO_meth_set_ctrl(bioMeth, OpenSSLSocket::ctrlCallback);
+        mBio = BIO_new(bioMeth);
+        BIO_set_ex_data(mBio, 0, this);
+        SSL_set_bio(mSSL, mBio, mBio);
+    }
+
     OpenSSLSocket::OpenSSLSocket(boost::asio::io_context& ios, OpenSSLContext& ctx)
         : mSock(ios)
         , mStrand(ios.get_executor())
@@ -166,14 +165,62 @@ namespace osuCrypto
 #endif
         if (mSSL)
         {
-            SSL_SetIOWriteCtx(mSSL, this);
-            SSL_SetIOReadCtx(mSSL, this);
+            setBIO();
         }
         else
         {
             throw std::runtime_error("Context not init correctly.");
         }
     }
+
+    long osuCrypto::OpenSSLSocket::controlCB(int flag, long arg, void* v)
+    {
+        switch (flag)
+        {
+        case BIO_CTRL_RESET:// - Reset the BIO back to an initial state.
+            std::cout << "BIO_CTRL_RESET" << std::endl;
+            return 1; // success
+
+        case BIO_CTRL_EOF:// - return 0 if we are not at the end of input, non 0 if we are.
+            std::cout << "BIO_CTRL_EOF" << std::endl;
+            return 0; // no, it is not the eof.
+
+        case BIO_CTRL_INFO:// - BIO specific special command, normal information return.
+            std::cout << "BIO_CTRL_INFO " << std::endl;
+            return 0;// failure.
+
+        case BIO_CTRL_SET:// - set IO specific parameter.
+            std::cout << "BIO_CTRL_SET " << std::endl;
+            return 0;// failure.
+
+        case BIO_CTRL_GET:// - get IO specific parameter.
+            std::cout << "BIO_CTRL_GET" << std::endl;
+            return 0;// failure.
+
+        case BIO_CTRL_GET_CLOSE:// - Get the close on BIO_free() flag, one of BIO_CLOSE or BIO_NOCLOSE.
+            std::cout << "BIO_CTRL_GET_CLOSE" << std::endl;
+            return BIO_NOCLOSE;// we close on our own.
+
+        case BIO_CTRL_SET_CLOSE:// - Set the close on BIO_free() flag.
+            std::cout << "BIO_CTRL_SET_CLOSE" << std::endl;
+            return 1; //success
+
+        case BIO_CTRL_PENDING:// - Return the number of bytes available for instant reading
+            std::cout << "BIO_CTRL_PENDING" << std::endl;
+            return 0;
+
+        case BIO_CTRL_FLUSH: // - Output pending data, return number of bytes output.
+            std::cout << "BIO_CTRL_FLUSH" << std::endl;
+            return 0;
+
+        default:
+            std::cout << "unknown flag " << flag << std::endl;
+            std::terminate();
+        }
+
+        return 0;
+    }
+
 
     OpenSSLSocket::OpenSSLSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, OpenSSLContext& ctx)
         : mSock(std::move(sock))
@@ -184,8 +231,7 @@ namespace osuCrypto
 #ifdef SSL_LOGGING
         setLog(mLog_);
 #endif
-        SSL_SetIOWriteCtx(mSSL, this);
-        SSL_SetIOReadCtx(mSSL, this);
+        setBIO();
     }
 
     void OpenSSLSocket::close()
@@ -199,7 +245,11 @@ namespace osuCrypto
     {
         LOG("OpenSSLSocket::cancel()");
         boost::system::error_code ec;
+#ifdef _MSC_VER
+        mSock.close(ec);
+#else
         mSock.cancel(ec);
+#endif
     }
 
     void OpenSSLSocket::send(
@@ -349,12 +399,12 @@ namespace osuCrypto
                 }
             );
 
-            return SSL_CBIO_ERR_WANT_WRITE;
+            return -1;
         }
         else
         {
             if (mSendEC)
-                return SSL_CBIO_ERR_GENERAL;
+                return -1;
             assert(mState.mPendingSendBuf.data() == buf && mState.mPendingSendBuf.size() == size);
             mState.mPendingSendBuf = {};
             return size;
@@ -409,8 +459,9 @@ namespace osuCrypto
 
     void osuCrypto::OpenSSLSocket::setDHParam(span<u8> data, error_code& ec)
     {
-        ec = ssl_error_code(
-            SSL_SetTmpDH_buffer(mSSL, data.data(), static_cast<long>(data.size()), SSL_FILETYPE_PEM));
+        std::terminate();
+        //ec = ssl_error_code(
+        //    SSL_SetTmpDH_buffer(mSSL, data.data(), static_cast<long>(data.size()), SSL_FILETYPE_PEM));
     }
 
     OpenSSLCertX509 osuCrypto::OpenSSLSocket::getCert()
@@ -535,12 +586,12 @@ namespace osuCrypto
                 );
                 }
             );
-            return SSL_CBIO_ERR_WANT_READ;
+            return -1;
         }
         else
         {
             if (mRecvEC)
-                return SSL_CBIO_ERR_GENERAL;
+                return -1;
             assert(mState.mPendingRecvBuf.data() == buf && mState.mPendingRecvBuf.size() == size);
             mState.mPendingRecvBuf = {};
             return size;
@@ -579,7 +630,9 @@ namespace osuCrypto
             }
             else
             {
+                int SSL_SUCCESS = 1;
                 int ret, err = 0;
+
                 ret = SSL_connect(mSSL);
                 if (ret != SSL_SUCCESS)
                     err = SSL_get_error(mSSL, 0);
@@ -596,12 +649,12 @@ namespace osuCrypto
 
                     if (mSendEC)
                     {
-                        assert(err == SOCKET_ERROR_E);
+                        //assert(err == SOCKET_ERROR_E);
                         mSetupEC = mSendEC;
                     }
                     else if (mRecvEC)
                     {
-                        assert(err == SOCKET_ERROR_E);
+                        //assert(err == SOCKET_ERROR_E);
                         mSetupEC = mRecvEC;
                     }
                     else
@@ -659,6 +712,7 @@ namespace osuCrypto
             }
             else
             {
+                int SSL_SUCCESS = 1;
                 int ret, err = 0;
                 ret = SSL_accept(mSSL);
                 if (ret != SSL_SUCCESS)
@@ -675,12 +729,12 @@ namespace osuCrypto
                 {
                     if (mSendEC)
                     {
-                        assert(err == SOCKET_ERROR_E);
+                        //assert(err == SOCKET_ERROR_E);
                         mSetupEC = mSendEC;
                     }
                     else if (mRecvEC)
                     {
-                        assert(err == SOCKET_ERROR_E);
+                        //assert(err == SOCKET_ERROR_E);
                         mSetupEC = mRecvEC;
                     }
                     else

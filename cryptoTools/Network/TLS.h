@@ -88,7 +88,7 @@ namespace { // anonymous namespace
         }
     };
 
-    const OpenSSLErrCategory WolfSSLCategory{};
+    const OpenSSLErrCategory OpenSSLCategory{};
 
 
     struct TLSErrCategory : boost::system::error_category
@@ -164,7 +164,7 @@ namespace osuCrypto
 
         struct Base
         {
-            SSL_METHOD* mMethod = nullptr;
+            const SSL_METHOD* mMethod = nullptr;
             SSL_CTX* mCtx = nullptr;
             Mode mMode = Mode::Client;
 
@@ -177,8 +177,8 @@ namespace osuCrypto
 
         void init(Mode mode, error_code& ec);
 
-        void loadCertFile(std::string path, error_code& ec);
-        void loadCert(span<u8> data, error_code& ec);
+        void loadCAFile(std::string path, error_code& ec);
+        void loadCA(span<u8> data, error_code& ec);
 
         void loadKeyPairFile(std::string pkPath, std::string skPath, error_code& ec);
         void loadKeyPair(span<u8> pkData, span<u8> skData, error_code& ec);
@@ -213,7 +213,7 @@ namespace osuCrypto
 
     struct OpenSSLCertX509
     {
-        SSL_X509* mCert = nullptr;
+        X509* mCert = nullptr;
 
         std::string commonName()
         {
@@ -250,6 +250,9 @@ namespace osuCrypto
         boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
         boost::asio::io_context& mIos;
         SSL* mSSL = nullptr;
+        BIO* mBio = nullptr;
+        void setBIO();
+
 #ifdef WOLFSSL_LOGGING
         oc::Log mLog_;
 #endif
@@ -278,7 +281,7 @@ namespace osuCrypto
         State mState;
 
         OpenSSLSocket(boost::asio::io_context& ios, OpenSSLContext& ctx);
-        OpenSSLSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, WolfContext& ctx);
+        OpenSSLSocket(boost::asio::io_context& ios, boost::asio::ip::tcp::socket&& sock, TLSContext& ctx);
 
         OpenSSLSocket(OpenSSLSocket&&) = delete;
         OpenSSLSocket(const OpenSSLSocket&) = delete;
@@ -332,7 +335,7 @@ namespace osuCrypto
         void recvNext();
 
         int sslRquestRecvCB(char* buf, int size);
-
+        long controlCB(int i, long l, void* v);
 
         void connect(error_code& ec);
         void async_connect(completion_handle&& cb) override;
@@ -346,20 +349,36 @@ namespace osuCrypto
         void LOG(std::string X);
 #endif
 
-        static int recvCallback(SSL* ssl, char* buf, int size, void* ctx)
+        static int recvCallback(BIO* ssl, char* buf, int size)
         {
+            auto ctx = BIO_get_ex_data(ssl, 0);
             //lout << "in recv cb with " << std::hex << u64(ctx) << std::endl;
             OpenSSLSocket& sock = *(OpenSSLSocket*)ctx;
-            assert(sock.mSSL == ssl);
+            assert(sock.mBio == ssl);
             return sock.sslRquestRecvCB(buf, size);
         }
 
-        static int sendCallback(SSL* ssl, char* buf, int size, void* ctx)
+        static int sendCallback(BIO* ssl, const char* buf, int size)
         {
+            auto ctx = BIO_get_ex_data(ssl, 0);
             //lout << "in send cb with " << std::hex << u64(ctx) << std::endl;
             OpenSSLSocket& sock = *(OpenSSLSocket*)ctx;
-            assert(sock.mSSL == ssl);
-            return sock.sslRquestSendCB(buf, size);
+            assert(sock.mBio == ssl);
+            return sock.sslRquestSendCB((char*)buf, size);
+        }
+
+        static int putsCallback(BIO* ssl, const char* buf)
+        {
+            return sendCallback(ssl, buf, strlen(buf));
+        }
+
+        static long ctrlCallback(BIO* ssl, int i, long l, void* v)
+        {
+            auto ctx = BIO_get_ex_data(ssl, 0);
+            //lout << "in send cb with " << std::hex << u64(ctx) << std::endl;
+            OpenSSLSocket& sock = *(OpenSSLSocket*)ctx;
+            assert(sock.mBio == ssl);
+            return sock.controlCB(i,l,v);
         }
     };
 

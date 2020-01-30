@@ -402,7 +402,7 @@ void networkTutorial()
         sctx.requestClientCert(ec);
 
         // Load the CA's that we should respect.
-        sctx.loadCert(sample_ca_cert_pem, ec);
+        sctx.loadCA(sample_ca_cert_pem, ec);
 
         // Also see.
         //sctx.loadCertFile("path/to/ca.pem", ec);
@@ -415,7 +415,7 @@ void networkTutorial()
 
         // Similar for the server. Except we can't call requestClientCert(...);
         cctx.init(TLSContext::Mode::Client, ec);
-        cctx.loadCert(sample_ca_cert_pem, ec);
+        cctx.loadCA(sample_ca_cert_pem, ec);
         cctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
 
         // In general you should check the error_code output parmeter...

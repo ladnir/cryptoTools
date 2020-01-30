@@ -45,7 +45,7 @@
     <ClInclude Include="REcc_Tests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WolfSSL_Tests.h">
+    <ClInclude Include="OpenSSL_Tests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -83,7 +83,7 @@
     <ClCompile Include="Circuit_aes_Tests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WolfSSL_Tests.cpp">
+    <ClCompile Include="OpenSSL_Tests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
