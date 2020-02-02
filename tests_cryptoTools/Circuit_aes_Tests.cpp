@@ -264,7 +264,7 @@ struct ByteBlock
             throw RTE_LOC;
 
         auto s = bv.getSpan<u8>();
-        for (u64 i = 0; i < s.size(); ++i)
+        for (u64 i = 0; i < static_cast<u64>(s.size()); ++i)
             a[i] = s[i];
 
     }
@@ -699,13 +699,13 @@ ByteBlock AddRoundKey(ByteBlock buf, ByteBlock key)
 
 ByteBlock fAES(ByteBlock text, span<ByteBlock> keyEx)
 {
-    auto  Nr = keyEx.size() - 1;
+    u64  Nr = static_cast<u64>(keyEx.size() - 1);
     ByteBlock buff;
     buff = AddRoundKey(text, keyEx[0]);
 
     //std::cout << 0 << " ";
     //print(buff);
-    auto pp = 1;
+    //auto pp = 1;
     for (u64 i = 1; i < Nr; i++)
     {
         buff = SubBytes(buff);
@@ -945,7 +945,7 @@ void print(state_t& state)
 void fAES(state_t& state, span<state_t> RoundKey)
 {
     u64 round = 0;
-    auto Nr = RoundKey.size() - 1;
+    auto Nr = static_cast<u64>(RoundKey.size() - 1);
 
     print(state);
 

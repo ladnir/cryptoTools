@@ -314,12 +314,12 @@ namespace osuCrypto
     {
         std::vector<u8> mem(mWireCount), outOfDate(mWireCount, 0);
 
-        if (input.size() != mInputs.size())
+        if (static_cast<u64>(input.size()) != mInputs.size())
         {
             throw std::runtime_error(LOCATION);
         }
 
-        for (u64 i = 0; i < input.size(); ++i)
+        for (u64 i = 0; i < static_cast<u64>(input.size()); ++i)
         {
             if (input[i].size() != mInputs[i].mWires.size())
                 throw std::runtime_error(LOCATION);
@@ -344,7 +344,7 @@ namespace osuCrypto
                 auto str = std::get<2>(*iter);
                 auto invert = std::get<3>(*iter);
 
-                if (wireIdx != -1)
+                if (wireIdx != static_cast<u32>(~0))
                     std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
                 if (str.size())
                     std::cout << str;
@@ -405,7 +405,7 @@ namespace osuCrypto
             auto str = std::get<2>(*iter);
             auto invert = std::get<3>(*iter);
 
-            if (wireIdx != -1)
+            if (wireIdx != ~u32(0))
                 std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
             if (str.size())
                 std::cout << str;
@@ -414,12 +414,12 @@ namespace osuCrypto
         }
 
 
-        if (output.size() != mOutputs.size())
+        if (static_cast<u64>(output.size()) != mOutputs.size())
         {
             throw std::runtime_error(LOCATION);
         }
 
-        for (u64 i = 0; i < output.size(); ++i)
+        for (u64 i = 0; i < static_cast<u64>(output.size()); ++i)
         {
             if (output[i].size() != mOutputs[i].mWires.size())
                 throw std::runtime_error(LOCATION);
@@ -560,13 +560,13 @@ namespace osuCrypto
 
     //}
 
-    u64 hash(const BetaGate& gate)
-    {
-        static_assert(sizeof(BetaGate) == sizeof(block), "");
+    //u64 hash(const BetaGate& gate)
+    //{
+    //    static_assert(sizeof(BetaGate) == sizeof(block), "");
 
-        auto b = mAesFixedKey.ecbEncBlock(*(block*)& gate);
-        return *(u64*)&b;
-    }
+    //    auto b = mAesFixedKey.ecbEncBlock(*(block*)& gate);
+    //    return *(u64*)&b;
+    //}
 
     void BetaCircuit::levelByAndDepth()
     {
@@ -638,7 +638,7 @@ namespace osuCrypto
                     curNode.mDepth = std::max(curNode.mDepth, inNode.mDepth);
             }
 
-            if (curNode.mDepth >= mLevelCounts.size())
+            if (static_cast<u64>(curNode.mDepth) >= mLevelCounts.size())
             {
                 mLevelCounts.resize(curNode.mDepth + 1, 0);
                 mLevelAndCounts.resize(curNode.mDepth + 1, 0);
@@ -720,12 +720,12 @@ namespace osuCrypto
 
         std::vector<BetaGate> sortedGates(mGates.size());
 
-        u64 ii = 0;
+        //u64 ii = 0;
         auto iter = sortedGates.begin();
         for (auto& level : nodesByLevel)
         {
             //std::cout << "level " << ii++ << ": " << std::endl;
-            u64 jj = 0;
+            //u64 jj = 0;
             for (auto& node : level)
             {
                 *iter = node->mGate;
@@ -1138,7 +1138,7 @@ namespace osuCrypto
         auto numOut = 0ull;
         for (auto o : mOutputs)
             numOut += o.size();
-        auto internalCount = mWireCount - inputCount - numOut;
+        //auto internalCount = mWireCount - inputCount - numOut;
 
 
         std::list<GateNode> nodes;

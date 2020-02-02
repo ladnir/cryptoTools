@@ -1,7 +1,4 @@
-if(${CMAKE_VERSION} VERSION_LESS "3.12.0") 
-    message("Please consider updating CMake to 3.12+")
-endif()
-cmake_minimum_required (VERSION 3.4)
+cmake_minimum_required (VERSION 2.8)
 
 project(cryptoTools)
 
@@ -11,6 +8,10 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	############################################
 	#          If top level cmake              #
 	############################################
+
+	if(${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+		message("Please consider updating CMake to 3.12+")
+	endif()
 
 	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
@@ -37,7 +38,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb")
 	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb")
 	
-	
 endif() 
 
 
@@ -48,7 +48,6 @@ endif()
 #############################################
 find_program(NASM nasm)
 
-
 option(ENABLE_MIRACL    "use the miracl library" OFF)
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
@@ -58,13 +57,19 @@ option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
+# make these visable to the parent scope
+set(ENABLE_MIRACL ${ENABLE_MIRACL} PARENT_SCOPE)
+set(ENABLE_RELIC  ${ENABLE_RELIC}  PARENT_SCOPE)
+
+message(STATUS "cryptoTools options\n=======================================================")
+
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
-message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
+#message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
-message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
+message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}\n\n")
 
 if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")

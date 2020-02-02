@@ -408,7 +408,7 @@ void BetaCircuit_uint_Adder_Test()
 
         cir->evaluate(inputs, output);
 
-        i64 cc = 0;
+        u64 cc = 0;
         memcpy(&cc, output[0].data(), output[0].sizeBytes());
 
         if (cc != c)

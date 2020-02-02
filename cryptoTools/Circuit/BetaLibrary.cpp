@@ -910,7 +910,7 @@ namespace osuCrypto
             //cd.addPrint(PP);
 
             // 1,2,4,8,16,32,64,...
-            auto startPos = 1 << level;
+            auto startPos = u64(1) << level;
             auto step = 1 << (level + 1);
 
             bool first = true;
@@ -1293,7 +1293,7 @@ namespace osuCrypto
 
                 const BetaWire& bi = b.mWires[std::min<u64>(i, b.mWires.size() - 1)];
 
-                u64 prev = cd.mNonlinearGateCount;
+                //u64 prev = cd.mNonlinearGateCount;
                 // compute the AND between b[i] * a[j].
                 for (u64 j = 0; j < rows[i].mWires.size(); ++j)
                 {
@@ -1351,7 +1351,7 @@ namespace osuCrypto
                         }
                     }
 
-                    u64 prev = cd.mNonlinearGateCount;
+                    //u64 prev = cd.mNonlinearGateCount;
 
                     if (useTwoComplement)
                         int_int_add_build_so(cd, rows[i - 1], rows[i], sum, additonTemp);
@@ -1542,7 +1542,7 @@ namespace osuCrypto
             //partialrem.push_back(remainder);
             //auto doSubtract = remainder >= a2;
             doSubtract.mWires[0] = quotient.mWires[i];
-            u64 prev = cd.mNonlinearGateCount;
+            //u64 prev = cd.mNonlinearGateCount;
 
             uint_uint_gteq_build(cd, remainder, a2, doSubtract);
 

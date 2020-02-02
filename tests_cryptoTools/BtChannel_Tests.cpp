@@ -273,7 +273,7 @@ namespace tests_cryptoTools
         IOService ioService(1);
         auto tls = getIfTLS(cmd);
 
-        auto trials = 1;
+        u64 trials = 1;
         Session s1, c1;
         Channel chs1, chs2, chc1, chc2;
 
