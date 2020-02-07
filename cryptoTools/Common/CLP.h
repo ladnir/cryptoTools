@@ -79,7 +79,7 @@ namespace osuCrypto
         T get(const std::string& name)const
         {
             if (hasValue(name) == false)
-                throwError(span<const std::string>(&name, 1));
+                throw error(span<const std::string>(&name, 1));
 
             std::stringstream ss;
             ss << *mKeyValues.at(name).begin();
@@ -107,10 +107,10 @@ namespace osuCrypto
             return alternative;
         }
 
-        void throwError(span<const std::string> names) const
+        CommandLineParserError error(span<const std::string> names) const
         {
             if (names.size() == 0)
-                throw CommandLineParserError("No tags provided.");
+                return CommandLineParserError("No tags provided.");
             else
             {
                 std::stringstream ss;
@@ -119,7 +119,7 @@ namespace osuCrypto
                     ss << ", " << names[i];
                 ss << " }";
 
-                throw CommandLineParserError("No values were set for tags " + ss.str());
+                return CommandLineParserError("No values were set for tags " + ss.str());
             }
         }
 
@@ -135,7 +135,8 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throwError(span<const std::string>(names.data(), names.size()));
+            throw error(span<const std::string>(names.data(), names.size()));
+
         }
 
         // Return the values associated with the key.
@@ -189,7 +190,7 @@ namespace osuCrypto
             if (failMessage != "")
                 std::cout << failMessage << std::endl;
 
-            throwError(span<const std::string>(names.data(), names.size()));
+            throw error(span<const std::string>(names.data(), names.size()));
         }
     };
 }
