@@ -11,6 +11,26 @@ extern "C" {
 #if !defined(GSL_UNLIKELY)
 #define GSL_UNLIKELY(x) x
 #endif
+
+#ifndef RLC_EQ
+#define RLC_EQ CMP_EQ
+#endif
+#ifndef RLC_LT
+#define RLC_LT CMP_LT
+#endif
+#ifndef RLC_GT
+#define RLC_GT CMP_GT
+#endif
+#ifndef RLC_FP_BYTES
+#define RLC_FP_BYTES FP_BYTES
+#endif
+#ifndef RLC_FP_BYTES
+#define RLC_FP_BYTES FP_BYTES
+#endif
+#ifndef RLC_BN_SIZE
+#define RLC_BN_SIZE BN_SIZE
+#endif
+
 namespace osuCrypto
 {
 
@@ -237,12 +257,12 @@ namespace osuCrypto
 
     bool REccNumber::operator==(const REccNumber & cmp) const
     {
-        return bn_cmp(*this, cmp) == CMP_EQ;
+        return bn_cmp(*this, cmp) == RLC_EQ;
     }
 
     bool REccNumber::operator==(const int & cmp) const
     {
-        return bn_cmp_dig(*this, cmp) == CMP_EQ;
+        return bn_cmp_dig(*this, cmp) == RLC_EQ;
     }
 
     bool REccNumber::operator!=(const REccNumber & cmp) const
@@ -257,12 +277,12 @@ namespace osuCrypto
 
     bool REccNumber::operator>=(const REccNumber & cmp) const
     {
-        return  bn_cmp(*this, cmp) != CMP_LT;
+        return  bn_cmp(*this, cmp) != RLC_LT;
     }
 
     bool REccNumber::operator>=(const int & cmp) const
     {
-        return bn_cmp_dig(*this, cmp) != CMP_LT;
+        return bn_cmp_dig(*this, cmp) != RLC_LT;
     }
 
     bool REccNumber::operator<=(const REccNumber & cmp) const
@@ -270,19 +290,20 @@ namespace osuCrypto
         return cmp >= *this;
     }
 
+
     bool REccNumber::operator<=(const int & cmp) const
     {
-        return bn_cmp_dig(*this, cmp) != CMP_GT;
+        return bn_cmp_dig(*this, cmp) != RLC_GT;
     }
 
     bool REccNumber::operator>(const REccNumber & cmp) const
     {
-        return bn_cmp(*this, cmp) == CMP_GT;
+        return bn_cmp(*this, cmp) == RLC_GT;
     }
 
     bool REccNumber::operator>(const int & cmp) const
     {
-        return bn_cmp_dig(*this, cmp) == CMP_GT;
+        return bn_cmp_dig(*this, cmp) == RLC_GT;
     }
 
     bool REccNumber::operator<(const REccNumber & cmp) const
@@ -292,7 +313,7 @@ namespace osuCrypto
 
     bool REccNumber::operator<(const int & cmp) const
     {
-        return bn_cmp_dig(*this, cmp) == CMP_LT;
+        return bn_cmp_dig(*this, cmp) == RLC_LT;
     }
 
     bool REccNumber::isPrime() const
@@ -432,13 +453,14 @@ namespace osuCrypto
         out << str;
         return out;
     }
+    
     std::ostream & operator<<(std::ostream & out, const REccPoint & val)
     {
         auto radix = 16;
 
         auto print = [radix](std::ostream& out, const fp_t& c) {
 
-            std::string buff(FP_BYTES * 2 + 1, ' ');
+            std::string buff(RLC_FP_BYTES * 2 + 1, ' ');
 
             if (i64(buff.size()) < i64(fp_size_str(c, radix)))
             {
@@ -581,17 +603,17 @@ namespace osuCrypto
 
     bool REccPoint::operator==(const REccPoint & cmp) const
     {
-        return ep_cmp(*this, cmp) == CMP_EQ;
+        return ep_cmp(*this, cmp) == RLC_EQ;
     }
 
     bool REccPoint::operator!=(const REccPoint & cmp) const
     {
-        return ep_cmp(*this, cmp) != CMP_EQ;
+        return ep_cmp(*this, cmp) != RLC_EQ;
     }
 
     u64 REccPoint::sizeBytes() const
     {
-        return 1 + FP_BYTES;
+        return 1 + RLC_FP_BYTES;
     }
 
     void REccPoint::toBytes(u8 * dest) const
@@ -662,7 +684,7 @@ namespace osuCrypto
 
     void REccNumber::randomize(PRNG & prng)
     { 
-        std::array<u8, BN_SIZE * sizeof(dig_t)> buff;
+        std::array<u8, RLC_BN_SIZE * sizeof(dig_t)> buff;
         prng.get(buff.data(), sizeBytes());
         fromBytes(buff.data());
         reduce();
