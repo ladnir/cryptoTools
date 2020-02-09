@@ -983,7 +983,7 @@ void BetaCircuit_aes_test()
     //BetaCircuit_aes_shiftRows_test();
     //BetaCircuit_aes_mixColumns_test();
 
-    std::cout << "\n";
+    //std::cout << "\n";
     //return;
 
     auto keySize = 11;
