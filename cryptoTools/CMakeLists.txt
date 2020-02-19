@@ -64,11 +64,11 @@ if (ENABLE_RELIC)
     message(FATAL_ERROR "Failed to find Relic")
   endif (NOT Relic_FOUND)
 
-  message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES}")
-  message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR}\n")
+  message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES} ${RLC_LIBRARY}")
+  message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}\n")
 
-  target_include_directories(cryptoTools PUBLIC ${RELIC_INCLUDE_DIR}) 
-  target_link_libraries(cryptoTools ${RELIC_LIBRARIES})
+  target_include_directories(cryptoTools PUBLIC ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}) 
+  target_link_libraries(cryptoTools ${RELIC_LIBRARIES} ${RLC_LIBRARY})
 
 endif (ENABLE_RELIC)
 
