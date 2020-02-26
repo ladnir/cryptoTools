@@ -87,7 +87,9 @@ namespace osuCrypto
 
         void workUntil(std::future<void>& fut);
 
-
+        operator boost::asio::io_context&() {
+            return mIoService;
+        }
 
         bool mPrint = true;
     }; 

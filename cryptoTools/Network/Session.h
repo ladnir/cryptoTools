@@ -18,7 +18,6 @@ namespace osuCrypto {
     class ChannelBase;
 	struct SessionBase;
 
-    enum class SessionMode :  bool { Client, Server };
 	typedef SessionMode EpMode;
 
     class Session

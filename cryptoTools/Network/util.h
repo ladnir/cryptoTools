@@ -312,5 +312,6 @@ namespace osuCrypto
 
 
 
+    enum class SessionMode : bool { Client, Server };
 
 }

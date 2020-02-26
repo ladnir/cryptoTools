@@ -3,6 +3,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include "IoBuffer.h"
 #include <iostream>
+#include "util.h"
 
 namespace osuCrypto
 {
@@ -142,6 +143,135 @@ namespace osuCrypto
         }
     };
 
+
+    class FifoSocket : public SocketInterface {
+    public:
+        FifoSocket() = delete;
+        FifoSocket(const FifoSocket&) = delete;
+        FifoSocket(FifoSocket&&) = delete;
+
+#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+        typedef boost::asio::posix::stream_descriptor stream_descriptor;
+#else // BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+        typedef boost::asio::windows::stream_handle stream_descriptor;
+#endif // BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+
+
+        stream_descriptor mHandle;
+
+        static void removeFifo(std::string name)
+        {
+            std::remove(name.c_str());
+        }
+
+        static void createFifo(std::string name)
+        {
+#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+            auto ret = mkfifo(name.c_str(), 0666);
+            if (ret)
+            {
+                switch (errno)
+                {
+
+                case EACCES:
+                    throw std::runtime_error("FifoSocket : One of the directories in pathname did not allow search(execute) permission.");
+                case EDQUOT:
+                    throw std::runtime_error("FifoSocket : The user's quota of disk blocks or inodes on the file system has been exhausted. ");
+                case EEXIST:
+                    throw std::runtime_error("FifoSocket : pathname already exists.This includes the case where pathname is a symbolic link, dangling or not.");
+                case ENAMETOOLONG:
+                    throw std::runtime_error("FifoSocket : Either the total length of pathname is greater than PATH_MAX, or an individual filename component has a length greater than NAME_MAX.In the GNU system, there is no imposed limit on overall filename length, but some file systems may place limits on the length of a component.");
+                case ENOENT:
+                    throw std::runtime_error("FifoSocket : A directory component in pathname does not exist or is a dangling symbolic link.");
+                case ENOSPC:
+                    throw std::runtime_error("FifoSocket : The directory or file system has no room for the new file.");
+                case ENOTDIR:
+                    throw std::runtime_error("FifoSocket : A component used as a directory in pathname is not, in fact, a directory.");
+                case EROFS:
+                    throw std::runtime_error("FifoSocket : pathname refers to a read - only file system.");
+                default:
+                    throw std::runtime_error("FifoSocket : mkfifo failed with errno:" + std::to_string(errno));
+                }
+            }
+#else
+            throw std::runtime_error("Fifo on windows is not implemented");
+#endif
+        }
+
+
+        FifoSocket(boost::asio::io_context& ios, std::string name, SessionMode mode)
+            :mHandle(ios)
+        {
+#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+            auto fd = open(name.c_str(), O_RDWR);
+
+            if (fd == -1)
+                throw std::runtime_error("failed to open file: " + name);
+
+            mHandle.assign(fd);
+#else
+            throw std::runtime_error("Fifo on windows is not implemented");
+            //auto iter = std::find(name.begin(), name.end(), '\\');
+            //if (iter != name.end())
+            //    throw std::runtime_error("on windows name can not caintain backslash.");
+            //name = "\\\\.\\pipe\\" + name;
+
+            //stream_descriptor::native_handle_type fd;
+            //if (mode == SessionMode::Server)
+            //{
+            //    fd = CreateNamedPipe(
+            //        name.c_str(), 
+            //        PIPE_ACCESS_DUPLEX, 
+            //        PIPE_TYPE_BYTE | PIPE_NOWAIT, 
+            //        1, 
+            //        1 << 20, 
+            //        1 << 20, 
+            //        1000, 
+            //        nullptr);
+
+            //    auto success = ConnectNamedPipe(fd, nullptr);
+
+            //    if (success == false)
+            //        throw std::runtime_error("failed to connect to named pipe.");
+            //}
+            //else
+            //{
+            //    auto success = CallNamedPipe(name.c_str(), inBuffSize, outBuffSize, )
+            //}
+#endif
+        }
+
+
+        // This party has requested some data. Write the data
+        // if we currently have it. Otherwise we will store the
+        // request and fulfill is when the data arrives.
+        void async_recv(
+            span<boost::asio::mutable_buffer> buffers,
+            io_completion_handle&& fn) override
+        {
+            boost::asio::async_read(
+                mHandle,
+                buffers,
+                std::forward<io_completion_handle>(fn));
+        }
+
+        // This party has requested us to send some data.
+        // We will write this data to the buffer and then
+        // check to see if the other party has an outstanding
+        // recv request. If so we will try and fulfill it.
+        // Finally we call our own callback saying that the
+        // data has been sent.
+        void async_send(
+            span<boost::asio::mutable_buffer> buffers,
+            io_completion_handle&& fn) override
+        {
+            boost::asio::async_write(
+                mHandle,
+                buffers,
+                std::forward<io_completion_handle>(fn));
+        }
+
+    };
 
 
     class BoostSocketInterface : public SocketInterface
