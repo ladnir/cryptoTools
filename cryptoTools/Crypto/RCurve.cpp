@@ -31,6 +31,11 @@ extern "C" {
 #define RLC_BN_SIZE BN_SIZE
 #endif
 
+#if (MULTI != PTHREAD) && (MULTI != OPENMP)
+#pragma error("Relic must be built with -DMULTI=PTHREAD or -DMULTI=OPENMP")
+#endif
+
+
 namespace osuCrypto
 {
 
@@ -551,14 +556,15 @@ namespace osuCrypto
     REllipticCurve::REllipticCurve()
     {
         if (core_get() == nullptr)
+        {
             core_init();
+            if (GSL_UNLIKELY(err_get_code()))
+                throw std::runtime_error("Relic core init error " LOCATION);
 
-        if (GSL_UNLIKELY(err_get_code()))
-            throw std::runtime_error("Relic core init error " LOCATION);
-
-        ep_param_set_any();
-        if (GSL_UNLIKELY(err_get_code()))
-            throw std::runtime_error("Relic set any error " LOCATION);
+            ep_param_set_any();
+            if (GSL_UNLIKELY(err_get_code()))
+                throw std::runtime_error("Relic set any error " LOCATION);
+        }
     }
 
     REllipticCurve::Point REllipticCurve::getGenerator() const
@@ -735,11 +741,12 @@ namespace osuCrypto
 
     void REccNumber::randomize(PRNG& prng)
     {
-        std::array<u8, RLC_BN_SIZE * sizeof(dig_t)> buff;
-        prng.get(buff.data(), sizeBytes());
-        fromBytes(buff.data());
+        std::vector<u8> buff(sizeBytes() + 5);
+        prng.get(buff.data(), buff.size());
+        bn_read_bin(*this, buff.data(), buff.size());
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic randomize error " LOCATION);
         reduce();
-
     }
 
     void REccNumber::randomize(const block& seed)
