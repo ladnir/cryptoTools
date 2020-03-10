@@ -162,7 +162,9 @@ namespace osuCrypto
         u64 sizeBytes() const;
         void toBytes(u8* dest) const;
         void fromBytes(u8* src);
-        //void fromHex(char* x, char* y);
+
+        bool iszero() const;
+            //void fromHex(char* x, char* y);
         //void fromDec(char* x, char* y);
         //void fromNum(REccNumber& x, REccNumber& y);
 

@@ -159,9 +159,50 @@ namespace tests_cryptoTools
             if (a != c / b)
                 throw UnitTestFail(LOCATION);
 
-
-
         }
+
+        {
+            REllipticCurve curve;
+
+
+            for (i32 i = 1; i < 10; ++i)
+            {
+                if (REccNumber(-i) * (i + 10) != -(i * (i + 10)))
+                    throw UnitTestFail(LOCATION);
+
+                if (REccNumber(-i) <= i)
+                    throw UnitTestFail(LOCATION);
+
+                if (REccNumber(-1) < i)
+                    throw UnitTestFail(LOCATION);
+
+                if((REccNumber(0) += i) != i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) -= i) != -i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) += -i) != -i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) -= -i) != i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) + i) != i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) - i) != -i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) + -i) != -i)
+                    throw UnitTestFail(LOCATION);
+
+                if ((REccNumber(0) - -i) != i)
+                    throw UnitTestFail(LOCATION);
+
+            }
+        }
+
     }
 
 
