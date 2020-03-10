@@ -38,7 +38,7 @@ namespace tests_cryptoTools
             error_code ec;
             ctx.init(TLSContext::Mode::Both, ec);
             if (!ec) ctx.requestClientCert(ec);
-            if (!ec) ctx.loadCA(sample_ca_cert_pem, ec);
+            if (!ec) ctx.loadCert(sample_ca_cert_pem, ec);
             if (!ec) ctx.loadKeyPair(sample_server_cert_pem, sample_server_key_pem, ec);
             if (ec)
                 throw std::runtime_error(ec.message());
