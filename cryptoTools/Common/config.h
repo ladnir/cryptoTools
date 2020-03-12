@@ -5,7 +5,7 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-/* #undef ENABLE_RELIC */
+#define ENABLE_RELIC ON 
 
 // compile the circuit library
 /* #undef ENABLE_CIRCUITS */
@@ -25,3 +25,15 @@
 
 // enable the wolf ssl socket layer.
 /* #undef ENABLE_WOLFSSL */
+
+// enable the use of intel SSE instructions.
+//#define ENABLE_SSE
+
+// enable the use of the portable AES implementation.
+/* #undef ENABLE_PORTABLE_AES */
+
+#ifdef ENABLE_SSE
+#define ENABLE_SSE_BLAKE2 ON
+#elif !defined(ENABLE_PORTABLE_AES)
+#define ENABLE_PORTABLE_AES ON
+#endif

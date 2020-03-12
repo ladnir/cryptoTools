@@ -743,7 +743,7 @@ namespace osuCrypto
     {
         std::vector<u8> buff(sizeBytes() + 5);
         prng.get(buff.data(), buff.size());
-        bn_read_bin(*this, buff.data(), buff.size());
+        bn_read_bin(*this, buff.data(), static_cast<int>(buff.size()));
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic randomize error " LOCATION);
         reduce();

@@ -81,24 +81,6 @@
     <ClInclude Include="Network\Endpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2b-load-sse2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2b-load-sse41.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2b-round.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2-config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Blake2\blake2-impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Crypto\Blake2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -126,10 +108,37 @@
     <ClInclude Include="Crypto\RCurve.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\config.h">
+    <ClInclude Include="Network\TLS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network\TLS.h">
+    <ClInclude Include="Common\block.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2b-load-sse2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2b-load-sse41.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2b-round.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2-config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\sse\blake2-impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\c\blake2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\blake2\c\blake2-impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -170,15 +179,6 @@
     <ClCompile Include="Network\Session.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Crypto\blake2\blake2xb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\blake2\blake2bp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\blake2\blake2b.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Crypto\Blake2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -198,6 +198,36 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Network\TLS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\block.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\sse\blake2b.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\sse\blake2bp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\sse\blake2xb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2s-ref.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2xb-ref.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2xs-ref.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2bp-ref.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2b-ref.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\blake2\c\blake2sp-ref.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -532,8 +532,8 @@ namespace tests_cryptoTools
     void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd)
     {
 
-        std::array<Channel, 2> chls;
         IOService ios;
+        std::array<Channel, 2> chls;
 
         auto go = [&](int idx)
         {
@@ -750,8 +750,8 @@ namespace tests_cryptoTools
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_CrossConnect_Test);
     void BtNetwork_CrossConnect_Test(const CLP& cmd)
     {
-        const block send = _mm_set_epi64x(123412156, 123546);
-        const block recv = _mm_set_epi64x(7654333, 8765433);
+        const block send = toBlock(123412156, 123546);
+        const block recv = toBlock(7654333, 8765433);
         auto tls = getIfTLS(cmd);
 
         auto thrd = std::thread([&]() {

@@ -12,6 +12,10 @@
    More information about the BLAKE2 hash function can be found at
    https://blake2.net.
 */
+#include "cryptoTools/Common/config.h"
+
+#ifndef ENABLE_BLAKE2_SSE
+
 #ifndef BLAKE2_IMPL_H
 #define BLAKE2_IMPL_H
 
@@ -72,8 +76,8 @@ static BLAKE2_INLINE uint16_t load16( const void *src )
   return w;
 #else
   const uint8_t *p = ( const uint8_t * )src;
-  return (( uint16_t )( p[0] ) <<  0) |
-         (( uint16_t )( p[1] ) <<  8) ;
+  return ( uint16_t )((( uint32_t )( p[0] ) <<  0) |
+                      (( uint32_t )( p[1] ) <<  8));
 #endif
 }
 
@@ -157,4 +161,5 @@ static BLAKE2_INLINE void secure_zero_memory(void *v, size_t n)
   memset_v(v, 0, n);
 }
 
+#endif
 #endif

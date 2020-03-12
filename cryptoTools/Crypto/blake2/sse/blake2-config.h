@@ -12,6 +12,9 @@
    More information about the BLAKE2 hash function can be found at
    https://blake2.net.
 */
+#include "cryptoTools/Common/config.h"
+#ifdef ENABLE_BLAKE2_SSE
+
 #ifndef BLAKE2_CONFIG_H
 #define BLAKE2_CONFIG_H
 
@@ -70,4 +73,5 @@
 #error "This code requires at least SSE2."
 #endif
 
+#endif
 #endif

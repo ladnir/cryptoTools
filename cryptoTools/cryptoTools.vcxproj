@@ -144,6 +144,7 @@
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Common\block.h" />
     <ClInclude Include="Circuit\betacircuit.h" />
     <ClInclude Include="Circuit\BetaLibrary.h" />
     <ClInclude Include="Circuit\Gate.h" />
@@ -162,12 +163,14 @@
     <ClInclude Include="Common\Version.h" />
     <ClInclude Include="Crypto\AES.h" />
     <ClInclude Include="Crypto\Blake2.h" />
-    <ClInclude Include="Crypto\Blake2\blake2-config.h" />
-    <ClInclude Include="Crypto\Blake2\blake2-impl.h" />
-    <ClInclude Include="Crypto\Blake2\blake2.h" />
-    <ClInclude Include="Crypto\Blake2\blake2b-load-sse2.h" />
-    <ClInclude Include="Crypto\Blake2\blake2b-load-sse41.h" />
-    <ClInclude Include="Crypto\Blake2\blake2b-round.h" />
+    <ClInclude Include="Crypto\blake2\c\blake2-impl.h" />
+    <ClInclude Include="Crypto\blake2\c\blake2.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2-config.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2-impl.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2b-load-sse2.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2b-load-sse41.h" />
+    <ClInclude Include="Crypto\blake2\sse\blake2b-round.h" />
     <ClInclude Include="Crypto\Commit.h" />
     <ClInclude Include="Crypto\Curve.h" />
     <ClInclude Include="Crypto\PRNG.h" />
@@ -184,6 +187,7 @@
     <ClInclude Include="Network\TLS.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Common\block.cpp" />
     <ClCompile Include="Circuit\BetaCircuit.cpp" />
     <ClCompile Include="Circuit\BetaLibrary.cpp" />
     <ClCompile Include="Common\BitVector.cpp" />
@@ -194,9 +198,15 @@
     <ClCompile Include="Common\Timer.cpp" />
     <ClCompile Include="Crypto\AES.cpp" />
     <ClCompile Include="Crypto\Blake2.cpp" />
-    <ClCompile Include="Crypto\blake2\blake2b.c" />
-    <ClCompile Include="Crypto\blake2\blake2bp.c" />
-    <ClCompile Include="Crypto\blake2\blake2xb.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2b-ref.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2bp-ref.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2s-ref.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2sp-ref.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2xb-ref.c" />
+    <ClCompile Include="Crypto\blake2\c\blake2xs-ref.c" />
+    <ClCompile Include="Crypto\blake2\sse\blake2b.c" />
+    <ClCompile Include="Crypto\blake2\sse\blake2bp.c" />
+    <ClCompile Include="Crypto\blake2\sse\blake2xb.c" />
     <ClCompile Include="Crypto\Curve.cpp" />
     <ClCompile Include="Crypto\PRNG.cpp" />
     <ClCompile Include="Crypto\RCurve.cpp" />
