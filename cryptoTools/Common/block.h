@@ -13,7 +13,6 @@ namespace osuCrypto
 {
 
 #ifdef ENABLE_SSE
-    static_assert(0, "...");
     using block = __m128i;
     inline block toBlock(std::uint64_t high_u64, std::uint64_t low_u64) { return _mm_set_epi64x(high_u64, low_u64); }
     inline block toBlock(std::uint64_t low_u64) { return toBlock(0, low_u64); }

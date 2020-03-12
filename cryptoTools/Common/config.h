@@ -5,7 +5,7 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-#define ENABLE_RELIC ON 
+/* #undef ENABLE_RELIC */
 
 // compile the circuit library
 /* #undef ENABLE_CIRCUITS */
@@ -27,7 +27,7 @@
 /* #undef ENABLE_WOLFSSL */
 
 // enable the use of intel SSE instructions.
-//#define ENABLE_SSE
+#define ENABLE_SSE ON
 
 // enable the use of the portable AES implementation.
 /* #undef ENABLE_PORTABLE_AES */
