@@ -1,4 +1,7 @@
 #pragma once
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include <boost/asio.hpp>
 #include <cryptoTools/Common/Defines.h>
 #include "IoBuffer.h"
@@ -326,3 +329,4 @@ namespace osuCrypto
         }
     };
 }
+#endif

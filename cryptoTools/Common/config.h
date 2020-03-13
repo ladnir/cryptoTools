@@ -26,6 +26,9 @@
 // enable the wolf ssl socket layer.
 /* #undef ENABLE_WOLFSSL */
 
+// enable integration with boost for networking.
+/* #undef ENABLE_BOOST */
+
 // enable the use of intel SSE instructions.
 #define ENABLE_SSE ON
 

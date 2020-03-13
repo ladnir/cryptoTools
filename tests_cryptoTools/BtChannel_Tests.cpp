@@ -1,4 +1,7 @@
-//#include "stdafx.h"
+
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include <thread>
 #include <vector>
 #include <memory>
@@ -1662,3 +1665,4 @@ namespace tests_cryptoTools
     }
 
 }
+#endif

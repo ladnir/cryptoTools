@@ -185,6 +185,7 @@
     <ClInclude Include="Network\SocketAdapter.h" />
     <ClInclude Include="Common\TestCollection.h" />
     <ClInclude Include="Network\TLS.h" />
+    <ClInclude Include="Network\util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\block.cpp" />

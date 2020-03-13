@@ -141,6 +141,9 @@
     <ClInclude Include="Common\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Network\util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\BitVector.cpp">

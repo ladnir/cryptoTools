@@ -26,6 +26,9 @@
 // enable the wolf ssl socket layer.
 #cmakedefine ENABLE_WOLFSSL @ENABLE_WOLFSSL@
 
+// enable integration with boost for networking.
+#cmakedefine ENABLE_BOOST @ENABLE_BOOST@
+
 // enable the use of intel SSE instructions.
 #cmakedefine ENABLE_SSE @ENABLE_SSE@
 

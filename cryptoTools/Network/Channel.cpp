@@ -1,3 +1,7 @@
+
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/SocketAdapter.h>
@@ -1137,3 +1141,4 @@ namespace osuCrypto {
 
 
 }
+#endif

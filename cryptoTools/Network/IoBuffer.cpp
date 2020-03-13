@@ -1,3 +1,6 @@
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include "IoBuffer.h"
 #include "Channel.h"
 #include "IOService.h"
@@ -135,5 +138,6 @@ namespace osuCrypto
             return base->mIos.mIoService;
         }
 
+    }
 }
-}
+#endif

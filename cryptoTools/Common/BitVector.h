@@ -171,7 +171,7 @@ namespace osuCrypto {
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);
 
-
+#ifdef ENABLE_BOOST
     template<>
     inline u8* channelBuffData<BitVector>(const BitVector& container)
     {
@@ -189,5 +189,6 @@ namespace osuCrypto {
     {
         return size == container.sizeBytes();
     }
+#endif
 
 }
