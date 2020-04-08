@@ -10,7 +10,7 @@ Thirdparty networking is also supported. See `frontend_cryptoTools/tutorial/Netw
  
 ## Install
  
-The library is *cross platform* and has been tested on both Windows, Linux and Mac. There are two library dependencies including [Boost 1.69](http://www.boost.org/) (networking), and two **optional dependencies** on, [Miracl](https://www.miracl.com/index), [Relic](https://github.com/relic-toolkit/relic/) for elliptic curves. The version of Miracl used by this library requires specific configuration and therefore we advise using the cloned repository that we provide. 
+The library is *cross platform* and has been tested on both Windows, Linux and Mac. There are two library dependencies including [Boost 1.69](http://www.boost.org/) (networking), and two **optional dependencies** on, [Miracl](https://www.miracl.com/), [Relic](https://github.com/relic-toolkit/relic/) for elliptic curves. The version of Miracl used by this library requires specific configuration and therefore we advise using the cloned repository that we provide. 
  
 ### Windows
 
@@ -90,7 +90,7 @@ will be placed in `libOTe/lib` and the binary `frontend_libOTe` will be placed i
       [Relic](https://github.com/relic-toolkit/relic/) library. Requires that
       relic is built with `cmake . -DMULTI=OPENMP` and installed.
  * `cmake .  -DENABLE_MIRACL=ON`: Build the library with integration to the
-     [Miracl](https://www.miracl.com/index) library. Requires building miracl 
+     [Miracl](https://www.miracl.com/) library. Requires building miracl 
  `   cd libOTe/cryptoTools/thirdparty/linux; bash miracl.get`.
 
 **Other Options:**
