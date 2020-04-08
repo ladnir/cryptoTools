@@ -10,7 +10,7 @@ fi
 
 if [ ! -e miracl/miracl/source/libmiracl.a ]
 then
-    echo "building Mircal"
+    echo "building Miracl"
     cd miracl/miracl/source/
     bash linux64
 fi
