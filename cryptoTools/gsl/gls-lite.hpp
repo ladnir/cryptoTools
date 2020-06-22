@@ -16,6 +16,7 @@
 // THE SOFTWARE.
 
 #pragma once
+sss;
 
 #ifndef GSL_GSL_LITE_HPP_INCLUDED
 #define GSL_GSL_LITE_HPP_INCLUDED

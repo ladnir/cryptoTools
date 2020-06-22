@@ -71,19 +71,23 @@ void BetaCircuit_int_Adder_Test()
     u64 tries = 1000;
 
 
-    u64 size = 64;
-
-    auto* msb = lib.int_int_add_msb(size);
-    auto* cir = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Depth);
-
-    //msb->levelByAndDepth();
-    cir->levelByAndDepth();
+    u64 size = 57;
 
     for (u64 i = 0; i < tries; ++i)
     {
+        size = i + 2;// (prng.get<u64>() % 63) + 2;
         i64 a = signExtend(prng.get<i64>(), size);
         i64 b = signExtend(prng.get<i64>(), size);
         i64 c = signExtend((a + b), size);
+
+
+        auto* msb = lib.int_int_add_msb(size);
+        auto* cir1 = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Depth);
+        auto* cir2 = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Size);
+
+        //msb->levelByAndDepth();
+        cir1->levelByAndDepth();
+
 
         std::vector<BitVector> inputs(2), output1(1), output2(1), output3(1);
         inputs[0].append((u8*)&a, size);
@@ -92,9 +96,10 @@ void BetaCircuit_int_Adder_Test()
         output2[0].resize(1);
         output3[0].resize(size);
 
-        cir->evaluate(inputs, output1);
-        //cir->levelEvaluate(inputs, output3);
+        cir1->evaluate(inputs, output1);
+        cir2->evaluate(inputs, output3);
         msb->evaluate(inputs, output2);
+        std::cout << "msb " << size << "  -> " << msb->mNonlinearGateCount / double(size) << std::endl;
 
         i64 cc = 0;
         memcpy(&cc, output1[0].data(), output1[0].sizeBytes());
@@ -122,12 +127,12 @@ void BetaCircuit_int_Adder_Test()
             throw std::runtime_error(LOCATION);
         }
 
-        //if (output3.back().back() != output1.back().back())
-        //{
-        //	std::cout << "exp: " << output1.back().back() << std::endl;
-        //	std::cout << "act: " << output3.back().back() << std::endl;
-        //	throw std::runtime_error(LOCATION);
-        //}
+        if (output3.back().back() != output1.back().back())
+        {
+        	std::cout << "exp: " << output1.back().back() << std::endl;
+        	std::cout << "act: " << output3.back().back() << std::endl;
+        	throw std::runtime_error(LOCATION);
+        }
     }
 }
 
@@ -280,12 +285,13 @@ void BetaCircuit_int_Subtractor_Test()
 
     for (u64 i = 0; i < tries; ++i)
     {
-
-        u64 aSize = prng.get<u32>() % 24 + 1,
-            bSize = prng.get<u32>() % 24 + 1,
-            cSize = std::min<u64>(prng.get<u32>() % 24 + 1, std::max(aSize, bSize) + 1);
+        u64 maxSize = 64;
+        u64 aSize = prng.get<u32>() % maxSize + 1,
+            bSize = prng.get<u32>() % maxSize + 1,
+            cSize = std::min<u64>(prng.get<u32>() % maxSize + 1, std::max(aSize, bSize) + 1);
 
         auto* cir = lib.int_int_subtract(aSize, bSize, cSize);
+        auto* cir2 = lib.int_int_sub_msb(aSize, aSize, aSize);
 
 
         i64 a = signExtend(prng.get<i64>(), aSize);
@@ -293,12 +299,18 @@ void BetaCircuit_int_Subtractor_Test()
         i64 c = signExtend((a - b), cSize);
 
 
-        std::vector<BitVector> inputs(2), output(1);
+        std::vector<BitVector> inputs(2), output(1), in2(2),out2(1);
         inputs[0].append((u8*)&a, aSize);
         inputs[1].append((u8*)&b, bSize);
         output[0].resize(cSize);
 
+
+        in2[0].append((u8*)&a, aSize);
+        in2[1].append((u8*)&b, aSize);
+        out2[0].resize(1);
+
         cir->evaluate(inputs, output);
+        cir2->evaluate(in2, out2);
 
         i64 cc = 0;
         memcpy(&cc, output[0].data(), output[0].sizeBytes());
@@ -313,6 +325,21 @@ void BetaCircuit_int_Subtractor_Test()
             std::cout << "-b : " << inputs[1] << std::endl;
             std::cout << "exp: " << cExp << std::endl;
             std::cout << "act: " << output[0] << std::endl;
+
+            throw RTE_LOC;
+        }
+
+        if (out2[0][0] != msb(signExtend(a-b, aSize)))
+        {
+            std::cout << "i " << i << std::endl;
+            BitVector cExp;
+            cExp.append((u8*)&c, cSize);
+            std::cout << " a : " << inputs[0] << std::endl;
+            std::cout << "-b : " << inputs[1] << std::endl;
+            std::cout << "exp: " << cExp << std::endl;
+            std::cout << "act: " << output[0] << std::endl;
+
+            throw RTE_LOC;
 
             throw RTE_LOC;
         }

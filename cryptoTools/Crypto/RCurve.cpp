@@ -551,14 +551,16 @@ namespace osuCrypto
     REllipticCurve::REllipticCurve()
     {
         if (core_get() == nullptr)
+        {
             core_init();
 
-        if (GSL_UNLIKELY(err_get_code()))
-            throw std::runtime_error("Relic core init error " LOCATION);
+            if (GSL_UNLIKELY(err_get_code()))
+                throw std::runtime_error("Relic core init error " LOCATION);
 
-        ep_param_set_any();
-        if (GSL_UNLIKELY(err_get_code()))
-            throw std::runtime_error("Relic set any error " LOCATION);
+            ep_param_set_any();
+            if (GSL_UNLIKELY(err_get_code()))
+                throw std::runtime_error("Relic set any error " LOCATION);
+        }
     }
 
     REllipticCurve::Point REllipticCurve::getGenerator() const
@@ -736,6 +738,8 @@ namespace osuCrypto
     void REccNumber::randomize(PRNG& prng)
     {
         std::array<u8, RLC_BN_SIZE * sizeof(dig_t)> buff;
+        if (buff.size() < sizeBytes())
+            throw std::runtime_error("logic error");
         prng.get(buff.data(), sizeBytes());
         fromBytes(buff.data());
         reduce();

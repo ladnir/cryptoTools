@@ -87,7 +87,8 @@ namespace osuCrypto
         std::vector<BetaBundle> mInputs, mOutputs;
 		std::vector<u64> mLevelCounts, mLevelAndCounts;
 
-		void addTempWireBundle(BetaBundle& in);
+        void addTempWire(BetaWire& in);
+        void addTempWireBundle(BetaBundle& in);
 		void addInputBundle(BetaBundle& in);
         void addOutputBundle(BetaBundle& in);
         void addConstBundle(BetaBundle& in, const BitVector& val);

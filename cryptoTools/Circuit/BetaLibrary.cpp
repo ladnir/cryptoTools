@@ -185,6 +185,36 @@ namespace osuCrypto
         return iter->second;
     }
 
+    BetaCircuit* BetaLibrary::int_int_sub_msb(u64 aSize, u64 bSize, u64 cSize)
+    {
+        auto key = "sub_msb_" + std::to_string(aSize) + "x" + std::to_string(bSize) + "x" + std::to_string(cSize);
+
+        auto iter = mCirMap.find(key);
+
+        if (iter == mCirMap.end())
+        {
+            auto* cd = new BetaCircuit;
+
+            BetaBundle a(aSize);
+            BetaBundle b(bSize);
+            BetaBundle c(1);
+            BetaBundle t(2* aSize + 3);
+
+            cd->addInputBundle(a);
+            cd->addInputBundle(b);
+
+            cd->addOutputBundle(c);
+
+            cd->addTempWireBundle(t);
+
+            int_int_sub_msb_build_do(*cd, a, b, c, t);
+
+            iter = mCirMap.insert(std::make_pair(key, cd)).first;
+        }
+
+        return iter->second;
+    }
+
     BetaCircuit * BetaLibrary::uint_uint_subtract(u64 aSize, u64 bSize, u64 cSize)
     {
 
@@ -910,7 +940,7 @@ namespace osuCrypto
             //cd.addPrint(PP);
 
             // 1,2,4,8,16,32,64,...
-            auto startPos = u64(1) << level;
+            auto startPos = 1ull << level;
             auto step = 1 << (level + 1);
 
             bool first = true;
@@ -918,10 +948,9 @@ namespace osuCrypto
             {
                 auto lowWire = i - 1;
 
-                for (u64 j = 0; j < startPos; ++j)
+                auto endPos = std::min<u64>(i + startPos, a1Size);
+                for (auto curWire = i; curWire < endPos; ++curWire)
                 {
-                    auto curWire = i + j;
-
                     auto P0 = P[lowWire];
                     auto G0 = G[lowWire];
 
@@ -942,8 +971,6 @@ namespace osuCrypto
                         // P1 = P1 & P0
                         cd.addGate(P0, P1, GateType::And, P1);
                     }
-
-
 
                 }
                 first = false;
@@ -1200,6 +1227,29 @@ namespace osuCrypto
                 }
             }
         }
+    }
+
+
+    void BetaLibrary::int_int_sub_msb_build_do(
+        BetaCircuit& cd,
+        const BetaBundle& a1,
+        const BetaBundle& a2,
+        const BetaBundle& msb,
+        const BetaBundle& temps)
+    {
+        if (a1.size() != a2.size())
+            throw RTE_LOC;
+        if(msb.size() != 1)
+            throw RTE_LOC;
+
+        auto m = temps.mWires.begin() + a1.size() - 1;
+        BetaBundle diff, rest;
+        diff.mWires.insert(diff.mWires.end(), temps.mWires.begin(), m);
+        rest.mWires.insert(rest.mWires.end(), m, temps.mWires.end());
+
+        diff.mWires.push_back(msb.mWires[0]);
+
+        int_int_subtract_build(cd, a1, a2, diff, rest);
     }
 
     void BetaLibrary::uint_uint_subtract_build(

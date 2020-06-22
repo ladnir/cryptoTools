@@ -28,6 +28,12 @@ namespace osuCrypto
     {
     }
 
+    void BetaCircuit::addTempWire(BetaWire& in)
+    {
+        in = mWireCount++;
+        mWireFlags.resize(mWireCount, BetaWireFlag::Uninitialized);
+    }
+
     void BetaCircuit::addTempWireBundle(BetaBundle & in)
     {
         for (u64 i = 0; i < in.mWires.size(); ++i)
@@ -122,12 +128,14 @@ namespace osuCrypto
             gt == GateType::Zero)
             throw std::runtime_error("");
 
-
-
-        if (mWireFlags[aIdx] == BetaWireFlag::Uninitialized ||
-            mWireFlags[bIdx] == BetaWireFlag::Uninitialized)
+        if (aIdx >= mWireCount || mWireFlags[aIdx] == BetaWireFlag::Uninitialized)
             throw std::runtime_error(LOCATION);
 
+        if (bIdx >= mWireCount || mWireFlags[bIdx] == BetaWireFlag::Uninitialized)
+            throw std::runtime_error(LOCATION);
+
+        if(out >= mWireCount)
+            throw std::runtime_error(LOCATION);
 
         if (aIdx == bIdx)
             throw std::runtime_error(LOCATION);
@@ -707,7 +715,9 @@ namespace osuCrypto
             for (u64 j = 0; j < mOutputs[i].mWires.size(); ++j)
             {
                 nextWire = std::max<i64>(nextWire, mOutputs[i].mWires[j] + 1);
-                wireOwner[mOutputs[i].mWires[j]]->mFixedWireValue = true;
+
+                if(wireOwner[mOutputs[i].mWires[j]])
+                    wireOwner[mOutputs[i].mWires[j]]->mFixedWireValue = true;
 
                 //std::cout << "out[" << i << "][" << j << "] = " << mOutputs[i].mWires[j] << std::endl;
             }
