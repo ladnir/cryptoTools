@@ -1013,7 +1013,7 @@ void BetaCircuit_aes_test()
         AES aes(keyBlock);
 
         in[0].randomize(prng);
-        in[1] = BitVector((u8*)aes.mRoundKey, 128 * keySize);
+        in[1] = BitVector((u8*)aes.mRoundKey.data(), 128 * keySize);
 
         cir.evaluate(in, { &cc,1 });
         cir2->evaluate(in, { &cc2,1 });

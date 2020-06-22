@@ -42,13 +42,13 @@ namespace tests_cryptoTools
         th.add("BtNetwork_clientClose_Test              ", BtNetwork_clientClose_Test);
         th.add("BtNetwork_BadConnect_Test               ", BtNetwork_BadConnect_Test);
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
-        th.add("BtNetwork_queue_Test                    ",BtNetwork_queue_Test);
+        th.add("BtNetwork_queue_Test                    ", BtNetwork_queue_Test);
+        th.add("BtNetwork_socketAdapter_test            ", BtNetwork_socketAdapter_test);
         
         th.add("wolfSSL_echoServer_test                 ", wolfSSL_echoServer_test);
         th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);
         th.add("wolfSSL_channel_test                    ", wolfSSL_channel_test);
         th.add("wolfSSL_CancelChannel_Test              ", wolfSSL_CancelChannel_Test);
-
         th.add("AES                                     ", AES_EncDec_Test);
 
         th.add("BitVector_Indexing_Test                 ", BitVector_Indexing_Test_Impl);

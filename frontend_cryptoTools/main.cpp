@@ -90,7 +90,7 @@ void print_aes_bristol()
             in[1].randomize(prng);
             if (rounds == 10)
             {
-                memcpy(in[0].data(), aes.mRoundKey, 11 * 16);
+                memcpy(in[0].data(), aes.mRoundKey.data(), 11 * 16);
             }
             else
             {

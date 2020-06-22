@@ -64,6 +64,9 @@ namespace osuCrypto
             fn(ec);
         }
 
+        // a function that gives this socket access to the IOService.
+        // This is called right after being handed to the Channel.
+        virtual void setIOService(IOService& ios) { }
     };
 
 
@@ -72,6 +75,7 @@ namespace osuCrypto
     {
     public:
         T& mChl;
+        IOService* mIos = nullptr;
 
         SocketAdapter(T& chl)
             :mChl(chl)
@@ -79,65 +83,70 @@ namespace osuCrypto
 
         ~SocketAdapter() override {}
 
+        void setIOService(IOService& ios) override { mIos = &ios; }
+
         void async_send(
             span<boost::asio::mutable_buffer> buffers, 
             io_completion_handle&& fn) override
         {
+            mIos->mIoService.post([this, buffers, fn]() {
+                error_code ec;
+                u64 bytesTransfered = 0;
+                for (u64 i = 0; i < u64( buffers.size()); ++i) {
+                    try {
+                        // Use boost conversions to get normal pointer size
+                        auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
+                        auto size = boost::asio::buffer_size(buffers[i]);
 
-            error_code ec;
-            u64 bytesTransfered = 0;
-            for (u64 i = 0; i < u64( buffers.size()); ++i) {
-                try {
-                    // Use boost conversions to get normal pointer size
-                    auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
-                    auto size = boost::asio::buffer_size(buffers[i]);
-
-                    // NOTE: I am assuming that this is blocking. 
-                    // Blocking here cause the networking code to deadlock 
-                    // in some senarios. E.g. all threads blocks on recving data
-                    // that is not being sent since the threads are blocks. 
-                    // Make sure to give the IOService enought threads or make this 
-                    // non blocking somehow.
-                    mChl.send(data, size);
-                    bytesTransfered += size;
+                        // NOTE: I am assuming that this is blocking. 
+                        // Blocking here cause the networking code to deadlock 
+                        // in some senarios. E.g. all threads blocks on recving data
+                        // that is not being sent since the threads are blocks. 
+                        // Make sure to give the IOService enought threads or make this 
+                        // non blocking somehow.
+                        mChl.send(data, size);
+                        bytesTransfered += size;
+                    }
+                    catch (...) {
+                        ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
+                        break;
+                    }
                 }
-                catch (...) {
-                    ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
-                    break;
-                }
-            }
 
-            // once all the IO is sent (or error), we should call the callback.
-            fn(ec, bytesTransfered);
+                // once all the IO is sent (or error), we should call the callback.
+                fn(ec, bytesTransfered);
+            });
         }
 
         void async_recv(
             span<boost::asio::mutable_buffer> buffers, 
             io_completion_handle&& fn) override
         {
-            error_code ec;
-            u64 bytesTransfered = 0;
-            for (u64 i = 0; i < u64(buffers.size()); ++i) {
-                try {
-                    // Use boost conversions to get normal pointer size
-                    auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
-                    auto size = boost::asio::buffer_size(buffers[i]);
+            mIos->mIoService.post([this, buffers, fn]() {
+                error_code ec;
+                u64 bytesTransfered = 0;
+                for (u64 i = 0; i < u64(buffers.size()); ++i) {
+                    try {
+                        // Use boost conversions to get normal pointer size
+                        auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
+                        auto size = boost::asio::buffer_size(buffers[i]);
 
-                    // Note that I am assuming that this is blocking. 
-                    // Blocking here cause the networking code to deadlock 
-                    // in some senarios. E.g. all threads blocks on recving data
-                    // that is not being sent since the threads are blocks. 
-                    // Make sure to give the IOService enought threads or make this 
-                    // non blocking somehow.
-                    mChl.recv(data, size);
-                    bytesTransfered += size;
+                        // Note that I am assuming that this is blocking. 
+                        // Blocking here cause the networking code to deadlock 
+                        // in some senarios. E.g. all threads blocks on recving data
+                        // that is not being sent since the threads are blocks. 
+                        // Make sure to give the IOService enought threads or make this 
+                        // non blocking somehow.
+                        mChl.recv(data, size);
+                        bytesTransfered += size;
+                    }
+                    catch (...) {
+                        ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
+                        break;
+                    }
                 }
-                catch (...) {
-                    ec = boost::system::errc::make_error_code(boost::system::errc::io_error);
-                    break;
-                }
-            }
-            fn(ec, bytesTransfered);
+                fn(ec, bytesTransfered);
+            });
         }
 
         void cancel() override

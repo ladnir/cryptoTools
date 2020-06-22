@@ -68,8 +68,10 @@ namespace osuCrypto {
     }
 
     Channel::Channel(IOService& ios, SocketInterface* sock)
-        : mBase(new ChannelBase(ios, sock))
-    {}
+    {
+        sock->setIOService(ios);
+        mBase.reset(new ChannelBase(ios, sock));
+    }
 
 
     ChannelBase::ChannelBase(
