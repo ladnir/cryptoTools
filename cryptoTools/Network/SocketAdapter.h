@@ -70,6 +70,8 @@ namespace osuCrypto
     };
 
 
+    void post(IOService* ios, std::function<void()>&& fn);
+
     template<typename T>
     class SocketAdapter : public SocketInterface
     {
@@ -89,7 +91,7 @@ namespace osuCrypto
             span<boost::asio::mutable_buffer> buffers, 
             io_completion_handle&& fn) override
         {
-            mIos->mIoService.post([this, buffers, fn]() {
+            post(mIos, [this, buffers, fn]() {
                 error_code ec;
                 u64 bytesTransfered = 0;
                 for (u64 i = 0; i < u64( buffers.size()); ++i) {
@@ -122,7 +124,7 @@ namespace osuCrypto
             span<boost::asio::mutable_buffer> buffers, 
             io_completion_handle&& fn) override
         {
-            mIos->mIoService.post([this, buffers, fn]() {
+            post(mIos, [this, buffers, fn]() {
                 error_code ec;
                 u64 bytesTransfered = 0;
                 for (u64 i = 0; i < u64(buffers.size()); ++i) {

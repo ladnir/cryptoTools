@@ -68,7 +68,7 @@ void BetaCircuit_int_Adder_Test()
 
 
     PRNG prng(ZeroBlock);
-    u64 tries = 1000;
+    u64 tries = 2;
 
 
     u64 size = 57;
@@ -99,7 +99,7 @@ void BetaCircuit_int_Adder_Test()
         cir1->evaluate(inputs, output1);
         cir2->evaluate(inputs, output3);
         msb->evaluate(inputs, output2);
-        std::cout << "msb " << size << "  -> " << msb->mNonlinearGateCount / double(size) << std::endl;
+        //std::cout << "msb " << size << "  -> " << msb->mNonlinearGateCount / double(size) << std::endl;
 
         i64 cc = 0;
         memcpy(&cc, output1[0].data(), output1[0].sizeBytes());
