@@ -1,5 +1,5 @@
 /*
-   BLAKE2 reference source code package - optimized C implementations
+   BLAKE2 reference source code package - reference C implementations
 
    Copyright 2012, Samuel Neves <sneves@dei.uc.pt>.  You may use this under the
    terms of the CC0, the OpenSSL Licence, or the Apache Public License 2.0, at
@@ -12,6 +12,8 @@
    More information about the BLAKE2 hash function can be found at
    https://blake2.net.
 */
+#include "cryptoTools/Common/config.h"
+#ifndef ENABLE_BLAKE2_SSE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,9 +50,9 @@ static int blake2bp_init_leaf( blake2b_state *S, size_t outlen, size_t keylen, u
   P->key_length = (uint8_t)keylen;
   P->fanout = PARALLELISM_DEGREE;
   P->depth = 2;
-  P->leaf_length = 0;
-  P->node_offset = (uint32_t)offset;
-  P->xof_length = 0;
+  store32( &P->leaf_length, 0 );
+  store32( &P->node_offset, offset );
+  store32( &P->xof_length, 0 );
   P->node_depth = 0;
   P->inner_length = BLAKE2B_OUTBYTES;
   memset( P->reserved, 0, sizeof( P->reserved ) );
@@ -66,9 +68,9 @@ static int blake2bp_init_root( blake2b_state *S, size_t outlen, size_t keylen )
   P->key_length = (uint8_t)keylen;
   P->fanout = PARALLELISM_DEGREE;
   P->depth = 2;
-  P->leaf_length = 0;
-  P->node_offset = 0;
-  P->xof_length = 0;
+  store32( &P->leaf_length, 0 );
+  store32( &P->node_offset, 0 );
+  store32( &P->xof_length, 0 );
   P->node_depth = 1;
   P->inner_length = BLAKE2B_OUTBYTES;
   memset( P->reserved, 0, sizeof( P->reserved ) );
@@ -81,6 +83,7 @@ static int blake2bp_init_root( blake2b_state *S, size_t outlen, size_t keylen )
 int blake2bp_init( blake2bp_state *S, size_t outlen )
 {
   size_t i;
+
   if( !outlen || outlen > BLAKE2B_OUTBYTES ) return -1;
 
   memset( S->buf, 0, sizeof( S->buf ) );
@@ -182,8 +185,6 @@ int blake2bp_update( blake2bp_state *S, const void *pin, size_t inlen )
   S->buflen = left + inlen;
   return 0;
 }
-
-
 
 int blake2bp_final( blake2bp_state *S, void *out, size_t outlen )
 {
@@ -288,9 +289,8 @@ int blake2bp( void *out, size_t outlen, const void *in, size_t inlen, const void
   for( i = 0; i < PARALLELISM_DEGREE; ++i )
     blake2b_update( FS, hash[i], BLAKE2B_OUTBYTES );
 
-  return blake2b_final( FS, out, outlen );
+  return blake2b_final( FS, out, outlen );;
 }
-
 
 #if defined(BLAKE2BP_SELFTEST)
 #include <string.h>
@@ -358,4 +358,5 @@ fail:
   puts("error");
   return -1;
 }
+#endif
 #endif

@@ -1,7 +1,7 @@
 #pragma once
 #include "cryptoTools/Common/config.h"
 
-#ifdef ENABLE_WOLFSSL
+#if defined(ENABLE_WOLFSSL) && defined(ENABLE_BOOST)
 
 #include <string>
 #include <boost/system/error_code.hpp>

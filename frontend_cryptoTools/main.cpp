@@ -90,7 +90,7 @@ void print_aes_bristol()
             in[1].randomize(prng);
             if (rounds == 10)
             {
-                memcpy(in[0].data(), aes.mRoundKey, 11 * 16);
+                memcpy(in[0].data(), aes.mRoundKey.data(), 11 * 16);
             }
             else
             {
@@ -140,56 +140,11 @@ void print_aes_bristol()
 }
 #endif
 
-
-
-void fifoExample(CLP& cmd)
-{
-    IOService ios;
-
-    std::string name = cmd.getOr<std::string>("fifo","~/fifo");
-
-    FifoSocket::createFifo(name);
-
-    FifoSocket* cSock = new FifoSocket(ios, name, SessionMode::Client);
-    FifoSocket* sSock = new FifoSocket(ios, name, SessionMode::Server);
-
-    Channel cChl(ios, cSock);
-    Channel sChl(ios, sSock);
-
-    int n = 100;
-    std::vector<u8> data(n);
-    u8 exp = 0;
-    for (u64 i = 0; i < n; ++i)
-    {
-        ++exp;
-        ++data[0];
-        cChl.asyncSend(data.data(), i + 1);
-        cChl.recv(data.data(), i + 1);
-        if (data[0] != exp)
-            throw std::runtime_error("failed");
-
-        ++exp;
-        ++data[0];
-        sChl.asyncSend(data.data(), i + 1);
-        sChl.recv(data.data(), i + 1);
-        if (data[0] != exp)
-            throw std::runtime_error("failed");
-    }
-    std::cout << "success" << std::endl;
-
-    FifoSocket::removeFifo(name);
-
-}
-
 int main(int argc, char** argv)
 {
     CLP cmd(argc, argv);
 
-    if (cmd.isSet("fifo"))
-    {
-        fifoExample(cmd);
-    }
-    else if (cmd.isSet("tut"))
+    if (cmd.isSet("tut"))
     {
         networkTutorial();
     }

@@ -5,13 +5,8 @@
 #include <iomanip>
 #include <cstring>
 
-namespace osuCrypto {
-
-    const block ZeroBlock = _mm_set_epi64x(0, 0);
-    const block OneBlock = _mm_set_epi64x(0, 1);
-    const block AllOneBlock = _mm_set_epi64x(u64(-1), u64(-1));
-    const std::array<block, 2> zeroAndAllOne = { { ZeroBlock, AllOneBlock } };
-    const block CCBlock = ([]() {block cc; memset(&cc, 0xcc, sizeof(block)); return cc; })();
+namespace osuCrypto 
+{
 
 
 
@@ -59,30 +54,15 @@ namespace osuCrypto {
     u64 log2ceil(u64 value)
     {
         auto floor = log2floor(value);
-
         return floor + (value > (1ull << floor));
-        //return u64(std::ceil(std::log2(value)));
     }
 
     block sysRandomSeed()
     {
         std::random_device rd;
-		auto ret = std::array<unsigned int, 4>{rd(), rd(), rd(), rd()};
-		return *(block*)&ret;
+		auto ret = std::array<u32, 4>{rd(), rd(), rd(), rd()};
+        block blk;
+        memcpy(&blk, &ret, sizeof(block));
+		return blk; 
     }
-}
-
-
-
-std::ostream& operator<<(std::ostream& out, const oc::block& blk)
-{
-	using namespace oc;
-	out << std::hex;
-	u64* data = (u64*)&blk;
-
-	out << std::setw(16) << std::setfill('0') << data[1]
-		<< std::setw(16) << std::setfill('0') << data[0];
-
-	out << std::dec << std::setw(0);
-	return out;
 }

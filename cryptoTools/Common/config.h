@@ -25,3 +25,18 @@
 
 // enable the wolf ssl socket layer.
 /* #undef ENABLE_WOLFSSL */
+
+// enable integration with boost for networking.
+#define ENABLE_BOOST  ON
+
+// enable the use of intel SSE instructions.
+#define ENABLE_SSE ON
+
+// enable the use of the portable AES implementation.
+/* #undef ENABLE_PORTABLE_AES */
+
+#ifdef ENABLE_SSE
+#define ENABLE_SSE_BLAKE2 ON
+#elif !defined(ENABLE_PORTABLE_AES)
+#define ENABLE_PORTABLE_AES ON
+#endif

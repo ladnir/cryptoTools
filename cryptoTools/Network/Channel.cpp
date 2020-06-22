@@ -1,3 +1,7 @@
+
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/SocketAdapter.h>
@@ -64,8 +68,10 @@ namespace osuCrypto {
     }
 
     Channel::Channel(IOService& ios, SocketInterface* sock)
-        : mBase(new ChannelBase(ios, sock))
-    {}
+    {
+        sock->setIOService(ios);
+        mBase.reset(new ChannelBase(ios, sock));
+    }
 
 
     ChannelBase::ChannelBase(
@@ -1137,3 +1143,4 @@ namespace osuCrypto {
 
 
 }
+#endif

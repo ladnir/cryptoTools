@@ -101,28 +101,30 @@ endif(ENABLE_WOLFSSL)
 ## Boost
 ###########################################################################
 
-set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
+if(ENABLE_BOOST)
+    set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
 
-set(Boost_USE_STATIC_LIBS        ON) # only find static libs
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME     ON)
+    set(Boost_USE_STATIC_LIBS        ON) # only find static libs
+    set(Boost_USE_MULTITHREADED      ON)
+    set(Boost_USE_STATIC_RUNTIME     ON)
 
-macro(findBoost)
-  find_package(Boost 1.69.0 COMPONENTS system thread)
-endmacro()
+    macro(findBoost)
+      find_package(Boost 1.69.0 COMPONENTS system thread)
+    endmacro()
 
-# then look at system dirs
-if(NOT Boost_FOUND)
-  #set(Boost_NO_SYSTEM_PATHS  OFF)
-  findBoost()
+    # then look at system dirs
+    if(NOT Boost_FOUND)
+      #set(Boost_NO_SYSTEM_PATHS  OFF)
+      findBoost()
+    endif()
+
+    if(NOT Boost_FOUND)
+        message(FATAL_ERROR "Failed to find boost 1.69.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
+    endif()
+
+    target_include_directories(cryptoTools PUBLIC ${Boost_INCLUDE_DIR}) 
+    target_link_libraries(cryptoTools ${Boost_LIBRARIES})
+
+    message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
+    message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 endif()
-
-if(NOT Boost_FOUND)
-    message(FATAL_ERROR "Failed to find boost 1.69.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
-endif()
-
-target_include_directories(cryptoTools PUBLIC ${Boost_INCLUDE_DIR}) 
-target_link_libraries(cryptoTools ${Boost_LIBRARIES})
-
-message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
-message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )

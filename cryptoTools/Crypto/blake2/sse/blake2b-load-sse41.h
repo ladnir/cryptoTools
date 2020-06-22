@@ -12,6 +12,9 @@
    More information about the BLAKE2 hash function can be found at
    https://blake2.net.
 */
+#include "cryptoTools/Common/config.h"
+#ifdef ENABLE_BLAKE2_SSE
+
 #ifndef BLAKE2B_LOAD_SSE41_H
 #define BLAKE2B_LOAD_SSE41_H
 
@@ -399,4 +402,5 @@ b1 = _mm_unpackhi_epi64(m3, m1); \
 } while(0)
 
 
+#endif
 #endif

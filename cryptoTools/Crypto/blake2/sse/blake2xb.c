@@ -15,6 +15,8 @@
    More information about the BLAKE2 hash function can be found at
    https://blake2.net.
 */
+#include "cryptoTools/Common/config.h"
+#ifdef ENABLE_BLAKE2_SSE
 
 #include <stdint.h>
 #include <string.h>
@@ -238,4 +240,5 @@ fail:
   puts("error");
   return -1;
 }
+#endif
 #endif

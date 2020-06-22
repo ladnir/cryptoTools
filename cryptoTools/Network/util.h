@@ -1,4 +1,7 @@
 #pragma once
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
+
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
 #include <memory>
@@ -244,9 +247,6 @@ namespace osuCrypto
         {
             destruct();
 
-            //int n1 = sizeof(Impl_type<U>);
-            //int n2 = sizeof(Storage);
-
             // this object is too big, use the allocator. Local storage
             // will be unused as denoted by (isSBO() == false).
             mData = new U(std::forward<Args>(args)...);
@@ -268,9 +268,6 @@ namespace osuCrypto
         const T* operator->() const { return get(); }
         const T* get() const { return mData; }
 
-
-        //private:
-
         void destruct()
         {
             if (isSBO())
@@ -282,11 +279,7 @@ namespace osuCrypto
 
             mData = nullptr;
         }
-
-
-
-
-
+          
         SBOInterface& getSBO()
         {
             return *(SBOInterface*)& mStorage;
@@ -315,3 +308,4 @@ namespace osuCrypto
     enum class SessionMode : bool { Client, Server };
 
 }
+#endif

@@ -1,5 +1,6 @@
 #include "TLS.h"
-#ifdef ENABLE_WOLFSSL
+
+#if defined(ENABLE_WOLFSSL) && defined(ENABLE_BOOST)
 
 #ifndef WOLFSSL_LOGGING
 #define LOG(X)

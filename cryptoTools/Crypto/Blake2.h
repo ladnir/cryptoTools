@@ -2,7 +2,11 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
-#include <cryptoTools/Crypto/blake2/blake2.h>
+#ifdef ENABLE_BLAKE2_SSE
+#include <cryptoTools/Crypto/blake2/sse/blake2.h>
+#else
+#include <cryptoTools/Crypto/blake2/c/blake2.h>
+#endif
 #include <cstring>
 
 namespace osuCrypto {

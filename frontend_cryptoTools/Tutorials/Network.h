@@ -1,4 +1,6 @@
 #pragma once
+#include <cryptoTools/Common/config.h>
+#ifdef ENABLE_BOOST
 
 #include <sstream>
 #include <array>
@@ -160,3 +162,7 @@ namespace osuCrypto
     };
 
 }
+
+#else
+inline void networkTutorial() { }
+#endif

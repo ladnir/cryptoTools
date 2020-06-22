@@ -18,7 +18,7 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
 	
-	set(CMAKE_C_FLAGS "-ffunction-sections -Wall  -maes -msse2 -msse4.1 -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
+	set(CMAKE_C_FLAGS "-Wall -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
 
 	#if(ENABLE_CPP_14)
@@ -54,6 +54,8 @@ option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
+option(ENABLE_SSE       "compile with SSE instrctions" ON)
+option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
 
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
@@ -67,12 +69,18 @@ message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDeb
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
-#message(STATUS "Option: ENABLE_CPP_14     = ${ENABLE_CPP_14}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
-message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}\n\n")
+message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
+message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
+message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n\n")
 
 if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
+endif()
+
+if(ENABLE_SSE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes -msse2 -msse4.1")
+	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -maes -msse2 -msse4.1")
 endif()
 
 configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )
