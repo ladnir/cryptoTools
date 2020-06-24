@@ -807,7 +807,7 @@ namespace osuCrypto {
                         if (mIos.mPrint)
                         {
                             auto reason = std::string("network receive error (") +
-                                mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
+                                (mSession?mSession->mName : "(No Session)") + " " + mRemoteName + " -> " + mLocalName + " ): "
                                 + ec.message() + "\n at  " + LOCATION;
                             lout << reason << std::endl;
                         }
