@@ -60,10 +60,10 @@ namespace tests_cryptoTools
         //auto dummyC = dummy.addChannel();
         //Finally f([&]() { dummyC.cancel(); });
 
-        Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
-        Session s2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
-        Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
-        Session c2(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+        Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
+        Session s2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
+        Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
+        Session c2(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
 
         auto c1c1 = c1.addChannel();
         auto c1c2 = c1.addChannel();
@@ -125,7 +125,7 @@ namespace tests_cryptoTools
             ioService.showErrorMessages(false);
 
             {
-                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
 
                 auto ch1 = c1.addChannel("t1");
 
@@ -152,7 +152,7 @@ namespace tests_cryptoTools
             }
 
             {
-                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
+                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
                 auto ch1 = c1.addChannel();
 
                 ch1.cancel();
@@ -177,8 +177,8 @@ namespace tests_cryptoTools
                 throw UnitTestFail();
 
             {
-                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
-                Session s1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
+                Session s1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
                 auto ch1 = c1.addChannel("t2");
                 auto ch0 = s1.addChannel("t2");
 
@@ -217,7 +217,7 @@ namespace tests_cryptoTools
                 throw UnitTestFail();
 
             {
-                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
+                Session c1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
                 auto ch1 = c1.addChannel("t3");
 
                 std::vector<u8> rr(10);
@@ -229,9 +229,9 @@ namespace tests_cryptoTools
                 //    });
 
                 auto prom = std::promise<void>();
-                ch1.asyncCancel([&](){
+                ch1.asyncCancel([&]() {
                     prom.set_value();
-                });
+                    });
 
                 //std::this_thread::sleep_for(std::chrono::seconds(3));
                 //oc::lout <<  ch1.mBase->mLog << std::endl;
@@ -287,12 +287,12 @@ namespace tests_cryptoTools
             std::promise<void> prom;
             std::atomic<u64> cntr(0);
             boost::asio::dispatch(ioService.mIoService, [&]() {
-                s1.start(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
+                s1.start(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
                 if (cntr++ != 0)
                     lout << "logic error" << std::endl;
                 });
             boost::asio::dispatch(ioService.mIoService, [&]() {
-                c1.start(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+                c1.start(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
                 if (cntr++ != 1)
                     lout << "logic error" << std::endl;
                 });
@@ -306,7 +306,7 @@ namespace tests_cryptoTools
                 chs2 = s1.addChannel();
                 if (cntr++ != 3)
                     lout << "logic error" << std::endl;
-                    });
+                });
             boost::asio::dispatch(ioService.mIoService, [&]() {
                 chc1 = c1.addChannel();
                 if (cntr++ != 4)
@@ -359,8 +359,8 @@ namespace tests_cryptoTools
         {
 
             //std::cout << " " <<i<<std::flush;
-            Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
-            Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+            Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
+            Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
             srvChls[i][0] = s1.addChannel();
             srvChls[i][1] = s1.addChannel();
             clientChls[i][0] = c1.addChannel();
@@ -399,8 +399,8 @@ namespace tests_cryptoTools
         for (u64 i = 0; i < numConnect; ++i)
         {
             //ıstd::cout << " " <<i<<std::flush;
-            Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server,tls);
-            Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls);
+            Session s1(ioService, "127.0.0.1", 1212, SessionMode::Server, tls);
+            Session c1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls);
             clientChls[i][0] = c1.addChannel();
             clientChls[i][1] = c1.addChannel();
 
@@ -417,7 +417,7 @@ namespace tests_cryptoTools
 
             //std::cout << "c" <<std::flush;
         }
-        //auto s = ioService.mAcceptors.size();
+        //auto s = ioService.mAcceptors.sizeLeft();
         //auto& a = ioService.mAcceptors.front();
         //auto thrd = std::thread([&]() {
         //	//while (stop == false)
@@ -469,7 +469,7 @@ namespace tests_cryptoTools
             {
                 setThreadName("Test_Client");
 
-                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
                 chl1 = endpoint.addChannel(channelName, channelName);
 
                 std::string recvMsg;
@@ -481,9 +481,9 @@ namespace tests_cryptoTools
                 chl1.close();
             });
 
-        try{
+        try {
 
-            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
             chl2 = endpoint.addChannel(channelName, channelName);
 
             chl2.asyncSend(msg);
@@ -491,10 +491,10 @@ namespace tests_cryptoTools
             std::string clientRecv;
             chl2.recv(clientRecv);
 
-            if (clientRecv != msg) 
+            if (clientRecv != msg)
                 throw UnitTestFail();
         }
-        catch(std::exception& e)
+        catch (std::exception & e)
         {
             lout << e.what() << std::endl;
             thrd.join();
@@ -502,7 +502,7 @@ namespace tests_cryptoTools
         }
         thrd.join();
 
-    } 
+    }
 
     void BtNetwork_BadConnect_Test(const CLP& cmd)
     {
@@ -510,7 +510,7 @@ namespace tests_cryptoTools
         ios.showErrorMessages(false);
         auto tls = getIfTLS(cmd);
 
-        Session server(ios, "127.0.0.1", 1212, SessionMode::Server,tls);
+        Session server(ios, "127.0.0.1", 1212, SessionMode::Server, tls);
         auto chl = server.addChannel();
 
         boost::asio::ip::tcp::socket sock(ios.mIoService);
@@ -526,7 +526,7 @@ namespace tests_cryptoTools
         sock.close(ec);
 
 
-        Session client(ios, "127.0.0.1", 1212, SessionMode::Client,tls);
+        Session client(ios, "127.0.0.1", 1212, SessionMode::Client, tls);
         auto chl2 = client.addChannel();
 
         //chl.waitForConnection(std::chrono::seconds(1));
@@ -574,7 +574,7 @@ namespace tests_cryptoTools
 
         ios.stop();
     }
-    
+
 
 
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_OneMegabyteSend_Test);
@@ -596,7 +596,7 @@ namespace tests_cryptoTools
             {
                 setThreadName("Test_Client");
 
-                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
                 Channel chl = endpoint.addChannel(channelName, channelName);
 
                 std::vector<u8> srvRecv;
@@ -620,7 +620,7 @@ namespace tests_cryptoTools
         Finally f([&] { thrd.join(); });
 
 
-        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
         auto chl = endpoint.addChannel(channelName, channelName);
 
 
@@ -682,7 +682,7 @@ namespace tests_cryptoTools
                 IOService ioService;
                 setThreadName("Test_client");
 
-                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
+                Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
 
                 std::vector<std::thread> threads;
 
@@ -715,7 +715,7 @@ namespace tests_cryptoTools
 
         IOService ioService;
 
-        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
         std::vector<std::thread> threads;
 
@@ -759,7 +759,7 @@ namespace tests_cryptoTools
 
         auto thrd = std::thread([&]() {
             IOService ioService(0);
-            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
+            Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
 
 
             auto sendChl1 = endpoint.addChannel("send", "recv");
@@ -787,7 +787,7 @@ namespace tests_cryptoTools
             ioService.stop();
             });
         IOService ioService(0);
-        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session endpoint(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
 
         auto recvChl0 = endpoint.addChannel("recv", "send");
@@ -908,14 +908,14 @@ namespace tests_cryptoTools
             std::string msg{ "This is the message" };
 
 
-            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
+            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
             chl1 = ep1.addChannel(channelName, channelName);
 
             if (chl1.isConnected() == true)
                 throw UnitTestFail(LOCATION);
 
 
-            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
             if (chl1.isConnected() == true)
                 throw UnitTestFail(LOCATION);
@@ -960,8 +960,8 @@ namespace tests_cryptoTools
         auto tls = getIfTLS(cmd);
         IOService ioService;
 
-        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
         auto chl1 = ep1.addChannel(channelName, channelName);
         auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1012,8 +1012,8 @@ namespace tests_cryptoTools
         auto tls = getIfTLS(cmd);
         IOService ioService;
 
-        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
         auto chl1 = ep1.addChannel(channelName, channelName);
         auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1047,8 +1047,8 @@ namespace tests_cryptoTools
 
         ioService.showErrorMessages(false);
 
-        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+        Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+        Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
         auto chl1 = ep1.addChannel(channelName, channelName);
         auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1074,12 +1074,12 @@ namespace tests_cryptoTools
             chl2.recv(arr_u32_3);
             throws = false;
         }
-        catch (BadReceiveBufferSize& e)
+        catch (BadReceiveBufferSize & e)
         {
             if (e.mSize != vec_u32.size() * sizeof(u32))
                 throw UnitTestFail();
 
-            //std::vector<u32> backup(vec_u32.size());
+            //std::vector<u32> backup(vec_u32.sizeLeft());
 
             //e.mRescheduler((u8*)backup.data());
 
@@ -1096,7 +1096,7 @@ namespace tests_cryptoTools
         //chl2.recv(arr_u32_10);
 
         //if (std::mismatch(vec_u32.begin(), vec_u32.end(), arr_u32_10.begin()).first != vec_u32.end())
-        //    throw UnitTestFail("failed to recover bad recv size.");
+        //    throw UnitTestFail("failed to recover bad recv sizeLeft.");
     }
 
     //OSU_CRYPTO_ADD_TEST(globalTests, BtNetwork_closeOnError_Test);
@@ -1113,8 +1113,8 @@ namespace tests_cryptoTools
 
             ioService.showErrorMessages(false);
 
-            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
             auto chl1 = ep1.addChannel(channelName, channelName);
 
@@ -1156,8 +1156,8 @@ namespace tests_cryptoTools
             ioService.showErrorMessages(false);
             auto tls = getIfTLS(cmd);
 
-            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+            Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+            Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
             auto chl1 = ep1.addChannel(channelName, channelName);
             auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1212,8 +1212,8 @@ namespace tests_cryptoTools
 
                 timer.setTimePoint("io serivce");
 
-                Session server(ios, "127.0.0.1", 1212, SessionMode::Server,tls);
-                Session client(ios, "127.0.0.1", 1212, SessionMode::Client,tls);
+                Session server(ios, "127.0.0.1", 1212, SessionMode::Server, tls);
+                Session client(ios, "127.0.0.1", 1212, SessionMode::Client, tls);
                 timer.setTimePoint("sessions");
 
 
@@ -1341,8 +1341,8 @@ namespace tests_cryptoTools
             for (u64 i = 0; i < trials; ++i)
             {
 
-                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
                 auto chl1 = ep1.addChannel(channelName, channelName);
                 auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1371,7 +1371,7 @@ namespace tests_cryptoTools
                 }
             }
         }
-        catch (std::exception& e)
+        catch (std::exception & e)
         {
             std::cout << "sss" << e.what() << std::endl;
         }
@@ -1394,8 +1394,8 @@ namespace tests_cryptoTools
 
             try {
 
-                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client,tls, "endpoint");
-                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server,tls, "endpoint");
+                Session ep1(ioService, "127.0.0.1", 1212, SessionMode::Client, tls, "endpoint");
+                Session ep2(ioService, "127.0.0.1", 1212, SessionMode::Server, tls, "endpoint");
 
                 auto chl1 = ep1.addChannel(channelName, channelName);
                 auto chl2 = ep2.addChannel(channelName, channelName);
@@ -1410,7 +1410,7 @@ namespace tests_cryptoTools
                     throw UnitTestFail(LOCATION);
                 }
             }
-            catch (std::exception& e)
+            catch (std::exception & e)
             {
                 std::cout << "sss" << e.what() << std::endl;
                 throw;
@@ -1441,12 +1441,12 @@ namespace tests_cryptoTools
 
         chls[0].cancel(false);
 
-        chls[0].asyncRecv(msg, [&](const error_code& ec){
-            if(!ec)
+        chls[0].asyncRecv(msg, [&](const error_code& ec) {
+            if (!ec)
                 failed = true;
-            if(++counts == countEnd)
+            if (++counts == countEnd)
                 prom.set_value();
-        });
+            });
 
         // chls[0].asyncSend(std::move(msg), [&](const error_code& ec){
         //     if(!ec)
@@ -1460,7 +1460,7 @@ namespace tests_cryptoTools
         chls[0].close();
         chls[1].close();
 
-        if(failed)
+        if (failed)
             throw UnitTestFail();
     }
 
@@ -1486,7 +1486,7 @@ namespace tests_cryptoTools
         std::array<oc::completion_handle, 2> sendFuncs;
 
         std::vector<u8> msg(10);
-        
+
 
         for (u64 j = 0; j < 2; ++j)
         {
@@ -1531,7 +1531,7 @@ namespace tests_cryptoTools
 
         chls[0].waitForConnection();
         chls[1].waitForConnection();
-        
+
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
         chls[0].cancel(false);
@@ -1643,25 +1643,140 @@ namespace tests_cryptoTools
 
         std::vector<std::thread> thrds(10);
 
-        for(u64 tt = 0;tt < thrds.size(); ++tt)
+        for (u64 tt = 0; tt < thrds.size(); ++tt)
         {
-            thrds[tt] = std::thread([&](){
-                for(u64 i =0; i < n; ++i)
+            thrds[tt] = std::thread([&]() {
+                for (u64 i = 0; i < n; ++i)
                 {
-                    queue.push_back(std::move(i));                    
+                    queue.push_back(std::move(i));
                 }
-            });
+                });
         }
 
         u64 total = n * thrds.size();
-        for(u64 i =0; i < total; ++i)
+        for (u64 i = 0; i < total; ++i)
         {
-            if(queue.isEmpty() == false)
+            if (queue.isEmpty() == false)
                 queue.pop_front();
         }
 
-        for(u64 tt = 0;tt < thrds.size(); ++tt)
+        for (u64 tt = 0; tt < thrds.size(); ++tt)
             thrds[tt].join();
+    }
+
+    void BtNetwork_socketAdapter_test(const osuCrypto::CLP& cmd)
+    {
+        struct SmallBuff
+        {
+            struct Socket
+            {
+                Socket(SmallBuff& base, u64 i)
+                    : mIdx(i)
+                    , mBase(base)
+                { }
+
+                u64 mIdx;
+                SmallBuff& mBase;
+                bool mCanceled = false;
+
+                void send(u8* data, u64 sizeLeft)
+                {
+                    auto i = mIdx ^ 1;
+                    while (sizeLeft)
+                    {
+                        if (mCanceled)
+                            return;
+
+                        auto buffSize = mBase.mBuffer[i].size();
+                        auto used = mBase.mWriteIdx[i] - mBase.mReadIdx[i];
+                        auto writeSize = std::min(buffSize - used, sizeLeft);
+                        if (writeSize)
+                        {
+                            u64 j = mBase.mWriteIdx[i];
+                            for (u64 k = 0; k < writeSize; k++)
+                            {
+                                mBase.mBuffer[i][j++ % buffSize] = *data++;
+                            }
+                            sizeLeft -= writeSize;
+                            //lout << "buff[" << i << "] wrote " << writeSize << ", rem " << sizeLeft << std::endl;
+                            mBase.mWriteIdx[i] += writeSize;
+                        }
+                        else
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                }
+                void recv(u8* data, u64 sizeLeft)
+                {
+                    auto i = mIdx;
+
+                    while (sizeLeft)
+                    {
+                        if (mCanceled)
+                            return;
+
+                        auto buffSize = mBase.mBuffer[i].size();
+                        auto used = mBase.mWriteIdx[i] - mBase.mReadIdx[i];
+                        auto readSize = std::min<u64>(used, sizeLeft);
+                        if (readSize)
+                        {
+                            u64 j = mBase.mReadIdx[i];
+                            for (u64 k = 0; k < readSize; k++)
+                            {
+                                *data++ = mBase.mBuffer[i][j++ % buffSize];
+                            }
+                            sizeLeft -= readSize;
+                            //lout << "buff[" << i << "] read " << readSize<< ", rem " << sizeLeft << std::endl;
+                            mBase.mReadIdx[i] += readSize;
+                        }
+                        else
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                }
+
+                void asyncCancel(std::function<void()>&& fn)
+                {
+                    mCanceled = true;
+                    fn();
+                }
+            };
+
+
+            SmallBuff(u64 buffSize = 16)
+            {
+                mBuffer[0].resize(buffSize);
+                mBuffer[1].resize(buffSize);
+                mWriteIdx[0] = 0;
+                mWriteIdx[1] = 0;
+                mReadIdx[0] = 0;
+                mReadIdx[1] = 0;
+            }
+
+
+            std::array<Socket, 2> makeSockets()
+            {
+                return std::array<Socket, 2>{ {Socket(*this, 0), Socket(*this, 1)}};
+            }
+            std::array<std::vector<u8>, 2> mBuffer;
+            std::array<std::atomic<u64>, 2> mWriteIdx, mReadIdx;
+
+        };
+
+        IOService ios;
+        SmallBuff b;
+        auto sock = b.makeSockets();
+
+        auto ad0 = new SocketAdapter<SmallBuff::Socket>(sock[0]);
+        auto ad1 = new SocketAdapter<SmallBuff::Socket>(sock[1]);
+
+        Channel chl0(ios, ad0);
+        Channel chl1(ios, ad1);
+
+
+        std::vector<u8> data(1024);
+        chl0.asyncSend(data);
+        chl1.asyncSend(data);
+        chl0.recv(data);
+        chl1.recv(data);
     }
 
 }

@@ -20,6 +20,14 @@
 
 namespace osuCrypto
 {
+
+    void post(IOService* ios, std::function<void()>&& fn)
+    {
+        ios->mIoService.post(std::move(fn));
+    }
+
+
+
 #ifdef ENABLE_NET_LOG
 #define LOG_MSG(m) mLog.push(m)
 #define IF_LOG(m) m

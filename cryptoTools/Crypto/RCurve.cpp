@@ -560,7 +560,6 @@ namespace osuCrypto
             core_init();
             if (GSL_UNLIKELY(err_get_code()))
                 throw std::runtime_error("Relic core init error " LOCATION);
-
             ep_param_set_any();
             if (GSL_UNLIKELY(err_get_code()))
                 throw std::runtime_error("Relic set any error " LOCATION);
@@ -746,6 +745,7 @@ namespace osuCrypto
         bn_read_bin(*this, buff.data(), static_cast<int>(buff.size()));
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic randomize error " LOCATION);
+
         reduce();
     }
 

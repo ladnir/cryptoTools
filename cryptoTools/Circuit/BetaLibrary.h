@@ -27,6 +27,7 @@ namespace osuCrypto
         BetaCircuit* uint_uint_add(u64 aSize, u64 bSize, u64 cSize);
         BetaCircuit* int_intConst_add(u64 aSize, u64 bSize, i64 bVal, u64 cSize);
         BetaCircuit* int_int_subtract(u64 aSize, u64 bSize, u64 cSize);
+        BetaCircuit* int_int_sub_msb(u64 aSize, u64 bSize, u64 cSize);
         BetaCircuit* uint_uint_subtract(u64 aSize, u64 bSize, u64 cSize);
 
         BetaCircuit* int_intConst_subtract(u64 aSize, u64 bSize, i64 bVal, u64 cSize);
@@ -114,6 +115,13 @@ namespace osuCrypto
             const BetaBundle & a2,
             const BetaBundle & diff,
             const BetaBundle & temps);
+
+        static void int_int_sub_msb_build_do(
+            BetaCircuit& cd,
+            const BetaBundle& a1,
+            const BetaBundle& a2,
+            const BetaBundle& diff,
+            const BetaBundle& temps);
 
 
 		static void uint_uint_subtract_build(
