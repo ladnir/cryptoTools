@@ -139,9 +139,52 @@ namespace osuCrypto
 
         }
 
+
+        template<typename T>
+        typename std::enable_if<std::is_integral<T>::value, std::vector<T>>::type
+            getManyOr(const std::string& name, std::vector<T>alt)const
+
+        {
+            if (isSet(name))
+            {
+                auto& vs = mKeyValues.at(name);
+                //if(vs.size())
+                std::vector<T> ret; ret.reserve(vs.size());
+                auto iter = vs.begin();
+                T x;
+                for (u64 i = 0; i < vs.size(); ++i)
+                {
+                    std::stringstream ss(*iter++);
+                    ss >> x;
+                    ret.push_back(x);
+                    char d0, d1;
+                    ss >> d0;
+                    ss >> d1;
+                    if (d0 == '.' && d1 == '.')
+                    {
+                        T end;
+                        ss >> end;
+
+                        T step = end > x ? 1 : -1;
+                        x += step;
+                        while (x < end)
+                        {
+                            ret.push_back(x);
+                            x += step;
+                        }
+                    }
+                }
+                return ret;
+            }
+            return alt;
+        }
+
+
+
         // Return the values associated with the key.
         template<typename T>
-        std::vector<T> getManyOr(const std::string& name, std::vector<T>alt)const
+        typename std::enable_if<!std::is_integral<T>::value, std::vector<T>>::type
+            getManyOr(const std::string& name, std::vector<T>alt)const
         {
             if (isSet(name))
             {
