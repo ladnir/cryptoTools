@@ -18,14 +18,9 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
 	
-	set(CMAKE_C_FLAGS "-Wall -mpclmul -Wfatal-errors -pthread -fPIC -Wno-ignored-attributes")
+	set(CMAKE_C_FLAGS "-Wall -Wfatal-errors -pthread -Wno-ignored-attributes")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
-
-	#if(ENABLE_CPP_14)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
-	#else() 	
-	#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-	#endif()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
 
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
@@ -79,8 +74,8 @@ if(NOT ENABLE_CPP_14)
 endif()
 
 if(ENABLE_SSE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes -msse2 -msse4.1")
-	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -maes -msse2 -msse4.1")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes -msse2 -msse4.1 -mpclmul")
+	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -maes -msse2 -msse4.1 -mpclmul")
 endif()
 
 configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )

@@ -45,7 +45,7 @@ int blake2xb_init_key( blake2xb_state *S, const size_t outlen, const void *key, 
 
   /* Initialize parameter block */
   S->P->digest_length = BLAKE2B_OUTBYTES;
-  S->P->key_length    = keylen;
+  S->P->key_length    = (uint8_t)(keylen);
   S->P->fanout        = 1;
   S->P->depth         = 1;
   store32( &S->P->leaf_length, 0 );

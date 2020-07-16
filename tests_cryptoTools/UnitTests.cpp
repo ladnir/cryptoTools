@@ -9,6 +9,7 @@
 #include "tests_cryptoTools/Cuckoo_Tests.h"
 #include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
+#include "tests_cryptoTools/block_Tests.h"
 
 #include "tests_cryptoTools/WolfSSL_Tests.h"
 
@@ -49,6 +50,8 @@ namespace tests_cryptoTools
         th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);
         th.add("wolfSSL_channel_test                    ", wolfSSL_channel_test);
         th.add("wolfSSL_CancelChannel_Test              ", wolfSSL_CancelChannel_Test);
+
+        th.add("block_operation_test                    ", block_operation_test);
         th.add("AES                                     ", AES_EncDec_Test);
 
         th.add("BitVector_Indexing_Test                 ", BitVector_Indexing_Test_Impl);

@@ -1,6 +1,11 @@
 #include <cryptoTools/Crypto/AES.h>
 #include <array>
 
+#ifdef OC_ENABLE_AESNI
+#include <wmmintrin.h>
+#elif !defined(OC_ENABLE_PORTABLE_AES)
+static_assert(0, "OC_ENABLE_PORTABLE_AES must be defined if ENABLE_AESNI is not.");
+#endif
 
 namespace osuCrypto {
 
@@ -10,7 +15,7 @@ namespace osuCrypto {
     namespace details
     {
 
-#ifdef ENABLE_SSE
+#ifdef OC_ENABLE_AESNI
         block keyGenHelper(block key, block keyRcon)
         {
             keyRcon = _mm_shuffle_epi32(keyRcon, _MM_SHUFFLE(3, 3, 3, 3));
@@ -53,7 +58,7 @@ namespace osuCrypto {
 
 #endif
 
-#if defined(ENABLE_PORTABLE_AES)
+#if defined(OC_ENABLE_PORTABLE_AES)
         // The lookup-tables are marked const so they can be placed in read-only storage instead of RAM
         // The numbers below can be computed dynamically trading ROM for RAM - 
         // This can be useful in (embedded) bootloader applications, where ROM is often limited.
@@ -851,7 +856,7 @@ namespace osuCrypto {
         }
 
 
-#ifdef ENABLE_SSE
+#ifdef OC_ENABLE_AESNI
         template<>
         block AESDec<NI>::roundDec(block state, const block& roundKey)
         {
@@ -881,23 +886,23 @@ namespace osuCrypto {
             const block  v10 = details::keyGenHelper(v9, _mm_aeskeygenassist_si128(v9, 0x36));
 
 
-            _mm_storeu_si128(&mRoundKey[0], v10);
-            _mm_storeu_si128(&mRoundKey[1], _mm_aesimc_si128(v9));
-            _mm_storeu_si128(&mRoundKey[2], _mm_aesimc_si128(v8));
-            _mm_storeu_si128(&mRoundKey[3], _mm_aesimc_si128(v7));
-            _mm_storeu_si128(&mRoundKey[4], _mm_aesimc_si128(v6));
-            _mm_storeu_si128(&mRoundKey[5], _mm_aesimc_si128(v5));
-            _mm_storeu_si128(&mRoundKey[6], _mm_aesimc_si128(v4));
-            _mm_storeu_si128(&mRoundKey[7], _mm_aesimc_si128(v3));
-            _mm_storeu_si128(&mRoundKey[8], _mm_aesimc_si128(v2));
-            _mm_storeu_si128(&mRoundKey[9], _mm_aesimc_si128(v1));
-            _mm_storeu_si128(&mRoundKey[10], v0);
+            _mm_storeu_si128(&mRoundKey[0].m128i(), v10);
+            _mm_storeu_si128(&mRoundKey[1].m128i(), _mm_aesimc_si128(v9));
+            _mm_storeu_si128(&mRoundKey[2].m128i(), _mm_aesimc_si128(v8));
+            _mm_storeu_si128(&mRoundKey[3].m128i(), _mm_aesimc_si128(v7));
+            _mm_storeu_si128(&mRoundKey[4].m128i(), _mm_aesimc_si128(v6));
+            _mm_storeu_si128(&mRoundKey[5].m128i(), _mm_aesimc_si128(v5));
+            _mm_storeu_si128(&mRoundKey[6].m128i(), _mm_aesimc_si128(v4));
+            _mm_storeu_si128(&mRoundKey[7].m128i(), _mm_aesimc_si128(v3));
+            _mm_storeu_si128(&mRoundKey[8].m128i(), _mm_aesimc_si128(v2));
+            _mm_storeu_si128(&mRoundKey[9].m128i(), _mm_aesimc_si128(v1));
+            _mm_storeu_si128(&mRoundKey[10].m128i(), v0);
 
         }
 
 #endif
 
-#if defined(ENABLE_PORTABLE_AES)
+#if defined(OC_ENABLE_PORTABLE_AES)
 
         // MixColumns function mixes the columns of the state matrix.
         // The method used to multiply may be difficult to understand for the inexperienced.
@@ -1070,88 +1075,13 @@ namespace osuCrypto {
 
     }
 
-#ifdef ENABLE_PORTABLE_AES
+#ifdef OC_ENABLE_PORTABLE_AES
     template class details::AES<details::Portable>;
     template class details::AESDec<details::Portable>;
 #endif
 
-#ifdef ENABLE_SSE
+#ifdef OC_ENABLE_AESNI
     template class details::AES<details::NI>;
     template class details::AESDec<details::NI>;
 #endif
-
-
-    //AESDec2::AESDec2(const block & userKey)
-    //{
-    //    setKey(userKey);
-    //}
-
-
-    //void AESDec2::ecbDecBlock(const block & cyphertext, block & plaintext)
-    //{
-    //    std::cout << "\ndec[0] " << cyphertext << " ^ " << mRoundKey[0] << std::endl;
-    //    plaintext = _mm_xor_si128(cyphertext, mRoundKey[0]);
-    //    std::cout << "dec[1] " << plaintext << " ^ " << mRoundKey[1] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[1]);
-    //    std::cout << "dec[2] " << plaintext << " ^ " << mRoundKey[2] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[2]);
-    //    std::cout << "dec[3] " << plaintext << " ^ " << mRoundKey[3] << std::endl;
-
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[3]);
-    //    std::cout << "dec[4] " << plaintext << " ^ " << mRoundKey[4] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[4]);
-    //    std::cout << "dec[5] " << plaintext << " ^ " << mRoundKey[5] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[5]);
-    //    std::cout << "dec[6] " << plaintext << " ^ " << mRoundKey[6] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[6]);
-    //    std::cout << "dec[7] " << plaintext << " ^ " << mRoundKey[7] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[7]);
-    //    std::cout << "dec[8] " << plaintext << " ^ " << mRoundKey[8] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[8]);
-    //    std::cout << "dec[9] " << plaintext << " ^ " << mRoundKey[9] << std::endl;
-    //    plaintext = _mm_aesdec_si128(plaintext, mRoundKey[9]);
-
-    //    std::cout << "dec[10] " << plaintext << " ^ " << mRoundKey[10] << std::endl;
-    //    plaintext = _mm_aesdeclast_si128(plaintext, mRoundKey[10]);
-    //    
-    //    std::cout << "dec[11] " << plaintext << std::endl;
-
-
-    //}
-
-    //void AESDec2::setKey(const block& userKey)
-    //{
-    //    const block& v0 = userKey;
-    //    const block  v1 =  details::keyGenHelper(v0, _mm_aeskeygenassist_si128(v0, 0x01));
-    //    const block  v2 =  details::keyGenHelper(v1, _mm_aeskeygenassist_si128(v1, 0x02));
-    //    const block  v3 =  details::keyGenHelper(v2, _mm_aeskeygenassist_si128(v2, 0x04));
-    //    const block  v4 =  details::keyGenHelper(v3, _mm_aeskeygenassist_si128(v3, 0x08));
-    //    const block  v5 =  details::keyGenHelper(v4, _mm_aeskeygenassist_si128(v4, 0x10));
-    //    const block  v6 =  details::keyGenHelper(v5, _mm_aeskeygenassist_si128(v5, 0x20));
-    //    const block  v7 =  details::keyGenHelper(v6, _mm_aeskeygenassist_si128(v6, 0x40));
-    //    const block  v8 =  details::keyGenHelper(v7, _mm_aeskeygenassist_si128(v7, 0x80));
-    //    const block  v9 =  details::keyGenHelper(v8, _mm_aeskeygenassist_si128(v8, 0x1B));
-    //    const block  v10 = details::keyGenHelper(v9, _mm_aeskeygenassist_si128(v9, 0x36));
-
-
-    //    _mm_storeu_si128(mRoundKey, v10);
-    //    _mm_storeu_si128(mRoundKey + 1, _mm_aesimc_si128(v9));
-    //    _mm_storeu_si128(mRoundKey + 2, _mm_aesimc_si128(v8));
-    //    _mm_storeu_si128(mRoundKey + 3, _mm_aesimc_si128(v7));
-    //    _mm_storeu_si128(mRoundKey + 4, _mm_aesimc_si128(v6));
-    //    _mm_storeu_si128(mRoundKey + 5, _mm_aesimc_si128(v5));
-    //    _mm_storeu_si128(mRoundKey + 6, _mm_aesimc_si128(v4));
-    //    _mm_storeu_si128(mRoundKey + 7, _mm_aesimc_si128(v3));
-    //    _mm_storeu_si128(mRoundKey + 8, _mm_aesimc_si128(v2));
-    //    _mm_storeu_si128(mRoundKey + 9, _mm_aesimc_si128(v1));
-    //    _mm_storeu_si128(mRoundKey + 10, v0);
-
-    //}
-
-    //block AESDec2::ecbDecBlock(const block & plaintext)
-    //{
-    //    block ret;
-    //    ecbDecBlock(plaintext, ret);
-    //    return ret;
-    //}
 }

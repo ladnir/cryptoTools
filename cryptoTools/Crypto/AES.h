@@ -2,12 +2,6 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 
-#ifdef ENABLE_SSE
-#include <wmmintrin.h>
-#elif !defined(ENABLE_PORTABLE_AES)
-static_assert(0, "ENABLE_PORTABLE_AES must be defined if ENABLE_SSE is not.");
-#endif
-
 namespace osuCrypto {
 
     namespace details
@@ -106,7 +100,7 @@ namespace osuCrypto {
 
     }
 
-#ifdef ENABLE_SSE
+#ifdef OC_ENABLE_AESNI
     using AES = details::AES<details::NI>;
     using AESDec = details::AESDec<details::NI>;
 #else
@@ -174,13 +168,13 @@ namespace osuCrypto {
     //    AESDec2() = default;
     //    AESDec2(const AESDec2&) = default;
     //    AESDec2(const block& userKey);
-
+    //
     //    void setKey(const block& userKey);
     //    void ecbDecBlock(const block& ciphertext, block& plaintext);
     //    block ecbDecBlock(const block& ciphertext);
-
+    //
     //    block mRoundKey[11];
-
+    //
     //};
 
 

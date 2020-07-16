@@ -89,10 +89,10 @@ namespace tests_cryptoTools
 
     void AES_EncDec_Test()
     {
-#ifdef ENABLE_SSE
+#ifdef OC_ENABLE_AESNI
         test<details::AESTypes::NI>();
 #endif // ENABLE_SSE
-#ifdef ENABLE_PORTABLE_AES
+#ifdef OC_ENABLE_PORTABLE_AES
         test<details::AESTypes::Portable>();
 #endif // ENABLE_PORTABLE_AES
 

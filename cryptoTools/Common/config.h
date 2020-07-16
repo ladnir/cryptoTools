@@ -27,8 +27,7 @@
 /* #undef ENABLE_WOLFSSL */
 
 // enable integration with boost for networking.
-/* #undef ENABLE_BOOST */
-#define ENABLE_BOOST
+#define ENABLE_BOOST ON
 
 // enable the use of intel SSE instructions.
 #define ENABLE_SSE ON
@@ -36,8 +35,17 @@
 // enable the use of the portable AES implementation.
 /* #undef ENABLE_PORTABLE_AES */
 
-#ifdef ENABLE_SSE
+#if (defined(_MSC_VER) || defined(__SSE2__)) && defined(ENABLE_SSE)
 #define ENABLE_SSE_BLAKE2 ON
-#elif !defined(ENABLE_PORTABLE_AES)
-#define ENABLE_PORTABLE_AES ON
+#define OC_ENABLE_SSE2 ON
+#endif
+
+#if (defined(_MSC_VER) || defined(__PCLMUL__)) && defined(ENABLE_SSE)
+#define OC_ENABLE_PCLMUL
+#endif
+
+#if (defined(_MSC_VER) || defined(__AES__)) && defined(ENABLE_SSE)
+#define OC_ENABLE_AESNI ON
+#else
+#define OC_ENABLE_PORTABLE_AES ON
 #endif

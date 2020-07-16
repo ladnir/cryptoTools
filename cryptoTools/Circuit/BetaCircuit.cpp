@@ -664,7 +664,7 @@ namespace osuCrypto
 
         i64 nextWire = numInputs;
         std::vector<i64> freeWires;
-        auto getOutWire = [&](Node& node) -> u64
+        auto getOutWire = [&](Node& node) -> u32
         {
             if (node.mFixedWireValue) {
                 node.mWire = node.mGate.mOutput;
@@ -684,7 +684,7 @@ namespace osuCrypto
             throw std::runtime_error(LOCATION);
         };
 
-        auto getInWire = [&](Node& node, u64 i) -> u64
+        auto getInWire = [&](Node& node, u64 i) -> u32
         {
             auto& depList = node.mInput[i]->mOutputs;
 
@@ -1079,7 +1079,7 @@ namespace osuCrypto
         }
 
         read(count, in);
-        mWireCount = count;
+        mWireCount = static_cast<u32>(count);
 
         read(count, in);
         mGates.resize(count);
@@ -1111,7 +1111,7 @@ namespace osuCrypto
             read(flag, in);
 
             std::get<0>(mPrints[i]) = gateIdx;
-            std::get<1>(mPrints[i]) = wireIdx;
+            std::get<1>(mPrints[i]) = static_cast<u32>(wireIdx);
             std::get<2>(mPrints[i]) = msg;
             std::get<3>(mPrints[i]) = flag;
         }
@@ -1361,9 +1361,9 @@ namespace osuCrypto
                     throw RTE_LOC;
 
                 if (inIdx0 == outIdx)
-                    addInvert(inIdx0);
+                    addInvert(static_cast<u32>(inIdx0));
                 else
-                    addInvert(inIdx0, outIdx);
+                    addInvert(static_cast<u32>(inIdx0), static_cast<u32>(outIdx));
             }
             else
             {
@@ -1380,7 +1380,8 @@ namespace osuCrypto
                 else
                     throw RTE_LOC;
 
-                addGate(inIdx0, inIdx1, gt, outIdx);
+                addGate(static_cast<u32>(inIdx0), static_cast<u32>(inIdx1),
+                    gt, static_cast<u32>(outIdx));
             }
         }
     }

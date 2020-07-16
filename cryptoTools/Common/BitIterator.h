@@ -60,8 +60,8 @@ namespace osuCrypto
 
 		// Construct a reference to the bit in the provided byte offset by the shift.
 		// Shift should be less than 8.
-        BitIterator(u8* byte, u8 shift)
-            :mByte(byte), mMask(1 << (shift & 7)), mShift(shift & 7) {}
+        BitIterator(u8* byte, u8 shift = 0)
+            :mByte(byte + (shift / 8)), mMask(1 << (shift & 7)), mShift(shift & 7) {}
 
 		// Construct a reference to the current bit pointed to by the iterator.
         BitReference operator*() { return BitReference(mByte, mMask, mShift); }
@@ -84,6 +84,23 @@ namespace osuCrypto
             ++mShift &= 7;
             mMask = 1 << mShift;
 
+            return ret;
+        }
+
+        // Pre increment the iterator by 1.
+        BitIterator& operator--()
+        {
+            mByte -= (mShift == 0) & 1;
+            --mShift &= 7;
+            mMask = 1 << mShift;
+            return *this;
+        }
+
+        // Pre increment the iterator by 1.
+        BitIterator operator--(int)
+        {
+            auto ret = *this;
+            --(*this);
             return ret;
         }
 
