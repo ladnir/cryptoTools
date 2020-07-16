@@ -18,9 +18,9 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
 	
-	set(CMAKE_C_FLAGS "-Wall -Wfatal-errors -pthread -Wno-ignored-attributes")
+	set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")	
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")	
 
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
