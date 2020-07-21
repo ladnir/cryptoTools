@@ -12,6 +12,7 @@
 #include <wmmintrin.h>
 #endif
 
+
 namespace osuCrypto
 {
     struct alignas(16) block
@@ -122,18 +123,18 @@ namespace osuCrypto
         inline osuCrypto::block operator^(const osuCrypto::block & rhs) const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_xor_si128(rhs);
+            return mm_xor_si128(rhs);
 #else
-            return _cpp_xor_si128(rhs);
+            return cc_xor_si128(rhs);
 #endif
         }
 #ifdef OC_ENABLE_SSE2
-        inline osuCrypto::block _mm_xor_si128(const osuCrypto::block & rhs) const
+        inline osuCrypto::block mm_xor_si128(const osuCrypto::block & rhs) const
         {
-            return ::_mm_xor_si128(*this, rhs);
+            return _mm_xor_si128(*this, rhs);
         }
 #endif
-        inline osuCrypto::block _cpp_xor_si128(const osuCrypto::block & rhs) const
+        inline osuCrypto::block cc_xor_si128(const osuCrypto::block & rhs) const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] ^= rhs.as<std::uint64_t>()[0];
@@ -145,19 +146,19 @@ namespace osuCrypto
         inline osuCrypto::block operator&(const osuCrypto::block & rhs)const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_and_si128(rhs);
+            return mm_and_si128(rhs);
 #else
-            return _cpp_and_si128(rhs);
+            return cc_and_si128(rhs);
 #endif
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline osuCrypto::block _mm_and_si128(const osuCrypto::block & rhs)const
+        inline osuCrypto::block mm_and_si128(const osuCrypto::block & rhs)const
         {
-            return ::_mm_and_si128(*this, rhs);
+            return _mm_and_si128(*this, rhs);
         }
 #endif
-        inline osuCrypto::block _cpp_and_si128(const osuCrypto::block & rhs)const
+        inline osuCrypto::block cc_and_si128(const osuCrypto::block & rhs)const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] &= rhs.as<std::uint64_t>()[0];
@@ -169,18 +170,18 @@ namespace osuCrypto
         inline osuCrypto::block operator|(const osuCrypto::block & rhs)const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_or_si128(rhs);
+            return mm_or_si128(rhs);
 #else
-            return _cpp_or_si128(rhs);
+            return cc_or_si128(rhs);
 #endif
         }
 #ifdef OC_ENABLE_SSE2
-        inline osuCrypto::block _mm_or_si128(const osuCrypto::block & rhs)const
+        inline osuCrypto::block mm_or_si128(const osuCrypto::block & rhs)const
         {
-            return ::_mm_or_si128(*this, rhs);
+            return _mm_or_si128(*this, rhs);
         }
 #endif
-        inline osuCrypto::block _cpp_or_si128(const osuCrypto::block & rhs)const
+        inline osuCrypto::block cc_or_si128(const osuCrypto::block & rhs)const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] |= rhs.as<std::uint64_t>()[0];
@@ -192,19 +193,19 @@ namespace osuCrypto
         inline osuCrypto::block operator<<(const std::uint8_t & rhs)const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_slli_epi64(rhs);
+            return mm_slli_epi64(rhs);
 #else
-            return _cpp_slli_epi64(rhs);
+            return cc_slli_epi64(rhs);
 #endif 
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline osuCrypto::block _mm_slli_epi64(const std::uint8_t & rhs)const
+        inline osuCrypto::block mm_slli_epi64(const std::uint8_t & rhs)const
         {
-            return ::_mm_slli_epi64(*this, rhs);
+            return _mm_slli_epi64(*this, rhs);
         }
 #endif
-        inline osuCrypto::block _cpp_slli_epi64(const std::uint8_t & rhs)const
+        inline osuCrypto::block cc_slli_epi64(const std::uint8_t & rhs)const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] <<= rhs;
@@ -215,19 +216,19 @@ namespace osuCrypto
         inline block operator>>(const std::uint8_t & rhs)const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_srli_epi64(rhs);
+            return mm_srli_epi64(rhs);
 #else
-            return _cpp_srli_epi64(rhs);
+            return cc_srli_epi64(rhs);
 #endif
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline block _mm_srli_epi64(const std::uint8_t & rhs) const
+        inline block mm_srli_epi64(const std::uint8_t & rhs) const
         {
-            return ::_mm_srli_epi64(*this, rhs);
+            return _mm_srli_epi64(*this, rhs);
         }
 #endif
-        inline block _cpp_srli_epi64(const std::uint8_t & rhs) const
+        inline block cc_srli_epi64(const std::uint8_t & rhs) const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] >>= rhs;
@@ -239,20 +240,20 @@ namespace osuCrypto
         inline osuCrypto::block operator+(const osuCrypto::block & rhs)const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_add_epi64(rhs);
+            return mm_add_epi64(rhs);
 #else
-            return _cpp_add_epi64(rhs);
+            return cc_add_epi64(rhs);
 #endif
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline block _mm_add_epi64(const osuCrypto::block & rhs) const
+        inline block mm_add_epi64(const osuCrypto::block & rhs) const
         {
-            return ::_mm_add_epi64(*this, rhs);
+            return _mm_add_epi64(*this, rhs);
 
         }
 #endif
-        inline block _cpp_add_epi64(const osuCrypto::block & rhs) const
+        inline block cc_add_epi64(const osuCrypto::block & rhs) const
         {
             auto ret = *this;
             ret.as<std::uint64_t>()[0] += rhs.as<std::uint64_t>()[0];
@@ -265,7 +266,7 @@ namespace osuCrypto
         inline bool operator==(const osuCrypto::block & rhs) const
         {
 #ifdef OC_ENABLE_SSE2
-            auto neq = ::_mm_xor_si128(*this, rhs);
+            auto neq = _mm_xor_si128(*this, rhs);
             return _mm_test_all_zeros(neq, neq) != 0;
 #else
             return as<std::uint64_t>()[0] == rhs.as<std::uint64_t>()[0] &&
@@ -282,19 +283,19 @@ namespace osuCrypto
         inline block srai_epi16(int imm8) const 
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_srai_epi16(imm8);
+            return mm_srai_epi16(imm8);
 #else
-            return _cpp_srai_epi16(imm8);
+            return cc_srai_epi16(imm8);
 #endif
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline block _mm_srai_epi16(char imm8) const
+        inline block mm_srai_epi16(char imm8) const
         {
-            return ::_mm_srai_epi16(*this, imm8);
+            return _mm_srai_epi16(*this, imm8);
         }
 #endif
-        inline block _cpp_srai_epi16(char imm8) const
+        inline block cc_srai_epi16(char imm8) const
         {
             block ret;
             auto& v = as<std::int16_t>();
@@ -330,20 +331,20 @@ namespace osuCrypto
         inline int movemask_epi8() const
         {
 #ifdef OC_ENABLE_SSE2
-            return _mm_movemask_epi8();
+            return mm_movemask_epi8();
 #else
-            return _cpp_movemask_epi8();
+            return cc_movemask_epi8();
 #endif
         }
 
 #ifdef OC_ENABLE_SSE2
-        inline int _mm_movemask_epi8() const
+        inline int mm_movemask_epi8() const
         {
-            return ::_mm_movemask_epi8(*this);
+            return _mm_movemask_epi8(*this);
         }
 #endif
 
-        inline int _cpp_movemask_epi8() const
+        inline int cc_movemask_epi8() const
         {
             int ret{ 0 };
             auto& v = as<unsigned char>();
@@ -360,9 +361,9 @@ namespace osuCrypto
         inline void gf128Mul(const block& y, block & xy1, block & xy2) const
         {
 #ifdef OC_ENABLE_PCLMUL
-            _mm_gf128Mul(y, xy1, xy2);
+            mm_gf128Mul(y, xy1, xy2);
 #else
-            _cpp_gf128Mul(y, xy1, xy2);
+            cc_gf128Mul(y, xy1, xy2);
 #endif // !OC_ENABLE_PCLMUL
         }
 
@@ -370,9 +371,9 @@ namespace osuCrypto
         {
             block xy1, xy2;
 #ifdef OC_ENABLE_PCLMUL
-            _mm_gf128Mul(y, xy1, xy2);
+            mm_gf128Mul(y, xy1, xy2);
 #else
-            _cpp_gf128Mul(y, xy1, xy2);
+            cc_gf128Mul(y, xy1, xy2);
 #endif // !OC_ENABLE_PCLMUL
 
             return xy1.gf128Reduce(xy2);
@@ -382,7 +383,7 @@ namespace osuCrypto
 
 
 #ifdef OC_ENABLE_PCLMUL
-        inline void _mm_gf128Mul(const block& y, block & xy1, block & xy2) const
+        inline void mm_gf128Mul(const block& y, block & xy1, block & xy2) const
         {
             auto& x = *this;
 
@@ -400,7 +401,7 @@ namespace osuCrypto
             xy2 = t4;
         }
 #endif
-        inline void _cpp_gf128Mul(const block& y, block & xy1, block & xy2) const
+        inline void cc_gf128Mul(const block& y, block & xy1, block & xy2) const
         {
             static const constexpr std::uint64_t mod = 0b10000111;
             auto shifted = as<uint64_t>();
@@ -435,17 +436,17 @@ namespace osuCrypto
         block gf128Reduce(const block& x1) const
         {
 #ifdef OC_ENABLE_PCLMUL
-            return _mm_gf128Reduce(x1);
+            return mm_gf128Reduce(x1);
 #else
-            return _cpp_gf128Reduce(x1);
+            return cc_gf128Reduce(x1);
 #endif
         }
 
 
-        block _cpp_gf128Reduce(const block& x1) const;
+        block cc_gf128Reduce(const block& x1) const;
 
 #ifdef OC_ENABLE_PCLMUL
-        block _mm_gf128Reduce(const block& x1) const
+        block mm_gf128Reduce(const block& x1) const
         {
             auto mul256_low = *this;
             auto mul256_high = x1;
@@ -454,12 +455,12 @@ namespace osuCrypto
             /* reduce w.r.t. high half of mul256_high */
             const __m128i modulus = _mm_loadl_epi64((const __m128i*) & (mod));
             __m128i tmp = _mm_clmulepi64_si128(mul256_high, modulus, 0x01);
-            mul256_low = ::_mm_xor_si128(mul256_low, ::_mm_slli_si128(tmp, 8));
-            mul256_high = ::_mm_xor_si128(mul256_high, ::_mm_srli_si128(tmp, 8));
+            mul256_low = _mm_xor_si128(mul256_low, _mm_slli_si128(tmp, 8));
+            mul256_high = _mm_xor_si128(mul256_high, _mm_srli_si128(tmp, 8));
 
             /* reduce w.r.t. low half of mul256_high */
-            tmp = ::_mm_clmulepi64_si128(mul256_high, modulus, 0x00);
-            mul256_low = ::_mm_xor_si128(mul256_low, tmp);
+            tmp = _mm_clmulepi64_si128(mul256_high, modulus, 0x00);
+            mul256_low = _mm_xor_si128(mul256_low, tmp);
 
             //std::cout << "redu " << bits(x, 128) << std::endl;
             //std::cout << "     " << bits(mul256_low, 128) << std::endl;

@@ -105,8 +105,8 @@ void tests_cryptoTools::block_operation_test()
         u8 m64 = (prng.get<u8>() % 64);
         u8 m16 = (prng.get<u8>() % 16);
 
-        int w0 = x._cpp_movemask_epi8();
-        int w1 = x._mm_movemask_epi8();
+        int w0 = x.cc_movemask_epi8();
+        int w1 = x.mm_movemask_epi8();
         if (w0 != w1)
         {
             std::cout << "movemask_epi8 " << i << std::endl;
@@ -117,15 +117,15 @@ void tests_cryptoTools::block_operation_test()
             //throw UnitTestFail("movemask_epi8 " LOCATION);
         }
 
-        z0 = x._cpp_add_epi64(y);
-        z1 = x._mm_add_epi64(y);
+        z0 = x.cc_add_epi64(y);
+        z1 = x.mm_add_epi64(y);
         if (z0 != z1)
         {
             throw UnitTestFail("add_epi64 " LOCATION);
         }
 
-        z0 = x._cpp_and_si128(y);
-        z1 = x._mm_and_si128(y);
+        z0 = x.cc_and_si128(y);
+        z1 = x.mm_and_si128(y);
         if (z0 != z1)
         {
             throw UnitTestFail("and_si128 " LOCATION);
@@ -135,39 +135,39 @@ void tests_cryptoTools::block_operation_test()
         //mulTest(x, y);
         //mul128test(x, y);
 
-        x._cpp_gf128Mul(y, z0, z1);
-        x._mm_gf128Mul(y, q0, q1);
+        x.cc_gf128Mul(y, z0, z1);
+        x.mm_gf128Mul(y, q0, q1);
 
-        auto r0 = z0._mm_gf128Reduce(z1);
-        auto r1 = q0._mm_gf128Reduce(q1);
+        auto r0 = z0.mm_gf128Reduce(z1);
+        auto r1 = q0.mm_gf128Reduce(q1);
         if (r0 != r1)
         {
             throw UnitTestFail("gf128Mul red 1 " LOCATION);
         }
-        auto r2 = z0._cpp_gf128Reduce(z1);
-        auto r3 = q0._cpp_gf128Reduce(q1);
+        auto r2 = z0.cc_gf128Reduce(z1);
+        auto r3 = q0.cc_gf128Reduce(q1);
         if (r2 != r3)
         {
             throw UnitTestFail("gf128Mul red 2 " LOCATION);
         }
 #endif
 
-        z0 = x._cpp_or_si128(y);
-        z1 = x._mm_or_si128(y);
+        z0 = x.cc_or_si128(y);
+        z1 = x.mm_or_si128(y);
         if (z0 != z1)
         {
             throw UnitTestFail("or_si128 " LOCATION);
         }
 
-        z0 = x._cpp_slli_epi64(m64);
-        z1 = x._mm_slli_epi64(m64);
+        z0 = x.cc_slli_epi64(m64);
+        z1 = x.mm_slli_epi64(m64);
         if (z0 != z1)
         {
             throw UnitTestFail("slli_epi64 " LOCATION);
         }
 
-        z0 = x._cpp_srai_epi16(m16);
-        z1 = x._mm_srai_epi16(m16);
+        z0 = x.cc_srai_epi16(m16);
+        z1 = x.mm_srai_epi16(m16);
         if (z0 != z1)
         {
             std::cout << "srai_epi16 " << int(m16) << " " << i << std::endl;
@@ -177,11 +177,11 @@ void tests_cryptoTools::block_operation_test()
             throw UnitTestFail("srai_epi16 " LOCATION);
         }
 
-        z0 = x._cpp_xor_si128(y);
-        z1 = x._mm_xor_si128(y);
+        z0 = x.cc_xor_si128(y);
+        z1 = x.mm_xor_si128(y);
         if (z0 != z1)
         {
-            throw UnitTestFail("_cpp_xor_si128 " LOCATION);
+            throw UnitTestFail("_cc_xor_si128 " LOCATION);
         }
     }
 #endif

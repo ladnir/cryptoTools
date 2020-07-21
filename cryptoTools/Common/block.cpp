@@ -42,20 +42,6 @@ namespace osuCrypto
         return mm;
     }
 
-    //std::array<block, 2> shiftOne(u64 s)
-    //{
-    //	if (s > 127)
-    //		throw RTE_LOC;
-    //	static const constexpr std::uint64_t mod = 0b10000111;
-    //	block b = ZeroBlock;
-    //	setBit(b, s);
-    //	block m(0, mod);
-    //	std::array<block, 2> ret;
-    //	m.gf128Mul(b, ret[0], ret[1]);
-    //	setBit(ret, s + 128);
-    //	return ret;
-    //}
-
     namespace {
 
         template<typename T>
@@ -76,31 +62,9 @@ namespace osuCrypto
     }
 
 
-    block block::_cpp_gf128Reduce(const block& x1) const
+    block block::cc_gf128Reduce(const block& x1) const
     {
         std::array<block, 2> x{ *this, x1 };
-        //std::cout << "cred  " << bits(x, 128) << std::endl;
-
-        //{
-        //    BitIterator iter((u8*)x.data(), 255);
-        //    std::vector<int> vv;
-        //    for (int i = 0; i < 256; ++i)
-        //    {
-        //        vv.push_back(*iter);
-        //        --iter;
-        //    }
-        //    std::cout << "cred* ";
-
-        //    for (int i = 255; i >= 0; --i)
-        //    {
-        //        if (i == 127)
-        //            std::cout << " ";
-        //        std::cout << vv[i];
-        //    }
-        //    std::cout << std::endl;
-
-        //}
-
 
         BitIterator iter((u8*)x.data(), 255);
 
