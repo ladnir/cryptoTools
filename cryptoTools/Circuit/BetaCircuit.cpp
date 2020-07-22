@@ -668,7 +668,7 @@ namespace osuCrypto
         {
             if (node.mFixedWireValue) {
                 node.mWire = node.mGate.mOutput;
-                return node.mWire;
+                return static_cast<u32>(node.mWire);
             }
             else if (node.mWire == uninit) {
                 if (freeWires.size()) {
@@ -678,7 +678,7 @@ namespace osuCrypto
                 else {
                     node.mWire = nextWire++;
                 }
-                return node.mWire;
+                return static_cast<u32>(node.mWire);
             }
 
             throw std::runtime_error(LOCATION);
@@ -707,7 +707,7 @@ namespace osuCrypto
             std::swap(*iter, depList.back());
             depList.pop_back();
 
-            return wire;
+            return static_cast<u32>(wire);
         };
 
         for (u64 i = 0; i < mOutputs.size(); ++i)
@@ -753,7 +753,7 @@ namespace osuCrypto
         }
 
         // replace the gates with the sorted version
-        mWireCount = nextWire;
+        mWireCount = static_cast<BetaWire>(nextWire);
         mWireFlags.resize(mWireCount, BetaWireFlag::Wire);
         mGates = std::move(sortedGates);
 

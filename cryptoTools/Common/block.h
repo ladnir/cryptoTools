@@ -60,15 +60,9 @@ namespace osuCrypto
         }
 
 #ifdef OC_ENABLE_SSE2
-        block(__m128i x)
-        {
-            *this = x;
-        }
-
-        block& operator=(__m128i x)
+        block(const __m128i& x)
         {
             mData = x;
-            return *this;
         }
 
         operator const __m128i& () const
@@ -472,6 +466,9 @@ namespace osuCrypto
 
     static_assert(sizeof(block) == 16, "expected block size");
     static_assert(std::alignment_of<block>::value == 16, "expected block alignment");
+    static_assert(std::is_trivial<block>::value, "expected block trivial");
+    static_assert(std::is_standard_layout<block>::value, "expected block pod");
+    static_assert(std::is_pod<block>::value, "expected block pod");
 
     inline block toBlock(std::uint64_t high_u64, std::uint64_t low_u64)
     {

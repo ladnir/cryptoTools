@@ -50,7 +50,7 @@ int blake2xb_init_key( blake2xb_state *S, const size_t outlen, const void *key, 
   S->P->depth         = 1;
   store32( &S->P->leaf_length, 0 );
   store32( &S->P->node_offset, 0 );
-  store32( &S->P->xof_length, outlen );
+  store32( &S->P->xof_length, (uint32_t)outlen );
   S->P->node_depth    = 0;
   S->P->inner_length  = 0;
   memset( S->P->reserved, 0, sizeof( S->P->reserved ) );
@@ -117,8 +117,8 @@ int blake2xb_final( blake2xb_state *S, void *out, size_t outlen) {
   for (i = 0; outlen > 0; ++i) {
     const size_t block_size = (outlen < BLAKE2B_OUTBYTES) ? outlen : BLAKE2B_OUTBYTES;
     /* Initialize state */
-    P->digest_length = block_size;
-    store32(&P->node_offset, i);
+    P->digest_length = (uint8_t)block_size;
+    store32(&P->node_offset, (uint32_t)i);
     blake2b_init_param(C, P);
     /* Process key if needed */
     blake2b_update(C, root, BLAKE2B_OUTBYTES);
