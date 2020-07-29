@@ -808,10 +808,14 @@ namespace osuCrypto {
                     {
                         if (mIos.mPrint)
                         {
-                            auto reason = std::string("network receive error (") +
-                                mSession->mName + " " + mRemoteName + " -> " + mLocalName + " ): "
-                                + ec.message() + "\n at  " + LOCATION;
-                            lout << reason << std::endl;
+                          std::stringstream ss;
+                          ss << "network receive error";
+                          if (mSession)
+                              ss << mSession->mName << "." << mRemoteName << " )";
+
+                          ss << ": " << ec.message() << "\n at  " << LOCATION;
+
+                          lout << ss.str() << std::endl;
                         }
 
                         LOG_MSG("net recv error: " + ec.message());

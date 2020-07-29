@@ -775,7 +775,7 @@ void BetaCircuit_int_GreaterThanEq_Test()
         i64 cc = 0;
         memcpy(&cc, output[0].data(), output[0].sizeBytes());
 
-        if (cc != c)
+        if (static_cast<bool>(cc) != c)
         {
             std::cout << "i " << i << std::endl;
             std::cout << "  a : " << inputs[0] << "  " << a << std::endl;
@@ -836,7 +836,7 @@ void BetaCircuit_uint_LessThan_Test()
         i64 cc = 0;
         memcpy(&cc, output[0].data(), output[0].sizeBytes());
 
-        if (cc != c)
+        if (static_cast<bool>(cc) != c)
         {
             std::cout << "i " << i << std::endl;
             std::cout << " a : " << inputs[0] << "  " << a << std::endl;
@@ -901,7 +901,7 @@ void BetaCircuit_uint_GreaterThanEq_Test()
         i64 cc = 0;
         memcpy(&cc, output[0].data(), output[0].sizeBytes());
 
-        if (cc != c)
+        if (static_cast<bool>(cc) != c)
         {
 
 

@@ -1636,7 +1636,7 @@ namespace tests_cryptoTools
 
     void BtNetwork_queue_Test(const osuCrypto::CLP& cmd)
     {
-        SpscQueue<int> queue;
+        SpscQueue<u64> queue;
 
         u64 n = 1000;
         //u64 t = 10;

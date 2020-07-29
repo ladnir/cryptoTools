@@ -20,7 +20,7 @@
 #ifdef _MSC_VER
     #ifndef _WIN32_WINNT
         // compile for win 7 and up.
-        #define _WIN32_WINNT 0x0601  
+        #define _WIN32_WINNT 0x0601
     #endif 
 	#pragma warning( disable : 4018) // signed unsigned comparison warning
 	#define TODO(x) __pragma(message (__FILE__ ":" STRINGIZE(__LINE__) " Warning:TODO - " #x))

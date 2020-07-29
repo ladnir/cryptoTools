@@ -775,7 +775,7 @@ void BetaCircuit_aes_sbox_test()
     {
 
         BitVector xx(8), yy(8);
-        xx.data()[0] = val;
+        xx.data()[0] = static_cast<u8>(val);
 
         cir.evaluate({ &xx,1 }, { &yy,1 }, true);
         auto c = sbox[val];
