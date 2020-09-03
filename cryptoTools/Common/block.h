@@ -478,7 +478,7 @@ namespace osuCrypto
         return ret;
     }
     inline block toBlock(std::uint64_t low_u64) { return toBlock(0, low_u64); }
-    inline block toBlock(std::uint8_t* data) { return toBlock(((std::uint64_t*)data)[1], ((std::uint64_t*)data)[0]); }
+    inline block toBlock(const std::uint8_t* data) { return toBlock(((std::uint64_t*)data)[1], ((std::uint64_t*)data)[0]); }
 
     extern const block ZeroBlock;
     extern const block OneBlock;

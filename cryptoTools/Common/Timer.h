@@ -61,7 +61,7 @@ namespace osuCrypto
     class TimerAdapter
     {
     public:
-        void setTimer(Timer& timer)
+        virtual void setTimer(Timer& timer)
         {
             mTimer = &timer;
         }

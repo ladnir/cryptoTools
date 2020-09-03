@@ -729,23 +729,32 @@ namespace osuCrypto {
 
 
         template<AESTypes type>
-        void AES<type>::ecbEncCounterMode(u64 baseIdx, u64 blockLength, block* cyphertext) const
+        void AES<type>::ecbEncCounterMode(block baseIdx, u64 blockLength, block* cyphertext) const
         {
             const i32 step = 8;
             i32 idx = 0;
             i32 length = i32(blockLength - blockLength % step);
+            const auto b0 = toBlock(0,0);
+            const auto b1 = toBlock(1ull);
+            const auto b2 = toBlock(2ull);
+            const auto b3 = toBlock(3ull);
+            const auto b4 = toBlock(4ull);
+            const auto b5 = toBlock(5ull);
+            const auto b6 = toBlock(6ull);
+            const auto b7 = toBlock(7ull);
 
             block temp[step];
-            for (; idx < length; idx += step, baseIdx += step)
+            for (; idx < length; idx += step)
             {
-                temp[0] = toBlock(baseIdx + 0) ^ mRoundKey[0];
-                temp[1] = toBlock(baseIdx + 1) ^ mRoundKey[0];
-                temp[2] = toBlock(baseIdx + 2) ^ mRoundKey[0];
-                temp[3] = toBlock(baseIdx + 3) ^ mRoundKey[0];
-                temp[4] = toBlock(baseIdx + 4) ^ mRoundKey[0];
-                temp[5] = toBlock(baseIdx + 5) ^ mRoundKey[0];
-                temp[6] = toBlock(baseIdx + 6) ^ mRoundKey[0];
-                temp[7] = toBlock(baseIdx + 7) ^ mRoundKey[0];
+                temp[0] = (baseIdx + b0) ^ mRoundKey[0];
+                temp[1] = (baseIdx + b1) ^ mRoundKey[0];
+                temp[2] = (baseIdx + b2) ^ mRoundKey[0];
+                temp[3] = (baseIdx + b3) ^ mRoundKey[0];
+                temp[4] = (baseIdx + b4) ^ mRoundKey[0];
+                temp[5] = (baseIdx + b5) ^ mRoundKey[0];
+                temp[6] = (baseIdx + b6) ^ mRoundKey[0];
+                temp[7] = (baseIdx + b7) ^ mRoundKey[0];
+                baseIdx = baseIdx + toBlock(step);
 
                 temp[0] = roundEnc(temp[0], mRoundKey[1]);
                 temp[1] = roundEnc(temp[1], mRoundKey[1]);
@@ -838,9 +847,10 @@ namespace osuCrypto {
                 cyphertext[idx + 7] = finalEnc(temp[7], mRoundKey[10]);
             }
 
-            for (; idx < static_cast<i32>(blockLength); ++idx, ++baseIdx)
+            for (; idx < static_cast<i32>(blockLength); ++idx)
             {
-                cyphertext[idx] = toBlock(baseIdx) ^ mRoundKey[0];
+                cyphertext[idx] = baseIdx ^ mRoundKey[0];
+                baseIdx = baseIdx + toBlock(1);
                 cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[1]);
                 cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[2]);
                 cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[3]);

@@ -64,7 +64,14 @@ namespace osuCrypto
 			get()
         {
             T ret;
-            get((u8*)&ret, sizeof(T));
+            if (GSL_LIKELY(mBufferByteCapacity - mBytesIdx >= sizeof(T)))
+            {
+                memcpy(&ret, ((u8*)mBuffer.data()) + mBytesIdx, sizeof(T));
+                mBytesIdx += sizeof(T);
+            }
+            else
+                get(&ret, 1);
+
             return ret;
         }
 
@@ -77,6 +84,15 @@ namespace osuCrypto
         {
             u64 lengthu8 = length * sizeof(T);
             u8* destu8 = (u8*)dest;
+            if (lengthu8 > 128)
+            {
+                u64 lengthu128 = lengthu8 / 16;
+                block* destu128 = (block*)dest;
+                mAes.ecbEncCounterMode(mBlockIdx, lengthu128, destu128);
+                mBlockIdx += lengthu128;
+                lengthu8 -= lengthu128 * 16;
+            }
+
             while (lengthu8)
             {
                 u64 step = std::min(lengthu8, mBufferByteCapacity - mBytesIdx);
