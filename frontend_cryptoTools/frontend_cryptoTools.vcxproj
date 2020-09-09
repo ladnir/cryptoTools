@@ -74,7 +74,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)../abseil-cpp;$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PreprocessorDefinitions>SOLUTION_DIR=R"**($(SolutionDir))**";_WIN32_WINNT=0x0501;_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -88,7 +88,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)../abseil-cpp;$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PreprocessorDefinitions>SOLUTION_DIR=R"**($(SolutionDir))**";_WIN32_WINNT=0x0501;_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -104,7 +104,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)../abseil-cpp;$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>SOLUTION_DIR=R"**($(SolutionDir))**";_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -122,7 +122,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)../abseil-cpp;$(ProjectDir)../;$(SolutionDir);$(ProjectDir)../thirdparty/win;C:\libs;$(ProjectDir)../thirdparty/win/boost;C:\libs\boost;$(ProjectDir)../thirdparty/win/miracl;C:\libs\miracl;$(SolutionDir)../wolfssl/;$(SolutionDir)../wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PreprocessorDefinitions>SOLUTION_DIR=R"**($(SolutionDir))**";_WIN32_WINNT=0x0501;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -134,12 +134,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LDPC\Graph.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="signalHandle.cpp" />
     <ClCompile Include="Tutorials\Network.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="signalHandle.h" />
+    <ClInclude Include="LDPC\Graph.h" />
     <ClInclude Include="Tutorials\Network.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

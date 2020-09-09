@@ -21,7 +21,7 @@
     <ClCompile Include="Tutorials\Network.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="signalHandle.cpp">
+    <ClCompile Include="LDPC\Graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,7 +29,7 @@
     <ClInclude Include="Tutorials\Network.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="signalHandle.h">
+    <ClInclude Include="LDPC\Graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

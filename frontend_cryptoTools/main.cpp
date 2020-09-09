@@ -5,10 +5,13 @@
 #include "cryptoTools/Network/IOService.h"
 #include <cryptoTools/Common/Matrix.h>
 #include "cryptoTools/Common/CuckooIndex.h"
+#include "cryptoTools/Common/Timer.h"
 #include "cryptoTools/Common/CLP.h"
+#include "cryptoTools/Crypto/Randen.h"
 using namespace osuCrypto;
 #include <sstream>
 #include <fstream>
+#include "LDPC/Graph.h"
 
 //#include <cryptoTools/Common/Backtrace.h>
 
@@ -140,9 +143,85 @@ void print_aes_bristol()
 }
 #endif
 
+
+
+void bench()
+{
+
+}
+
 int main(int argc, char** argv)
 {
+    //IOService ios;
+    //std::string ip = "";
+    //bool verbose;
+    //Session ses(ios, ip, oc::SessionMode::Client);
+
+    //Channel recvChl = ses.addChannel();
+    //if(verbose)
+    //    std::cout << "connecting to " << ip << std::endl;
+    //recvChl.waitForConnection();
+    //if (verbose)
+    //    std::cout << "connected"<< std::endl;
+
+
     CLP cmd(argc, argv);
+    cuckoo(cmd);
+    return 0;
+    //if (cmd.isSet("nn"))
+    //{
+    //    auto b = oc::roundUpTo(cmd.getOr("b", 1024), 16);
+    //    std::vector<u8> buff(b);
+    //    PRNG prng(oc::ZeroBlock);
+
+    //    auto nn = cmd.getOr("nn", 10);
+    //    auto n = 1ull << nn;
+
+    //    Timer timer;
+    //    auto e0 = timer.setTimePoint("s");
+    //    for (u64 i = 0; i < n; i += buff.size())
+    //    {
+    //        prng.get(buff.data(), buff.size());
+    //    }
+    //    auto e1 = timer.setTimePoint("p");
+
+    //    Randen::Seed seed;
+    //    Randen randen_(seed);
+    //    
+    //    for (u64 i = 0; i < n; i += buff.size())
+    //    {
+    //        randen_.generate_bytes(buff.data(), buff.size());
+    //    }
+
+    //    auto e2 = timer.setTimePoint("r");
+
+    //    AES aes(oc::ZeroBlock);
+    //    for (u64 i = 0; i < n; i += buff.size())
+    //    {
+    //        aes.ecbEncCounterMode(i, b/ 16, (block*)buff.data());
+    //    }
+
+    //    auto e3 = timer.setTimePoint("r");
+
+
+    //    // microseconds
+    //    auto t0 = std::chrono::duration_cast<std::chrono::microseconds>(e1 - e0).count();
+    //    auto t1 = std::chrono::duration_cast<std::chrono::microseconds>(e2 - e1).count();
+    //    auto t2 = std::chrono::duration_cast<std::chrono::microseconds>(e3 - e2).count();
+
+
+    //    auto cycles_per_microseconds = double(2590461264ull) / 1000 / 1000;
+
+    //    //   (cycles / microseconds) * microseconds  / bytes 
+    //    // = 
+    //    double bytePerCycle0 = cycles_per_microseconds * t0 / n;
+    //    double bytePerCycle1 = cycles_per_microseconds * t1 / n;
+    //    double bytePerCycle2 = cycles_per_microseconds * t2 / n;
+
+    //    std::cout << "PRNG " << bytePerCycle0 << "cycle / bytes" << std::endl;
+    //    std::cout << "AES  " << bytePerCycle2 << "cycle / bytes" << std::endl;
+    //    std::cout << "ran  " << bytePerCycle1 << "cycle / bytes" << std::endl;
+    //}
 
     if (cmd.isSet("tut"))
     {
