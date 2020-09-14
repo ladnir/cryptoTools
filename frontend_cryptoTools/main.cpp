@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 
 
     CLP cmd(argc, argv);
-    cuckoo(cmd);
+    ldpc(cmd);
     return 0;
     //if (cmd.isSet("nn"))
     //{

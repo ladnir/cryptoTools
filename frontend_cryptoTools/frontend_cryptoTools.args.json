@@ -4,11 +4,11 @@
   "Items": [
     {
       "Id": "53b27a95-8c8b-44a4-8e2c-321116ecc57d",
-      "Command": "-u -v -m 10"
+      "Command": "-u  -m 100 -s 71 "
     },
     {
       "Id": "4a869124-31d1-4c30-bd70-53cd0935616a",
-      "Command": " -m 1000 -t 100"
+      "Command": " -m 100000 -t 10"
     }
   ]
 }
