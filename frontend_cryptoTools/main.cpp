@@ -11,7 +11,9 @@
 using namespace osuCrypto;
 #include <sstream>
 #include <fstream>
-#include "LDPC/Graph.h"
+#include "LDPC/LDPC.h"
+#include "LDPC/FWPC.h"
+#include "LDPC/Test.h"
 
 //#include <cryptoTools/Common/Backtrace.h>
 
@@ -165,7 +167,10 @@ int main(int argc, char** argv)
     //    std::cout << "connected"<< std::endl;
 
 
+
+
     CLP cmd(argc, argv);
+    //fwpc(cmd);
     ldpc(cmd);
     return 0;
     //if (cmd.isSet("nn"))

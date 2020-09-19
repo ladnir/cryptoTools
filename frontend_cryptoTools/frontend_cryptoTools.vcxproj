@@ -134,12 +134,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="LDPC\Graph.cpp" />
+    <ClCompile Include="LDPC\FWPC.cpp" />
+    <ClCompile Include="LDPC\LDPC.cpp" />
+    <ClCompile Include="LDPC\Test.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Tutorials\Network.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LDPC\Graph.h" />
+    <ClInclude Include="LDPC\FWPC.h" />
+    <ClInclude Include="LDPC\LDPC.h" />
+    <ClInclude Include="LDPC\Test.h" />
     <ClInclude Include="Tutorials\Network.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
