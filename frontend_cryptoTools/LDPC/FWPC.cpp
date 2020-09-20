@@ -18,13 +18,13 @@ namespace osuCrypto
         mBinStarts.resize(0);
         mBinStarts.resize(numBins);
 
-        for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
-        {
+        //for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
+        //{
 
-            auto colBegin = (binIdx * mNumCols) / numBins;
-            auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
-            std::cout << "bin " << binIdx << "  [" << colBegin << ", " << colEnd << ")" << std::endl;
-        }
+        //    auto colBegin = (binIdx * mNumCols) / numBins;
+        //    auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
+        //    std::cout << "bin " << binIdx << "  [" << colBegin << ", " << colEnd << ")" << std::endl;
+        //}
 
         for (u64 i = 0; i < rows.rows(); ++i)
         {
@@ -42,11 +42,11 @@ namespace osuCrypto
             mBinStarts[binIdx]++;
 
             auto row = rows[i];
-            std::cout << "add row " << i << " {";
-            for (auto s : row)
-                std::cout << s << " ";
+            //std::cout << "add row " << i << " {";
+            //for (auto s : row)
+            //    std::cout << s << " ";
 
-            std::cout << "} to  bin " << binIdx << " at " << mBinStarts[binIdx]-1 << std::endl;
+            //std::cout << "} to  bin " << binIdx << " at " << mBinStarts[binIdx]-1 << std::endl;
 
         }
         
@@ -124,31 +124,34 @@ namespace osuCrypto
         bool stats)
     {
         auto numBins = mBinStarts.size();
-        std::vector<std::array<u64, 2>> points;
+        //std::vector<std::array<u64, 2>> points;
         for (auto binIdx = 0; binIdx < numBins; ++binIdx)
         {
             LDPC ldpc;
-            auto begin = mBinStarts[binIdx];
-            auto end = (binIdx != numBins - 1) ? mBinStarts[binIdx + 1] : mRows.rows();
+            auto rowBegin = mBinStarts[binIdx];
+            auto rowEnd = (binIdx != numBins - 1) ? mBinStarts[binIdx + 1] : mRows.rows();
 
-            assert(binIdx == (mRows(begin, 0) * numBins + numBins  - 1) / mNumCols);
+            assert(binIdx == (mRows(rowBegin, 0) * numBins + numBins  - 1) / mNumCols);
             auto colBegin = (binIdx * mNumCols) / numBins;
             auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
 
-            points.clear();
-            for (auto j = begin; j < end; ++j)
+            Matrix<u64> rows(rowEnd - rowBegin, mRows.cols(), AllocType::Uninitialized);
+
+
+            for (u64 j = rowBegin, jj = 0; j < rowEnd; ++j, ++jj)
             {
                 for (u64 k = 0; k < mRows.cols(); ++k)
                 {
                     auto col = mRows(j, k);
                     assert(col >= colBegin && col < colEnd);
 
-                    points.push_back({ j - begin, mRows(j, k) - colBegin });
+                    rows(jj, k) = mRows(j, k) - colBegin;
+                    //points.push_back({ j - rowBegin, });
                 }
             }
 
 
-            ldpc.insert(end - begin, colEnd - colBegin, mRows.cols(), points);
+            ldpc.insert(colEnd - colBegin, rows);
 
             std::vector<std::array<u64, 3>> bb;
             std::vector<u64> rowPerm, colPerm;
@@ -157,11 +160,10 @@ namespace osuCrypto
 
             for (auto b : bb)
             {
-                blocks.push_back({ b[0] + begin, b[1] + colBegin, b[2] });
+                blocks.push_back({ b[0] + rowBegin, b[1] + colBegin, b[2] });
             }
 
-            Matrix<u64> rows(end - begin, mRows.cols(), AllocType::Uninitialized);
-            memcpy(rows.data(), &mRows(begin, 0), sizeof(u64) * rows.size());
+            //memcpy(rows.data(), &mRows(rowBegin, 0), sizeof(u64) * rows.size());
 
             for (u64 i = 0; i < rows.rows(); ++i)
             {
@@ -170,8 +172,8 @@ namespace osuCrypto
                 for (u64 j = 0; j < rows.cols(); ++j)
                 {
                     auto col = row[j];
-
-                    mRows(d, j) = colBegin + colPerm[col - colBegin];
+                    auto newCol = colBegin + colPerm[col];
+                    mRows(rowBegin + d, j) = newCol;
                 }
                 //memcpy(&mRows(d, 0), &rows(i, 0), sizeof(u64) * mRows.cols());
             }

@@ -13,6 +13,10 @@ namespace osuCrypto
         Matrix<u64> mRows;
         std::vector<u64> mBinStarts;
 
+        FWPC() = default;
+        FWPC(const FWPC&) = default;
+        FWPC(FWPC&&) = default;
+        FWPC(u64 cols, u64 maxWidth, Matrix<u64>& rows) { insert(cols, maxWidth, rows); };
         void insert(u64 cols, u64 maxWidth, Matrix<u64>& rows);
 
         

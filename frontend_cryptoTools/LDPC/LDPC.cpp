@@ -96,10 +96,72 @@ namespace osuCrypto
         }
     };
 
+    //std::ostream& operator<<(std::ostream& o, const diff& s)
+    //{
+    //    std::array<oc::Color, 2> colors{ oc::Color::Blue, oc::Color::Green };
+    //    u8 rowColorIdx = 0;
+    //    for (u64 i = 0; i < s.mL.rows(); ++i)
+    //    {
+
+    //        std::unordered_set<u64> lc, rc;
+    //        for (u64 j = 0; j < s.mL.cols(); j++)
+    //            lc.insert(s.mL(i, j));
+    //        for (u64 j = 0; j < s.mR.cols(); j++)
+    //            rc.insert(s.mR(i, j));
+
+    //        auto diffCols = lc;
+    //        for (auto c : rc)
+    //        {
+    //            auto iter = diffCols.find(c);
+    //            if (iter == diffCols.end())
+    //                diffCols.insert(c);
+    //            else
+    //                diffCols.erase(iter);
+    //        }
+
+    //        //if (std::find(s.mRIdx.begin(), s.mRIdx.end(), i) != s.mRIdx.end())
+    //        //{
+    //        //    rowColorIdx ^= 1;
+    //        //}
+
+    //        auto colorIdx = rowColorIdx;
+    //        for (u64 j = 0; j < s.mL.cols(); ++j)
+    //        {
+
+    //            //if (std::find(s.mCIdx.begin(), s.mCIdx.end(), j) != s.mCIdx.end())
+    //            //{
+    //            //    colorIdx ^= 1;
+    //            //}
+
+
+    //            if (diffCols.find(j) != diffCols.end())
+    //                o << oc::Color::Red;
+    //            else
+    //                o << colors[colorIdx];
+
+    //            if (lc.find(j) != lc.end())
+    //            {
+    //                o << "1 ";
+    //            }
+    //            else
+    //            {
+    //                o << "0 ";
+    //            }
+    //            o << oc::Color::Default;
+    //        }
+
+    //        if (s.mWeights)
+    //            o << "   " << (*s.mWeights)[i];
+    //        o << "\n";
+    //    }
+
+    //    return o;
+    //}
+
     std::ostream& operator<<(std::ostream& o, const diff& s)
     {
         std::array<oc::Color, 2> colors{ oc::Color::Blue, oc::Color::Red };
-        
+
         //ColorBuff o(oo);
         u8 rowColorIdx = 0;
         std::stringstream ss;
@@ -131,7 +193,7 @@ namespace osuCrypto
                 }
             }
             auto colorIdx = rowColorIdx;
-            for (u64 j = 0; j < s.mL.cols(); ++j)
+            for (u64 j = 0; j < s.mNumCols; ++j)
             {
                 for (u64 k = 0; k < s.mBlocks.size(); ++k)
                 {
@@ -436,50 +498,36 @@ namespace std
 namespace osuCrypto
 {
 
-    void LDPC::insert(u64 rows, u64 cols, u64 rowWeight, std::vector<std::array<u64, 2>>& points)
+    void LDPC::insert(u64 numCols, MatrixView<u64> rows)
     {
-        if (rows * rowWeight != points.size())
-            throw RTE_LOC;
+        mNumCols = numCols;
+        mRows = rows;
 
-        mNumCols = cols;
-        mRows.resize(0, 0);
-        mRows.resize(rows, rowWeight);
-        memset(mRows.data(), -1, mRows.size() * sizeof(u64));
+        mColData.resize(rows.size());
+        mColStartIdxs.resize(numCols + 1);
 
-        mColData.clear();
-        mColData.resize(rows * rowWeight);
-        memset(mColData.data(), -1, mColData.size() * sizeof(u64));
-        mColStartIdxs.resize(cols + 1);
-
-        for (auto& p : points)
-            ++mColStartIdxs[p[1] + 1];
+        for (auto& col : rows)
+            ++mColStartIdxs[col + 1];
 
         for (u64 i = 1; i < mColStartIdxs.size(); ++i)
             mColStartIdxs[i] += mColStartIdxs[i - 1];
-        std::vector<u64> colPos(mColStartIdxs.begin(), mColStartIdxs.end()), rowPos(rows);
+        std::vector<u64> colPos(mColStartIdxs.begin(), mColStartIdxs.end());
 
-        for (auto& p : points)
-        {
-            auto r = p[0];
-            auto c = p[1];
-
-            if (rowPos[r] >= mRows.cols())
+        for (u64 r = 0; r < rows.rows(); ++r)
+        { 
+            for (auto c : rows[r])
             {
-                std::stringstream ss; ss << "only " << mRows.cols() << "items can be added to a row";
-                throw std::runtime_error(ss.str());
+                mColData[colPos[c]++] = r;
             }
-            mRows(r, rowPos[r]++) = c;
-            //col(c)[colPos[c]++] = r;
-            mColData[colPos[c]++] = r;
         }
     }
 
     void LDPC::blockTriangulate(
-        std::vector<std::array<u64,3>>& blocks, 
-        std::vector<u64>& rowPerm, 
-        std::vector<u64>& colPerm, 
-        bool verbose, 
-        bool stats, 
+        std::vector<std::array<u64, 3>>& blocks,
+        std::vector<u64>& rowPerm,
+        std::vector<u64>& colPerm,
+        bool verbose,
+        bool stats,
         bool apply)
     {
 
@@ -490,7 +538,7 @@ namespace osuCrypto
         u64 v = n;
 
         blocks.resize(0);
-        
+
 
         // temps
         std::vector<View::Idx> colSwaps;
@@ -664,7 +712,7 @@ namespace osuCrypto
                 }
 
                 // recode that this the end of the block.
-                blocks.push_back({ i + dk, n - v, dk});
+                blocks.push_back({ i + dk, n - v, dk });
                 //dks.push_back(dk);
 
                 if (verbose)
@@ -684,12 +732,12 @@ namespace osuCrypto
                 bb.push_back({ i, n - v });
                 auto W = *this;
                 H.applyPerm(W);
-                
+
                 std::vector<u64> weights(rows());
                 for (u64 i = 0; i < weights.size(); ++i)
                     weights[i] = H.mRowWeights[H.mRowNOMap[i]];
 
-                std::cout << "\n" << diff(W.mRows, HH->mRows, bb, &weights) << std::endl
+                std::cout << "\n" << diff(W.mRows, HH->mRows, bb, HH->cols(), &weights) << std::endl
                     << "=========================================\n"
                     << std::endl;
 
@@ -703,7 +751,7 @@ namespace osuCrypto
         rowPerm = H.mRowONMap;
         colPerm = H.mColONMap;
 
-        if(apply)
+        if (apply)
             H.applyPerm(*this);
 
         if (stats)

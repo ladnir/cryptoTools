@@ -16,48 +16,57 @@ namespace osuCrypto
 
 
 
-    bool isBlockTriangular(LDPC& H, std::vector<u64>& R, std::vector<u64>& C)
+    bool isTriangular(MatrixView<u64> H)
     {
-        u64 curRowIdx = 0;
-        for (u64 i = 0; i < H.cols(); ++i)
+        u64 colIdx = 0;
+        for (u64 i = 0; i < H.rows(); ++i)
         {
-            auto col = H.col(i);
-            auto iter = std::min_element(col.begin(), col.end());
-            u64 m = iter == col.end() ? ~0ull : *iter;
-            if (m < curRowIdx)
-            {
-                std::cout << H << std::endl;
+            auto row = H[i];
+            auto maxCol = *std::max_element(row.begin(), row.end());
+            if (maxCol < colIdx)
                 return false;
-            }
-
-            curRowIdx = m;
+            colIdx = maxCol;
         }
+        //u64 curRowIdx = 0;
+        //for (u64 i = 0; i < H.cols(); ++i)
+        //{
+        //    auto col = H.col(i);
+        //    auto iter = std::min_element(col.begin(), col.end());
+        //    u64 m = iter == col.end() ? ~0ull : *iter;
+        //    if (m < curRowIdx)
+        //    {
+        //        std::cout << H << std::endl;
+        //        return false;
+        //    }
 
-        for (u64 i = 0; i < C.size() - 1; ++i)
-        {
-            auto cBegin = C[i];
-            auto cEnd = C[i + 1];
-            auto minRowIdx = R[i];
+        //    curRowIdx = m;
+        //}
 
-            for (u64 j = cBegin; j < cEnd; ++j)
-            {
-                auto& col = H.col(j);
-                auto iter = std::min_element(col.begin(), col.end());
-                if (iter != col.end() && *iter < minRowIdx)
-                {
-                    return false;
-                }
-            }
-        }
+        //for (u64 i = 0; i < C.size() - 1; ++i)
+        //{
+        //    auto cBegin = C[i];
+        //    auto cEnd = C[i + 1];
+        //    auto minRowIdx = R[i];
+
+        //    for (u64 j = cBegin; j < cEnd; ++j)
+        //    {
+        //        auto& col = H.col(j);
+        //        auto iter = std::min_element(col.begin(), col.end());
+        //        if (iter != col.end() && *iter < minRowIdx)
+        //        {
+        //            return false;
+        //        }
+        //    }
+        //}
 
         return true;
     }
 
 
 
+    
 
-
-    void blockTriangulateTest2(const CLP& cmd)
+    void LDPC_blockTriangulateTest(const CLP& cmd)
     {
         bool v = cmd.isSet("v");
         u64 m = cmd.getOr("m", 40ull);
@@ -69,25 +78,80 @@ namespace osuCrypto
         u64 tt = cmd.getOr("tt", 0);
 
 
-        std::vector<std::array<u64, 2>> points; points.reserve(m * h);
+        Matrix<u64> points(m, h);
         for (; tt < trials; ++tt)
         {
             PRNG prng(block(0, cmd.getOr("s", tt)));
 
-            points.clear();
             std::set<u64> c;
             for (u64 i = 0; i < m; ++i)
             {
 
                 while (c.size() != h)
                     c.insert(prng.get<u64>() % n);
-                for (auto cc : c)
-                    points.push_back({ i, cc });
-
+                
+                auto row = points[i];
+                std::copy(c.begin(), c.end(), row.begin());
                 c.clear();
             }
 
-            LDPC H(m, n, h, points);
+            LDPC H(n, points);
+
+
+            auto HH = H;
+            std::vector<std::array<u64, 3>> bb;
+            std::vector<u64> R, C;
+
+            if (v)
+                std::cout << H << std::endl
+                << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
+
+            H.blockTriangulate(bb, R, C, v, false, true);
+            if (isTriangular(H.mRows) == false)
+            {
+                if (v)
+                    std::cout << H << std::endl
+                    << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
+
+                throw UnitTestFail(LOCATION);
+            }
+        }
+    }
+
+
+    void FWPC_blockTriangulateTest(const CLP& cmd)
+    {
+        bool v = cmd.isSet("v");
+        u64 numRows = cmd.getOr("m", 40ull);
+
+        u64 numCols = numRows * cmd.getOr<double>("e", 2.4);
+        u64 h = cmd.getOr("h", 2);
+
+        u64 width = cmd.getOr("w", 100);
+        width = std::min(width, numCols);
+
+        u64 trials = cmd.getOr("t", 100);
+        u64 tt = cmd.getOr("tt", 0);
+
+
+        Matrix<u64> points(numRows, h);
+        for (; tt < trials; ++tt)
+        {
+            PRNG prng(block(0, cmd.getOr("s", tt)));
+
+            std::set<u64> c;
+            for (u64 i = 0; i < numRows; ++i)
+            {
+
+                while (c.size() != h)
+                    c.insert(prng.get<u64>() % numCols);
+
+                auto row = points[i];
+                std::copy(c.begin(), c.end(), row.begin());
+                c.clear();
+            }
+
+            FWPC H(numCols, width, points);
 
 
             auto HH = H;
@@ -99,7 +163,7 @@ namespace osuCrypto
                 << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
 
             H.blockTriangulate(bb, R, C, v, false);
-            if (isBlockTriangular(H, R, C) == false)
+            if (isTriangular(H.mRows) == false)
                 throw UnitTestFail(LOCATION);
         }
     }
@@ -109,7 +173,8 @@ namespace osuCrypto
     {
 
         oc::TestCollection tests;
-        tests.add("blockTriangulateTest2   ", blockTriangulateTest2);
+        tests.add("LDPC.blockTriangulateTest   ", LDPC_blockTriangulateTest);
+        tests.add("FWPC.blockTriangulateTest   ", FWPC_blockTriangulateTest);
 
 
 
@@ -242,12 +307,20 @@ namespace osuCrypto
     }
 
 
-    void ldpc(CLP& cmd)
+    void ldpcMain(CLP& cmd)
     {
-        if (cmd.isSet("hash"))
-            return hashBench(cmd);
         if (cmd.isSet("u"))
             return unitTest(cmd);
+
+        if(cmd.isSet("w"))
+            fwpc(cmd);
+        else
+            ldpc(cmd);
+
+    }
+
+    void ldpc(CLP& cmd)
+    {
 
         bool v = cmd.isSet("v");
         bool stats = cmd.isSet("stats");
@@ -263,7 +336,7 @@ namespace osuCrypto
         u64 w = cmd.getOr("w", 0);
         u64 d = cmd.getOr("d", 0);
         double exp = cmd.getOr("exp", 0.0);
-        std::vector<std::array<u64, 2>> points; points.reserve(m * h);
+        Matrix<u64>points(m,h);
         Timer timer;
 
         if (exp)
@@ -279,7 +352,6 @@ namespace osuCrypto
         std::set<u64> c;
         for (u64 i = 0; i < t; ++i)
         {
-            points.clear();
             for (u64 i = 0; i < m; ++i)
             {
                 if (w)
@@ -323,8 +395,7 @@ namespace osuCrypto
                         c.insert(prng.get<u64>() % n);
                 }
 
-                for (auto cc : c)
-                    points.push_back({ i, cc });
+                std::copy(c.begin(), c.end(), points[i].begin());
 
                 c.clear();
             }
@@ -344,7 +415,7 @@ namespace osuCrypto
 
             {
 
-                LDPC H2(m, n, h, points);
+                LDPC H2(n, points);
 
                 //u64 maxCol = 0;
                 //for (u64 i = 0; i < n; ++i)
@@ -371,7 +442,7 @@ namespace osuCrypto
 
                 if (v)
                 {
-                    std::cout << diff(H2.mRows, H2.mRows, bb) << std::endl;
+                    std::cout << diff(H2.mRows, H2.mRows, bb, H2.cols()) << std::endl;
                     std::cout << "--------------------------------" << std::endl;
                 }
             }

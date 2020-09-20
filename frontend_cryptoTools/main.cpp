@@ -170,8 +170,8 @@ int main(int argc, char** argv)
 
 
     CLP cmd(argc, argv);
-    //fwpc(cmd);
-    ldpc(cmd);
+    ldpcMain(cmd);
+
     return 0;
     //if (cmd.isSet("nn"))
     //{

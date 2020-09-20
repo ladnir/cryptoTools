@@ -12,11 +12,13 @@ namespace osuCrypto
     struct diff
     {
         using T = Matrix<u64>;
+        u64 mNumCols;
         T& mL, & mR;
         std::vector<std::array<u64, 3>> mBlocks;
         std::vector<u64>* mWeights;
-        diff(T& l, T& r, std::vector<std::array<u64, 3>>& blocks, std::vector<u64>* weights = nullptr)
-            :mL(l), mR(r), mBlocks(blocks)
+        diff(T& l, T& r, std::vector<std::array<u64, 3>>& blocks, u64 numCols, std::vector<u64>* weights = nullptr)
+            : mNumCols(numCols),
+            mL(l), mR(r), mBlocks(blocks)
             , mWeights(weights)
         {}
 
@@ -44,9 +46,9 @@ namespace osuCrypto
 
 
         LDPC() = default;
-        LDPC(u64 rows, u64 cols, u64 rowWeight, std::vector<std::array<u64, 2>>& points) { insert(rows, cols, rowWeight, points); }
+        LDPC(u64 cols, MatrixView<u64> points) { insert(cols, points); }
 
-        void insert(u64 rows, u64 cols, u64 rowWeight, std::vector<std::array<u64, 2>>& points);
+        void insert(u64 cols, MatrixView<u64> points);
 
         u64 cols() const { return mNumCols; }
         u64 rows() const { return mRows.rows(); }
@@ -59,7 +61,7 @@ namespace osuCrypto
             std::vector<u64>& colPerm,
             bool verbose = false,
             bool stats = false,
-            bool apply = false);
+            bool apply = true);
 
         u64 rowWeight()
         {
