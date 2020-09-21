@@ -11,7 +11,8 @@ namespace osuCrypto
     public:
         u64 mNumCols;
         Matrix<u64> mRows;
-        std::vector<u64> mBinStarts;
+        std::vector<u64> mBackingBinStarts;
+        span<u64> mBinStarts;
 
         FWPC() = default;
         FWPC(const FWPC&) = default;

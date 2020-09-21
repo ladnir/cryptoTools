@@ -3,6 +3,8 @@
 #include "cryptoTools/Crypto/PRNG.h"
 #include "cryptoTools/Common/Matrix.h"
 #include <unordered_set>
+#include <cassert>
+
 namespace osuCrypto
 {
     class LDPC;
@@ -11,15 +13,16 @@ namespace osuCrypto
 
     struct diff
     {
-        using T = Matrix<u64>;
+        using T = MatrixView<u64>;
         u64 mNumCols;
         T& mL, & mR;
         std::vector<std::array<u64, 3>> mBlocks;
         std::vector<u64>* mWeights;
-        diff(T& l, T& r, std::vector<std::array<u64, 3>>& blocks, u64 numCols, std::vector<u64>* weights = nullptr)
+        std::vector<std::string>* mData2;
+        diff(T l, T r, std::vector<std::array<u64, 3>>& blocks, u64 numCols, std::vector<u64>* weights = nullptr, std::vector<std::string>* data2 = nullptr)
             : mNumCols(numCols),
             mL(l), mR(r), mBlocks(blocks)
-            , mWeights(weights)
+            , mWeights(weights), mData2(data2)
         {}
 
     };
@@ -32,10 +35,10 @@ namespace osuCrypto
         //using diff = diff<LDPC2>;
 
         u64 mNumCols;
-        Matrix<u64> mRows;
-        std::vector<u64> mColStartIdxs, mColData;
-
-
+        MatrixView<u64> mRows;
+        //Matrix<u64> mRows;
+        std::vector<u64> mBackingColStartIdxs, mColData;
+        span<u64> mColStartIdxs;
         span<u64> col(u64 i)
         {
             auto b = mColStartIdxs[i];
@@ -70,10 +73,138 @@ namespace osuCrypto
 
         void validate();
 
+
+        struct Idx
+        {
+            u64 mViewIdx, mSrcIdx;
+
+            bool operator==(Idx const& y) const
+            {
+                if (mViewIdx == y.mViewIdx)
+                {
+                    assert(mSrcIdx == y.mSrcIdx);
+                }
+                else
+                    assert(mSrcIdx != y.mSrcIdx);
+
+
+                return mViewIdx == y.mViewIdx;
+            }
+        };
+
+
+        struct RowData
+        {
+            // The input row at this position has been moved
+            // to this new row index.
+            u64 mONMap;
+
+            // The current row at this position has as input index of.
+            u64 mNOMap;
+
+            // The current of this row.
+            u64 mWeight;
+
+            // The previous row with the same weight.
+            RowData* mPrevWeightNode;
+
+            // the next row with the same weight
+            RowData* mNextWeightNode;
+        };
+
+        struct View;
+
+
+        struct RowIter
+        {
+            View& mH;
+            span<u64> mRow;
+            u64 mPos;
+
+            RowIter(View& H, const Idx& i, u64 p);
+
+            void operator++();
+            Idx operator*();
+        };
+
+        struct ColIter
+        {
+            View& mH;
+            span<u64> mCol;
+            u64 mPos;
+
+            ColIter(View& H, const Idx& i, u64 p);
+            void operator++();
+            Idx operator*();
+            u64 srcIdx();
+            operator bool();
+        };
+
+        struct View
+        {
+
+
+
+            std::vector<RowData> mRowData;
+            std::vector<RowData*> mWeightSets;
+
+            std::vector<u64> mColNOMap, mColONMap;
+            LDPC* mH;
+            //MatrixView<u64> mRows;
+
+
+            void init(LDPC& b);
+
+            void swapRows(Idx& r0, Idx& r1);
+
+            void swapCol(Idx& c0, Idx& c1);;
+
+            u64 rowWeight(u64 r)
+            {
+                return mRowData[mRowData[r].mNOMap].mWeight;
+            }
+
+            Idx rowIdx(u64 viewIdx)
+            {
+                return { viewIdx, mRowData[viewIdx].mNOMap };
+            }
+            Idx rowSrcIdx(u64 viewIdx)
+            {
+                return { mRowData[viewIdx].mONMap, viewIdx };
+            }
+            Idx colIdx(u64 viewIdx)
+            {
+                return { viewIdx, mColNOMap[viewIdx] };
+            }
+
+            RowIter rowIterator(const Idx& row)
+            {
+                assert(row.mSrcIdx == rowIdx(row.mViewIdx).mSrcIdx);
+
+                return RowIter(*this, row, 0);
+            }
+
+            ColIter colIterator(const Idx& col)
+            {
+                assert(col.mSrcIdx == colIdx(col.mViewIdx).mSrcIdx);
+                return ColIter(*this, col, 0);
+            }
+
+            std::pair<Idx, u64> popMinWeightRow();
+
+            void decRowWeight(const Idx& idx);
+
+            Matrix<u64> applyPerm()const;
+            void applyPerm(MatrixView<u64> rows) const;
+
+        };
+
+        View mView;
+
     };
 
     //using diff = LDPC::diff;
-    void print(std::ostream& o, const Matrix<u64>& rows, u64 cols);
+    void print(std::ostream& o, const MatrixView<u64>& rows, u64 cols);
     std::ostream& operator<<(std::ostream& o, const LDPC& s);
     std::ostream& operator<<(std::ostream& o, const diff& s);
 

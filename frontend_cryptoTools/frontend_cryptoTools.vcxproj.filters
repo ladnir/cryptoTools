@@ -44,5 +44,8 @@
     <ClInclude Include="LDPC\FWPC.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LDPC\libdivide.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

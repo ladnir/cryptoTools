@@ -69,7 +69,7 @@ namespace osuCrypto
     void LDPC_blockTriangulateTest(const CLP& cmd)
     {
         bool v = cmd.isSet("v");
-        u64 m = cmd.getOr("m", 40ull);
+        u64 m = cmd.getOr("m", 1000ull);
 
         u64 n = m * cmd.getOr<double>("e", 2.4);
         u64 h = cmd.getOr("h", 2);
@@ -122,36 +122,66 @@ namespace osuCrypto
     void FWPC_blockTriangulateTest(const CLP& cmd)
     {
         bool v = cmd.isSet("v");
-        u64 numRows = cmd.getOr("m", 40ull);
+        u64 numRows = cmd.getOr("m", 1000ull);
 
         u64 numCols = numRows * cmd.getOr<double>("e", 2.4);
-        u64 h = cmd.getOr("h", 2);
+        u64 weight = cmd.getOr("h", 2);
 
-        u64 width = cmd.getOr("w", 100);
-        width = std::min(width, numCols);
+        u64 binWidth = cmd.getOr("w", 100);
+        binWidth = std::min(binWidth, numCols);
 
         u64 trials = cmd.getOr("t", 100);
         u64 tt = cmd.getOr("tt", 0);
 
 
-        Matrix<u64> points(numRows, h);
+        Matrix<u64> points(numRows, weight);
         for (; tt < trials; ++tt)
         {
             PRNG prng(block(0, cmd.getOr("s", tt)));
 
             std::set<u64> c;
+            //for (u64 i = 0; i < numRows; ++i)
+            //{
+
+            //    while (c.size() != h)
+            //        c.insert(prng.get<u64>() % numCols);
+
+            //    auto row = points[i];
+            //    std::copy(c.begin(), c.end(), row.begin());
+            //    c.clear();
+            //}
             for (u64 i = 0; i < numRows; ++i)
             {
+                //if (d)
+                //{
+                //    auto base = prng.get<u64>() % (n-d);
+                //    c.insert(base);
 
-                while (c.size() != h)
-                    c.insert(prng.get<u64>() % numCols);
+                //    while (c.size() != h)
+                //        c.insert((base + prng.get<u64>() % d) % n);
+                //}
+                if (binWidth)
+                {
+                    auto numBins = (numCols + binWidth - 1) / binWidth;
 
-                auto row = points[i];
-                std::copy(c.begin(), c.end(), row.begin());
+                    auto binIdx = u64(double(i) * numBins / numRows);
+
+                    //auto r = prng.get<u64>() % q;
+
+                    auto colBegin = (binIdx * numCols) / numBins;
+                    auto colEnd = ((binIdx + 1) * numCols) / numBins;
+                    auto nn = colEnd - colBegin;
+
+                    while (c.size() != weight)
+                        c.insert(prng.get<u64>() % nn + colBegin);
+
+                }
+
+                std::copy(c.begin(), c.end(), points[i].begin());
                 c.clear();
             }
 
-            FWPC H(numCols, width, points);
+            FWPC H(numCols, binWidth, points);
 
 
             auto HH = H;
@@ -433,7 +463,7 @@ namespace osuCrypto
                 std::vector<u64> R, C;
 
                 auto start = timer.setTimePoint("");
-                H2.blockTriangulate(bb, R, C, v, stats);
+                H2.blockTriangulate(bb, R, C, v, stats, false);
                 auto end = timer.setTimePoint("");
                 dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
@@ -512,6 +542,18 @@ namespace osuCrypto
                 c.clear();
             }
 
+            if(cmd.isSet("cuckoo"))
+            {
+                CuckooIndex<> cuckoo;
+                cuckoo.init(numRows, 40, 0, 3);
+                std::vector<block> inputs(numRows);
+                prng.get(inputs.data(), inputs.size());
+
+                auto start = timer.setTimePoint("");
+                cuckoo.insert(inputs, 0);
+                auto end = timer.setTimePoint("");
+                dur1 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            }
 
             {
 
@@ -520,28 +562,28 @@ namespace osuCrypto
                 H.insert(numCols, binWidth, points);
                 auto H2 = H;
 
-                print(std::cout, points, numCols);
+                //print(std::cout, points, numCols);
 
                 //u64 maxCol = 0;
                 //for (u64 i = 0; i < n; ++i)
                 //    maxCol = std::max<u64>(maxCol, H.mCols[i].mRowIdxs.size());
                 //
 
-                //if (v)
-                //{
+                if (v)
+                {
                     std::cout << "--------------------------------" << std::endl;
                     std::cout << H << std::endl;
                     std::cout << "--------------------------------" << std::endl;
-                //}
+                }
 
                 std::vector<std::array<u64, 3>> bb;
                 std::vector<u64> R, C;            
 
 
-                //auto start = timer.setTimePoint("");
+                auto start = timer.setTimePoint("");
                 H.blockTriangulate(bb, R, C, v, stats);
-                //auto end = timer.setTimePoint("");
-                //dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                auto end = timer.setTimePoint("");
+                dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
 
                 //timer.setTimePoint("triangulate");
@@ -555,7 +597,7 @@ namespace osuCrypto
             }
         }
         //std::cout << "max col " << maxCol << " " << std::log2(m) << std::endl;
-        //std::cout << dur1 / t << " " << dur2 / t << std::endl;
+        std::cout << dur1 / t << " " << dur2 / t << std::endl;
         //H.partition(R, C, v);
         //std::cout << "--------------------------------" << std::endl;
         //std::cout << H << std::endl;

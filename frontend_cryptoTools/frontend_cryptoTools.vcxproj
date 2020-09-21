@@ -143,6 +143,7 @@
   <ItemGroup>
     <ClInclude Include="LDPC\FWPC.h" />
     <ClInclude Include="LDPC\LDPC.h" />
+    <ClInclude Include="LDPC\libdivide.h" />
     <ClInclude Include="LDPC\Test.h" />
     <ClInclude Include="Tutorials\Network.h" />
   </ItemGroup>

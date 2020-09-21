@@ -1,6 +1,9 @@
 #include "FWPC.h"
 #include "LDPC.h"
 #include <assert.h>
+#include "libdivide.h"
+#define NDEBUG
+
 namespace osuCrypto
 {
     std::ostream& operator<<(std::ostream& o, const FWPC& s)
@@ -15,39 +18,91 @@ namespace osuCrypto
         mNumCols = c;
         auto numBins = (c + width - 1) / width;
 
-        mBinStarts.resize(0);
-        mBinStarts.resize(numBins);
+        mBackingBinStarts.resize(0);
+        mBackingBinStarts.resize(numBins+1);
+        mBinStarts = span<u64>(mBackingBinStarts.data() + 1, mBackingBinStarts.size() - 1);
 
-        //for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
-        //{
+        auto numRows = rows.rows();
+        auto numRows8 = (numRows / 8) * 8;
 
-        //    auto colBegin = (binIdx * mNumCols) / numBins;
-        //    auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
-        //    std::cout << "bin " << binIdx << "  [" << colBegin << ", " << colEnd << ")" << std::endl;
-        //}
+#ifndef NDEBUG
+        std::vector<u64> binCutoffs(numBins + 1);
+        for (u64 binIdx = 0; binIdx < binCutoffs.size(); ++binIdx)
+        {
+            binCutoffs[binIdx] = (binIdx * mNumCols) / numBins;
+        }
 
-        for (u64 i = 0; i < rows.rows(); ++i)
+        for (u64 i = 0; i < numRows; ++i)
         {
             auto col = rows(i, 0);
-            auto binIdx = (col * numBins + numBins -1) / mNumCols;
+            auto binIdx = (col * numBins + numBins - 1) / mNumCols;
 
-            auto colBegin = (binIdx * mNumCols) / mBinStarts.size();
-            auto colEnd = ((binIdx + 1) * mNumCols) / mBinStarts.size();
+            auto colBegin = binCutoffs[binIdx];
+            auto colEnd = binCutoffs[binIdx + 1];
 
             for (u64 j = 0; j < rows.cols(); ++j)
             {
                 assert(rows(i, 0) >= colBegin && rows(i, 0) < colEnd);
             }
+        }
+#endif
+        libdivide::divider<u64> numCols(mNumCols);
 
+        auto  weight = rows.cols();
+        auto numBinsMinusOne = numBins - 1;
+        for (u64 i8 = 0; i8 < numRows8; i8 += 8)
+        {
+            auto basePtr = &rows(i8, 0);
+            auto binIdx0 = basePtr[weight * 0];
+            auto binIdx1 = basePtr[weight * 1];
+            auto binIdx2 = basePtr[weight * 2];
+            auto binIdx3 = basePtr[weight * 3];
+            auto binIdx4 = basePtr[weight * 4];
+            auto binIdx5 = basePtr[weight * 5];
+            auto binIdx6 = basePtr[weight * 6];
+            auto binIdx7 = basePtr[weight * 7];
+
+            binIdx0 = binIdx0 * numBins;
+            binIdx1 = binIdx1 * numBins;
+            binIdx2 = binIdx2 * numBins;
+            binIdx3 = binIdx3 * numBins;
+            binIdx4 = binIdx4 * numBins;
+            binIdx5 = binIdx5 * numBins;
+            binIdx6 = binIdx6 * numBins;
+            binIdx7 = binIdx7 * numBins;
+
+            binIdx0 = binIdx0 + numBinsMinusOne;
+            binIdx1 = binIdx1 + numBinsMinusOne;
+            binIdx2 = binIdx2 + numBinsMinusOne;
+            binIdx3 = binIdx3 + numBinsMinusOne;
+            binIdx4 = binIdx4 + numBinsMinusOne;
+            binIdx5 = binIdx5 + numBinsMinusOne;
+            binIdx6 = binIdx6 + numBinsMinusOne;
+            binIdx7 = binIdx7 + numBinsMinusOne;
+
+            binIdx0 = binIdx0 / numCols;
+            binIdx1 = binIdx1 / numCols;
+            binIdx2 = binIdx2 / numCols;
+            binIdx3 = binIdx3 / numCols;
+            binIdx4 = binIdx4 / numCols;
+            binIdx5 = binIdx5 / numCols;
+            binIdx6 = binIdx6 / numCols;
+            binIdx7 = binIdx7 / numCols;
+
+            mBinStarts[binIdx0]++;
+            mBinStarts[binIdx1]++;
+            mBinStarts[binIdx2]++;
+            mBinStarts[binIdx3]++;
+            mBinStarts[binIdx4]++;
+            mBinStarts[binIdx5]++;
+            mBinStarts[binIdx6]++;
+            mBinStarts[binIdx7]++;
+        }
+
+        for (u64 i = numRows8; i < numRows; ++i)
+        {
+            auto binIdx = (rows(i, 0) * numBins + numBins -1) / numCols;
             mBinStarts[binIdx]++;
-
-            auto row = rows[i];
-            //std::cout << "add row " << i << " {";
-            //for (auto s : row)
-            //    std::cout << s << " ";
-
-            //std::cout << "} to  bin " << binIdx << " at " << mBinStarts[binIdx]-1 << std::endl;
-
         }
         
         u64 curSize = 0;
@@ -58,17 +113,126 @@ namespace osuCrypto
             curSize += temp;
         }
 
-        mRows.resize(rows.rows(), rows.cols());
-        std::vector<u64> binPos = mBinStarts;
-        for (u64 i = 0; i < rows.rows(); ++i)
+        mRows.resize(numRows, rows.cols());
+        auto row = rows.data();
+        auto dstPtr = mRows.data();
+        for (u64 i8 = 0; i8 < numRows8; i8 += 8)
         {
-            auto col = rows(i, 0);
-            auto binIdx = (col * numBins + numBins - 1) / mNumCols;
+            //auto col = row[0];
+            //auto binIdx = (col * numBins + numBins - 1) / numCols;
+            //auto dst = mRows.data() + mBinStarts[binIdx]++ * weight;
+            //memcpy(dst, row, weight * sizeof(u64));
+            //row += weight;
+            auto col0 = row[weight * 0];
+            auto col1 = row[weight * 1];
+            auto col2 = row[weight * 2];
+            auto col3 = row[weight * 3];
+            auto col4 = row[weight * 4];
+            auto col5 = row[weight * 5];
+            auto col6 = row[weight * 6];
+            auto col7 = row[weight * 7];
 
-            auto dst = mRows[binPos[binIdx]++];
-            auto src = rows[i];
-            std::copy(src.begin(), src.end(), dst.begin());
+            auto temp0 = col0 * numBins;
+            auto temp1 = col1 * numBins;
+            auto temp2 = col2 * numBins;
+            auto temp3 = col3 * numBins;
+            auto temp4 = col4 * numBins;
+            auto temp5 = col5 * numBins;
+            auto temp6 = col6 * numBins;
+            auto temp7 = col7 * numBins;
+
+            temp0 = temp0 + numBinsMinusOne;
+            temp1 = temp1 + numBinsMinusOne;
+            temp2 = temp2 + numBinsMinusOne;
+            temp3 = temp3 + numBinsMinusOne;
+            temp4 = temp4 + numBinsMinusOne;
+            temp5 = temp5 + numBinsMinusOne;
+            temp6 = temp6 + numBinsMinusOne;
+            temp7 = temp7 + numBinsMinusOne;
+
+            auto binIdx0 = temp0 / numCols;
+            auto binIdx1 = temp1 / numCols;
+            auto binIdx2 = temp2 / numCols;
+            auto binIdx3 = temp3 / numCols;
+            auto binIdx4 = temp4 / numCols;
+            auto binIdx5 = temp5 / numCols;
+            auto binIdx6 = temp6 / numCols;
+            auto binIdx7 = temp7 / numCols;
+
+            auto pos0 = mBinStarts[binIdx0]++;
+            auto pos1 = mBinStarts[binIdx1]++;
+            auto pos2 = mBinStarts[binIdx2]++;
+            auto pos3 = mBinStarts[binIdx3]++;
+            auto pos4 = mBinStarts[binIdx4]++;
+            auto pos5 = mBinStarts[binIdx5]++;
+            auto pos6 = mBinStarts[binIdx6]++;
+            auto pos7 = mBinStarts[binIdx7]++;
+
+            auto row0 = pos0 * weight;
+            auto row1 = pos1 * weight;
+            auto row2 = pos2 * weight;
+            auto row3 = pos3 * weight;
+            auto row4 = pos4 * weight;
+            auto row5 = pos5 * weight;
+            auto row6 = pos6 * weight;
+            auto row7 = pos7 * weight;
+
+            u64 *__restrict  dst0 = dstPtr + row0;
+            u64* __restrict  dst1 = dstPtr + row1;
+            u64* __restrict  dst2 = dstPtr + row2;
+            u64* __restrict  dst3 = dstPtr + row3;
+            u64* __restrict  dst4 = dstPtr + row4;
+            u64* __restrict  dst5 = dstPtr + row5;
+            u64* __restrict  dst6 = dstPtr + row6;
+            u64* __restrict  dst7 = dstPtr + row7;
+
+            u64 *__restrict src0 = row + weight * 0;
+            u64 *__restrict src1 = row + weight * 1;
+            u64 *__restrict src2 = row + weight * 2;
+            u64 *__restrict src3 = row + weight * 3;
+            u64 *__restrict src4 = row + weight * 4;
+            u64 *__restrict src5 = row + weight * 5;
+            u64 *__restrict src6 = row + weight * 6;
+            u64 *__restrict src7 = row + weight * 7;
+
+
+            memcpy(dst0, src0, weight * sizeof(u64));
+            memcpy(dst1, src1, weight * sizeof(u64));
+            memcpy(dst2, src2, weight * sizeof(u64));
+            memcpy(dst3, src3, weight * sizeof(u64));
+            memcpy(dst4, src4, weight * sizeof(u64));
+            memcpy(dst5, src5, weight * sizeof(u64));
+            memcpy(dst6, src6, weight * sizeof(u64));
+            memcpy(dst7, src7, weight * sizeof(u64));
+
+
+            row += weight * 8;
         }
+
+        for (u64 i = numRows8; i < numRows; ++i)
+        {
+            auto col = row[0];
+            auto binIdx = (col * numBins + numBins - 1) / numCols;
+            auto dst = mRows.data() + mBinStarts[binIdx]++ * weight;
+            memcpy(dst, row, weight * sizeof(u64));
+            row += weight;
+        }
+        //mRows.resize(numRows, rows.cols());
+        //auto rowPtr = rows.data();
+        //for (u64 i = 0; i < numRows; ++i)
+        //{
+        //    auto col = *rowPtr;
+        //    auto binIdx = (col * numBins + numBins - 1) / mNumCols;
+
+        //    auto dstIdx = mBinStarts[binIdx]++;
+        //    auto dst = mRows.data() + dstIdx * weight;
+        //    //auto src = rows[i];
+        //    memcpy(dst, rowPtr, weight);
+        //    //std::copy(rowPtr, rowPtr + weight, dst);
+        //    rowPtr += weight;
+        //}
+
+        mBinStarts = span<u64>(mBackingBinStarts.data(), mBackingBinStarts.size() - 1);
 
         //std::vector<std::vector<u64>> avgs(mNumCols);
 
@@ -118,43 +282,43 @@ namespace osuCrypto
 
     void FWPC::blockTriangulate(
         std::vector<std::array<u64, 3>>& blocks,
-        std::vector<u64>& rowPerm,
-        std::vector<u64>& colPerm,
+        std::vector<u64>& rowPerm_,
+        std::vector<u64>& colPerm_,
         bool verbose,
         bool stats)
     {
         auto numBins = mBinStarts.size();
-        //std::vector<std::array<u64, 2>> points;
-        for (auto binIdx = 0; binIdx < numBins; ++binIdx)
+        LDPC ldpc;
+
+        std::vector<std::array<u64, 3>> bb;
+        std::vector<u64> rowPerm, colPerm;
+        Matrix<u64> rows;
+        auto weight = mRows.cols();
+
+        for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
         {
-            LDPC ldpc;
             auto rowBegin = mBinStarts[binIdx];
             auto rowEnd = (binIdx != numBins - 1) ? mBinStarts[binIdx + 1] : mRows.rows();
+            auto numRows = rowEnd - rowBegin;
+            auto numRows8 = (numRows / 8) * 8;
 
             assert(binIdx == (mRows(rowBegin, 0) * numBins + numBins  - 1) / mNumCols);
             auto colBegin = (binIdx * mNumCols) / numBins;
             auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
 
-            Matrix<u64> rows(rowEnd - rowBegin, mRows.cols(), AllocType::Uninitialized);
+            rows.resize(numRows, weight, AllocType::Uninitialized);
 
 
-            for (u64 j = rowBegin, jj = 0; j < rowEnd; ++j, ++jj)
+            auto src = &mRows(rowBegin, 0);
+            auto dst = rows.data();
+            auto size = rows.size();
+            for (u64 i = 0; i < size; ++i)
             {
-                for (u64 k = 0; k < mRows.cols(); ++k)
-                {
-                    auto col = mRows(j, k);
-                    assert(col >= colBegin && col < colEnd);
-
-                    rows(jj, k) = mRows(j, k) - colBegin;
-                    //points.push_back({ j - rowBegin, });
-                }
+                dst[i] = src[i] - colBegin;
             }
-
 
             ldpc.insert(colEnd - colBegin, rows);
 
-            std::vector<std::array<u64, 3>> bb;
-            std::vector<u64> rowPerm, colPerm;
 
             ldpc.blockTriangulate(bb, rowPerm, colPerm, verbose, false, false);
 
@@ -163,19 +327,93 @@ namespace osuCrypto
                 blocks.push_back({ b[0] + rowBegin, b[1] + colBegin, b[2] });
             }
 
-            //memcpy(rows.data(), &mRows(rowBegin, 0), sizeof(u64) * rows.size());
 
-            for (u64 i = 0; i < rows.rows(); ++i)
+            auto rowPtr = rows.data();
+            auto rowPermPtr = rowPerm.data();
+            auto dstPtr = mRows.data();
+            for (u64 i = 0; i < numRows8; i +=8)
+            {
+                //auto row = rows[i];
+                auto row0 = rowPtr + 0 * weight;
+                auto row1 = rowPtr + 1 * weight;
+                auto row2 = rowPtr + 2 * weight;
+                auto row3 = rowPtr + 3 * weight;
+                auto row4 = rowPtr + 4 * weight;
+                auto row5 = rowPtr + 5 * weight;
+                auto row6 = rowPtr + 6 * weight;
+                auto row7 = rowPtr + 7 * weight;
+                rowPtr += 8 * weight;
+
+                auto d0 = rowBegin + rowPermPtr[0];
+                auto d1 = rowBegin + rowPermPtr[1];
+                auto d2 = rowBegin + rowPermPtr[2];
+                auto d3 = rowBegin + rowPermPtr[3];
+                auto d4 = rowBegin + rowPermPtr[4];
+                auto d5 = rowBegin + rowPermPtr[5];
+                auto d6 = rowBegin + rowPermPtr[6];
+                auto d7 = rowBegin + rowPermPtr[7];
+                rowPermPtr += 8;
+
+                d0 *= weight;
+                d1 *= weight;
+                d2 *= weight;
+                d3 *= weight;
+                d4 *= weight;
+                d5 *= weight;
+                d6 *= weight;
+                d7 *= weight;
+
+                auto dst0 = dstPtr + d0;
+                auto dst1 = dstPtr + d1;
+                auto dst2 = dstPtr + d2;
+                auto dst3 = dstPtr + d3;
+                auto dst4 = dstPtr + d4;
+                auto dst5 = dstPtr + d5;
+                auto dst6 = dstPtr + d6;
+                auto dst7 = dstPtr + d7;
+
+                for (u64 j = 0; j < weight; ++j)
+                {
+                    auto col0 = row0[j];
+                    auto col1 = row1[j];
+                    auto col2 = row2[j];
+                    auto col3 = row3[j];
+                    auto col4 = row4[j];
+                    auto col5 = row5[j];
+                    auto col6 = row6[j];
+                    auto col7 = row7[j];
+
+                    col0 = colPerm[col0];
+                    col1 = colPerm[col1];
+                    col2 = colPerm[col2];
+                    col3 = colPerm[col3];
+                    col4 = colPerm[col4];
+                    col5 = colPerm[col5];
+                    col6 = colPerm[col6];
+                    col7 = colPerm[col7];
+                                  
+                    dst0[j] = colBegin + col0;
+                    dst1[j] = colBegin + col1;
+                    dst2[j] = colBegin + col2;
+                    dst3[j] = colBegin + col3;
+                    dst4[j] = colBegin + col4;
+                    dst5[j] = colBegin + col5;
+                    dst6[j] = colBegin + col6;
+                    dst7[j] = colBegin + col7;
+                }
+            }
+
+            for (u64 i = numRows8; i < numRows; ++i)
             {
                 auto row = rows[i];
                 auto d = rowPerm[i];
-                for (u64 j = 0; j < rows.cols(); ++j)
+                auto dst = &mRows(rowBegin + d, 0);
+                for (u64 j = 0; j < weight; ++j)
                 {
                     auto col = row[j];
                     auto newCol = colBegin + colPerm[col];
-                    mRows(rowBegin + d, j) = newCol;
+                    dst[j] = newCol;
                 }
-                //memcpy(&mRows(d, 0), &rows(i, 0), sizeof(u64) * mRows.cols());
             }
             
         }
