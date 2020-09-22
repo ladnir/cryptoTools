@@ -289,18 +289,34 @@ namespace osuCrypto
     {
         u64 binWidth = (mNumCols + mBinStarts.size() - 1) / mBinStarts.size();
 
-        if (binWidth < std::numeric_limits<u8>::max())
-            blockTriangulateImpl<u8>(blocks, rowPerm_, colPerm_, verbose, stats);
-        else if (binWidth < std::numeric_limits<u16>::max())
-            blockTriangulateImpl<u16>(blocks, rowPerm_, colPerm_, verbose, stats);
-        else if (binWidth < std::numeric_limits<u32>::max())
-            blockTriangulateImpl<u32>(blocks, rowPerm_, colPerm_, verbose, stats);
-        else 
-            blockTriangulateImpl<u64>(blocks, rowPerm_, colPerm_, verbose, stats);
+        if (mRows.cols() == 2)
+        {
+            static const int weight = 2;
+            if (binWidth < std::numeric_limits<u16>::max())
+                blockTriangulateImpl<u16, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else if (binWidth < std::numeric_limits<u32>::max())
+                blockTriangulateImpl<u32, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else 
+                blockTriangulateImpl<u64, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+        }
+        else if (mRows.cols() == 3)
+        {
+            static const int weight = 3;
+            if (binWidth < std::numeric_limits<u16>::max())
+                blockTriangulateImpl<u16, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else if (binWidth < std::numeric_limits<u32>::max())
+                blockTriangulateImpl<u32, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else
+                blockTriangulateImpl<u64, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+        }
+        else
+        {
+            throw RTE_LOC;
+        }
     }
 
 
-    template<typename Size>
+    template<typename Size, int weight>
     void FWPC::blockTriangulateImpl(
         std::vector<std::array<u64, 3>>& blocks,
         std::vector<u64>& rowPerm_,
@@ -309,7 +325,7 @@ namespace osuCrypto
         bool stats)
     {
         auto numBins = mBinStarts.size();
-        LDPC<Size> ldpc;
+        LDPC<Size, weight> ldpc;
 
         std::vector<std::array<Size, 3>> bb;
         std::vector<Size> rowPerm, colPerm;
@@ -333,7 +349,23 @@ namespace osuCrypto
             auto src = &mRows(rowBegin, 0);
             auto dst = rows.data();
             auto size = rows.size();
-            for (u64 i = 0; i < size; ++i)
+            auto size8 = (size / 8) * 8;
+
+
+            for (u64 i = 0; i < size; i += 8)
+            {
+                dst[i + 0] = src[i + 0] - colBegin;
+                dst[i + 1] = src[i + 1] - colBegin;
+                dst[i + 2] = src[i + 2] - colBegin;
+                dst[i + 3] = src[i + 3] - colBegin;
+                dst[i + 4] = src[i + 4] - colBegin;
+                dst[i + 5] = src[i + 5] - colBegin;
+                dst[i + 6] = src[i + 6] - colBegin;
+                dst[i + 7] = src[i + 7] - colBegin;
+            }
+
+
+            for (u64 i = size8; i < size; ++i)
             {
                 dst[i] = src[i] - colBegin;
             }

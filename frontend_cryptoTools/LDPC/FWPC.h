@@ -34,8 +34,7 @@ namespace osuCrypto
             bool verbose,
             bool stats);
 
-
-        template<typename Size>
+        template<typename Size, int weight>
         void blockTriangulateImpl(
             std::vector<std::array<u64, 3>>& blocks,
             std::vector<u64>& rowPerm,

@@ -212,8 +212,8 @@ namespace osuCrypto
         return o;
     }
 
-    template<typename Size>
-    void LDPC<Size>::View::init(LDPC<Size>& b)
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::View::init(LDPC<Size, weight>& b)
     {
         //mH(b)
         mH = &b;
@@ -246,8 +246,8 @@ namespace osuCrypto
             mColNOMap[i] = mColONMap[i] = i;
     }
 
-    template<typename Size>
-    void LDPC<Size>::View::swapRows(Idx& r0, Idx& r1)
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::View::swapRows(Idx& r0, Idx& r1)
     {
 #ifdef LDPC_DEBUG
         assert(r0.mSrcIdx == rowIdx(r0.mViewIdx).mSrcIdx);
@@ -259,8 +259,8 @@ namespace osuCrypto
         std::swap(r0.mSrcIdx, r1.mSrcIdx);
     }
 
-    template<typename Size>
-    void LDPC<Size>::View::swapCol(Idx& c0, Idx& c1)
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::View::swapCol(Idx& c0, Idx& c1)
     {
 #ifdef LDPC_DEBUG
         assert(c0.mSrcIdx == colIdx(c0.mViewIdx).mSrcIdx);
@@ -273,8 +273,8 @@ namespace osuCrypto
     }
 
 
-    template<typename Size>
-    std::pair<typename LDPC<Size>::Idx, Size> LDPC<Size>::View::popMinWeightRow()
+    template<typename Size, int weight>
+    std::pair<typename LDPC<Size, weight>::Idx, Size> LDPC<Size, weight>::View::popMinWeightRow()
     {
         Idx idx;
         for (u64 i = 1; i < mWeightSets.size(); ++i)
@@ -320,8 +320,8 @@ namespace osuCrypto
         throw RTE_LOC;
     }
 
-    template<typename Size>
-    void LDPC<Size>::View::decRowWeight(const Idx& idx)
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::View::decRowWeight(const Idx& idx)
     {
         //assert(idx.mSrcIdx == rowIdx(idx.mIdx).mSrcIdx);
         auto& row = mRowData[idx.mSrcIdx];
@@ -364,8 +364,8 @@ namespace osuCrypto
 
     }
 
-    template<typename Size>
-    Matrix<Size> LDPC<Size>::View::applyPerm()const
+    template<typename Size, int weight>
+    Matrix<Size> LDPC<Size, weight>::View::applyPerm()const
     {
         Matrix<Size> newRows(mH->rows(), mH->rowWeight());
         applyPerm(newRows);
@@ -390,36 +390,37 @@ namespace osuCrypto
         //mH->mColData = std::move(newCols);
     }
 
-    template<typename Size>
-    void LDPC<Size>::View::applyPerm(MatrixView<Size> newRows)const
+
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::View::applyPerm(MatrixView<Size> newRows)const
     {
         Matrix<Size> temp;
-        MatrixView<Size> src = mH->mRows;
+        MatrixView<Size> src = view<Size, weight>(mH->mRows);
         if (newRows.data() == src.data())
         {
             temp = src;
             src = temp;
         }
 
-        for (u64 i = 0; i < mH->mRows.rows(); i++)
+        for (u64 i = 0; i < mH->mRows.size(); i++)
         {
-            for (u64 j = 0; j < mH->mRows.cols(); ++j)
+            for (u64 j = 0; j < weight; ++j)
             {
                 newRows(mRowData[i].mONMap, j) = mColONMap[src(i, j)];
             }
         }
     }
 
-    template<typename Size>
-    LDPC<Size>::RowIter::RowIter(View& H, const Idx& i, Size p)
+    template<typename Size, int weight>
+    LDPC<Size, weight>::RowIter::RowIter(View& H, const Idx& i, Size p)
         : mH(H)
         , mRow(H.mH->mRows[i.mSrcIdx])
         , mPos(p)
     { }
 
 
-    template<typename Size>
-    typename LDPC<Size>::Idx LDPC<Size>::RowIter::operator*()
+    template<typename Size, int weight>
+    typename LDPC<Size, weight>::Idx LDPC<Size, weight>::RowIter::operator*()
     {
         Idx idx;
         idx.mSrcIdx = mRow[mPos];
@@ -427,27 +428,27 @@ namespace osuCrypto
         return idx;
     }
 
-    template<typename Size>
-    void LDPC<Size>::RowIter::operator++()
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::RowIter::operator++()
     {
         ++mPos;
     }
-    template<typename Size>
+    template<typename Size, int weight>
 
-    LDPC<Size>::ColIter::ColIter(View& H, const Idx& i, Size p)
+    LDPC<Size, weight>::ColIter::ColIter(View& H, const Idx& i, Size p)
         : mH(H)
         , mCol(H.mH->col(i.mSrcIdx))
         , mPos(p)
     { }
 
-    template<typename Size>
-    void LDPC<Size>::ColIter::operator++()
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::ColIter::operator++()
     {
         ++mPos;
     }
 
-    template<typename Size>
-    typename LDPC<Size>::Idx LDPC<Size>::ColIter::operator*()
+    template<typename Size, int weight>
+    typename LDPC<Size, weight>::Idx LDPC<Size, weight>::ColIter::operator*()
     {
         Idx idx;
         idx.mSrcIdx = mCol[mPos];
@@ -455,14 +456,14 @@ namespace osuCrypto
         return idx;
     }
 
-    template<typename Size>
-    Size LDPC<Size>::ColIter::srcIdx()
+    template<typename Size, int weight>
+    Size LDPC<Size, weight>::ColIter::srcIdx()
     {
         return mCol[mPos];
     }
 
-    template<typename Size>
-    LDPC<Size>::ColIter::operator bool()
+    template<typename Size, int weight>
+    LDPC<Size, weight>::ColIter::operator bool()
     {
         return mPos < mCol.size();
     }
@@ -470,8 +471,8 @@ namespace osuCrypto
 //
 //namespace std
 //{
-//    template<typename Size>
-//    struct hash<oc::LDPC<Size>::Idx>
+//    template<typename Size, int weight>
+//    struct hash<oc::LDPC<Size, weight>::Idx>
 //    {
 //        std::size_t operator()(oc::LDPC::Idx const& i) const noexcept
 //        {
@@ -483,11 +484,14 @@ namespace osuCrypto
 //namespace osuCrypto
 //{
 
-    template<typename Size>
-    void LDPC<Size>::insert(Size numCols, MatrixView<Size> rows)
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::insert(Size numCols, MatrixView<Size> rows)
     {
         mNumCols = numCols;
-        mRows = rows;
+        if (rows.cols() != weight)
+            throw RTE_LOC;
+
+        mRows = span<Row>((Row*)rows.data(), rows.rows());
         auto numRows = rows.rows();
         auto numRows8 = (numRows / 8) * 8;
 
@@ -602,8 +606,8 @@ namespace osuCrypto
         mColStartIdxs = span<Size>(mBackingColStartIdxs.data(), mBackingColStartIdxs.size() - 1);
     }
 
-    template<typename Size>
-    void LDPC<Size>::blockTriangulate(
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::blockTriangulate(
         std::vector<std::array<size_type, 3>>& blocks,
         std::vector<size_type>& rowPerm,
         std::vector<size_type>& colPerm,
@@ -617,14 +621,14 @@ namespace osuCrypto
         size_type k = 0;
         size_type i = 0;
         size_type v = n;
-        size_type weight = rowWeight();
-        size_type weightp1 = weight + 1;
+        //size_type weight = rowWeight();
+        static const size_type weightp1 = weight + 1;
         blocks.resize(0);
 
 
         // temps
-        std::vector<size_type> colSwapsSrc(weight);
-        std::vector<size_type> colSwapsView(weight);
+        std::array<size_type, weight> colSwapsSrc;
+        std::array<size_type, weight> colSwapsView;
         size_type numColSwaps{ 0 };
 
         // We are going to create a 'view' over the matrix.
@@ -693,7 +697,12 @@ namespace osuCrypto
 
                 // move the min weight row u to row i.
                 auto ii = mView.rowIdx(i);
-                mView.swapRows(u, ii);
+                //mView.swapRows(u, ii);
+                {
+                    std::swap(mView.mRowData[ii.mViewIdx].mNOMap, mView.mRowData[u.mViewIdx].mNOMap);
+                    std::swap(mView.mRowData[ii.mSrcIdx].mONMap,  mView.mRowData[u.mSrcIdx].mONMap);
+                    std::swap(ii.mSrcIdx, u.mSrcIdx);
+                }
 
 #ifdef VERBOSE
                 if (verbose) {
@@ -712,7 +721,7 @@ namespace osuCrypto
                 //auto rIter = mView.rowIterator(ii);
                 //auto rIter = RowIter(mView, ii, 0);
 
-                auto rowi = mRows.data() + ii.mSrcIdx * weight;
+                auto rowi = mRows[ii.mSrcIdx];
 
                 // this set will collect all of the columns in the view. 
                 //colSwaps.clear();
@@ -964,7 +973,10 @@ namespace osuCrypto
         colPerm = mView.mColONMap;
 
         if (apply)
-            mView.applyPerm(mRows);
+        {
+            MatrixView<Size> v = view<Size, weight>(mRows);
+            mView.applyPerm(v);
+        }
 
         //if (stats)
         //{
@@ -1000,14 +1012,14 @@ namespace osuCrypto
         //*this = applyPerm(mView.mRowONMap, mView.mColONMap);
     }
 
-    template<typename Size>
-    void LDPC<Size>::validate()
+    template<typename Size, int weight>
+    void LDPC<Size, weight>::validate()
     {
         for (u64 i = 0; i < rows(); ++i)
         {
             for (u64 j = 0; j < rowWeight(); ++j)
             {
-                auto cIdx = mRows(i, j);
+                auto cIdx = mRows[i][j];
                 auto c = col(cIdx);
 
                 if (c.size() != 0 && std::find(c.begin(), c.end(), i) == c.end())
@@ -1018,8 +1030,11 @@ namespace osuCrypto
 
 
 
-    template class LDPC<u64>;
-    template class LDPC<u32>;
-    template class LDPC<u16>;
-    template class LDPC<u8>;
+    template class LDPC<u64, 2>;
+    template class LDPC<u32, 2>;
+    template class LDPC<u16, 2>;
+    template class LDPC<u64, 3>;
+    template class LDPC<u32, 3>;
+    template class LDPC<u16, 3>;
+    //template class LDPC<u8>;
 }

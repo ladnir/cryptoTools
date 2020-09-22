@@ -72,7 +72,7 @@ namespace osuCrypto
         u64 m = cmd.getOr("m", 1000ull);
 
         u64 n = m * cmd.getOr<double>("e", 2.4);
-        u64 h = cmd.getOr("h", 2);
+        u64 h = cmd.getOr("h", 3);
 
         u64 trials = cmd.getOr("t", 100);
         u64 tt = cmd.getOr("tt", 0);
@@ -95,7 +95,15 @@ namespace osuCrypto
                 c.clear();
             }
 
-            LDPC<Size> H(n, points);
+            static const int Weight = 3;
+            if (h != Weight)
+            {
+                std::cout << "only h=3 impl" << std::endl;
+                throw RTE_LOC;
+            }
+
+           
+            LDPC<Size, Weight> H(n, points);
 
 
             auto HH = H;
@@ -107,7 +115,7 @@ namespace osuCrypto
                 << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
 
             H.blockTriangulate(bb, R, C, v, false, true);
-            if (isTriangular(H.mRows) == false)
+            if (isTriangular(view<Size, Weight>(H.mRows)) == false)
             {
                 if (v)
                     std::cout << H << std::endl
@@ -444,9 +452,10 @@ namespace osuCrypto
                 dur1 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             }
 
+            if(h == 2)
             {
 
-                LDPC<u64> H2(n, points);
+                LDPC<u64, 2> H2(n, points);
 
                 //u64 maxCol = 0;
                 //for (u64 i = 0; i < n; ++i)
@@ -476,6 +485,11 @@ namespace osuCrypto
                     std::cout << diff(H2.mRows, H2.mRows, bb, H2.cols()) << std::endl;
                     std::cout << "--------------------------------" << std::endl;
                 }
+            }
+            else
+            {
+                std::cout << "h not implemented" << std::endl;
+                throw RTE_LOC;
             }
         }
         //std::cout << "max col " << maxCol << " " << std::log2(m) << std::endl;
@@ -527,36 +541,33 @@ namespace osuCrypto
 
         double dur1(0), dur2(0);
         std::vector<u64> c;
+        for (u64 i = 0; i < numRows; ++i)
+        {
+            auto binIdx = i * numBins / numRowsDiv;
+            auto colBegin = (binIdx * numCols) / numBinsDiv;
+            auto colEnd = ((binIdx + 1) * numCols) / numBinsDiv;
+            auto nn = colEnd - colBegin;
+            if (nn < std::numeric_limits<u16>::max())
+            {
+                fill<u16>(c, weight, nn, colBegin, prng);
+            }
+            else if (nn < std::numeric_limits<u32>::max())
+            {
+                fill<u32>(c, weight, nn, colBegin, prng);
+            }
+            else
+            {
+                fill<u64>(c, weight, nn, colBegin, prng);
+            }
+
+            memcpy(&points(i, 0), c.data(), sizeof(u64) * weight);
+            c.clear();
+        }
+
+
         for (u64 i = 0; i < t; ++i)
         {
-            for (u64 i = 0; i < numRows; ++i)
-            {
 
-
-                auto binIdx = i * numBins / numRowsDiv;
-
-                //auto binIdx = prng.get<u64>() % q;
-
-                auto colBegin = (binIdx * numCols) / numBinsDiv;
-                auto colEnd = ((binIdx + 1) * numCols) / numBinsDiv;
-                auto nn = colEnd - colBegin;
-                if (nn < std::numeric_limits<u16>::max())
-                {
-                    fill<u16>(c, weight, nn, colBegin, prng);
-                }
-                else if (nn < std::numeric_limits<u32>::max())
-                {
-                    fill<u32>(c, weight, nn, colBegin, prng);
-                }
-                else
-                {
-                    fill<u64>(c, weight, nn, colBegin, prng);
-                }
-
-                memcpy(&points(i, 0), c.data(), sizeof(u64) * weight);
-                //std::copy(c.begin(), c.end(), points[i].begin());
-                c.clear();
-            }
 
             if(cmd.isSet("cuckoo"))
             {

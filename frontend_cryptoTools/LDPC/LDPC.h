@@ -36,12 +36,15 @@ namespace osuCrypto
     template<typename MatrixType, typename Size>
     Diff diff(MatrixType& l, MatrixType& r, std::vector<std::array<Size, 3>>& b, Size numCols, std::vector<Size>* w = nullptr, std::vector<std::string>* data2 = nullptr)
     {
-        Matrix<u64> L(l.rows(), l.cols()), R(r.rows(), r.cols());
+        Matrix<u64> L(l.size(), l[0].size()), R(r.size(), r[0].size());
 
-        for (u64 i = 0; i < L.size(); ++i)
-            L(i) = l(i);
-        for (u64 i = 0; i < R.size(); ++i)
-            R(i) = r(i);
+        for (u64 i = 0; i < L.rows(); ++i)
+            for (u64 j = 0; j < L.cols(); ++j)
+                L[i][j] = l[i][j];
+        for (u64 i = 0; i < R.rows(); ++i)
+            for (u64 j = 0; j < R.cols(); ++j)
+                R[i][j] = r[i][j];
+
 
         std::vector<u64> weights;
         std::vector<std::array<u64, 3>> blocks(b.size());
@@ -61,15 +64,19 @@ namespace osuCrypto
         return Diff(L, R, blocks, numCols, &weights, data2);        
     }
 
-    template<typename Size>
+    template<typename Size, int weight>
     class LDPC
     {
     public:
 
         using size_type = Size;
+        using Row = std::array<size_type, weight>;
+        using RowMatrix = span<Row>;
 
         size_type mNumCols;
-        MatrixView<size_type> mRows;
+
+        //MatrixView<size_type> mRows;
+        RowMatrix mRows;
         std::vector<size_type> mBackingColStartIdxs, mColData;
         span<size_type> mColStartIdxs;
         span<size_type> col(size_type i)
@@ -87,7 +94,7 @@ namespace osuCrypto
         void insert(size_type cols, MatrixView<size_type> points);
 
         size_type cols() const { return mNumCols; }
-        size_type rows() const { return mRows.rows(); }
+        size_type rows() const { return mRows.size(); }
 
 
 
@@ -101,7 +108,7 @@ namespace osuCrypto
 
         size_type rowWeight()
         {
-            return mRows.cols();
+            return weight;
         }
 
         void validate();
@@ -151,7 +158,7 @@ namespace osuCrypto
         struct RowIter
         {
             View& mH;
-            span<size_type> mRow;
+            gsl::span<size_type, weight> mRow;
             size_type mPos;
 
             RowIter(View& H, const Idx& i, size_type p);
@@ -268,14 +275,21 @@ namespace osuCrypto
     
 
 
-    template<typename Size>
-    std::ostream& operator<<(std::ostream& o, const LDPC<Size>& s)
+    template<typename Size, int weight>
+    std::ostream& operator<<(std::ostream& o, const LDPC<Size, weight>& s)
     {
-        print(o, s.mRows, s.cols());
+        MatrixView<Size> rows((Size*)s.mRows.data(), s.mRows.size(), weight);
+
+        print(o, rows, s.cols());
         return o;
     }
 
     std::ostream& operator<<(std::ostream& o, const Diff& s);
 
+    template<typename Size, int weight>
+    MatrixView<Size> view(typename LDPC<Size, weight>::RowMatrix& mtx)
+    {
+        return MatrixView<Size>((Size*)mtx.data(), mtx.size(), weight);
+    }
 
 }
