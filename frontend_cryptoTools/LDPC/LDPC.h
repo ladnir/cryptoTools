@@ -179,7 +179,7 @@ namespace osuCrypto
 
 
             std::vector<RowData> mRowData;
-            std::vector<RowData*> mWeightSets;
+            std::vector<size_type> mWeightSets;
 
             std::vector<size_type> mColNOMap, mColONMap;
             LDPC* mH;
