@@ -34,6 +34,16 @@ namespace osuCrypto
             bool verbose,
             bool stats);
 
+
+        template<typename Size>
+        void blockTriangulateImpl(
+            std::vector<std::array<u64, 3>>& blocks,
+            std::vector<u64>& rowPerm,
+            std::vector<u64>& colPerm,
+            bool verbose,
+            bool stats);
+
+
         u64 rowWeight()
         {
             return mRows.cols();

@@ -15,8 +15,8 @@ namespace osuCrypto
 
 
 
-
-    bool isTriangular(MatrixView<u64> H)
+    template<typename Size>
+    bool isTriangular(MatrixView<Size> H)
     {
         u64 colIdx = 0;
         for (u64 i = 0; i < H.rows(); ++i)
@@ -65,7 +65,7 @@ namespace osuCrypto
 
 
     
-
+    template<typename Size>
     void LDPC_blockTriangulateTest(const CLP& cmd)
     {
         bool v = cmd.isSet("v");
@@ -78,7 +78,7 @@ namespace osuCrypto
         u64 tt = cmd.getOr("tt", 0);
 
 
-        Matrix<u64> points(m, h);
+        Matrix<Size> points(m, h);
         for (; tt < trials; ++tt)
         {
             PRNG prng(block(0, cmd.getOr("s", tt)));
@@ -95,12 +95,12 @@ namespace osuCrypto
                 c.clear();
             }
 
-            LDPC H(n, points);
+            LDPC<Size> H(n, points);
 
 
             auto HH = H;
-            std::vector<std::array<u64, 3>> bb;
-            std::vector<u64> R, C;
+            std::vector<std::array<Size, 3>> bb;
+            std::vector<Size> R, C;
 
             if (v)
                 std::cout << H << std::endl
@@ -203,7 +203,8 @@ namespace osuCrypto
     {
 
         oc::TestCollection tests;
-        tests.add("LDPC.blockTriangulateTest   ", LDPC_blockTriangulateTest);
+        tests.add("LDPC.blockTriangulateTest16 ", LDPC_blockTriangulateTest<u16>);
+        tests.add("LDPC.blockTriangulateTest64 ", LDPC_blockTriangulateTest<u64>);
         tests.add("FWPC.blockTriangulateTest   ", FWPC_blockTriangulateTest);
 
 
@@ -445,7 +446,7 @@ namespace osuCrypto
 
             {
 
-                LDPC H2(n, points);
+                LDPC<u64> H2(n, points);
 
                 //u64 maxCol = 0;
                 //for (u64 i = 0; i < n; ++i)

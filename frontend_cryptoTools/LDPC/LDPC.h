@@ -7,66 +7,99 @@
 
 namespace osuCrypto
 {
-    class LDPC;
 
 
 
-    struct diff
+    struct Diff
     {
-        using T = MatrixView<u64>;
+        using T = Matrix<u64>;
         u64 mNumCols;
-        T& mL, & mR;
+        T mL, mR;
         std::vector<std::array<u64, 3>> mBlocks;
-        std::vector<u64>* mWeights;
-        std::vector<std::string>* mData2;
-        diff(T l, T r, std::vector<std::array<u64, 3>>& blocks, u64 numCols, std::vector<u64>* weights = nullptr, std::vector<std::string>* data2 = nullptr)
+        std::vector<u64> mWeights;
+        std::vector<std::string> mData2;
+
+        Diff(T& l, T& r, std::vector<std::array<u64, 3>>& blocks, u64 numCols, std::vector<u64>* weights = nullptr, std::vector<std::string>* data2 = nullptr)
             : mNumCols(numCols),
             mL(l), mR(r), mBlocks(blocks)
-            , mWeights(weights), mData2(data2)
-        {}
+        {
+        
+            if (weights)
+                mWeights = (*weights);
+
+            if (data2)
+                mData2 = (*data2);
+        }
 
     };
 
+    template<typename MatrixType, typename Size>
+    Diff diff(MatrixType& l, MatrixType& r, std::vector<std::array<Size, 3>>& b, Size numCols, std::vector<Size>* w = nullptr, std::vector<std::string>* data2 = nullptr)
+    {
+        Matrix<u64> L(l.rows(), l.cols()), R(r.rows(), r.cols());
 
+        for (u64 i = 0; i < L.size(); ++i)
+            L(i) = l(i);
+        for (u64 i = 0; i < R.size(); ++i)
+            R(i) = r(i);
+
+        std::vector<u64> weights;
+        std::vector<std::array<u64, 3>> blocks(b.size());
+        for (u64 i = 0; i < b.size(); ++i)
+            for(u64 j = 0; j < b[i].size(); ++j)
+                blocks[i][j] = b[i][j];
+
+        if (w)
+        {
+            weights.resize(w->size());
+            for (u64 i = 0; i < weights.size(); ++i)
+            {
+                weights[i] = (*w)[i];
+            }
+        }
+
+        return Diff(L, R, blocks, numCols, &weights, data2);        
+    }
+
+    template<typename Size>
     class LDPC
     {
     public:
 
-        //using diff = diff<LDPC2>;
+        using size_type = Size;
 
-        u64 mNumCols;
-        MatrixView<u64> mRows;
-        //Matrix<u64> mRows;
-        std::vector<u64> mBackingColStartIdxs, mColData;
-        span<u64> mColStartIdxs;
-        span<u64> col(u64 i)
+        size_type mNumCols;
+        MatrixView<size_type> mRows;
+        std::vector<size_type> mBackingColStartIdxs, mColData;
+        span<size_type> mColStartIdxs;
+        span<size_type> col(size_type i)
         {
             auto b = mColStartIdxs[i];
             auto e = mColStartIdxs[i + 1];
 
-            return span<u64>(mColData.data() + b, e - b);
+            return span<size_type>(mColData.data() + b, e - b);
         }
 
 
         LDPC() = default;
-        LDPC(u64 cols, MatrixView<u64> points) { insert(cols, points); }
+        LDPC(size_type cols, MatrixView<size_type> points) { insert(cols, points); }
 
-        void insert(u64 cols, MatrixView<u64> points);
+        void insert(size_type cols, MatrixView<size_type> points);
 
-        u64 cols() const { return mNumCols; }
-        u64 rows() const { return mRows.rows(); }
+        size_type cols() const { return mNumCols; }
+        size_type rows() const { return mRows.rows(); }
 
 
 
         void blockTriangulate(
-            std::vector<std::array<u64, 3>>& blocks,
-            std::vector<u64>& rowPerm,
-            std::vector<u64>& colPerm,
+            std::vector<std::array<size_type, 3>>& blocks,
+            std::vector<size_type>& rowPerm,
+            std::vector<size_type>& colPerm,
             bool verbose = false,
             bool stats = false,
             bool apply = true);
 
-        u64 rowWeight()
+        size_type rowWeight()
         {
             return mRows.cols();
         }
@@ -76,7 +109,7 @@ namespace osuCrypto
 
         struct Idx
         {
-            u64 mViewIdx, mSrcIdx;
+            size_type mViewIdx, mSrcIdx;
 
             bool operator==(Idx const& y) const
             {
@@ -97,19 +130,19 @@ namespace osuCrypto
         {
             // The input row at this position has been moved
             // to this new row index.
-            u64 mONMap;
+            size_type mONMap;
 
             // The current row at this position has as input index of.
-            u64 mNOMap;
+            size_type mNOMap;
 
             // The current of this row.
-            u64 mWeight;
+            size_type mWeight;
 
             // The previous row with the same weight.
-            RowData* mPrevWeightNode;
+            size_type mPrevWeightNode;
 
             // the next row with the same weight
-            RowData* mNextWeightNode;
+            size_type mNextWeightNode;
         };
 
         struct View;
@@ -118,10 +151,10 @@ namespace osuCrypto
         struct RowIter
         {
             View& mH;
-            span<u64> mRow;
-            u64 mPos;
+            span<size_type> mRow;
+            size_type mPos;
 
-            RowIter(View& H, const Idx& i, u64 p);
+            RowIter(View& H, const Idx& i, size_type p);
 
             void operator++();
             Idx operator*();
@@ -130,13 +163,13 @@ namespace osuCrypto
         struct ColIter
         {
             View& mH;
-            span<u64> mCol;
-            u64 mPos;
+            span<size_type> mCol;
+            size_type mPos;
 
-            ColIter(View& H, const Idx& i, u64 p);
+            ColIter(View& H, const Idx& i, size_type p);
             void operator++();
             Idx operator*();
-            u64 srcIdx();
+            size_type srcIdx();
             operator bool();
         };
 
@@ -148,7 +181,7 @@ namespace osuCrypto
             std::vector<RowData> mRowData;
             std::vector<RowData*> mWeightSets;
 
-            std::vector<u64> mColNOMap, mColONMap;
+            std::vector<size_type> mColNOMap, mColONMap;
             LDPC* mH;
             //MatrixView<u64> mRows;
 
@@ -159,20 +192,20 @@ namespace osuCrypto
 
             void swapCol(Idx& c0, Idx& c1);;
 
-            u64 rowWeight(u64 r)
+            size_type rowWeight(size_type r)
             {
                 return mRowData[mRowData[r].mNOMap].mWeight;
             }
 
-            Idx rowIdx(u64 viewIdx)
+            Idx rowIdx(size_type viewIdx)
             {
                 return { viewIdx, mRowData[viewIdx].mNOMap };
             }
-            Idx rowSrcIdx(u64 viewIdx)
+            Idx rowSrcIdx(size_type viewIdx)
             {
                 return { mRowData[viewIdx].mONMap, viewIdx };
             }
-            Idx colIdx(u64 viewIdx)
+            Idx colIdx(size_type viewIdx)
             {
                 return { viewIdx, mColNOMap[viewIdx] };
             }
@@ -190,12 +223,12 @@ namespace osuCrypto
                 return ColIter(*this, col, 0);
             }
 
-            std::pair<Idx, u64> popMinWeightRow();
+            std::pair<Idx, size_type> popMinWeightRow();
 
             void decRowWeight(const Idx& idx);
 
-            Matrix<u64> applyPerm()const;
-            void applyPerm(MatrixView<u64> rows) const;
+            Matrix<size_type> applyPerm()const;
+            void applyPerm(MatrixView<size_type> rows) const;
 
         };
 
@@ -204,9 +237,44 @@ namespace osuCrypto
     };
 
     //using diff = LDPC::diff;
-    void print(std::ostream& o, const MatrixView<u64>& rows, u64 cols);
-    std::ostream& operator<<(std::ostream& o, const LDPC& s);
-    std::ostream& operator<<(std::ostream& o, const diff& s);
+
+    template<typename Size>
+    void print(std::ostream& o, const MatrixView<Size>& rows, u64 cols)
+    {
+
+        for (u64 i = 0; i < rows.rows(); ++i)
+        {
+            std::unordered_set<u64> c;
+            for (u64 j = 0; j < rows.cols(); j++)
+                c.insert(rows(i, j));
+
+            for (u64 j = 0; j < cols; ++j)
+            {
+                if (c.find(j) != c.end())
+                {
+                    o << "1 ";
+                }
+                else
+                {
+                    o << ". ";
+                }
+            }
+            o << "\n";
+        }
+
+        o << "\n";
+    }
+    
+
+
+    template<typename Size>
+    std::ostream& operator<<(std::ostream& o, const LDPC<Size>& s)
+    {
+        print(o, s.mRows, s.cols());
+        return o;
+    }
+
+    std::ostream& operator<<(std::ostream& o, const Diff& s);
 
 
 }

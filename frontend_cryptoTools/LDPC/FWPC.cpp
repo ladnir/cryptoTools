@@ -287,12 +287,33 @@ namespace osuCrypto
         bool verbose,
         bool stats)
     {
-        auto numBins = mBinStarts.size();
-        LDPC ldpc;
+        u64 binWidth = (mNumCols + mBinStarts.size() - 1) / mBinStarts.size();
 
-        std::vector<std::array<u64, 3>> bb;
-        std::vector<u64> rowPerm, colPerm;
-        Matrix<u64> rows;
+        if (binWidth < std::numeric_limits<u8>::max())
+            blockTriangulateImpl<u8>(blocks, rowPerm_, colPerm_, verbose, stats);
+        else if (binWidth < std::numeric_limits<u16>::max())
+            blockTriangulateImpl<u16>(blocks, rowPerm_, colPerm_, verbose, stats);
+        else if (binWidth < std::numeric_limits<u32>::max())
+            blockTriangulateImpl<u32>(blocks, rowPerm_, colPerm_, verbose, stats);
+        else 
+            blockTriangulateImpl<u64>(blocks, rowPerm_, colPerm_, verbose, stats);
+    }
+
+
+    template<typename Size>
+    void FWPC::blockTriangulateImpl(
+        std::vector<std::array<u64, 3>>& blocks,
+        std::vector<u64>& rowPerm_,
+        std::vector<u64>& colPerm_,
+        bool verbose,
+        bool stats)
+    {
+        auto numBins = mBinStarts.size();
+        LDPC<Size> ldpc;
+
+        std::vector<std::array<Size, 3>> bb;
+        std::vector<Size> rowPerm, colPerm;
+        Matrix<Size> rows;
         auto weight = mRows.cols();
 
         for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
