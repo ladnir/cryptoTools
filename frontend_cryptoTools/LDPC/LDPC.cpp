@@ -226,14 +226,16 @@ namespace osuCrypto
         mColONMap.resize(b.cols());
 
         auto w = b.rowWeight();
-        for (u64 i = 0; i < mRowData.size(); ++i)
+        auto nn = mRowData.size();
+        auto row = mRowData.data();
+        for (u64 i = 0; i <nn; ++i)
         {
-            auto& row = mRowData[i];
-            row.mNOMap = i;
-            row.mONMap = i;
-            row.mPrevWeightNode = i - 1;
-            row.mNextWeightNode = i + 1;
-            row.mWeight = w;
+            row[0].mNOMap = i;
+            row[0].mONMap = i;
+            row[0].mPrevWeightNode = i - 1;
+            row[0].mNextWeightNode = i + 1;
+            row[0].mWeight = w;
+            ++row;
         }
 
         mRowData.front().mPrevWeightNode = mNullRow;
@@ -615,12 +617,14 @@ namespace osuCrypto
         size_type k = 0;
         size_type i = 0;
         size_type v = n;
-
+        size_type weight = rowWeight();
+        size_type weightp1 = weight + 1;
         blocks.resize(0);
 
 
         // temps
-        std::vector<Idx> colSwaps(rowWeight());
+        std::vector<size_type> colSwapsSrc(weight);
+        std::vector<size_type> colSwapsView(weight);
         size_type numColSwaps{ 0 };
 
         // We are going to create a 'view' over the matrix.
@@ -642,7 +646,7 @@ namespace osuCrypto
         //std::vector<u64> max(rowWeight() + 1);
         //u64 numSamples(0);
 
-        while (i < m && v)
+        while (GSL_LIKELY(i < m && v))
         {
             //numSamples++;
             //for (u64 j = 0; j < mView.mWeightSets.size(); ++j)
@@ -658,15 +662,34 @@ namespace osuCrypto
             //    max[jj] = std::max(max[jj], mView.mBigWeightSets[j].size());
             //}
 
-            if (mView.mWeightSets[0] == mView.mNullRow)
+            if (GSL_LIKELY(mView.mWeightSets[0] == mView.mNullRow))
             {
                 // If we don't have any rows with hamming
                 // weight 0 then we will pick the row with 
                 // minimim hamming weight and move it to the
                 // top of the view.
-                auto uu = mView.popMinWeightRow();
-                auto u = uu.first;
-                auto wi = uu.second;
+                //auto uu = mView.popMinWeightRow();
+                //auto u = uu.first;
+                //auto wi = uu.second;
+                Idx u;
+                size_type wi = 1;
+                for (; wi < weightp1; ++wi)
+                {
+                    if (mView.mWeightSets[wi] != mView.mNullRow)
+                    {
+                        auto& weightSetHead = mView.mWeightSets[wi];
+                        auto& row = mView.mRowData[weightSetHead];
+                        u.mSrcIdx = weightSetHead;
+
+                        weightSetHead = row.mNextWeightNode;
+                        mView.mRowData[weightSetHead].mPrevWeightNode = mView.mNullRow;
+                        u.mViewIdx = mView.mRowData[u.mSrcIdx].mONMap;
+                        //row.mWeight = 0;
+                        //row.mNextWeightNode = mView.mNullRow;
+                        break;
+                    }
+                }
+
 
                 // move the min weight row u to row i.
                 auto ii = mView.rowIdx(i);
@@ -689,18 +712,18 @@ namespace osuCrypto
                 //auto rIter = mView.rowIterator(ii);
                 //auto rIter = RowIter(mView, ii, 0);
 
-                auto row = mRows[ii.mSrcIdx];
+                auto rowi = mRows.data() + ii.mSrcIdx * weight;
 
                 // this set will collect all of the columns in the view. 
                 //colSwaps.clear();
                 numColSwaps = 0;
-                for (size_type j = 0; j < rowWeight(); ++j)
+                for (size_type j = 0; j < weight; ++j)
                 {
                     //auto c0 = colIdx[j];
                     //auto c0 = *rIter;
 
                     Idx c0;
-                    c0.mSrcIdx = row[j];
+                    c0.mSrcIdx = rowi[j];
                     c0.mViewIdx = mView.mColONMap[c0.mSrcIdx];
 
                     //++rIter;
@@ -709,7 +732,8 @@ namespace osuCrypto
                     if (c0.mViewIdx >= c1)
                     {
                         // add this column to the set of columns that we will move.
-                        colSwaps[numColSwaps] = c0;
+                        colSwapsSrc[numColSwaps] = c0.mSrcIdx;
+                        colSwapsView[numColSwaps] = c0.mViewIdx;
                         ++numColSwaps;
                         //colSwaps.push_back(c0);
 #ifdef VERBOSE
@@ -723,23 +747,22 @@ namespace osuCrypto
                         //auto cIter = ColIter(mView, c0, 0);
                         //auto col = mView.mH->col(c0.mSrcIdx);
                         auto b = &mColStartIdxs[c0.mSrcIdx];
-                        auto e = b + 1;
-                        span<size_type> col(mColData.data() + *b, *e - *b);
+                        span<size_type> col(mColData.data() + b[0], b[1] - b[0]);
 
 
-                        //while (cIter)
-                        for (size_type k = 0; k < col.size(); ++k)
+                        auto numCols = col.size();
+                        for (size_type k = 0; k < numCols; ++k)
                         {
                             // these a special case that this row is the u row which
                             // has already been decremented
                             if (col[k] != ii.mSrcIdx)
                             {
-                                Idx idx;
-                                idx.mSrcIdx = col[k];
-                                idx.mViewIdx = mView.mRowData[col[k]].mONMap;
+                                //Idx idx;
+                                auto idx = col[k];
+                                //idx.mViewIdx = mView.mRowData[col[k]].mONMap;
                                 //mView.decRowWeight(idx);
                                 {
-                                    auto& row = mView.mRowData[idx.mSrcIdx];
+                                    auto& row = mView.mRowData[idx];
                                     auto w = row.mWeight--;
 
                                     auto prev = row.mPrevWeightNode;
@@ -748,13 +771,13 @@ namespace osuCrypto
                                     mView.mRowData[prev].mNextWeightNode = next;
 
                                     //TODO("first clause can always be performed");
-                                    //if (prev == mView.mNullRow)
-                                    //{
-                                    //    //assert(mWeightSets[w] == &row);
-                                    //    mView.mWeightSets[w] = next;
-                                    //}
-                                    mView.mWeightSets[w] ^=
-                                        (prev == mView.mNullRow) * (next ^ mView.mWeightSets[w]);
+                                    if (prev == mView.mNullRow)
+                                    {
+                                        //assert(mWeightSets[w] == &row);
+                                        mView.mWeightSets[w] = next;
+                                    }
+                                    //mView.mWeightSets[w] ^=
+                                    //    (prev == mView.mNullRow) * (next ^ mView.mWeightSets[w]);
 
                                     mView.mRowData[next].mPrevWeightNode = prev;
                                     row.mPrevWeightNode = mView.mNullRow;
@@ -762,12 +785,12 @@ namespace osuCrypto
                                     //TODO("can always be performed????");
                                     if (mView.mWeightSets[w - 1] != mView.mNullRow)
                                     {
-                                        mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
+                                        mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx;
                                     }
                                     //mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
 
                                     row.mNextWeightNode = mView.mWeightSets[w - 1];
-                                    mView.mWeightSets[w - 1] = idx.mSrcIdx;
+                                    mView.mWeightSets[w - 1] = idx;
                                 }
                             }
 
@@ -779,21 +802,32 @@ namespace osuCrypto
                 // right before the view.
                 while (numColSwaps)
                 {
-                    auto begin = colSwaps.data();
-                    auto end = colSwaps.data() + numColSwaps;
+                    auto begin = colSwapsView.data();
+                    auto end = colSwapsView.data() + numColSwaps;
                     auto back = end - 1;
 
-                    auto cc = mView.colIdx(c1++);
-                    auto sIter = std::find(begin, end, cc);
+                    auto srcBegin = colSwapsSrc.data();
+                    auto srcBack = colSwapsSrc.data() + numColSwaps - 1;
+
+                    //auto cc = c1++;
+                    auto sIter = std::find(begin, end, c1);
                     if (sIter != end)
                     {
+                        auto j = sIter - begin;
                         std::swap(*sIter, *back);
+                        std::swap(srcBegin[j], *srcBack);
                     }
                     else
                     {
-                        mView.swapCol(cc, *back);
+                        Idx bb{ *back, *srcBack };
+                        auto cc = mView.colIdx(c1);
+
+                        std::swap(mView.mColNOMap[cc.mViewIdx], mView.mColNOMap[bb.mViewIdx]);
+                        std::swap(mView.mColONMap[cc.mSrcIdx], mView.mColONMap[bb.mSrcIdx]);
+                        //mView.swapCol(cc, bb);
                     }
 
+                    ++c1;
                     --numColSwaps;
                     //colSwaps.pop_back();
                 }

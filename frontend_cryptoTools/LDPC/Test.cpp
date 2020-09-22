@@ -7,7 +7,7 @@
 #include "../cpp-btree/btree/set.h"
 #include <random>
 #include "FWPC.h"
-
+#include "libdivide.h"
 namespace osuCrypto
 {
 
@@ -487,6 +487,19 @@ namespace osuCrypto
         return;
     }
 
+    template<typename Size> 
+    void fill(std::vector<u64>& c, u64 w, u64 nn, u64 colBegin, PRNG& prng)
+    {
+        while (c.size() != w)
+        {
+            auto col = prng.get<Size>() % nn + colBegin;
+            auto iter = std::find(c.begin(), c.end(), col);
+            if (iter == c.end())
+            {
+                c.push_back(col);
+            }
+        }
+    }
 
 
     void fwpc(CLP& cmd)
@@ -504,42 +517,44 @@ namespace osuCrypto
 
         u64 binWidth = cmd.getOr("w", 10);
         binWidth = std::min(numCols, binWidth);
+        auto numBins = (numCols + binWidth - 1) / binWidth;
 
         Matrix<u64> points(numRows, weight);
         Timer timer;
 
+        libdivide::divider<u64> numRowsDiv(numRows);
+        libdivide::divider<u64> numBinsDiv(numBins);
+
         double dur1(0), dur2(0);
-        std::set<u64> c;
+        std::vector<u64> c;
         for (u64 i = 0; i < t; ++i)
         {
             for (u64 i = 0; i < numRows; ++i)
             {
-                //if (d)
-                //{
-                //    auto base = prng.get<u64>() % (n-d);
-                //    c.insert(base);
 
-                //    while (c.size() != h)
-                //        c.insert((base + prng.get<u64>() % d) % n);
-                //}
-                if (binWidth)
+
+                auto binIdx = i * numBins / numRowsDiv;
+
+                //auto binIdx = prng.get<u64>() % q;
+
+                auto colBegin = (binIdx * numCols) / numBinsDiv;
+                auto colEnd = ((binIdx + 1) * numCols) / numBinsDiv;
+                auto nn = colEnd - colBegin;
+                if (nn < std::numeric_limits<u16>::max())
                 {
-                    auto numBins = (numCols + binWidth - 1) / binWidth;
-
-                    auto binIdx = u64(double(i) * numBins / numRows);
-
-                    //auto r = prng.get<u64>() % q;
-
-                    auto colBegin = (binIdx * numCols) / numBins;
-                    auto colEnd = ((binIdx + 1) * numCols) / numBins;
-                    auto nn = colEnd - colBegin;
-
-                    while (c.size() != weight)
-                        c.insert(prng.get<u64>() % nn + colBegin);
-
+                    fill<u16>(c, weight, nn, colBegin, prng);
+                }
+                else if (nn < std::numeric_limits<u32>::max())
+                {
+                    fill<u32>(c, weight, nn, colBegin, prng);
+                }
+                else
+                {
+                    fill<u64>(c, weight, nn, colBegin, prng);
                 }
 
-                std::copy(c.begin(), c.end(), points[i].begin());
+                memcpy(&points(i, 0), c.data(), sizeof(u64) * weight);
+                //std::copy(c.begin(), c.end(), points[i].begin());
                 c.clear();
             }
 
