@@ -178,6 +178,7 @@ namespace osuCrypto
 
 
 
+            size_type mNullRow;
             std::vector<RowData> mRowData;
             std::vector<size_type> mWeightSets;
 

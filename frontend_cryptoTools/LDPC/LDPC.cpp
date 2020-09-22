@@ -1,5 +1,13 @@
 
-#define NDEBUG
+
+#define LDPC_DEBUG
+
+#ifndef LDPC_DEBUG
+    #define NDEBUG
+#endif
+
+//#define VERBOSE
+
 #include "LDPC.h"
 #include <cryptoTools/Common/Matrix.h>
 #include <cryptoTools/Common/Timer.h>
@@ -25,9 +33,8 @@
 //#include "absl/container/flat_hash_set.h"
 //#include "absl/container/node_hash_set.h"
 
-#define LDPC_DEBUG
 
-#define NULL_NODE Size(-1)
+//#define NULL_NODE Size(-1)
 
 namespace osuCrypto
 {
@@ -210,10 +217,11 @@ namespace osuCrypto
     {
         //mH(b)
         mH = &b;
-        mRowData.resize(b.rows());
+        mRowData.resize(b.rows()+ 1);
+        mNullRow = b.rows();
 
         mWeightSets.resize(0);
-        mWeightSets.resize(b.rowWeight() + 1, NULL_NODE);
+        mWeightSets.resize(b.rowWeight() + 1, mNullRow);
         mColNOMap.resize(b.cols());
         mColONMap.resize(b.cols());
 
@@ -228,8 +236,8 @@ namespace osuCrypto
             row.mWeight = w;
         }
 
-        mRowData.front().mPrevWeightNode = NULL_NODE;
-        mRowData.back().mNextWeightNode = NULL_NODE;
+        mRowData.front().mPrevWeightNode = mNullRow;
+        mRowData.back().mNextWeightNode = mNullRow;
         mWeightSets.back() = 0;
 
         for (u64 i = 0; i < mColNOMap.size(); ++i)
@@ -269,7 +277,7 @@ namespace osuCrypto
         Idx idx;
         for (u64 i = 1; i < mWeightSets.size(); ++i)
         {
-            if (mWeightSets[i] != NULL_NODE)
+            if (mWeightSets[i] != mNullRow)
             {
                 auto& weightSetHead = mWeightSets[i];
                 auto& row = mRowData[weightSetHead];
@@ -278,15 +286,17 @@ namespace osuCrypto
                 weightSetHead = row.mNextWeightNode;
 
 
-                TODO("remove this if statement by making an actual NULL_NODE")
-                if (weightSetHead != NULL_NODE)
-                {
-                    mRowData[weightSetHead].mPrevWeightNode = NULL_NODE;
-                }
+                mRowData[weightSetHead].mPrevWeightNode = mNullRow;
+                //TODO("remove this if statement by making an actual NULL_NODE")
+                //if (weightSetHead != NULL_NODE)
+                //{
+                //    mRowData[weightSetHead].mPrevWeightNode = mNullRow;
+                //}
+
 
                 idx.mViewIdx = mRowData[idx.mSrcIdx].mONMap;
                 row.mWeight = 0;
-                row.mNextWeightNode = NULL_NODE;
+                row.mNextWeightNode = mNullRow;
 
                 return { idx, i };
             }
@@ -322,11 +332,12 @@ namespace osuCrypto
         auto next = row.mNextWeightNode;
 
 #ifdef LDPC_DEBUG
-        assert(next == NULL_NODE || next->mPrevWeightNode == idx.mSrcIdx);
-        assert(prev == NULL_NODE || prev->mNextWeightNode == idx.mSrcIdx);
+        assert(next == mNullRow || mRowData[next].mPrevWeightNode == idx.mSrcIdx);
+        assert(prev == mNullRow || mRowData[prev].mNextWeightNode == idx.mSrcIdx);
 #endif
 
-        if (prev != NULL_NODE)
+        TODO("first clause can always be performed.");
+        if (prev != mNullRow)
         {
             mRowData[prev].mNextWeightNode = next;
         }
@@ -338,14 +349,11 @@ namespace osuCrypto
             mWeightSets[w] = next;
         }
 
-        if (next != NULL_NODE)
-        {
-            mRowData[next].mPrevWeightNode = prev;
-        }
+        mRowData[next].mPrevWeightNode = prev;
+        row.mPrevWeightNode = mNullRow;
 
-        row.mPrevWeightNode = NULL_NODE;
-
-        if (mWeightSets[w - 1] != NULL_NODE)
+        TODO("can always be performed?????");
+        if (mWeightSets[w - 1] != mNullRow)
         {
            mRowData[mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
         }
@@ -623,12 +631,13 @@ namespace osuCrypto
         //View H(*this);
         mView.init(*this);
 
+#ifdef VERBOSE
         std::unique_ptr<Matrix<size_type>> HH;
         if (verbose)
         {
             HH.reset(new Matrix<size_type>(mRows));
         }
-
+#endif
         //std::vector<double> avgs(rowWeight() + 1);
         //std::vector<u64> max(rowWeight() + 1);
         //u64 numSamples(0);
@@ -649,7 +658,7 @@ namespace osuCrypto
             //    max[jj] = std::max(max[jj], mView.mBigWeightSets[j].size());
             //}
 
-            if (mView.mWeightSets[0] == NULL_NODE)
+            if (mView.mWeightSets[0] == mView.mNullRow)
             {
                 // If we don't have any rows with hamming
                 // weight 0 then we will pick the row with 
@@ -663,11 +672,12 @@ namespace osuCrypto
                 auto ii = mView.rowIdx(i);
                 mView.swapRows(u, ii);
 
+#ifdef VERBOSE
                 if (verbose) {
                     std::cout << "wi " << wi << std::endl;
                     std::cout << "swapRow(" << i << ", " << u.mViewIdx << ")" << std::endl;
                 }
-
+#endif
                 // For this newly moved row i, we need to move all the 
                 // columns where this row has a non-zero value to the
                 // left side of the view. 
@@ -702,9 +712,10 @@ namespace osuCrypto
                         colSwaps[numColSwaps] = c0;
                         ++numColSwaps;
                         //colSwaps.push_back(c0);
-
+#ifdef VERBOSE
                         if (verbose)
                             std::cout << "swapCol(" << c0.mViewIdx << ")" << std::endl;
+#endif
 
                         // iterator over the rows for this column and decrement their row weight.
                         // we do this since we are about to move this column outside of the view.
@@ -730,42 +741,36 @@ namespace osuCrypto
                                 {
                                     auto& row = mView.mRowData[idx.mSrcIdx];
                                     auto w = row.mWeight--;
-                                    //assert(w);
 
                                     auto prev = row.mPrevWeightNode;
                                     auto next = row.mNextWeightNode;
 
-                                    //assert(next == nullptr || next->mPrevWeightNode == &row);
-                                    //assert(prev == nullptr || prev->mNextWeightNode == &row);
+                                    mView.mRowData[prev].mNextWeightNode = next;
 
-                                    if (GSL_LIKELY(prev != NULL_NODE))
-                                    {
-                                        mView.mRowData[prev].mNextWeightNode = next;
-                                    }
-                                    else
-                                    {
-                                        //assert(mWeightSets[w] == &row);
-                                        mView.mWeightSets[w] = next;
-                                    }
+                                    //TODO("first clause can always be performed");
+                                    //if (prev == mView.mNullRow)
+                                    //{
+                                    //    //assert(mWeightSets[w] == &row);
+                                    //    mView.mWeightSets[w] = next;
+                                    //}
+                                    mView.mWeightSets[w] ^=
+                                        (prev == mView.mNullRow) * (next ^ mView.mWeightSets[w]);
 
-                                    if (next != NULL_NODE)
-                                    {
-                                        mView.mRowData[next].mPrevWeightNode = prev;
-                                    }
+                                    mView.mRowData[next].mPrevWeightNode = prev;
+                                    row.mPrevWeightNode = mView.mNullRow;
 
-                                    row.mPrevWeightNode = NULL_NODE;
-
-                                    if (mView.mWeightSets[w - 1] != NULL_NODE)
+                                    //TODO("can always be performed????");
+                                    if (mView.mWeightSets[w - 1] != mView.mNullRow)
                                     {
                                         mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
                                     }
+                                    //mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
 
                                     row.mNextWeightNode = mView.mWeightSets[w - 1];
                                     mView.mWeightSets[w - 1] = idx.mSrcIdx;
                                 }
                             }
 
-                            //++cIter;
                         }
                     }
                 }
@@ -774,8 +779,8 @@ namespace osuCrypto
                 // right before the view.
                 while (numColSwaps)
                 {
-                    auto begin = colSwaps.begin();
-                    auto end = colSwaps.begin() + numColSwaps;
+                    auto begin = colSwaps.data();
+                    auto end = colSwaps.data() + numColSwaps;
                     auto back = end - 1;
 
                     auto cc = mView.colIdx(c1++);
@@ -793,12 +798,13 @@ namespace osuCrypto
                     //colSwaps.pop_back();
                 }
 
+#ifdef VERBOSE
                 if (verbose)
                 {
                     std::cout << "v " << (v - wi) << " = " << v << " - " << wi << std::endl;
                     std::cout << "i " << (i + 1) << " = " << i << " + 1" << std::endl;
                 }
-
+#endif
                 // move the view right by wi.
                 v = v - wi;
 
@@ -813,10 +819,10 @@ namespace osuCrypto
 
 
                 auto rowPtr = mView.mWeightSets[0];
-                mView.mWeightSets[0] = NULL_NODE;
+                mView.mWeightSets[0] = mView.mNullRow;
 
                 std::vector<RowData*> rows;
-                while (rowPtr != NULL_NODE)
+                while (rowPtr != mView.mNullRow)
                 {
                     auto& row = mView.mRowData[rowPtr];
                     rows.push_back(&row);
@@ -858,12 +864,15 @@ namespace osuCrypto
                         mView.swapRows(dest, src);
                     }
 
+#ifdef VERBOSE
                     if (verbose)
                         std::cout << "rowSwap*(" << c1 << ", " << viewIdx << ")" << std::endl;
+#endif
+
                     auto& row = **sIter;
                     row.mWeight = 0;
-                    row.mNextWeightNode = NULL_NODE;
-                    row.mPrevWeightNode = NULL_NODE;
+                    row.mNextWeightNode = mView.mNullRow;
+                    row.mPrevWeightNode = mView.mNullRow;
 
                     rows.erase(sIter);
                     ++c1;
@@ -873,17 +882,20 @@ namespace osuCrypto
                 blocks.push_back({ Size(i + dk), Size(n - v), dk });
                 //dks.push_back(dk);
 
+#ifdef VERBOSE
                 if (verbose)
                 {
                     std::cout << "RC " << blocks.back()[0] << " " << blocks.back()[1] << std::endl;
                     std::cout << "i " << (i + dk) << " = " << i << " + " << dk << std::endl;
                     std::cout << "k " << (k + 1) << " = " << k << " + 1" << std::endl;
                 }
+#endif
 
                 i += dk;
                 ++k;
             }
 
+#ifdef VERBOSE
             if (verbose)
             {
                 auto bb = blocks;
@@ -905,15 +917,16 @@ namespace osuCrypto
 
                 *HH = std::move(W);
             }
+#endif
         }
 
         //R.push_back(m);
         //C.push_back(n);
 
-        rowPerm.resize(mView.mRowData.size());
-        for (u64 i = 0; i < rowPerm.size(); ++i)
+        auto numRows = mView.mRowData.size();
+        rowPerm.resize(numRows);
+        for (u64 i = 0; i < numRows; ++i)
             rowPerm[i] = mView.mRowData[i].mONMap;
-        //rowPerm = mView.mRowData.mONMap;
         colPerm = mView.mColONMap;
 
         if (apply)
