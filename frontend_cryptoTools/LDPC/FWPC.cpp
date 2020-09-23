@@ -330,7 +330,7 @@ namespace osuCrypto
         std::vector<std::array<Size, 3>> bb;
         std::vector<Size> rowPerm, colPerm;
         Matrix<Size> rows;
-        auto weight = mRows.cols();
+        //auto weight = mRows.cols();
 
         if (stats)
         {
