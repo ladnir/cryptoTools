@@ -332,6 +332,38 @@ namespace osuCrypto
         Matrix<Size> rows;
         auto weight = mRows.cols();
 
+        if (stats)
+        {
+            std::cout << "num bins " << numBins << std::endl;
+            auto pp = std::min<u64>(10, numBins);
+
+            for (u64 binIdx = 0; binIdx < pp; ++binIdx)
+            {
+
+                auto rowBegin = mBinStarts[binIdx];
+                auto rowEnd = (binIdx != numBins - 1) ? mBinStarts[binIdx + 1] : mRows.rows();
+                auto numRows = rowEnd - rowBegin;
+                auto numRows8 = (numRows / 8) * 8;
+
+                assert(binIdx == (mRows(rowBegin, 0) * numBins + numBins - 1) / mNumCols);
+                auto colBegin = (binIdx * mNumCols) / numBins;
+                auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
+
+                auto numCols = colEnd - colBegin;
+                auto load = double(numRows) / numCols;
+
+                std::cout << "bin " << binIdx
+                    << "   cols(" << colBegin << " ... " << colEnd
+                    << ")  rows(" << rowBegin << " ... " << rowEnd
+                    << ")  load " << load << " = " << numRows  << " / " << numCols<< std::endl;
+            }
+
+            if (pp != numBins)
+            {
+                std::cout << "..." << std::endl;
+            }
+        }
+
         for (u64 binIdx = 0; binIdx < numBins; ++binIdx)
         {
             auto rowBegin = mBinStarts[binIdx];
@@ -342,9 +374,9 @@ namespace osuCrypto
             assert(binIdx == (mRows(rowBegin, 0) * numBins + numBins  - 1) / mNumCols);
             auto colBegin = (binIdx * mNumCols) / numBins;
             auto colEnd = ((binIdx + 1) * mNumCols) / numBins;
+            auto numCols = colEnd - colBegin;
 
             rows.resize(numRows, weight, AllocType::Uninitialized);
-
 
             auto src = &mRows(rowBegin, 0);
             auto dst = rows.data();
@@ -352,22 +384,35 @@ namespace osuCrypto
             auto size8 = (size / 8) * 8;
 
 
-            for (u64 i = 0; i < size; i += 8)
+            for (u64 i = 0; i < size8; i += 8)
             {
-                dst[i + 0] = src[i + 0] - colBegin;
-                dst[i + 1] = src[i + 1] - colBegin;
-                dst[i + 2] = src[i + 2] - colBegin;
-                dst[i + 3] = src[i + 3] - colBegin;
-                dst[i + 4] = src[i + 4] - colBegin;
-                dst[i + 5] = src[i + 5] - colBegin;
-                dst[i + 6] = src[i + 6] - colBegin;
-                dst[i + 7] = src[i + 7] - colBegin;
-            }
+                dst[i + 0] = static_cast<Size>(src[i + 0] - colBegin);
+                dst[i + 1] = static_cast<Size>(src[i + 1] - colBegin);
+                dst[i + 2] = static_cast<Size>(src[i + 2] - colBegin);
+                dst[i + 3] = static_cast<Size>(src[i + 3] - colBegin);
+                dst[i + 4] = static_cast<Size>(src[i + 4] - colBegin);
+                dst[i + 5] = static_cast<Size>(src[i + 5] - colBegin);
+                dst[i + 6] = static_cast<Size>(src[i + 6] - colBegin);
+                dst[i + 7] = static_cast<Size>(src[i + 7] - colBegin);
 
+                assert(dst + i + 7 < rows.data() + rows.size());
+
+                assert(dst[i + 0] < numCols);
+                assert(dst[i + 1] < numCols);
+                assert(dst[i + 2] < numCols);
+                assert(dst[i + 3] < numCols);
+                assert(dst[i + 4] < numCols);
+                assert(dst[i + 5] < numCols);
+                assert(dst[i + 6] < numCols);
+                assert(dst[i + 7] < numCols);
+            }
 
             for (u64 i = size8; i < size; ++i)
             {
                 dst[i] = src[i] - colBegin;
+
+                assert(dst + i < rows.data() + rows.size());
+                assert(dst[i] < numCols);
             }
 
             ldpc.insert(colEnd - colBegin, rows);
@@ -478,13 +523,14 @@ namespace osuCrypto
             //{
             //    std::cout << j << " avg  " << avgs[j] / numSamples << "  max  " << max[j] << std::endl;
             //}
+            auto ww = 10;
             std::array<u64, 3> prev = {};
             for (u64 i = 0; i < blocks.size(); ++i)
             {
-                if (i == 50 && blocks.size() > 150)
+                if (i == ww && blocks.size() > 2*ww)
                 {
                     std::cout << "..." << std::endl;
-                    i = blocks.size() - 50;
+                    i = blocks.size() - ww;
                 }
 
 

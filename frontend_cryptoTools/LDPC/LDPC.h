@@ -5,6 +5,10 @@
 #include <unordered_set>
 #include <cassert>
 
+#define LDPC_STATS
+#define LDPC_VERBOSE
+#define LDPC_DEBUG
+
 namespace osuCrypto
 {
 
@@ -34,7 +38,7 @@ namespace osuCrypto
     };
 
     template<typename MatrixType, typename Size>
-    Diff diff(MatrixType& l, MatrixType& r, std::vector<std::array<Size, 3>>& b, Size numCols, std::vector<Size>* w = nullptr, std::vector<std::string>* data2 = nullptr)
+    Diff diff(const MatrixType& l, const MatrixType& r, std::vector<std::array<Size, 3>>& b, Size numCols, std::vector<Size>* w = nullptr, std::vector<std::string>* data2 = nullptr)
     {
         Matrix<u64> L(l.size(), l[0].size()), R(r.size(), r[0].size());
 
@@ -71,12 +75,13 @@ namespace osuCrypto
 
         using size_type = Size;
         using Row = std::array<size_type, weight>;
-        using RowMatrix = span<Row>;
+        using RowSpan = span<Row>;
+        using RowVector = std::vector<Row>;
 
         size_type mNumCols;
 
         //MatrixView<size_type> mRows;
-        RowMatrix mRows;
+        RowSpan mRows;
         std::vector<size_type> mBackingColStartIdxs, mColData;
         span<size_type> mColStartIdxs;
         span<size_type> col(size_type i)
@@ -187,7 +192,8 @@ namespace osuCrypto
 
             size_type mNullRow;
             std::vector<RowData> mRowData;
-            std::vector<size_type> mWeightSets;
+            std::array<size_type, weight + 1> mWeightSets;
+            std::array<size_type, weight + 1> mWeightSetSizes;
 
             std::vector<size_type> mColNOMap, mColONMap;
             LDPC* mH;
@@ -235,8 +241,8 @@ namespace osuCrypto
 
             void decRowWeight(const Idx& idx);
 
-            Matrix<size_type> applyPerm()const;
-            void applyPerm(MatrixView<size_type> rows) const;
+            RowVector applyPerm()const;
+            void applyPerm(RowSpan rows) const;
 
         };
 
@@ -287,7 +293,7 @@ namespace osuCrypto
     std::ostream& operator<<(std::ostream& o, const Diff& s);
 
     template<typename Size, int weight>
-    MatrixView<Size> view(typename LDPC<Size, weight>::RowMatrix& mtx)
+    MatrixView<Size> view(typename LDPC<Size, weight>::RowSpan mtx)
     {
         return MatrixView<Size>((Size*)mtx.data(), mtx.size(), weight);
     }

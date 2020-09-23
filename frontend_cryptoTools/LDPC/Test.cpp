@@ -12,9 +12,6 @@ namespace osuCrypto
 {
 
 
-
-
-
     template<typename Size>
     bool isTriangular(MatrixView<Size> H)
     {
@@ -27,39 +24,69 @@ namespace osuCrypto
                 return false;
             colIdx = maxCol;
         }
-        //u64 curRowIdx = 0;
-        //for (u64 i = 0; i < H.cols(); ++i)
-        //{
-        //    auto col = H.col(i);
-        //    auto iter = std::min_element(col.begin(), col.end());
-        //    u64 m = iter == col.end() ? ~0ull : *iter;
-        //    if (m < curRowIdx)
-        //    {
-        //        std::cout << H << std::endl;
-        //        return false;
-        //    }
-
-        //    curRowIdx = m;
-        //}
-
-        //for (u64 i = 0; i < C.size() - 1; ++i)
-        //{
-        //    auto cBegin = C[i];
-        //    auto cEnd = C[i + 1];
-        //    auto minRowIdx = R[i];
-
-        //    for (u64 j = cBegin; j < cEnd; ++j)
-        //    {
-        //        auto& col = H.col(j);
-        //        auto iter = std::min_element(col.begin(), col.end());
-        //        if (iter != col.end() && *iter < minRowIdx)
-        //        {
-        //            return false;
-        //        }
-        //    }
-        //}
-
         return true;
+    }
+
+
+    template<typename Size>
+    bool isBlockTriangular(MatrixView<Size> H, Size numCols, std::vector<std::array<Size,3>>& blocks_)
+    {
+        auto blocks = blocks_;
+        if (blocks.size() == 0 || blocks.back()[0] != H.rows())
+        {
+            blocks.push_back({ Size(H.rows()), Size(numCols), Size(0) });
+        }
+        auto bb = blocks.begin();
+        u64 colIdx = 0;
+        for (u64 i = 0; i < H.rows(); ++i)
+        {
+            auto row = H[i];
+            auto maxCol = *std::max_element(row.begin(), row.end());
+            auto b = *bb;
+
+            if (b[0] - b[2] <= i)
+            {
+                if (b[1] != maxCol)
+                    return false;
+            }
+
+            if (maxCol > b[1])
+                return false;
+
+            if (b[0] == i)
+            {
+                ++bb;
+            }
+
+            if (maxCol < colIdx)
+                return false;
+            colIdx = maxCol;
+        }
+        return true;
+    }
+
+
+    template<typename Size>
+    bool isSame(MatrixView<Size> H, MatrixView<Size> H2, std::vector<Size>& rowPerm, std::vector<Size>& colPerm)
+    {
+        if (H.rows() != H2.rows() || H.cols() != H2.cols())
+            return false;
+        //Matrix<Size> H3(H.rows(), H.cols());
+        for (u64 i = 0; i < H.rows(); ++i)
+        {
+            for (u64 j = 0; j < H.cols(); ++j)
+            {
+                // o to n
+                auto newRow = rowPerm[i];
+                //auto newCol = colPerm[j];
+
+
+                if (H(newRow, j) != colPerm[H2(i, j)])
+                    return false;
+            }
+        }
+        return true;
+
     }
 
 
@@ -115,7 +142,9 @@ namespace osuCrypto
                 << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
 
             H.blockTriangulate(bb, R, C, v, false, true);
-            if (isTriangular(view<Size, Weight>(H.mRows)) == false)
+
+            auto vv = view<Size, Weight>(H.mRows);
+            if (isBlockTriangular<Size>(vv, n, bb) == false)
             {
                 if (v)
                     std::cout << H << std::endl
@@ -123,6 +152,16 @@ namespace osuCrypto
 
                 throw UnitTestFail(LOCATION);
             }
+
+            if (isSame(vv, points, R, C) == false)
+            {
+                if (v)
+                    std::cout << H << std::endl
+                    << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
+
+                throw UnitTestFail(LOCATION);
+            }
+
         }
     }
 
@@ -201,7 +240,9 @@ namespace osuCrypto
                 << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;;
 
             H.blockTriangulate(bb, R, C, v, false);
-            if (isTriangular(H.mRows) == false)
+            if (isBlockTriangular(H.mRows, numCols, bb) == false)
+                throw UnitTestFail(LOCATION);
+            if (isSame(H.mRows, points, R, C) == false)
                 throw UnitTestFail(LOCATION);
         }
     }
@@ -462,6 +503,34 @@ namespace osuCrypto
                 //    maxCol = std::max<u64>(maxCol, H.mCols[i].mRowIdxs.size());
                 //
 
+                if (v)
+                {
+                    std::cout << "--------------------------------" << std::endl;
+                    std::cout << H2 << std::endl;
+                    std::cout << "--------------------------------" << std::endl;
+                }
+
+                std::vector<std::array<u64, 3>> bb;
+                std::vector<u64> R, C;
+
+                auto start = timer.setTimePoint("");
+                H2.blockTriangulate(bb, R, C, v, stats, false);
+                auto end = timer.setTimePoint("");
+                dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+
+                timer.setTimePoint("triangulate");
+
+                if (v)
+                {
+                    std::cout << diff(H2.mRows, H2.mRows, bb, H2.cols()) << std::endl;
+                    std::cout << "--------------------------------" << std::endl;
+                }
+            }
+            else if (h == 3)
+            {
+
+                LDPC<u64, 3> H2(n, points);
                 if (v)
                 {
                     std::cout << "--------------------------------" << std::endl;
