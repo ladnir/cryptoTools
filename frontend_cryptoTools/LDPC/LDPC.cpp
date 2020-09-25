@@ -5,7 +5,7 @@
 #include "LDPC.h"
 
 #ifndef LDPC_DEBUG
-    #define NDEBUG
+#define NDEBUG
 #endif
 #include <cryptoTools/Common/Matrix.h>
 #include <cryptoTools/Common/Timer.h>
@@ -207,6 +207,11 @@ namespace osuCrypto
             o << "\n";
         }
 
+        for (u64 i = 0; i < s.mNumCols; ++i)
+        {
+            o << (i % 10) << " ";
+        }
+        o << '\n';
         return o;
     }
 
@@ -215,7 +220,7 @@ namespace osuCrypto
     {
         //mH(b)
         mH = &b;
-        mRowData.resize(b.rows()+ 1);
+        mRowData.resize(b.rows() + 1);
         mNullRow = b.rows();
 
         //mWeightSets.resize(0);
@@ -226,16 +231,15 @@ namespace osuCrypto
         mColNOMap.resize(b.cols());
         mColONMap.resize(b.cols());
 
-        auto w = b.rowWeight();
         auto nn = mRowData.size();
         auto row = mRowData.data();
-        for (u64 i = 0; i <nn; ++i)
+        for (u64 i = 0; i < nn; ++i)
         {
             row[0].mNOMap = i;
             row[0].mONMap = i;
             row[0].mPrevWeightNode = i - 1;
             row[0].mNextWeightNode = i + 1;
-            row[0].mWeight = w;
+            row[0].mWeight = weight;
             ++row;
         }
         assert(row == mRowData.data() + mRowData.size());
@@ -282,72 +286,45 @@ namespace osuCrypto
 
 
     template<typename Size, int weight>
-    std::pair<typename LDPC<Size, weight>::Idx, Size> LDPC<Size, weight>::View::popMinWeightRow()
+    void LDPC<Size, weight>::View::popMinWeightRow(Idx& idx, size_type& i)
     {
-        Idx idx;
-        for (u64 i = 1; i < mWeightSets.size(); ++i)
+        i = 1;
+        for (; true; ++i)
         {
             if (mWeightSets[i] != mNullRow)
             {
                 auto& weightSetHead = mWeightSets[i];
+                idx.mSrcIdx = weightSetHead;
+                idx.mViewIdx = mRowData[idx.mSrcIdx].mONMap;
+
 #ifdef LDPC_STATS
                 --mWeightSetSizes[i];
 #endif
                 auto& row = mRowData[weightSetHead];
-                idx.mSrcIdx = weightSetHead;
-
                 weightSetHead = row.mNextWeightNode;
 
 
                 mRowData[weightSetHead].mPrevWeightNode = mNullRow;
-                //TODO("remove this if statement by making an actual NULL_NODE")
-                //if (weightSetHead != NULL_NODE)
-                //{
-                //    mRowData[weightSetHead].mPrevWeightNode = mNullRow;
-                //}
-
-
-                idx.mViewIdx = mRowData[idx.mSrcIdx].mONMap;
                 row.mWeight = 0;
                 row.mNextWeightNode = mNullRow;
-
-                return { idx, i };
+                return;
             }
         }
-
-        //for (u64 i = 0; i < mBigWeightSets.size(); i++)
-        //{
-        //    if (mBigWeightSets[i].size())
-        //    {
-        //        auto iter = mBigWeightSets[i].begin();
-        //        idx.mSrcIdx = *iter;
-        //        idx.mIdx = mRowONMap[idx.mSrcIdx];
-        //        mBigWeightSets[i].erase(iter);
-        //        mRowWeights[idx.mSrcIdx] = 0;
-        //        return { idx, i + mSmallWeightSets.size() };
-        //    }
-        //}
-
         throw RTE_LOC;
     }
 
     template<typename Size, int weight>
-    void LDPC<Size, weight>::View::decRowWeight(const Idx& idx)
+    void LDPC<Size, weight>::View::decRowWeight(size_type idx)
     {
-        //assert(idx.mSrcIdx == rowIdx(idx.mIdx).mSrcIdx);
-        auto& row = mRowData[idx.mSrcIdx];
+        auto& row = mRowData[idx];
         auto w = row.mWeight--;
-#ifdef LDPC_DEBUG
         assert(w);
-#endif
 
         auto prev = row.mPrevWeightNode;
         auto next = row.mNextWeightNode;
 
-#ifdef LDPC_DEBUG
-        assert(next == mNullRow || mRowData[next].mPrevWeightNode == idx.mSrcIdx);
-        assert(prev == mNullRow || mRowData[prev].mNextWeightNode == idx.mSrcIdx);
-#endif
+        assert(next == mNullRow || mRowData[next].mPrevWeightNode == idx);
+        assert(prev == mNullRow || mRowData[prev].mNextWeightNode == idx);
 
         TODO("first clause can always be performed.");
         if (prev != mNullRow)
@@ -356,26 +333,23 @@ namespace osuCrypto
         }
         else
         {
-#ifdef LDPC_DEBUG
-            assert(mWeightSets[w] == idx.mSrcIdx);
-#endif
+            assert(mWeightSets[w] == idx);
             mWeightSets[w] = next;
         }
 
         mRowData[next].mPrevWeightNode = prev;
         row.mPrevWeightNode = mNullRow;
 
-        TODO("can always be performed?????");
         if (mWeightSets[w - 1] != mNullRow)
         {
-           mRowData[mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
+            mRowData[mWeightSets[w - 1]].mPrevWeightNode = idx;
         }
         row.mNextWeightNode = mWeightSets[w - 1];
-        mWeightSets[w - 1] = idx.mSrcIdx;
+        mWeightSets[w - 1] = idx;
 
 #ifdef LDPC_STATS
         --mWeightSetSizes[w];
-        ++mWeightSetSizes[w-1];
+        ++mWeightSetSizes[w - 1];
 #endif
 
     }
@@ -386,24 +360,6 @@ namespace osuCrypto
         RowVector newRows(mH->rows());
         applyPerm(newRows);
         return newRows;
-        //mH->mRows = std::move(newRows);
-
-        //std::vector<u64> newCols(mH->mColData.size());
-        //std::vector<u64> colStartIdxs(mH->cols() + 1);
-        //for (u64 i = 0, c = 0; i < mH->cols(); ++i)
-        //{
-        //    auto oIdx = mColNOMap[i];
-        //    auto b = mH->mColStartIdxs[oIdx];
-        //    auto e = mH->mColStartIdxs[oIdx + 1];
-        //    colStartIdxs[i + 1] = colStartIdxs[i] + (e - b);
-
-        //    while (b < e)
-        //    {
-        //        newCols[c++] = mRowData[mH->mColData[b++]].mONMap;
-        //    }
-        //}
-        //mH->mColStartIdxs = std::move(colStartIdxs);
-        //mH->mColData = std::move(newCols);
     }
 
 
@@ -428,79 +384,6 @@ namespace osuCrypto
     }
 
     template<typename Size, int weight>
-    LDPC<Size, weight>::RowIter::RowIter(View& H, const Idx& i, Size p)
-        : mH(H)
-        , mRow(H.mH->mRows[i.mSrcIdx])
-        , mPos(p)
-    { }
-
-
-    template<typename Size, int weight>
-    typename LDPC<Size, weight>::Idx LDPC<Size, weight>::RowIter::operator*()
-    {
-        Idx idx;
-        idx.mSrcIdx = mRow[mPos];
-        idx.mViewIdx = mH.mColONMap[idx.mSrcIdx];
-        return idx;
-    }
-
-    template<typename Size, int weight>
-    void LDPC<Size, weight>::RowIter::operator++()
-    {
-        ++mPos;
-    }
-    template<typename Size, int weight>
-
-    LDPC<Size, weight>::ColIter::ColIter(View& H, const Idx& i, Size p)
-        : mH(H)
-        , mCol(H.mH->col(i.mSrcIdx))
-        , mPos(p)
-    { }
-
-    template<typename Size, int weight>
-    void LDPC<Size, weight>::ColIter::operator++()
-    {
-        ++mPos;
-    }
-
-    template<typename Size, int weight>
-    typename LDPC<Size, weight>::Idx LDPC<Size, weight>::ColIter::operator*()
-    {
-        Idx idx;
-        idx.mSrcIdx = mCol[mPos];
-        idx.mViewIdx = mH.mRowData[idx.mSrcIdx].mONMap;
-        return idx;
-    }
-
-    template<typename Size, int weight>
-    Size LDPC<Size, weight>::ColIter::srcIdx()
-    {
-        return mCol[mPos];
-    }
-
-    template<typename Size, int weight>
-    LDPC<Size, weight>::ColIter::operator bool()
-    {
-        return mPos < mCol.size();
-    }
-//}
-//
-//namespace std
-//{
-//    template<typename Size, int weight>
-//    struct hash<oc::LDPC<Size, weight>::Idx>
-//    {
-//        std::size_t operator()(oc::LDPC::Idx const& i) const noexcept
-//        {
-//            return i.mViewIdx;
-//        }
-//    };
-//}
-//
-//namespace osuCrypto
-//{
-
-    template<typename Size, int weight>
     void LDPC<Size, weight>::insert(Size numCols, MatrixView<Size> rows)
     {
         mNumCols = numCols;
@@ -508,7 +391,6 @@ namespace osuCrypto
             throw RTE_LOC;
 
         mRows = span<Row>((Row*)rows.data(), rows.rows());
-        assert((void*)(mRows.data() + mRows.size()) == (void*)(rows.data() + rows.size()));
 
         auto numRows = rows.rows();
         auto numRows8 = (numRows / 8) * 8;
@@ -524,15 +406,13 @@ namespace osuCrypto
         if (hadData)
             memset(mBackingColStartIdxs.data(), 0, mBackingColStartIdxs.size() * sizeof(Size));
 
-
-
         mColStartIdxs = span<Size>(mBackingColStartIdxs.data() + 1, mBackingColStartIdxs.size() - 1);
 
-        //for (auto& col : rows)
-        //    ++mColStartIdxs[col + 1];
         auto rowsPtr = rows.data();
         auto counts = mColStartIdxs.data() + 1;
 
+        // First we will count row mant rows are in any 
+        // given column.
         for (u64 ii8 = 0; ii8 < size8; ii8 += 8)
         {
             auto col0 = rowsPtr[ii8 + 0];
@@ -545,7 +425,6 @@ namespace osuCrypto
             auto col7 = rowsPtr[ii8 + 7];
 
             assert(rowsPtr + ii8 + 7 < rows.data() + rows.size());
-
             assert(col0 < numCols);
             assert(col1 < numCols);
             assert(col2 < numCols);
@@ -564,24 +443,26 @@ namespace osuCrypto
             ++counts[col6];
             ++counts[col7];
         }
-
         for (u64 i = size8; i < size; ++i)
         {
             auto col = rowsPtr[i];
-
             assert(rowsPtr + i < rows.data() + rows.size());
             assert(col < numCols);
-
             ++counts[col];
         }
 
+
+        // Then we convert these counts into where
+        // each column begins by iteratively summing 
+        // over the values.
         for (u64 i = 1; i < mColStartIdxs.size(); ++i)
             mColStartIdxs[i] += mColStartIdxs[i - 1];
 
+        // Now populate each column by iterting over the rows and
+        // adding the non-zero row indices to the column.
         auto ptr = rows.data();
         for (u64 i8 = 0; i8 < numRows8; i8 += 8)
         {
-            TODO("Use the array view...");
             auto ptr0 = ptr + weight * 0;
             auto ptr1 = ptr + weight * 1;
             auto ptr2 = ptr + weight * 2;
@@ -602,7 +483,16 @@ namespace osuCrypto
                 auto col5 = *ptr5++;
                 auto col6 = *ptr6++;
                 auto col7 = *ptr7++;
-                                
+
+                // Here we are incrementing the start
+                // index for each column. After all rows 
+                // have been inserted, it will hold that
+                //
+                //  mColStartIdxs[i] = old mColStartIdxs[i-1]
+                //
+                // There, afterwards these values are still 
+                // correct and we simply make mColStartIdxs
+                // start one position earlier.
                 auto p0 = mColStartIdxs[col0]++;
                 auto p1 = mColStartIdxs[col1]++;
                 auto p2 = mColStartIdxs[col2]++;
@@ -634,9 +524,11 @@ namespace osuCrypto
         }
         assert(ptr == rows.data() + rows.size());
 
-
+        // Here we update mColStartIdxs since 
+        // its now off by one after the loop.
         mColStartIdxs = span<Size>(mBackingColStartIdxs.data(), mBackingColStartIdxs.size() - 1);
     }
+
 
     template<typename Size, int weight>
     void LDPC<Size, weight>::blockTriangulate(
@@ -650,16 +542,23 @@ namespace osuCrypto
 
         size_type n = cols();
         size_type m = rows();
-        size_type k = 0;
+
+        // The current top row of the view.
         size_type i = 0;
-        size_type v = n;
-        //size_type weight = rowWeight();
+
+        // The current left column of the view.
+        size_type c = 0;
+
+
         static const size_type weightp1 = weight + 1;
+
         blocks.resize(0);
 
-
-        // temps
+        // This will store the input column indices which we
+        // we move to the left side of the view.
         std::array<size_type, weight> colSwapsSrc;
+
+        // same as colSwapsSrc but holds the indices of columns in the view.
         std::array<size_type, weight> colSwapsView;
         size_type numColSwaps{ 0 };
 
@@ -667,26 +566,23 @@ namespace osuCrypto
         // At each iterations we will move some of the rows 
         // and columns in the view to the top/left. These 
         // moved rows will then be excluded from the view.
-        // 
-        //View H(*this);
         mView.init(*this);
 
 #ifdef LDPC_VERBOSE
         std::unique_ptr<RowVector> HH;
-        if (verbose)
-        {
-            HH.reset(new RowVector(mRows.begin(), mRows.end()));
-        }
+        if (verbose) HH.reset(new RowVector(mRows.begin(), mRows.end()));
 #endif
+
 #ifdef LDPC_STATS
         std::array<double, weightp1> avgs;
         std::array<size_type, weightp1> max;
         u64 numSamples(0);
-        u64 www(0);
 #endif
 
-        while (GSL_LIKELY(i < m && v))
+        while (GSL_LIKELY(i != m))
         {
+            assert(i < m);
+            assert(c < n);
 
 #ifdef LDPC_STATS
             numSamples++;
@@ -703,53 +599,16 @@ namespace osuCrypto
                 // weight 0 then we will pick the row with 
                 // minimim hamming weight and move it to the
                 // top of the view.
-                //auto uu = mView.popMinWeightRow();
-                //auto u = uu.first;
-                //auto wi = uu.second;
                 Idx u;
-                size_type wi = 1;
+                size_type wi;
+                mView.popMinWeightRow(u, wi);
 
-                
-                //if (mView.mWeightSetSizes[1] < 100)
-                //{
-                //    ++www;
-                //    auto p = 1;
-                //    auto r = (u32(rand()) % 100) / 100.0;
-
-                //    if (r < p && mView.mWeightSets[2] != mView.mNullRow)
-                //        wi = 2;
-                //}
-
-                for (; wi < weightp1; ++wi)
-                {
-                    if (mView.mWeightSets[wi] != mView.mNullRow)
-                    {
-                        auto& weightSetHead = mView.mWeightSets[wi];
-                        auto& row = mView.mRowData[weightSetHead];
-                        u.mSrcIdx = weightSetHead;
-
-                        weightSetHead = row.mNextWeightNode;
-                        mView.mRowData[weightSetHead].mPrevWeightNode = mView.mNullRow;
-                        u.mViewIdx = mView.mRowData[u.mSrcIdx].mONMap;
-                        //row.mWeight = 0;
-                        //row.mNextWeightNode = mView.mNullRow;
-#ifdef LDPC_STATS
-                        --mView.mWeightSetSizes[wi];
-#endif
-
-                        break;
-                    }
-                }
-
+                // get the input row index of the i'th row in 
+                // the view.
+                Idx ii = mView.rowIdx(i);
 
                 // move the min weight row u to row i.
-                auto ii = mView.rowIdx(i);
-                //mView.swapRows(u, ii);
-                {
-                    std::swap(mView.mRowData[ii.mViewIdx].mNOMap, mView.mRowData[u.mViewIdx].mNOMap);
-                    std::swap(mView.mRowData[ii.mSrcIdx].mONMap,  mView.mRowData[u.mSrcIdx].mONMap);
-                    std::swap(ii.mSrcIdx, u.mSrcIdx);
-                }
+                mView.swapRows(u, ii);
 
 #ifdef LDPC_VERBOSE
                 if (verbose) {
@@ -761,37 +620,26 @@ namespace osuCrypto
                 // columns where this row has a non-zero value to the
                 // left side of the view. 
 
-                // c1 is the column defining the left side of the view
-                auto c1 = (n - v);
 
-                // rIter iterates the columns which have non-zero values for row ii.
-                //auto rIter = mView.rowIterator(ii);
-                //auto rIter = RowIter(mView, ii, 0);
-
+                // The non-zero columns in this row.
                 auto rowi = mRows[ii.mSrcIdx];
 
-                // this set will collect all of the columns in the view. 
-                //colSwaps.clear();
+                // we will collect all of the columns rowi which we
+                // need to move left. 
                 numColSwaps = 0;
                 for (size_type j = 0; j < weight; ++j)
                 {
-                    //auto c0 = colIdx[j];
-                    //auto c0 = *rIter;
-
                     Idx c0;
                     c0.mSrcIdx = rowi[j];
                     c0.mViewIdx = mView.mColONMap[c0.mSrcIdx];
 
-                    //++rIter;
-
                     // check if this column is inside the view.
-                    if (c0.mViewIdx >= c1)
+                    if (c0.mViewIdx >= c)
                     {
                         // add this column to the set of columns that we will move.
                         colSwapsSrc[numColSwaps] = c0.mSrcIdx;
                         colSwapsView[numColSwaps] = c0.mViewIdx;
                         ++numColSwaps;
-                        //colSwaps.push_back(c0);
 #ifdef LDPC_VERBOSE
                         if (verbose)
                             std::cout << "swapCol(" << c0.mViewIdx << ")" << std::endl;
@@ -799,57 +647,18 @@ namespace osuCrypto
 
                         // iterator over the rows for this column and decrement their row weight.
                         // we do this since we are about to move this column outside of the view.
-                        //auto cIter = mView.colIterator(c0);
-                        //auto cIter = ColIter(mView, c0, 0);
-                        //auto col = mView.mH->col(c0.mSrcIdx);
                         auto b = &mColStartIdxs[c0.mSrcIdx];
-                        span<size_type> col(mColData.data() + b[0], b[1] - b[0]);
+                        size_type* col(mColData.data() + b[0]);
+                        auto numCols = b[1] - b[0];
 
-
-                        auto numCols = col.size();
                         for (size_type k = 0; k < numCols; ++k)
                         {
                             // these a special case that this row is the u row which
                             // has already been decremented
                             if (col[k] != ii.mSrcIdx)
                             {
-                                //Idx idx;
-                                auto idx = col[k];
-                                //idx.mViewIdx = mView.mRowData[col[k]].mONMap;
-                                //mView.decRowWeight(idx);
-                                {
-                                    auto& row = mView.mRowData[idx];
-                                    auto w = row.mWeight--;
-
-                                    auto prev = row.mPrevWeightNode;
-                                    auto next = row.mNextWeightNode;
-
-                                    mView.mRowData[prev].mNextWeightNode = next;
-
-                                    //TODO("first clause can always be performed");
-                                    if (prev == mView.mNullRow)
-                                    {
-                                        //assert(mWeightSets[w] == &row);
-                                        mView.mWeightSets[w] = next;
-                                    }
-                                    //mView.mWeightSets[w] ^=
-                                    //    (prev == mView.mNullRow) * (next ^ mView.mWeightSets[w]);
-
-                                    mView.mRowData[next].mPrevWeightNode = prev;
-                                    row.mPrevWeightNode = mView.mNullRow;
-
-                                    //TODO("can always be performed????");
-                                    if (mView.mWeightSets[w - 1] != mView.mNullRow)
-                                    {
-                                        mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx;
-                                    }
-                                    //mView.mRowData[mView.mWeightSets[w - 1]].mPrevWeightNode = idx.mSrcIdx;
-
-                                    row.mNextWeightNode = mView.mWeightSets[w - 1];
-                                    mView.mWeightSets[w - 1] = idx;
-                                }
+                                mView.decRowWeight(col[k]);
                             }
-
                         }
                     }
                 }
@@ -865,8 +674,7 @@ namespace osuCrypto
                     auto srcBegin = colSwapsSrc.data();
                     auto srcBack = colSwapsSrc.data() + numColSwaps - 1;
 
-                    //auto cc = c1++;
-                    auto sIter = std::find(begin, end, c1);
+                    auto sIter = std::find(begin, end, c);
                     if (sIter != end)
                     {
                         auto j = sIter - begin;
@@ -876,27 +684,15 @@ namespace osuCrypto
                     else
                     {
                         Idx bb{ *back, *srcBack };
-                        auto cc = mView.colIdx(c1);
+                        auto cc = mView.colIdx(c);
 
                         std::swap(mView.mColNOMap[cc.mViewIdx], mView.mColNOMap[bb.mViewIdx]);
                         std::swap(mView.mColONMap[cc.mSrcIdx], mView.mColONMap[bb.mSrcIdx]);
-                        //mView.swapCol(cc, bb);
                     }
 
-                    ++c1;
+                    ++c;
                     --numColSwaps;
-                    //colSwaps.pop_back();
                 }
-
-#ifdef LDPC_VERBOSE
-                if (verbose)
-                {
-                    std::cout << "v " << (v - wi) << " = " << v << " - " << wi << std::endl;
-                    std::cout << "i " << (i + 1) << " = " << i << " + 1" << std::endl;
-                }
-#endif
-                // move the view right by wi.
-                v = v - wi;
 
                 // move the view down by 1
                 ++i;
@@ -906,11 +702,8 @@ namespace osuCrypto
                 // in the case that we have some rows with
                 // hamming weight 0, we will move all these
                 // rows to the top of the view and remove them.
-
-
                 auto rowPtr = mView.mWeightSets[0];
                 mView.mWeightSets[0] = mView.mNullRow;
-
 #ifdef LDPC_STATS
                 mView.mWeightSetSizes[0] = 0;
 #endif
@@ -923,25 +716,18 @@ namespace osuCrypto
                     rowPtr = row.mNextWeightNode;
                 }
 
-                size_type dk = 0;
-
-                // the top of the view where we will be moving
-                // the rows too.
-                size_type c1 = i;
-
+                size_type dk = rows.size();
                 while (rows.size())
                 {
-                    ++dk;
-
                     // the actual input row index which we will 
                     // be swapping with.
-                    auto c1SrcPtr = mView.mRowData.data() + mView.mRowData[c1].mNOMap;
+                    auto r1SrcPtr = mView.mRowData.data() + mView.mRowData[i].mNOMap;
 
 
                     // check that there isn't already a row
                     // that we want at the top.
-                    auto sIter = std::find(rows.begin(), rows.end(), c1SrcPtr);
-                    auto viewIdx = c1;
+                    auto sIter = std::find(rows.begin(), rows.end(), r1SrcPtr);
+                    auto viewIdx = i;
 
                     if (sIter == rows.end())
                     {
@@ -952,7 +738,7 @@ namespace osuCrypto
                         Size inIdx = *sIter - mView.mRowData.data();
                         viewIdx = mView.mRowData[inIdx].mONMap;
 
-                        Idx dest = mView.rowIdx(c1);
+                        Idx dest = mView.rowIdx(i);
                         Idx src = { viewIdx, inIdx };// mView.rowSrcIdx((**sIter));
 
                         mView.swapRows(dest, src);
@@ -960,7 +746,7 @@ namespace osuCrypto
 
 #ifdef LDPC_VERBOSE
                     if (verbose)
-                        std::cout << "rowSwap*(" << c1 << ", " << viewIdx << ")" << std::endl;
+                        std::cout << "rowSwap*(" << i << ", " << viewIdx << ")" << std::endl;
 #endif
 
                     auto& row = **sIter;
@@ -969,31 +755,26 @@ namespace osuCrypto
                     row.mPrevWeightNode = mView.mNullRow;
 
                     rows.erase(sIter);
-                    ++c1;
+                    ++i;
                 }
 
                 // recode that this the end of the block.
-                blocks.push_back({ Size(i + dk), Size(n - v), dk });
-                //dks.push_back(dk);
+                blocks.push_back({ Size(i), Size(c), dk });
 
 #ifdef LDPC_VERBOSE
                 if (verbose)
                 {
                     std::cout << "RC " << blocks.back()[0] << " " << blocks.back()[1] << std::endl;
-                    std::cout << "i " << (i + dk) << " = " << i << " + " << dk << std::endl;
-                    std::cout << "k " << (k + 1) << " = " << k << " + 1" << std::endl;
+                    std::cout << "i " << (i ) << " = " << i - dk << " + " << dk << std::endl;
                 }
 #endif
-
-                i += dk;
-                ++k;
             }
 
 #ifdef LDPC_VERBOSE
             if (verbose)
             {
                 auto bb = blocks;
-                bb.push_back({ i, Size(n - v), 0 });
+                bb.push_back({ i, Size(c), 0 });
                 RowVector W = mView.applyPerm();
 
 
@@ -1005,7 +786,7 @@ namespace osuCrypto
                     ids[i] = std::to_string(mView.mRowData[i].mNOMap) + " " + std::to_string(i);
                 }
 
-                std::cout << "\n" << diff<RowSpan,Size>(W, *HH, bb, cols(), &weights, &ids) << std::endl
+                std::cout << "\n" << diff<RowSpan, Size>(W, *HH, bb, cols(), &weights, &ids) << std::endl
                     << "=========================================\n"
                     << std::endl;
 
@@ -1013,9 +794,6 @@ namespace osuCrypto
             }
 #endif
         }
-
-        //R.push_back(m);
-        //C.push_back(n);
 
         auto numRows = mView.mRowData.size();
         rowPerm.resize(numRows);
@@ -1031,7 +809,6 @@ namespace osuCrypto
 #ifdef LDPC_STATS
         if (stats)
         {
-            std::cout << "www " << www << std::endl;
 
             for (u64 j = 0; j < avgs.size(); ++j)
             {
@@ -1046,8 +823,6 @@ namespace osuCrypto
                     j = blocks.size() - 10;
                 }
 
-
-                //std::string dk;
                 std::cout << "RC[" << j << "] " << (blocks[j][0] - prev[0]) << " " << (blocks[j][1] - prev[1]) << "  ~   " << blocks[j][2] << std::endl;
                 prev = blocks[j];
             }
@@ -1059,24 +834,6 @@ namespace osuCrypto
         }
 #endif
     }
-
-    template<typename Size, int weight>
-    void LDPC<Size, weight>::validate()
-    {
-        for (u64 i = 0; i < rows(); ++i)
-        {
-            for (u64 j = 0; j < rowWeight(); ++j)
-            {
-                auto cIdx = mRows[i][j];
-                auto c = col(cIdx);
-
-                if (c.size() != 0 && std::find(c.begin(), c.end(), i) == c.end())
-                    throw RTE_LOC;
-            }
-        }
-    }
-
-
 
     template class LDPC<u64, 2>;
     template class LDPC<u32, 2>;

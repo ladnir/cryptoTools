@@ -289,6 +289,10 @@ namespace osuCrypto
     {
         u64 binWidth = (mNumCols + mBinStarts.size() - 1) / mBinStarts.size();
 
+        // this translates runtime parameters into compile time
+        // Only weight in {2,3} is implemented. The size type
+        // is chosen to be as small as possible while still correctly 
+        // storing the indices.
         if (mRows.cols() == 2)
         {
             static const int weight = 2;
@@ -384,6 +388,7 @@ namespace osuCrypto
             auto size8 = (size / 8) * 8;
 
 
+            // copy the rows into a smaller submatrix.
             for (u64 i = 0; i < size8; i += 8)
             {
                 dst[i + 0] = static_cast<Size>(src[i + 0] - colBegin);
@@ -394,9 +399,7 @@ namespace osuCrypto
                 dst[i + 5] = static_cast<Size>(src[i + 5] - colBegin);
                 dst[i + 6] = static_cast<Size>(src[i + 6] - colBegin);
                 dst[i + 7] = static_cast<Size>(src[i + 7] - colBegin);
-
                 assert(dst + i + 7 < rows.data() + rows.size());
-
                 assert(dst[i + 0] < numCols);
                 assert(dst[i + 1] < numCols);
                 assert(dst[i + 2] < numCols);
@@ -406,26 +409,29 @@ namespace osuCrypto
                 assert(dst[i + 6] < numCols);
                 assert(dst[i + 7] < numCols);
             }
-
             for (u64 i = size8; i < size; ++i)
             {
                 dst[i] = src[i] - colBegin;
-
                 assert(dst + i < rows.data() + rows.size());
                 assert(dst[i] < numCols);
             }
 
+            // Insert this submatix into the ldpc.
             ldpc.insert(colEnd - colBegin, rows);
 
-
+            // Perform the block triangilization.
             ldpc.blockTriangulate(bb, rowPerm, colPerm, verbose, false, false);
 
+
+            // Copy out where any blocks end...
             for (auto b : bb)
             {
                 blocks.push_back({ b[0] + rowBegin, b[1] + colBegin, b[2] });
             }
 
 
+            // Apply the permutation to this submatrix
+            // and write it back.
             auto rowPtr = rows.data();
             auto rowPermPtr = rowPerm.data();
             auto dstPtr = mRows.data();
