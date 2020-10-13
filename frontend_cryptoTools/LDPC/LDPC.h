@@ -5,9 +5,9 @@
 #include <unordered_set>
 #include <cassert>
 
-//#define LDPC_STATS
-//#define LDPC_VERBOSE
-//#define LDPC_DEBUG
+#define LDPC_STATS
+#define LDPC_VERBOSE
+#define LDPC_DEBUG
 
 namespace osuCrypto
 {
@@ -219,16 +219,20 @@ namespace osuCrypto
             // The data that prepresents the state of each row.
             std::vector<RowData> mRowData;
 
-            // The index of a specifal dummy/empty RowData which
+            // The index of special dummy/empty RowData which
             // is at the end of mRowData. This is only here as a 
             // performance optimization.
-            size_type mNullRow;
+            std::array<size_type, weight + 1> mWeightSetSentinals;
+
+            gsl::span<RowData, weight + 1> mWeightSets;
 
             // A list of linked-lists each the i'th linked-list
             // contains all rows with weight i. Each list is specified 
             // by an index into mRowData. The next and prev nodes are
             // specified in the RowData struct.
-            std::array<size_type, weight + 1> mWeightSets;
+            //std::array<size_type, weight + 1> mWeightSetBegins;
+
+            //std::array<size_type, weight + 1> mWeightSetEnds;
 
             // The size of the mWeightSets linked-lists.
             std::array<size_type, weight + 1> mWeightSetSizes;
@@ -243,6 +247,71 @@ namespace osuCrypto
 
             // A pointer to the LDPC which this View is for.
             LDPC* mH;
+
+
+
+            inline size_type& weightSetFront(size_type i)
+            {
+                return mWeightSets[i].mNextWeightNode;
+            }
+
+            inline size_type& weightSetBack(size_type i)
+            {
+                return mWeightSets[i].mPrevWeightNode;
+            }
+
+            inline size_type& weightSetEnd(size_type i)
+            {
+                return mWeightSetSentinals[i];
+            }
+
+            inline bool weightSetHasRows(size_type i)
+            {
+                return weightSetEnd(i) != weightSetFront(i);
+            }
+
+            inline size_type& weightSetSize(size_type i)
+            {
+                return mWeightSetSizes[i];
+            }
+
+            inline void weightSetPopFront(size_type i)
+            {
+#ifdef LDPC_STATS
+                assert(mWeightSetSizes[i]);
+                --mWeightSetSizes[i];
+#endif
+                auto& front = mRowData[weightSetFront(i)];
+                auto nextIdx = front.mNextWeightNode;
+
+                mWeightSets[i].mNextWeightNode = nextIdx;
+
+                if (nextIdx == weightSetEnd(i))
+                    mWeightSets[i].mPrevWeightNode = weightSetEnd(i);
+            }
+
+            inline void weightSetPushBack(size_type i, size_type rowIdx)
+            {
+#ifdef LDPC_STATS
+                ++mWeightSetSizes[i];
+#endif
+
+                auto oldBackIdx = mWeightSets[i].mPrevWeightNode;
+                auto& row = mRowData[rowIdx];
+                mWeightSets[i].mPrevWeightNode = rowIdx;
+                row.mNextWeightNode = weightSetEnd(i);
+                mWeightSets[i].mNextWeightNode = rowIdx;
+                row.mPrevWeightNode = weightSetEnd(i);
+
+                //if (oldBackIdx == weightSetEnd(i))
+                //{
+                //}
+                //else
+                //{
+                //    mRowData[oldBackIdx].mNextWeightNode = rowIdx;
+                //    row.mPrevWeightNode = oldBackIdx;
+                //}
+            }
 
             // Initialize the data structures.
             void init(LDPC& b);
@@ -298,6 +367,12 @@ namespace osuCrypto
 
             // Decrements the weight of the specifed row by 1.
             void decRowWeight(size_type idx);
+
+
+            // Decrements the weight of the specifed row by 1.
+            void incRowWeight(size_type idx);
+
+            void shuffleWeights(PRNG& prng);
 
             // Returns the current matrix with the view/permutation 
             // applied to it.
