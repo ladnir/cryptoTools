@@ -110,6 +110,10 @@ endif(ENABLE_WOLFSSL)
 if(ENABLE_BOOST)
     set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
 
+    if(EXISTS BOOST_ROOT)
+      set(Boost_NO_SYSTEM_PATHS ON)
+    endif()
+
     set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
     set(Boost_USE_STATIC_RUNTIME     ON)
@@ -118,9 +122,10 @@ if(ENABLE_BOOST)
       find_package(Boost 1.69.0 COMPONENTS system thread)
     endmacro()
 
+    findBoost()
     # then look at system dirs
     if(NOT Boost_FOUND)
-      #set(Boost_NO_SYSTEM_PATHS  OFF)
+      set(Boost_NO_SYSTEM_PATHS  OFF)
       findBoost()
     endif()
 
