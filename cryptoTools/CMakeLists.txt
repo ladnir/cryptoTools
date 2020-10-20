@@ -110,7 +110,7 @@ endif(ENABLE_WOLFSSL)
 if(ENABLE_BOOST)
     set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
 
-    if(EXISTS BOOST_ROOT)
+    if(EXISTS ${BOOST_ROOT})
       set(Boost_NO_SYSTEM_PATHS ON)
     endif()
 
