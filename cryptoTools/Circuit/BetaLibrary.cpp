@@ -892,10 +892,11 @@ namespace osuCrypto
         // properate or generate out the most siginificant postion.
         // We can therefore compute:
         //
-        //  P[i] = P[i:0] = P[i:j] & P[j-1:0].
-        //  G[i] = G[i:0] = G[i:j] ^ G[j-1:0] & P[j:0]
+        //  P[i] = P[0:i] = P[j:i] & P[0:j-1].
+        //  G[i] = G[0:i] = G[j:i] or (G[0:j-1] & P[j:i])
+        //                = G[j:i] ^  (G[0:j-1] & P[j:i])
         //
-        // Note that this holds for all regions, not just [i:0]. We then compute a
+        // Note that this holds for all regions, not just [0:i]. We then compute a
         // binary tree of these bits. For the first level of the tree (leaves)
         // we compute:
         //
