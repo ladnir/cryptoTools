@@ -233,6 +233,9 @@
     <ClCompile Include="Crypto\blake2\c\blake2sp-ref.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Network\SocketAdapter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Network\gsl\span" />

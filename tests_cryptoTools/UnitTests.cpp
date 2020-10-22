@@ -37,7 +37,6 @@ namespace tests_cryptoTools
         th.add("BtNetwork_AnonymousMode_Test            ", BtNetwork_AnonymousMode_Test);
         th.add("BtNetwork_CancelChannel_Test            ", BtNetwork_CancelChannel_Test);
         th.add("BtNetwork_useAfterCancel_test           ", BtNetwork_useAfterCancel_test);
-        
         th.add("BtNetwork_fastCancel                    ", BtNetwork_fastCancel);
         th.add("BtNetwork_ServerMode_Test               ", BtNetwork_ServerMode_Test);
         th.add("BtNetwork_clientClose_Test              ", BtNetwork_clientClose_Test);
@@ -45,6 +44,7 @@ namespace tests_cryptoTools
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
         th.add("BtNetwork_queue_Test                    ", BtNetwork_queue_Test);
         th.add("BtNetwork_socketAdapter_test            ", BtNetwork_socketAdapter_test);
+        th.add("BtNetwork_BasicSocket_test              ", BtNetwork_BasicSocket_test);
         
         th.add("wolfSSL_echoServer_test                 ", wolfSSL_echoServer_test);
         th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);

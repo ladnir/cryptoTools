@@ -7,6 +7,9 @@
 #include "IoBuffer.h"
 #include <iostream>
 #include "util.h"
+#include <queue>
+#include <mutex>
+
 
 namespace osuCrypto
 {
@@ -158,134 +161,165 @@ namespace osuCrypto
     };
 
 
-    class FifoSocket : public SocketInterface {
+    class BasicAdapter
+    {
     public:
-        FifoSocket() = delete;
-        FifoSocket(const FifoSocket&) = delete;
-        FifoSocket(FifoSocket&&) = delete;
-
-#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
-        typedef boost::asio::posix::stream_descriptor stream_descriptor;
-#else // BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
-        typedef boost::asio::windows::stream_handle stream_descriptor;
-#endif // BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
+        BasicAdapter() = default;
+        BasicAdapter(const BasicAdapter&) = delete;
+        BasicAdapter(BasicAdapter&&) = delete;
 
 
-        stream_descriptor mHandle;
-
-        static void removeFifo(std::string name)
+        struct Operation
         {
-            std::remove(name.c_str());
-        }
-
-        static void createFifo(std::string name)
-        {
-#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
-            auto ret = mkfifo(name.c_str(), 0666);
-            if (ret)
+            enum Type
             {
-                switch (errno)
-                {
+                Recv,
+                Send,
+                Done
+            };
 
-                case EACCES:
-                    throw std::runtime_error("FifoSocket : One of the directories in pathname did not allow search(execute) permission.");
-                case EDQUOT:
-                    throw std::runtime_error("FifoSocket : The user's quota of disk blocks or inodes on the file system has been exhausted. ");
-                case EEXIST:
-                    throw std::runtime_error("FifoSocket : pathname already exists.This includes the case where pathname is a symbolic link, dangling or not.");
-                case ENAMETOOLONG:
-                    throw std::runtime_error("FifoSocket : Either the total length of pathname is greater than PATH_MAX, or an individual filename component has a length greater than NAME_MAX.In the GNU system, there is no imposed limit on overall filename length, but some file systems may place limits on the length of a component.");
-                case ENOENT:
-                    throw std::runtime_error("FifoSocket : A directory component in pathname does not exist or is a dangling symbolic link.");
-                case ENOSPC:
-                    throw std::runtime_error("FifoSocket : The directory or file system has no room for the new file.");
-                case ENOTDIR:
-                    throw std::runtime_error("FifoSocket : A component used as a directory in pathname is not, in fact, a directory.");
-                case EROFS:
-                    throw std::runtime_error("FifoSocket : pathname refers to a read - only file system.");
-                default:
-                    throw std::runtime_error("FifoSocket : mkfifo failed with errno:" + std::to_string(errno));
-                }
+            std::vector<span<u8>> mBuffers;
+            Type mType;
+
+            io_completion_handle mFn;
+
+            void finished()
+            {
+                auto size = 0ull;
+                for (auto& b : mBuffers)
+                    size += b.size();
+
+                mFn({}, size);
+                mFn = {};
             }
-#else
-            throw std::runtime_error("Fifo on windows is not implemented");
-#endif
+
+            void cancel()
+            {
+                error_code ec =
+                    boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+                mFn(ec, 0);
+                mFn = {};
+            }
+        };
+
+
+        std::condition_variable mCV;
+        std::mutex mMtx;
+
+        std::queue<Operation> mOps;
+
+
+        class Socket : public SocketInterface
+        {
+        public:
+            BasicAdapter* mSock;
+
+            Socket(BasicAdapter* sock)
+                :mSock(sock) {}
+
+            //////////////////////////////////   REQUIRED //////////////////////////////////
+
+            // REQURIED: must implement a distructor as it will be called via the SocketAdpater
+            ~Socket() {};
+
+
+            // REQUIRED -- buffers contains a list of buffers that are allocated
+            // by the caller. The callee should recv data into those buffers. The
+            // callee should take a move of the callback fn. When the IO is complete
+            // the callee should call the callback fn.
+            // @buffers [output]: is the vector of buffers that should be recved.
+            // @fn [input]:   A call back that should be called on completion of the IO.
+            void async_recv(
+                span<boost::asio::mutable_buffer> buffers,
+                io_completion_handle&& fn) override
+            {
+                Operation op;
+
+                for (auto buffer : buffers)
+                {
+                    auto b = span<u8>(boost::asio::buffer_cast<u8*>(buffer), boost::asio::buffer_size(buffer));
+                    op.mBuffers.push_back(b);
+                }
+                op.mType = Operation::Recv;
+                op.mFn = std::move(fn);
+
+                {
+                    std::unique_lock<std::mutex> lk(mSock->mMtx);
+                    mSock->mOps.emplace(std::move(op));
+                }
+                mSock->signal();
+            }
+
+            // REQUIRED -- buffers contains a list of buffers that are allocated
+            // by the caller. The callee should send the data in those buffers. The
+            // callee should take a move of the callback fn. When the IO is complete
+            // the callee should call the callback fn.
+            // @buffers [input]: is the vector of buffers that should be sent.
+            // @fn [input]:   A call back that should be called on completion of the IO
+            void async_send(
+                span<boost::asio::mutable_buffer> buffers,
+                io_completion_handle&& fn) override
+            {
+                Operation op;
+                for (auto buffer : buffers)
+                {
+                    auto b = span<u8>(boost::asio::buffer_cast<u8*>(buffer), boost::asio::buffer_size(buffer));
+                    op.mBuffers.push_back(b);
+                }
+                op.mType = Operation::Send;
+                op.mFn = std::move(fn);
+
+                {
+                    std::unique_lock<std::mutex> lk(mSock->mMtx);
+                    mSock->mOps.emplace(std::move(op));
+                }
+                mSock->signal();
+            }
+
+            void close() override {
+                Operation op;
+                op.mType = Operation::Done;
+
+                {
+                    std::unique_lock<std::mutex> lk(mSock->mMtx);
+                    mSock->mOps.emplace(std::move(op));
+                }
+                mSock->signal();
+            };
+
+
+
+            void cancel() override {
+                std::cout << "Please override SocketInterface::cancel() if you" <<
+                    " want to properly support cancel operations. Calling std::terminate() " << LOCATION << std::endl;
+                std::terminate();
+            };
+        };
+
+        Socket* getSocket()
+        {
+            return new Socket(this);
+        }
+         
+        void signal()
+        {
+            mCV.notify_all();
         }
 
-
-        FifoSocket(boost::asio::io_context& ios, std::string name, SessionMode mode)
-            :mHandle(ios)
+        Operation getOp()
         {
-#ifdef BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR
-            auto fd = open(name.c_str(), O_RDWR);
+            std::unique_lock<std::mutex> lk(mMtx);
 
-            if (fd == -1)
-                throw std::runtime_error("failed to open file: " + name);
+            if (mOps.size() == 0)
+                mCV.wait(lk, [this]() {return mOps.size() > 0; });
 
-            mHandle.assign(fd);
-#else
-            throw std::runtime_error("Fifo on windows is not implemented");
-            //auto iter = std::find(name.begin(), name.end(), '\\');
-            //if (iter != name.end())
-            //    throw std::runtime_error("on windows name can not caintain backslash.");
-            //name = "\\\\.\\pipe\\" + name;
-
-            //stream_descriptor::native_handle_type fd;
-            //if (mode == SessionMode::Server)
-            //{
-            //    fd = CreateNamedPipe(
-            //        name.c_str(), 
-            //        PIPE_ACCESS_DUPLEX, 
-            //        PIPE_TYPE_BYTE | PIPE_NOWAIT, 
-            //        1, 
-            //        1 << 20, 
-            //        1 << 20, 
-            //        1000, 
-            //        nullptr);
-
-            //    auto success = ConnectNamedPipe(fd, nullptr);
-
-            //    if (success == false)
-            //        throw std::runtime_error("failed to connect to named pipe.");
-            //}
-            //else
-            //{
-            //    auto success = CallNamedPipe(name.c_str(), inBuffSize, outBuffSize, )
-            //}
-#endif
-        }
-
-
-        // This party has requested some data. Write the data
-        // if we currently have it. Otherwise we will store the
-        // request and fulfill is when the data arrives.
-        void async_recv(
-            span<boost::asio::mutable_buffer> buffers,
-            io_completion_handle&& fn) override
-        {
-            boost::asio::async_read(
-                mHandle,
-                buffers,
-                std::forward<io_completion_handle>(fn));
-        }
-
-        // This party has requested us to send some data.
-        // We will write this data to the buffer and then
-        // check to see if the other party has an outstanding
-        // recv request. If so we will try and fulfill it.
-        // Finally we call our own callback saying that the
-        // data has been sent.
-        void async_send(
-            span<boost::asio::mutable_buffer> buffers,
-            io_completion_handle&& fn) override
-        {
-            boost::asio::async_write(
-                mHandle,
-                buffers,
-                std::forward<io_completion_handle>(fn));
+            auto op = std::move(mOps.front());
+            mOps.pop();
+            return std::move(op);
         }
 
     };
+
 
 
     class BoostSocketInterface : public SocketInterface

@@ -24,13 +24,13 @@ void networkTutorial()
     #####################################################*/
 
 
-	/*  --------------- Introduction --------------------\
-	|  													 |
-	|  The general framework is to have pairs of parties |
-	|    establish a "session," which in turn can have   |
-	|           several channels (sockets). 			 |
-	| 													 |
-	\ --------------------------------------------------*/
+    /*  --------------- Introduction --------------------\
+    |  													 |
+    |  The general framework is to have pairs of parties |
+    |    establish a "session," which in turn can have   |
+    |           several channels (sockets). 			 |
+    | 													 |
+    \ --------------------------------------------------*/
 
 
     // create network I/O service with 4 background threads.
@@ -50,12 +50,12 @@ void networkTutorial()
     std::string serversIpAddress = ip + ':' + std::to_string(port);
 
     // Optional: Session names can be used to help the network 
-	// identify which sessions should be paired up. This is used
+    // identify which sessions should be paired up. This is used
     // when there are several "services" offered on a single port.
     // SessionHint is used to identify the "service" to connect with.
     std::string sessionHint = "party0_party1";
 
-	// Create a pair of sessions that connect to eachother. Note that
+    // Create a pair of sessions that connect to eachother. Note that
     // the sessionHint parameter is options.
     Session server(ios, serversIpAddress, SessionMode::Server, sessionHint);
     Session client(ios, serversIpAddress, SessionMode::Client, sessionHint);
@@ -65,18 +65,18 @@ void networkTutorial()
     Channel chl1 = server.addChannel();
 
     // Two sessions can have many channels, each an independent socket.
-	{
-		Channel chl0b = client.addChannel();
-		Channel chl1b = server.addChannel();
-	}
-	
-	// Above, the channels are connected in the order that they are declared. Alternatively
-	// explicit names can be provided. This channel pair are connected regardless of order.
-	{
-		std::string channelName = "channelName";
-		Channel namedChl0 = client.addChannel(channelName);
-		Channel namedChl1 = server.addChannel(channelName);
-	}
+    {
+        Channel chl0b = client.addChannel();
+        Channel chl1b = server.addChannel();
+    }
+
+    // Above, the channels are connected in the order that they are declared. Alternatively
+    // explicit names can be provided. This channel pair are connected regardless of order.
+    {
+        std::string channelName = "channelName";
+        Channel namedChl0 = client.addChannel(channelName);
+        Channel namedChl1 = server.addChannel(channelName);
+    }
 
     // We now have a pair of channels, but it is possible that they have yet
     // to actually connect to each other in the background. To test that the
@@ -84,23 +84,23 @@ void networkTutorial()
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
 
 
-	// To block until for 100 milliseconds for the connection to actually open.
-	std::chrono::milliseconds timeout(100);
-	bool open = chl0.waitForConnection(timeout);
+    // To block until for 100 milliseconds for the connection to actually open.
+    std::chrono::milliseconds timeout(100);
+    bool open = chl0.waitForConnection(timeout);
 
     // We can also set a callback for when connection (or error)
     // happens. If error, ec will hold the reason.
     chl0.onConnect([](const error_code& ec) {
         if (ec)
             std::cout << "chl0 failed to connect: " << ec.message() << std::endl;
-    });
+        });
 
-	if (open == false)
-	{
-	    // Wait until the channel is open. This will throw 
+    if (open == false)
+    {
+        // Wait until the channel is open. This will throw 
         // on an connection error.
-		chl0.waitForConnection();
-	}
+        chl0.waitForConnection();
+    }
 
     // This call will now always return true.
     std::cout << "Channel connected = " << chl0.isConnected() << std::endl;
@@ -256,10 +256,10 @@ void networkTutorial()
         u8* data = new u8[size]();
 
         chl0.asyncSend(span<u8>(data, size), [data]()
-        {
-            // we are done with data now, delete it.
-            delete[] data;
-        });
+            {
+                // we are done with data now, delete it.
+                delete[] data;
+            });
 
 
         std::vector<u8> dest;
@@ -279,50 +279,50 @@ void networkTutorial()
 
 
 
-	/*#####################################################
-	##                   Cancelation                     ##
-	#####################################################*/
+    /*#####################################################
+    ##                   Cancelation                     ##
+    #####################################################*/
 
-	// If a connection is never established when the channel
-	// is destructed it will block. This can also happen if the
-	// client tries to connect to a server that does not exists.
-	// For example,
-	{
-		Session session(ios, "127.0.0.1:1515", SessionMode::Server);
-		Channel emptyChannel = session.addChannel();
+    // If a connection is never established when the channel
+    // is destructed it will block. This can also happen if the
+    // client tries to connect to a server that does not exists.
+    // For example,
+    {
+        Session session(ios, "127.0.0.1:1515", SessionMode::Server);
+        Channel emptyChannel = session.addChannel();
 
-		// no corresponding client channel
+        // no corresponding client channel
 
-		// If we then call
-		//     emptyChannel.recv(...);
-		//     emptyChannel.waitForConnection();
-		// or a similar call, the program will block forever.
+        // If we then call
+        //     emptyChannel.recv(...);
+        //     emptyChannel.waitForConnection();
+        // or a similar call, the program will block forever.
 
-		// if we fail to get a connection, cancel() should be called to prevent the channel 
-		// from blocking when it is destructed.
-		if (emptyChannel.isConnected() == false) 
-			emptyChannel.cancel();
-	}
+        // if we fail to get a connection, cancel() should be called to prevent the channel 
+        // from blocking when it is destructed.
+        if (emptyChannel.isConnected() == false)
+            emptyChannel.cancel();
+    }
 
-	// We can also cancel pending operations. However, this will also
-	// close the channel making it unusable. 
-	{
-		Channel tempChl0 = Session(ios, "127.0.0.1:1515", SessionMode::Server).addChannel();
-		Channel tempChl1 = Session(ios, "127.0.0.1:1515", SessionMode::Client).addChannel();
+    // We can also cancel pending operations. However, this will also
+    // close the channel making it unusable. 
+    {
+        Channel tempChl0 = Session(ios, "127.0.0.1:1515", SessionMode::Server).addChannel();
+        Channel tempChl1 = Session(ios, "127.0.0.1:1515", SessionMode::Client).addChannel();
 
-		// schedule a recv operation what will never complete.
-		std::vector<u8> buff;
-		auto asyncOp = tempChl0.asyncRecv(buff);
+        // schedule a recv operation what will never complete.
+        std::vector<u8> buff;
+        auto asyncOp = tempChl0.asyncRecv(buff);
 
-		// Would block forever.
-		//    asyncOp.get();
-		
-		// We can cancel this operation by calling
-		tempChl0.cancel();
+        // Would block forever.
+        //    asyncOp.get();
 
-		// This will now throw...
-		//    asyncOp.get();
-	}
+        // We can cancel this operation by calling
+        tempChl0.cancel();
+
+        // This will now throw...
+        //    asyncOp.get();
+    }
 
 
     /*#####################################################
@@ -441,52 +441,52 @@ void networkTutorial()
     }
 #endif // ENABLE_WOLFSSL
 
-	/*#####################################################
-	##              Using your own socket                ##
-	#####################################################*/
+    /*#####################################################
+    ##              Using your own socket                ##
+    #####################################################*/
 
-	// It is also possible to use your own socket implementation
-	// with Channel. There are two methods for doing this. First,
-	// the osuCrypto::SocketAdapter<T> class can be used with your
-	// socket and then provided to a Channel with an osuCrypto::IOService
-	//
-	// SocketAdapter<T> requires that T implements
-	//
-	//    void send(const char* data, u64 size);
-	//    void recv(      char* data, u64 size);
-	//
-	// Or a signature that is convertable from those parameter.
+    // It is also possible to use your own socket implementation
+    // with Channel. There are three methods for doing this. First,
+    // the osuCrypto::SocketAdapter<T> class can be used with your
+    // socket and then provided to a Channel with an osuCrypto::IOService
+    //
+    // SocketAdapter<T> requires that T implements
+    //
+    //    void send(const char* data, u64 size);
+    //    void recv(      char* data, u64 size);
+    //
+    // Or a signature that is convertable from those parameter.
 
-	{
-		// Lets say you have a socket type that implements send(...),
-		// recv(...) and that is called YourSocketType
-		typedef Channel YourSocketType;
+    {
+        // Lets say you have a socket type that implements send(...),
+        // recv(...) and that is called YourSocketType
+        typedef Channel YourSocketType;
 
-		// Assuming your socket meets these rquirements, then a Channel
-		// can be constructed as follows. These Channels will function
-		// equivolently to the original ones.
-		//
-		// WARNING: The lifetime of the SocketAdapter<T> is managed by
-		//	        the Channel.
-		Channel aChl0(ios, new SocketAdapter<YourSocketType>(chl0));
-		Channel aChl1(ios, new SocketAdapter<YourSocketType>(chl1));
+        // Assuming your socket meets these rquirements, then a Channel
+        // can be constructed as follows. These Channels will function
+        // equivolently to the original ones.
+        //
+        // WARNING: The lifetime of the SocketAdapter<T> is managed by
+        //	        the Channel.
+        Channel aChl0(ios, new SocketAdapter<YourSocketType>(chl0));
+        Channel aChl1(ios, new SocketAdapter<YourSocketType>(chl1));
 
-		// We can now use the new channels
-		std::array<int, 4> data{ 0,1,2,3 };
-		aChl0.send(data);
-		aChl1.recv(data);
-	}
+        // We can now use the new channels
+        std::array<int, 4> data{ 0,1,2,3 };
+        aChl0.send(data);
+        aChl1.recv(data);
+    }
 
-	// If your Socket type does not have these methods a custom adapter
-	// will be required. The template SocketAdapter<T> implements the
-	// interface SocketInterface in the <cryptoTools/Network/SocketAdapter.h>
-	// file. You will also have to define a class that inherits the
-	// SocketInterface class and implements:
-	//
+    // If your Socket type does not have these methods a custom adapter
+    // will be required. The template SocketAdapter<T> implements the
+    // interface SocketInterface in the <cryptoTools/Network/SocketAdapter.h>
+    // file. You will also have to define a class that inherits the
+    // SocketInterface class and implements:
+    //
     //    void async_recv(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override;
     //    void async_send(span<boost::asio::mutable_buffer> buffers, io_completion_handle&& fn) override;
-	//
-	// An example of this is LocalSocket which is in the header of this cpp file.
+    //
+    // An example of this is LocalSocket which is in the header of this cpp file.
     // This socket type communicates over shared memory. And therefore only
     // works when communicating within a single program.
     {
@@ -499,6 +499,122 @@ void networkTutorial()
         std::array<int, 4> data{ 0,1,2,3 };
         aChl0.send(data);
         aChl1.recv(data);
+    }
+
+    // The third is to use the BasicAdapter class.
+    // This will require creating a seperate thread
+    // for each party where the actual protocol is being
+    // perform.
+    //
+    // In the main thread, you will get send and receive 
+    // requests which is your resposibility to handle.
+    {
+        typedef Channel YourSocketType;
+
+        std::thread party0 = std::thread([&]() {
+
+            // somehow create your own socket like object.
+            YourSocketType yourSocket = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
+
+            // Create a BasicAdapter. 
+            BasicAdapter adapter;
+
+            // create a seperate thread to run your protocol...
+            std::thread protocol = std::thread([&]() {
+
+                // Pass in the Socket from the adapter.
+                Channel chl(ios, adapter.getSocket());
+
+                std::vector<u8> data(1024);
+                chl.asyncSend(data);
+                chl.recv(data);
+                });
+
+
+            // perform the communication in the main thread.
+            while (true)
+            {
+                // get the next send/receive operation.
+                auto op = adapter.getOp();
+
+                if (op.mType == BasicAdapter::Operation::Recv)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.recv(buffer);
+                    }
+                    op.finished();
+                }
+                if (op.mType == BasicAdapter::Operation::Send)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.send(buffer);
+                    }
+                    op.finished();
+                }
+
+                if (op.mType == BasicAdapter::Operation::Done)
+                {
+                    protocol.join();
+                    return;
+                }
+            }
+
+
+            });
+
+
+        // create a seperate thread to run your protocol...
+        std::thread party1 = std::thread([&]() {
+
+            YourSocketType yourSocket = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
+            BasicAdapter adapter;
+
+
+            std::thread protocol = std::thread([&]() {
+
+                std::vector<u8> data(1024);
+                Channel chl(ios, adapter.getSocket());
+                chl.recv(data);
+                chl.asyncSend(data);
+                });
+
+
+            // perform the communication in the main thread.
+            while (true)
+            {
+                auto op = adapter.getOp();
+
+                if (op.mType == BasicAdapter::Operation::Recv)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.recv(buffer);
+                    }
+
+                    op.finished();
+                }
+                if (op.mType == BasicAdapter::Operation::Send)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.send(buffer);
+                    }
+                    op.finished();
+                }
+
+                if (op.mType == BasicAdapter::Operation::Done)
+                {
+                    protocol.join();
+                    return;
+                }
+            }
+
+            });
+
+        party0.join();
+        party1.join();
     }
 
 

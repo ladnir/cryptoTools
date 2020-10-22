@@ -43,7 +43,8 @@ namespace tests_cryptoTools
     void BtNetwork_useAfterCancel_test(const osuCrypto::CLP& cmd);
     void BtNetwork_fastCancel(const osuCrypto::CLP& cmd);
 
-    void BtNetwork_socketAdapter_test(const osuCrypto::CLP&cmd);
+    void BtNetwork_socketAdapter_test(const osuCrypto::CLP& cmd);
+    void BtNetwork_BasicSocket_test(const osuCrypto::CLP&cmd);
 
     void SBO_ptr_test();
     void BtNetwork_queue_Test(const osuCrypto::CLP& cmd);
