@@ -114,9 +114,7 @@ if(ENABLE_BOOST)
       set(Boost_NO_SYSTEM_PATHS ON)
     endif()
 
-    set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
-    set(Boost_USE_STATIC_RUNTIME     ON)
 
     macro(findBoost)
       find_package(Boost 1.69.0 COMPONENTS system thread)
