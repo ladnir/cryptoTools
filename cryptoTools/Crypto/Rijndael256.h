@@ -36,7 +36,28 @@ namespace osuCrypto {
             // Set the key to be used for encryption.
             void setKey(const Block& userKey);
 
-            Block encBlock(Block plaintext) const;
+            void encBlock(const Block& plaintext, Block& ciphertext) const
+            {
+                encBlocksFixed<1>(&plaintext, &ciphertext);
+            }
+
+            Block encBlock(const Block& plaintext) const
+            {
+                Block ciphertext;
+                encBlock(plaintext, ciphertext);
+                return ciphertext;
+            }
+
+            // Instantiated only for {1, 2, 3, 4} blocks.
+            template<size_t blocks>
+            void encBlocksFixed(const Block* plaintext, Block* ciphertext) const;
+            template<size_t blocks>
+            void encBlocksFixed(const Block (&plaintext)[blocks], Block (&ciphertext)[blocks]) const
+            {
+                encBlocksFixed(*plaintext[0], &ciphertext[0]);
+            }
+
+            void encBlocks(const Block* plaintexts, size_t blocks, Block* ciphertext) const;
 
             static Block roundEnc(Block state, const Block& roundKey);
             static Block finalEnc(Block state, const Block& roundKey);
@@ -70,7 +91,28 @@ namespace osuCrypto {
 
             void setKey(const Rijndael256Enc<type>& enc);
 
-            Block decBlock(const Block ciphertext) const;
+            void decBlock(const Block& ciphertext, Block& plaintext) const
+            {
+                decBlocksFixed<1>(&ciphertext, &plaintext);
+            }
+
+            Block decBlock(const Block& ciphertext) const
+            {
+                Block plaintext;
+                decBlock(ciphertext, plaintext);
+                return plaintext;
+            }
+
+            // Instantiated only for {1, 2, 3, 4} blocks.
+            template<size_t blocks>
+            void decBlocksFixed(const Block* ciphertext, Block* plaintext) const;
+            template<size_t blocks>
+            void decBlocksFixed(const Block (&ciphertext)[blocks], Block (&plaintext)[blocks]) const
+            {
+                decBlocksFixed(*ciphertext[0], &plaintext[0]);
+            }
+
+            void decBlocks(const Block* ciphertexts, size_t blocks, Block* plaintext) const;
 
             static Block roundDec(Block state, const Block& roundKey);
             static Block finalDec(Block state, const Block& roundKey);

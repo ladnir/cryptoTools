@@ -110,80 +110,99 @@ namespace osuCrypto {
             return {b0, b1};
         }
 
-        template<>
-        auto Rijndael256Enc<NI>::encBlock(Block block) const -> Block {
-            //__m128i b0 = block[0];
-            //__m128i b1 = block[1];
-
-            //b0 = _mm_xor_si128(b0, mRoundKey[0][0]);
-            //b1 = _mm_xor_si128(b1, mRoundKey[0][1]);
-            //Block b = block;
-
-            block[0] = _mm_xor_si128(block[0], mRoundKey[0][0]);
-            block[1] = _mm_xor_si128(block[1], mRoundKey[0][1]);
-
-            for (int i = 1; i < rounds; ++i) {
-                block = roundEnc(block, mRoundKey[i]);
-
-                //rotateRows256Undo128<true>(b0, b1);
-
-                //// Use the AES round function to implement the Rijndael256 round function.
-                //if (i < rounds)
-                //{
-                //    b0 = _mm_aesenc_si128(b0, mRoundKey[i][0]);
-                //    b1 = _mm_aesenc_si128(b1, mRoundKey[i + 1][1]);
-                //}
-                //else
-                //{
-                //    b0 = _mm_aesenclast_si128(b0, mRoundKey[rounds][0]);
-                //    b1 = _mm_aesenclast_si128(b1, mRoundKey[rounds][1]);
-                //}
+        template<> template<size_t numBlocks>
+        void Rijndael256Enc<NI>::encBlocksFixed(const Block* plaintext, Block* ciphertext) const
+        {
+            Block blocks[numBlocks];
+            for (size_t j = 0; j < numBlocks; ++j)
+            {
+                blocks[j][0] = _mm_xor_si128(plaintext[j][0], mRoundKey[0][0]);
+                blocks[j][1] = _mm_xor_si128(plaintext[j][1], mRoundKey[0][1]);
             }
 
-            block = finalEnc(block, mRoundKey[rounds]);
+            // Each iteration depends on the previous, so unrolling the outer loop isn't useful,
+            // especially because there are a decent number of operations in each iteration.
+            // TODO: Benchmark
+            #pragma GCC unroll 1
+            for (int i = 1; i < rounds; ++i)
+                for (size_t j = 0; j < numBlocks; ++j)
+                    blocks[j] = roundEnc(blocks[j], mRoundKey[i]);
 
-            //block[0] = b0;
-            //block[1] = b1;
-
-            return block;
+            for (size_t j = 0; j < numBlocks; ++j)
+                ciphertext[j] = finalEnc(blocks[j], mRoundKey[rounds]);
         }
 
         template<>
-        auto Rijndael256Dec<NI>::decBlock(Block block) const -> Block {
-            //__m128i b0 = block[0];
-            //__m128i b1 = block[1];
+        void Rijndael256Enc<NI>::encBlocks(
+            const Block* plaintexts, size_t blocks, Block* ciphertext) const
+        {
+            constexpr size_t step = 4;
+            size_t misalignment = blocks % step;
+            size_t alignedLength = blocks - misalignment;
 
-            //b0 = _mm_xor_si128(b0, mRoundKey[rounds]0]);
-            //b1 = _mm_xor_si128(b1, mRoundKey[rounds]1]);
-            //Block b = block;
+            for (size_t i = 0; i < alignedLength; i += step)
+                encBlocksFixed<step>(plaintexts + i, ciphertext + i);
 
-            block[0] = _mm_xor_si128(block[0], mRoundKey[rounds][0]);
-            block[1] = _mm_xor_si128(block[1], mRoundKey[rounds][1]);
+            switch (misalignment) {
+            case 0:
+                break;
+            case 1:
+                encBlocksFixed<1>(plaintexts + alignedLength, ciphertext + alignedLength);
+                break;
+            case 2:
+                encBlocksFixed<2>(plaintexts + alignedLength, ciphertext + alignedLength);
+                break;
+            case 3:
+                encBlocksFixed<3>(plaintexts + alignedLength, ciphertext + alignedLength);
+                break;
+            }
+        }
 
-            for (int i = rounds - 1; i > 0; --i) {
-                block = roundDec(block, mRoundKey[i]);
-
-                //rotateRows256Undo128<false>(b0, b1);
-
-                //// Use the AES round function to implement the Rijndael256 round function.
-                //if (i > 0)
-                //{
-                //    b0 = _mm_aesdec_si128(b0, mRoundKey[i][0]);
-                //    b1 = _mm_aesdec_si128(b1, mRoundKey[i + 1][1]);
-                //}
-                //else
-                //{
-                //    b0 = _mm_aesdeclast_si128(b0, mRoundKey[rounds][0]);
-                //    b1 = _mm_aesdeclast_si128(b1, mRoundKey[rounds][1]);
-                //}
+        template<> template<size_t numBlocks>
+        void Rijndael256Dec<NI>::decBlocksFixed(const Block* ciphertext, Block* plaintext) const
+        {
+            Block blocks[numBlocks];
+            for (size_t j = 0; j < numBlocks; ++j)
+            {
+                blocks[j][0] = _mm_xor_si128(ciphertext[j][0], mRoundKey[rounds][0]);
+                blocks[j][1] = _mm_xor_si128(ciphertext[j][1], mRoundKey[rounds][1]);
             }
 
-            block = finalDec(block, mRoundKey[0]);
+            // Each iteration depends on the previous, so unrolling the outer loop isn't useful,
+            // especially because there are a decent number of operations in each iteration.
+            #pragma GCC unroll 1
+            for (int i = rounds - 1; i > 0; --i)
+                for (size_t j = 0; j < numBlocks; ++j)
+                    blocks[j] = roundDec(blocks[j], mRoundKey[i]);
 
-            //block[0] = b0;
-            //block[1] = b1;
+            for (size_t j = 0; j < numBlocks; ++j)
+                plaintext[j] = finalDec(blocks[j], mRoundKey[0]);
+        }
 
-            return block;
+        template<>
+        void Rijndael256Dec<NI>::decBlocks(
+            const Block* ciphertexts, size_t blocks, Block* plaintext) const
+        {
+            constexpr size_t step = 4;
+            size_t misalignment = blocks % step;
+            size_t alignedLength = blocks - misalignment;
+
+            for (size_t i = 0; i < alignedLength; i += step)
+                decBlocksFixed<step>(ciphertexts + i, plaintext + i);
+
+            switch (misalignment) {
+            case 0:
+                break;
+            case 1:
+                decBlocksFixed<1>(ciphertexts + alignedLength, plaintext + alignedLength);
+                break;
+            case 2:
+                decBlocksFixed<2>(ciphertexts + alignedLength, plaintext + alignedLength);
+                break;
+            case 3:
+                decBlocksFixed<3>(ciphertexts + alignedLength, plaintext + alignedLength);
+                break;
+            }
         }
 
         static inline void expandRound(
@@ -259,4 +278,13 @@ namespace osuCrypto {
     template class details::Rijndael256Dec<details::NI>;
 #endif
 // TODO: if defined(OC_ENABLE_PORTABLE_AES)
+
+    template void Rijndael256Enc::encBlocksFixed<1>(const Block*, Block*) const;
+    template void Rijndael256Enc::encBlocksFixed<2>(const Block*, Block*) const;
+    template void Rijndael256Enc::encBlocksFixed<3>(const Block*, Block*) const;
+    template void Rijndael256Enc::encBlocksFixed<4>(const Block*, Block*) const;
+    template void Rijndael256Dec::decBlocksFixed<1>(const Block*, Block*) const;
+    template void Rijndael256Dec::decBlocksFixed<2>(const Block*, Block*) const;
+    template void Rijndael256Dec::decBlocksFixed<3>(const Block*, Block*) const;
+    template void Rijndael256Dec::decBlocksFixed<4>(const Block*, Block*) const;
 }
