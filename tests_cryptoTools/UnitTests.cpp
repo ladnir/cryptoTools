@@ -2,6 +2,7 @@
 #include <functional>
 
 #include "tests_cryptoTools/AES_Tests.h"
+#include "tests_cryptoTools/Rijndael256_Tests.h"
 #include "tests_cryptoTools/BtChannel_Tests.h"
 #include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/REcc_Tests.h"
@@ -53,6 +54,7 @@ namespace tests_cryptoTools
 
         th.add("block_operation_test                    ", block_operation_test);
         th.add("AES                                     ", AES_EncDec_Test);
+        th.add("Rijndael256                             ", Rijndael256_EncDec_Test);
 
         th.add("BitVector_Indexing_Test                 ", BitVector_Indexing_Test_Impl);
         th.add("BitVector_Parity                        ", BitVector_Parity_Test_Impl);
