@@ -6,7 +6,7 @@ namespace osuCrypto {
 
     namespace details
     {
-        enum Rijndael256Types
+        enum class Rijndael256Types
         {
             NI,
             Portable

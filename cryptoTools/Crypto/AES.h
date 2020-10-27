@@ -6,7 +6,7 @@ namespace osuCrypto {
 
     namespace details
     {
-        enum AESTypes
+        enum class AESTypes
         {
             NI,
             Portable
@@ -110,11 +110,11 @@ namespace osuCrypto {
     }
 
 #ifdef OC_ENABLE_AESNI
-    using AES = details::AES<details::NI>;
-    using AESDec = details::AESDec<details::NI>;
+    using AES = details::AES<details::AESTypes::NI>;
+    using AESDec = details::AESDec<details::AESTypes::NI>;
 #else
-    using AES = details::AES<details::Portable>;
-    using AESDec = details::AESDec<details::Portable>;
+    using AES = details::AES<details::AESTypes::Portable>;
+    using AESDec = details::AESDec<details::AESTypes::Portable>;
 #endif
 
 

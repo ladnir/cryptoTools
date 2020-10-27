@@ -14,7 +14,6 @@ namespace osuCrypto {
 
     namespace details
     {
-
 #ifdef OC_ENABLE_AESNI
         block keyGenHelper(block key, block keyRcon)
         {
@@ -27,19 +26,19 @@ namespace osuCrypto {
 
 
         template<>
-        block AES<NI>::finalEnc(block state, const block& roundKey)
+        block AES<AESTypes::NI>::finalEnc(block state, const block& roundKey)
         {
             return _mm_aesenclast_si128(state, roundKey);
         }
 
         template<>
-        block AES<NI>::roundEnc(block state, const block& roundKey)
+        block AES<AESTypes::NI>::roundEnc(block state, const block& roundKey)
         {
             return _mm_aesenc_si128(state, roundKey);
         }
 
         template<>
-        void AES<NI>::setKey(const block& userKey)
+        void AES<AESTypes::NI>::setKey(const block& userKey)
         {
             
             mRoundKey[0] = userKey;
@@ -868,20 +867,20 @@ namespace osuCrypto {
 
 #ifdef OC_ENABLE_AESNI
         template<>
-        block AESDec<NI>::roundDec(block state, const block& roundKey)
+        block AESDec<AESTypes::NI>::roundDec(block state, const block& roundKey)
         {
             return _mm_aesdec_si128(state, roundKey);
         }
 
         template<>
-        block AESDec<NI>::finalDec(block state, const block& roundKey)
+        block AESDec<AESTypes::NI>::finalDec(block state, const block& roundKey)
         {
             return _mm_aesdeclast_si128(state, roundKey);
         }
 
 
         template<>
-        void AESDec<NI>::setKey(const block& userKey)
+        void AESDec<AESTypes::NI>::setKey(const block& userKey)
         {
             const block& v0 = userKey;
             const block  v1 = details::keyGenHelper(v0, _mm_aeskeygenassist_si128(v0, 0x01));
@@ -1091,7 +1090,7 @@ namespace osuCrypto {
 #endif
 
 #ifdef OC_ENABLE_AESNI
-    template class details::AES<details::NI>;
-    template class details::AESDec<details::NI>;
+    template class details::AES<details::AESTypes::NI>;
+    template class details::AESDec<details::AESTypes::NI>;
 #endif
 }

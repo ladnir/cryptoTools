@@ -57,7 +57,7 @@ namespace osuCrypto {
         }
 
         template<>
-        auto Rijndael256Enc<NI>::roundEnc(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Enc<Rijndael256Types::NI>::roundEnc(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -71,7 +71,7 @@ namespace osuCrypto {
         }
 
         template<>
-        auto Rijndael256Enc<NI>::finalEnc(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Enc<Rijndael256Types::NI>::finalEnc(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -84,7 +84,7 @@ namespace osuCrypto {
         }
 
         template<>
-        auto Rijndael256Dec<NI>::roundDec(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Dec<Rijndael256Types::NI>::roundDec(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -98,7 +98,7 @@ namespace osuCrypto {
         }
 
         template<>
-        auto Rijndael256Dec<NI>::finalDec(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Dec<Rijndael256Types::NI>::finalDec(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -111,7 +111,7 @@ namespace osuCrypto {
         }
 
         template<> template<size_t numBlocks>
-        void Rijndael256Enc<NI>::encBlocksFixed(const Block* plaintext, Block* ciphertext) const
+        void Rijndael256Enc<Rijndael256Types::NI>::encBlocksFixed(const Block* plaintext, Block* ciphertext) const
         {
             Block blocks[numBlocks];
             for (size_t j = 0; j < numBlocks; ++j)
@@ -133,7 +133,7 @@ namespace osuCrypto {
         }
 
         template<>
-        void Rijndael256Enc<NI>::encBlocks(
+        void Rijndael256Enc<Rijndael256Types::NI>::encBlocks(
             const Block* plaintexts, size_t blocks, Block* ciphertext) const
         {
             constexpr size_t step = 4;
@@ -159,7 +159,7 @@ namespace osuCrypto {
         }
 
         template<> template<size_t numBlocks>
-        void Rijndael256Dec<NI>::decBlocksFixed(const Block* ciphertext, Block* plaintext) const
+        void Rijndael256Dec<Rijndael256Types::NI>::decBlocksFixed(const Block* ciphertext, Block* plaintext) const
         {
             Block blocks[numBlocks];
             for (size_t j = 0; j < numBlocks; ++j)
@@ -180,7 +180,7 @@ namespace osuCrypto {
         }
 
         template<>
-        void Rijndael256Dec<NI>::decBlocks(
+        void Rijndael256Dec<Rijndael256Types::NI>::decBlocks(
             const Block* ciphertexts, size_t blocks, Block* plaintext) const
         {
             constexpr size_t step = 4;
@@ -206,7 +206,7 @@ namespace osuCrypto {
         }
 
         static inline void expandRound(
-            std::array<Rijndael256Enc<NI>::Block, Rijndael256Enc<NI>::rounds + 1>& roundKeys,
+            std::array<Rijndael256Enc<Rijndael256Types::NI>::Block, Rijndael256Enc<Rijndael256Types::NI>::rounds + 1>& roundKeys,
             unsigned int round, unsigned char round_cosntant)
         {
             __m128i t1 = roundKeys[round - 1][0];
@@ -240,7 +240,7 @@ namespace osuCrypto {
         };
 
         template<>
-        void Rijndael256Enc<NI>::setKey(const Block& userKey)
+        void Rijndael256Enc<Rijndael256Types::NI>::setKey(const Block& userKey)
         {
             mRoundKey[0] = userKey;
             expandRound(mRoundKey, 1, 0x01);
@@ -260,7 +260,7 @@ namespace osuCrypto {
         }
 
         template<>
-        void Rijndael256Dec<NI>::setKey(const Rijndael256Enc<NI>& enc)
+        void Rijndael256Dec<Rijndael256Types::NI>::setKey(const Rijndael256Enc<Rijndael256Types::NI>& enc)
         {
             mRoundKey[0] = enc.mRoundKey[0];
             for (int i = 1; i < rounds; i++)
@@ -274,8 +274,8 @@ namespace osuCrypto {
     }
 
 #ifdef OC_ENABLE_AESNI
-    template class details::Rijndael256Enc<details::NI>;
-    template class details::Rijndael256Dec<details::NI>;
+    template class details::Rijndael256Enc<details::Rijndael256Types::NI>;
+    template class details::Rijndael256Dec<details::Rijndael256Types::NI>;
 #endif
 // TODO: if defined(OC_ENABLE_PORTABLE_AES)
 
