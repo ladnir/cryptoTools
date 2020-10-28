@@ -2,6 +2,9 @@
 
 #ifdef OC_ENABLE_AESNI
 #include <array>
+#include <emmintrin.h>
+#include <smmintrin.h>
+#include <tmmintrin.h>
 #include <wmmintrin.h>
 
 namespace osuCrypto {
@@ -28,7 +31,6 @@ namespace osuCrypto {
                                      0,  0, -1, -1,
                                      0, -1, -1, -1);
             }
-            // TODO: Check portability.
             __m128i b0_blended = _mm_blendv_epi8(b0, b1, mask);
             __m128i b1_blended = _mm_blendv_epi8(b1, b0, mask);
 

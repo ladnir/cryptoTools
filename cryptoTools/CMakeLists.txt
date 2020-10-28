@@ -12,7 +12,7 @@ target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> 
 target_link_options(cryptoTools PUBLIC -pthread)
 
 if(ENABLE_SSE)
-    target_compile_options(cryptoTools PRIVATE -maes -msse2 -msse3 -msse4.1 -mpclmul)
+    target_compile_options(cryptoTools PRIVATE -maes -msse2 -msse3 -mssse3 -msse4.1 -mpclmul)
 endif()
 
 #############################################
