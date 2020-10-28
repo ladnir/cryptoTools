@@ -1,16 +1,12 @@
 #include <cryptoTools/Crypto/Rijndael256.h>
-#include <array>
 
 #ifdef OC_ENABLE_AESNI
+#include <array>
 #include <wmmintrin.h>
-#elif !defined(OC_ENABLE_PORTABLE_AES)
-static_assert(0, "OC_ENABLE_PORTABLE_AES must be defined if ENABLE_AESNI is not.");
-#endif
 
 namespace osuCrypto {
     namespace details
     {
-#ifdef OC_ENABLE_AESNI
         // This implement's Rijndael256 RotateRows step, then cancels out the RotateRows of AES so
         // that AES-NI can be used to implement Rijndael256.
         template<bool encrypt>
@@ -32,6 +28,7 @@ namespace osuCrypto {
                                      0,  0, -1, -1,
                                      0, -1, -1, -1);
             }
+            // TODO: Check portability.
             __m128i b0_blended = _mm_blendv_epi8(b0, b1, mask);
             __m128i b1_blended = _mm_blendv_epi8(b1, b0, mask);
 
@@ -56,8 +53,7 @@ namespace osuCrypto {
             b1 = _mm_shuffle_epi8(b1_blended, perm);
         }
 
-        template<>
-        auto Rijndael256Enc<NI>::roundEnc(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Enc::roundEnc(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -70,8 +66,7 @@ namespace osuCrypto {
             return {b0, b1};
         }
 
-        template<>
-        auto Rijndael256Enc<NI>::finalEnc(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Enc::finalEnc(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -83,8 +78,7 @@ namespace osuCrypto {
             return {b0, b1};
         }
 
-        template<>
-        auto Rijndael256Dec<NI>::roundDec(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Dec::roundDec(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -97,8 +91,7 @@ namespace osuCrypto {
             return {b0, b1};
         }
 
-        template<>
-        auto Rijndael256Dec<NI>::finalDec(Block state, const Block& roundKey) -> Block
+        auto Rijndael256Dec::finalDec(Block state, const Block& roundKey) -> Block
         {
             __m128i b0 = state[0];
             __m128i b1 = state[1];
@@ -110,8 +103,8 @@ namespace osuCrypto {
             return {b0, b1};
         }
 
-        template<> template<size_t numBlocks>
-        void Rijndael256Enc<NI>::encBlocksFixed(const Block* plaintext, Block* ciphertext) const
+        template<size_t numBlocks>
+        void Rijndael256Enc::encBlocksFixed(const Block* plaintext, Block* ciphertext) const
         {
             Block blocks[numBlocks];
             for (size_t j = 0; j < numBlocks; ++j)
@@ -122,7 +115,7 @@ namespace osuCrypto {
 
             // Each iteration depends on the previous, so unrolling the outer loop isn't useful,
             // especially because there are a decent number of operations in each iteration.
-            // TODO: Benchmark
+            // TODO: Benchmark, use different pragmas for different compilers.
             #pragma GCC unroll 1
             for (int i = 1; i < rounds; ++i)
                 for (size_t j = 0; j < numBlocks; ++j)
@@ -132,8 +125,7 @@ namespace osuCrypto {
                 ciphertext[j] = finalEnc(blocks[j], mRoundKey[rounds]);
         }
 
-        template<>
-        void Rijndael256Enc<NI>::encBlocks(
+        void Rijndael256Enc::encBlocks(
             const Block* plaintexts, size_t blocks, Block* ciphertext) const
         {
             constexpr size_t step = 4;
@@ -158,8 +150,8 @@ namespace osuCrypto {
             }
         }
 
-        template<> template<size_t numBlocks>
-        void Rijndael256Dec<NI>::decBlocksFixed(const Block* ciphertext, Block* plaintext) const
+        template<size_t numBlocks>
+        void Rijndael256Dec::decBlocksFixed(const Block* ciphertext, Block* plaintext) const
         {
             Block blocks[numBlocks];
             for (size_t j = 0; j < numBlocks; ++j)
@@ -179,8 +171,7 @@ namespace osuCrypto {
                 plaintext[j] = finalDec(blocks[j], mRoundKey[0]);
         }
 
-        template<>
-        void Rijndael256Dec<NI>::decBlocks(
+        void Rijndael256Dec::decBlocks(
             const Block* ciphertexts, size_t blocks, Block* plaintext) const
         {
             constexpr size_t step = 4;
@@ -206,7 +197,7 @@ namespace osuCrypto {
         }
 
         static inline void expandRound(
-            std::array<Rijndael256Enc<NI>::Block, Rijndael256Enc<NI>::rounds + 1>& roundKeys,
+            std::array<Rijndael256Enc::Block, Rijndael256Enc::rounds + 1>& roundKeys,
             unsigned int round, unsigned char round_cosntant)
         {
             __m128i t1 = roundKeys[round - 1][0];
@@ -239,8 +230,7 @@ namespace osuCrypto {
             roundKeys[round][1] = t3;
         };
 
-        template<>
-        void Rijndael256Enc<NI>::setKey(const Block& userKey)
+        void Rijndael256Enc::setKey(const Block& userKey)
         {
             mRoundKey[0] = userKey;
             expandRound(mRoundKey, 1, 0x01);
@@ -259,8 +249,7 @@ namespace osuCrypto {
             expandRound(mRoundKey, 14, 0x4D);
         }
 
-        template<>
-        void Rijndael256Dec<NI>::setKey(const Rijndael256Enc<NI>& enc)
+        void Rijndael256Dec::setKey(const Rijndael256Enc& enc)
         {
             mRoundKey[0] = enc.mRoundKey[0];
             for (int i = 1; i < rounds; i++)
@@ -268,16 +257,7 @@ namespace osuCrypto {
                     mRoundKey[i][j] = _mm_aesimc_si128(enc.mRoundKey[i][j]);
             mRoundKey[rounds] = enc.mRoundKey[rounds];
         }
-#endif
-
-// TODO: if defined(OC_ENABLE_PORTABLE_AES)
     }
-
-#ifdef OC_ENABLE_AESNI
-    template class details::Rijndael256Enc<details::NI>;
-    template class details::Rijndael256Dec<details::NI>;
-#endif
-// TODO: if defined(OC_ENABLE_PORTABLE_AES)
 
     template void Rijndael256Enc::encBlocksFixed<1>(const Block*, Block*) const;
     template void Rijndael256Enc::encBlocksFixed<2>(const Block*, Block*) const;
@@ -288,3 +268,5 @@ namespace osuCrypto {
     template void Rijndael256Dec::decBlocksFixed<3>(const Block*, Block*) const;
     template void Rijndael256Dec::decBlocksFixed<4>(const Block*, Block*) const;
 }
+
+#endif

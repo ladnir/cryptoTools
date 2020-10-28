@@ -2,19 +2,14 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 
+#ifdef OC_ENABLE_AESNI
+
 namespace osuCrypto {
 
     namespace details
     {
-        enum Rijndael256Types
-        {
-            NI,
-            Portable
-        };
-
         static const int rijndael256_rounds = 14;
 
-        template<Rijndael256Types types>
         class Rijndael256Enc
         {
         public:
@@ -63,7 +58,6 @@ namespace osuCrypto {
             static Block finalEnc(Block state, const Block& roundKey);
         };
 
-        template<Rijndael256Types type>
         class Rijndael256Dec
         {
         public:
@@ -74,7 +68,7 @@ namespace osuCrypto {
             Rijndael256Dec() = default;
             Rijndael256Dec(const Rijndael256Dec&) = default;
 
-            Rijndael256Dec(const Rijndael256Enc<type>& enc)
+            Rijndael256Dec(const Rijndael256Enc& enc)
             {
                 setKey(enc);
             }
@@ -86,10 +80,10 @@ namespace osuCrypto {
 
             void setKey(const Block& userKey)
             {
-                setKey(Rijndael256Enc<NI>(userKey));
+                setKey(Rijndael256Enc(userKey));
             }
 
-            void setKey(const Rijndael256Enc<type>& enc);
+            void setKey(const Rijndael256Enc& enc);
 
             void decBlock(const Block& ciphertext, Block& plaintext) const
             {
@@ -119,13 +113,10 @@ namespace osuCrypto {
         };
     }
 
-#ifdef OC_ENABLE_AESNI
-    using Rijndael256Enc = details::Rijndael256Enc<details::NI>;
-    using Rijndael256Dec = details::Rijndael256Dec<details::NI>;
-#else
-    using Rijndael256Enc = details::Rijndael256Enc<details::Portable>;
-    using Rijndael256Dec = details::Rijndael256Dec<details::Portable>;
-#endif
+    using Rijndael256Enc = details::Rijndael256Enc;
+    using Rijndael256Dec = details::Rijndael256Dec;
 
     // TODO: encryption of N values under N different keys
 }
+
+#endif

@@ -54,7 +54,9 @@ namespace tests_cryptoTools
 
         th.add("block_operation_test                    ", block_operation_test);
         th.add("AES                                     ", AES_EncDec_Test);
+#ifdef OC_ENABLE_AESNI
         th.add("Rijndael256                             ", Rijndael256_EncDec_Test);
+#endif // ENABLE_AESNI
 
         th.add("BitVector_Indexing_Test                 ", BitVector_Indexing_Test_Impl);
         th.add("BitVector_Parity                        ", BitVector_Parity_Test_Impl);

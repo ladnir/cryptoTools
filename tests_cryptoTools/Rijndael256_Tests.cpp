@@ -1,11 +1,13 @@
 //#include "stdafx.h"
 
+#include <cryptoTools/Common/Defines.h>
+#ifdef OC_ENABLE_AESNI
+
 #include <thread>
 #include <vector>
 #include <memory>
 
 #include "Common.h"
-#include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/Rijndael256.h>
 #include <cryptoTools/Common/Log.h>
 
@@ -14,10 +16,9 @@ using namespace osuCrypto;
 #include <iomanip>
 namespace tests_cryptoTools
 {
-    template<details::Rijndael256Types type>
-    void test()
+    static void test()
     {
-        using Block = typename details::Rijndael256Enc<type>::Block;
+        using Block = typename Rijndael256Enc::Block;
 
         const std::uint8_t userKeyArr[] = {
             0x6e, 0x49, 0x0e, 0xe6, 0x2b, 0xa8, 0xf4, 0x0a,
@@ -42,13 +43,13 @@ namespace tests_cryptoTools
         Block ptxt = {toBlock(ptxtArr), toBlock(&ptxtArr[16])};
         Block expCtxt = {toBlock(expCtxtArr), toBlock(&expCtxtArr[16])};
 
-        details::Rijndael256Enc<type> encKey(userKey);
+        Rijndael256Enc encKey(userKey);
 
         auto ctxt = encKey.encBlock(ptxt);
         if (ctxt != expCtxt)
             throw UnitTestFail();
 
-        details::Rijndael256Dec<type> decKey(encKey);
+        Rijndael256Dec decKey(encKey);
 
         auto ptxt2 = decKey.decBlock(ctxt);
         if (ptxt2 != ptxt)
@@ -87,14 +88,8 @@ namespace tests_cryptoTools
 
     void Rijndael256_EncDec_Test()
     {
-#ifdef OC_ENABLE_AESNI
-        test<details::Rijndael256Types::NI>();
-#endif // ENABLE_AESNI
-#ifdef OC_ENABLE_PORTABLE_AES
-        test<details::Rijndael256Types::Portable>();
-#endif // ENABLE_PORTABLE_AES
-
-
+        test();
     }
-
 }
+
+#endif // ENABLE_AESNI
