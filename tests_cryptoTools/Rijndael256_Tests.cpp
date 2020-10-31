@@ -16,7 +16,7 @@ using namespace osuCrypto;
 #include <iomanip>
 namespace tests_cryptoTools
 {
-    static void test()
+    void Rijndael256_EncDec_Test()
     {
         using Block = typename Rijndael256Enc::Block;
 
@@ -39,9 +39,9 @@ namespace tests_cryptoTools
             0x4d, 0xda, 0xef, 0x25, 0xc1, 0xcd, 0xe0, 0xee,
         };
 
-        Block userKey = {toBlock(userKeyArr), toBlock(&userKeyArr[16])};
-        Block ptxt = {toBlock(ptxtArr), toBlock(&ptxtArr[16])};
-        Block expCtxt = {toBlock(expCtxtArr), toBlock(&expCtxtArr[16])};
+        Block userKey = Block256(userKeyArr);
+        Block ptxt = Block256(ptxtArr);
+        Block expCtxt = Block256(expCtxtArr);
 
         Rijndael256Enc encKey(userKey);
 
@@ -63,7 +63,7 @@ namespace tests_cryptoTools
 
         for (size_t i = 0; i < length; ++i)
         {
-            data[i] = {toBlock((std::uint64_t) 0), toBlock(i)};
+            data[i] = Block256(i);
 
             ciphertext1[i] = encKey.encBlock(data[i]);
             ptxt = decKey.decBlock(ciphertext1[i]);
@@ -84,11 +84,6 @@ namespace tests_cryptoTools
         for (size_t i = 0; i < length; ++i)
             if (data[i] != plaintext[i])
                 throw UnitTestFail();
-    }
-
-    void Rijndael256_EncDec_Test()
-    {
-        test();
     }
 }
 
