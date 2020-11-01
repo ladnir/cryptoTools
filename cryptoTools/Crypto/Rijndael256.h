@@ -16,6 +16,7 @@ namespace osuCrypto {
         using Base = std::array<block, 2>;
 
     public:
+        Block256() = default;
         using Base::Base;
         using Base::operator=;
 

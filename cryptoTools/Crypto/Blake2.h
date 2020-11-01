@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
 #ifdef ENABLE_BLAKE2_SSE
@@ -18,7 +18,7 @@ namespace osuCrypto {
 		// The default size of the blake digest output by Final(...);
 		static const u64 HashSize = 20;
 
-		// The maximum size of the blake digest output by Fianl(...);
+		// The maximum size of the blake digest output by Final(...);
 		static const u64 MaxHashSize = BLAKE2B_OUTBYTES;
 
 		// Default constructor of the class. Initializes the internal state.
@@ -33,7 +33,7 @@ namespace osuCrypto {
 		// Resets the interal state.
 		void Reset(u64 outputLength)
 		{
-	
+
 #ifdef TRUE_BLAKE2_INIT
 			Expects(blake2b_init(&state, outputLength) == 0);
 #else
@@ -72,7 +72,7 @@ namespace osuCrypto {
 			Expects(blake2b_final(&state, DataOut, state.outlen) == 0);
 		}
 
-		// Finalize the Blake2 hash and output the result to out. 
+		// Finalize the Blake2 hash and output the result to out.
 		// Only sizeof(T) bytes of the output are written.
 		template<typename T>
 		typename std::enable_if<std::is_pod<T>::value && sizeof(T) <= MaxHashSize && std::is_pointer<T>::value == false>::type
