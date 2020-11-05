@@ -45,6 +45,7 @@ find_program(NASM nasm)
 
 option(ENABLE_MIRACL    "use the miracl library" OFF)
 option(ENABLE_RELIC     "use the relic library" OFF)
+option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
@@ -57,12 +58,14 @@ set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 # make these visable to the parent scope
 set(ENABLE_MIRACL ${ENABLE_MIRACL} PARENT_SCOPE)
 set(ENABLE_RELIC  ${ENABLE_RELIC}  PARENT_SCOPE)
+set(ENABLE_SODIUM ${ENABLE_SODIUM} PARENT_SCOPE)
 
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
 message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
+message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
