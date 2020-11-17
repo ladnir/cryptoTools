@@ -54,7 +54,7 @@ namespace osuCrypto
     class BitIterator
     {
     public:
-
+        BitIterator() = default;
 		// Default copy constructor
 		BitIterator(const BitIterator& cp) = default;
 

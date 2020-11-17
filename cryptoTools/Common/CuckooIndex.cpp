@@ -4,7 +4,7 @@
 #include <cryptoTools/Common/Log.h>
 #include <numeric>
 #include <random>
-
+#include <algorithm>
 
 #define BATCH_SIZE 8
 

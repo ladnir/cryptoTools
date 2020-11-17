@@ -315,7 +315,7 @@ namespace osuCrypto
 
             auto op = std::move(mOps.front());
             mOps.pop();
-            return std::move(op);
+            return op;
         }
 
     };

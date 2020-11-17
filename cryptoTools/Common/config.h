@@ -5,11 +5,10 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-/* #undef ENABLE_RELIC */
-#define ENABLE_RELIC ON
+#define ENABLE_RELIC ON 
 
 // compile the circuit library
-#define ENABLE_CIRCUITS ON 
+/* #undef ENABLE_CIRCUITS */
 
 // include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
 #define ENABLE_FULL_GSL ON 
@@ -28,7 +27,7 @@
 /* #undef ENABLE_WOLFSSL */
 
 // enable integration with boost for networking.
-#define ENABLE_BOOST ON
+/* #undef ENABLE_BOOST */
 
 // enable the use of intel SSE instructions.
 #define ENABLE_SSE ON

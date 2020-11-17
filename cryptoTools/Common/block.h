@@ -468,7 +468,8 @@ namespace osuCrypto
     static_assert(std::alignment_of<block>::value == 16, "expected block alignment");
     static_assert(std::is_trivial<block>::value, "expected block trivial");
     static_assert(std::is_standard_layout<block>::value, "expected block pod");
-    static_assert(std::is_pod<block>::value, "expected block pod");
+//#define _SILENCE_ALL_CXX20_DEPRECATION_WARNINGS
+    //static_assert(std::is_pod<block>::value, "expected block pod");
 
     inline block toBlock(std::uint64_t high_u64, std::uint64_t low_u64)
     {

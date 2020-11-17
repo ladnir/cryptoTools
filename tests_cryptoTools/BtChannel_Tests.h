@@ -74,5 +74,7 @@ namespace tests_cryptoTools
     inline void SBO_ptr_test() { np(); }
     inline void BtNetwork_queue_Test(const osuCrypto::CLP& cmd) { np(); }
     inline void BtNetwork_socketAdapter_test(const osuCrypto::CLP& cmd) { np(); }
+    inline void BtNetwork_BasicSocket_test(const osuCrypto::CLP& cmd) { np(); };
+    
 #endif
 }
