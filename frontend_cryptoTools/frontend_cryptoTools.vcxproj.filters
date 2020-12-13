@@ -30,6 +30,9 @@
     <ClCompile Include="LDPC\FWPC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LDPC\rank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tutorials\Network.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LDPC\libdivide.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\rank.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

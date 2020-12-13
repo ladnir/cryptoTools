@@ -3,6 +3,14 @@
   "Id": "9816c48c-6316-40c7-929c-4b29505c7e0a",
   "Items": [
     {
+      "Id": "fa68fc19-7993-4cf9-b048-f1280f788ee1",
+      "Command": "-m 40 -e 1.5 -w 10"
+    },
+    {
+      "Id": "98083249-e4a5-4179-bb82-5b50a215a902",
+      "Command": "-w 1000 -h 10"
+    },
+    {
       "Id": "cf37fa46-7715-4cd7-9c64-060c300adbdf",
       "Command": " -m 10000 -t 1 -cuckoo  -stats -s 5 -e 1.2 -h 3  -stats"
     },

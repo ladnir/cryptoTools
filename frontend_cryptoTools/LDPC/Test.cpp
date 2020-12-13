@@ -341,19 +341,33 @@ namespace osuCrypto
 
         bool v = cmd.isSet("v");
         bool stats = cmd.isSet("stats");
+        PRNG prng(block(1, cmd.getOr("s", 0)));
 
-        // The number of constaints
-        u64 m = cmd.getOr("m", 30ull);
-        // The 
-        u64 n = m * cmd.getOr<double>("e", 2.4);
-        u64 h = cmd.getOr("h", 2);
+        // The of columns.
+        u64 n = cmd.getOr("n", 30ull);
+
+        // The number of constaints/rows
+        u64 m = n / cmd.getOr<double>("e", 2.4);
+
+
+        u64 rowWeight = cmd.getOr("h", 3);
+        u64 colWeight = cmd.getOr("c", 0);
+
+        if (colWeight)
+        {
+            assert(rowWeight > colWeight);
+            n = roundUpTo(n, rowWeight);
+            m = n * colWeight / rowWeight;
+        }
+        std::vector<u64> colIdxs;
+
+
         u64 t = cmd.getOr("t", 1);
-        PRNG prng(block(0, cmd.getOr("s", 0)));
 
         u64 w = cmd.getOr("w", 0);
         u64 d = cmd.getOr("d", 0);
         double exp = cmd.getOr("exp", 0.0);
-        Matrix<u64>points(m,h);
+        Matrix<u64>points(m,rowWeight);
         Timer timer;
 
         if (exp)
@@ -367,49 +381,89 @@ namespace osuCrypto
 
         double dur1(0), dur2(0);
         std::set<u64> c;
-        for (u64 i = 0; i < t; ++i)
+        for (u64 tt = 0; tt < t; ++tt)
         {
+            if (colWeight)
+            {
+
+                colIdxs.resize(colWeight * n);
+                auto iter = colIdxs.begin();
+                for (u64 i = 0; i < n; ++i)
+                {
+                    for (u64 j = 0; j < colWeight; ++j)
+                    {
+                        *iter = i;
+                        ++iter;
+                    }
+                }
+
+                std::shuffle(colIdxs.begin(), colIdxs.end(), prng);
+            }
+
             for (u64 i = 0; i < m; ++i)
             {
-                if (w)
+                //if (w)
+                //{
+                //    w = std::min(n, w);
+                //    auto q = (n + w - 1) / w;
+
+                //    auto r = u64(double(i) * q / m);
+
+                //    //auto r = prng.get<u64>() % q;
+
+                //    auto begin = n * r / q;
+                //    auto end = n * (r + 1) / q;
+                //    auto nn = end - begin;
+
+                //    while (c.size() != rowWeight)
+                //        c.insert(prng.get<u64>() % nn + begin);
+
+                //}
+                //else if (d)
+                //{
+                //    auto base = prng.get<u64>() % n;
+                //    c.insert(base);
+
+                //    while (c.size() != rowWeight)
+                //        c.insert((base + prng.get<u64>() % d) % n);
+                //}
+                //else if (exp)
+                //{
+
+                //    auto base = prng.get<u64>() % n;
+                //    c.insert(base);
+                //    std::exponential_distribution<double> expDist(1 / exp);
+
+                //    while (c.size() != rowWeight)
+                //        c.insert(u64(base + expDist(prng)) % n);
+                //}
+                //else
+                if(colWeight == 0)
                 {
-                    w = std::min(n, w);
-                    auto q = (n + w - 1) / w;
-
-                    auto r = u64(double(i) * q / m);
-
-                    //auto r = prng.get<u64>() % q;
-
-                    auto begin = n * r / q;
-                    auto end = n * (r + 1) / q;
-                    auto nn = end - begin;
-
-                    while (c.size() != h)
-                        c.insert(prng.get<u64>() % nn + begin);
-
-                }
-                else if (d)
-                {
-                    auto base = prng.get<u64>() % n;
-                    c.insert(base);
-
-                    while (c.size() != h)
-                        c.insert((base + prng.get<u64>() % d) % n);
-                }
-                else if (exp)
-                {
-
-                    auto base = prng.get<u64>() % n;
-                    c.insert(base);
-                    std::exponential_distribution<double> expDist(1 / exp);
-
-                    while (c.size() != h)
-                        c.insert(u64(base + expDist(prng)) % n);
+                    while (c.size() != rowWeight)
+                        c.insert(prng.get<u64>() % n);
                 }
                 else
                 {
-                    while (c.size() != h)
-                        c.insert(prng.get<u64>() % n);
+                    while (c.size() != rowWeight)
+                    {
+                        auto iter = --colIdxs.end();
+                        while(c.find(*iter) != c.end())
+                        {
+                            if (iter == colIdxs.begin())
+                            {
+                                std::cout << "failed to make matrix" << std::endl;
+                                return;
+                            }
+                            --iter;
+                        }
+                        c.insert(*iter);
+
+                        std::swap(*iter, colIdxs.back());
+                        colIdxs.pop_back();
+                    }
+
+                    //std::vector<> colSets
                 }
 
                 std::copy(c.begin(), c.end(), points[i].begin());
@@ -430,7 +484,8 @@ namespace osuCrypto
                 dur1 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             }
 
-            if(h == 2)
+            std::vector<std::array<u64, 3>> bb;
+            if(rowWeight == 2)
             {
 
                 LDPC<u64, 2> H2(n, points);
@@ -447,11 +502,10 @@ namespace osuCrypto
                     std::cout << "--------------------------------" << std::endl;
                 }
 
-                std::vector<std::array<u64, 3>> bb;
                 std::vector<u64> R, C;
 
                 auto start = timer.setTimePoint("");
-                H2.blockTriangulate(bb, R, C, v, stats, false);
+                H2.blockTriangulate(bb, R, C, v, stats, true);
                 auto end = timer.setTimePoint("");
                 dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
@@ -464,7 +518,7 @@ namespace osuCrypto
                     std::cout << "--------------------------------" << std::endl;
                 }
             }
-            else if (h == 3)
+            else if (rowWeight == 3)
             {
 
                 LDPC<u64, 3> H2(n, points);
@@ -475,11 +529,37 @@ namespace osuCrypto
                     std::cout << "--------------------------------" << std::endl;
                 }
 
-                std::vector<std::array<u64, 3>> bb;
                 std::vector<u64> R, C;
 
                 auto start = timer.setTimePoint("");
-                H2.blockTriangulate(bb, R, C, v, stats, false);
+                H2.blockTriangulate(bb, R, C, v, stats, true);
+                auto end = timer.setTimePoint("");
+                dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+
+                timer.setTimePoint("triangulate");
+
+                if (v)
+                {
+                    std::cout << diff(H2.mRows, H2.mRows, bb, H2.cols()) << std::endl;
+                    std::cout << "--------------------------------" << std::endl;
+                }
+            }
+            else if (rowWeight == 10)
+            {
+
+                LDPC<u64, 10> H2(n, points);
+                if (v)
+                {
+                    std::cout << "--------------------------------" << std::endl;
+                    std::cout << H2 << std::endl;
+                    std::cout << "--------------------------------" << std::endl;
+                }
+
+                std::vector<u64> R, C;
+
+                auto start = timer.setTimePoint("");
+                H2.blockTriangulate(bb, R, C, v, stats, true);
                 auto end = timer.setTimePoint("");
                 dur2 += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
@@ -497,6 +577,9 @@ namespace osuCrypto
                 std::cout << "h not implemented" << std::endl;
                 throw RTE_LOC;
             }
+
+            std::cout << "blks " << bb.size() << std::endl;
+
         }
         //std::cout << "max col " << maxCol << " " << std::log2(m) << std::endl;
         std::cout << dur1 / t << " " << dur2 / t << std::endl;

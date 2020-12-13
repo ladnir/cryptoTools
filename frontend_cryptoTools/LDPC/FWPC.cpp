@@ -313,6 +313,16 @@ namespace osuCrypto
             else
                 blockTriangulateImpl<u64, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
         }
+        else if (mRows.cols() == 10)
+        {
+            static const int weight = 10;
+            if (binWidth < std::numeric_limits<u16>::max())
+                blockTriangulateImpl<u16, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else if (binWidth < std::numeric_limits<u32>::max())
+                blockTriangulateImpl<u32, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+            else
+                blockTriangulateImpl<u64, weight>(blocks, rowPerm_, colPerm_, verbose, stats);
+        }
         else
         {
             throw RTE_LOC;

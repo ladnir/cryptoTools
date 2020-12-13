@@ -841,5 +841,10 @@ namespace osuCrypto
     template class LDPC<u64, 3>;
     template class LDPC<u32, 3>;
     template class LDPC<u16, 3>;
+
+
+    template class LDPC<u64, 10>;
+    template class LDPC<u32, 10>;
+    template class LDPC<u16, 10>;
     //template class LDPC<u8>;
 }
