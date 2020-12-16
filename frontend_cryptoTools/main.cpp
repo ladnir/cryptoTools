@@ -15,6 +15,7 @@ using namespace osuCrypto;
 #include "LDPC/FWPC.h"
 #include "LDPC/Test.h"
 #include "LDPC/rank.h"
+#include "LDPC/Graph.h"
 
 //#include <cryptoTools/Common/Backtrace.h>
 
@@ -169,6 +170,7 @@ int main(int argc, char** argv)
 
 
     CLP cmd(argc, argv);
+    //ldpc(cmd);
     rank(cmd);
     //ldpcMain(cmd);
 

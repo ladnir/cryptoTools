@@ -21,16 +21,13 @@
     <ClCompile Include="Tutorials\Network.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LDPC\LDPC.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LDPC\Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LDPC\FWPC.cpp">
+    <ClCompile Include="LDPC\rank.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LDPC\rank.cpp">
+    <ClCompile Include="LDPC\Graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,19 +35,16 @@
     <ClInclude Include="Tutorials\Network.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LDPC\LDPC.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="LDPC\Test.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LDPC\FWPC.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LDPC\libdivide.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LDPC\rank.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\Graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
