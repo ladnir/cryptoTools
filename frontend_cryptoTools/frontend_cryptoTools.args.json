@@ -4,7 +4,7 @@
   "Items": [
     {
       "Id": "fa68fc19-7993-4cf9-b048-f1280f788ee1",
-      "Command": "-m 30 -t 20 -g 4 -wd 2"
+      "Command": " -m 37 -t 1 -s 4 -g 12"
     }
   ]
 }

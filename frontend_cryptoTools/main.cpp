@@ -171,8 +171,8 @@ int main(int argc, char** argv)
 
     CLP cmd(argc, argv);
     //ldpc(cmd);
-    rank(cmd);
-    //ldpcMain(cmd);
+    //rank(cmd);
+    ldpcMain(cmd);
 
     return 0;
     //if (cmd.isSet("nn"))

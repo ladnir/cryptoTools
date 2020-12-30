@@ -1,3 +1,5 @@
+#include "Test.h"
+#include "LdpcEncoder.h"
 //#include "Test.h"
 //#include "LDPC.h"
 //#include <iostream>
@@ -722,3 +724,17 @@
 //    }
 //
 //}
+
+namespace osuCrypto
+{
+    void ldpcMain(CLP& cmd)
+    {
+        tests::Mtx_add_test();
+        tests::Mtx_mult_test();
+        tests::Mtx_invert_test();
+        tests::Mtx_block_test();
+        tests::LdpcEncoder_diagonalSolver_test();
+        tests::LdpcEncoder_encode_test();
+
+    }
+}

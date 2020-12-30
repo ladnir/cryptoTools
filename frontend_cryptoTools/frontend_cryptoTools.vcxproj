@@ -134,17 +134,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LDPC\LdpcSampler.cpp" />
+    <ClCompile Include="LDPC\LdpcEncoder.cpp" />
+    <ClCompile Include="LDPC\LdpcDecoder.cpp" />
     <ClCompile Include="LDPC\Graph.cpp" />
     <ClCompile Include="LDPC\Test.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="LDPC\rank.cpp" />
+    <ClCompile Include="LDPC\Mtx.cpp" />
     <ClCompile Include="Tutorials\Network.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LDPC\LdpcSampler.h" />
+    <ClInclude Include="LDPC\LdpcEncoder.h" />
+    <ClInclude Include="LDPC\LdpcDecoder.h" />
     <ClInclude Include="LDPC\Graph.h" />
     <ClInclude Include="LDPC\libdivide.h" />
     <ClInclude Include="LDPC\rank.h" />
     <ClInclude Include="LDPC\Test.h" />
+    <ClInclude Include="LDPC\Mtx.h" />
     <ClInclude Include="Tutorials\Network.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

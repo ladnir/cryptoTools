@@ -14,9 +14,8 @@ namespace osuCrypto
 		BitReference(const BitReference& rhs) = default;
 
 		// Construct a reference to the bit in the provided byte offset by the shift.
-		// Shift should be less than 8.
-        BitReference(u8* byte, u8 shift)
-            :mByte(byte), mMask(1 << shift), mShift(shift) {}
+        BitReference(void* byte, u64 shift)
+            :mByte((u8*)byte + (shift / 8)), mMask(1 << (shift & 7)), mShift((shift & 7)) {}
 
 		// Construct a reference to the bit in the provided byte offset by the shift and mask.
 		// Shift should be less than 8. and the mask should equal 1 << shift.
