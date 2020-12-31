@@ -138,6 +138,9 @@
     <ClCompile Include="LDPC\LdpcEncoder.cpp" />
     <ClCompile Include="LDPC\LdpcDecoder.cpp" />
     <ClCompile Include="LDPC\Graph.cpp" />
+    <ClCompile Include="LDPC\LDPC_decoder.cpp" />
+    <ClCompile Include="LDPC\LDPC_encoder.cpp" />
+    <ClCompile Include="LDPC\LDPC_generator.cpp" />
     <ClCompile Include="LDPC\Test.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="LDPC\rank.cpp" />
@@ -149,8 +152,12 @@
     <ClInclude Include="LDPC\LdpcEncoder.h" />
     <ClInclude Include="LDPC\LdpcDecoder.h" />
     <ClInclude Include="LDPC\Graph.h" />
+    <ClInclude Include="LDPC\LDPC_decoder.h" />
+    <ClInclude Include="LDPC\LDPC_encoder.h" />
+    <ClInclude Include="LDPC\LDPC_generator.h" />
     <ClInclude Include="LDPC\libdivide.h" />
     <ClInclude Include="LDPC\rank.h" />
+    <ClInclude Include="LDPC\simple_bitarray.h" />
     <ClInclude Include="LDPC\Test.h" />
     <ClInclude Include="LDPC\Mtx.h" />
     <ClInclude Include="Tutorials\Network.h" />

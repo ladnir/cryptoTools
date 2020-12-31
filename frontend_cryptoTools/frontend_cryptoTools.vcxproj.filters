@@ -42,6 +42,15 @@
     <ClCompile Include="LDPC\LdpcSampler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LDPC\LDPC_decoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LDPC\LDPC_encoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LDPC\LDPC_generator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tutorials\Network.h">
@@ -69,6 +78,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LDPC\LdpcSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\LDPC_encoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\simple_bitarray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\LDPC_decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LDPC\LDPC_generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

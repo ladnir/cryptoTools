@@ -147,9 +147,9 @@ namespace osuCrypto
         // pp = C^-1 pp 
         mCInv.mult(pp, pp);
 
-        for (u64 i = 0; i < mM - mGap; ++i)
-            std::cout << ". ";
-        std::cout << std::endl;
+        //for (u64 i = 0; i < mM - mGap; ++i)
+        //    std::cout << ". ";
+        //std::cout << std::endl;
 
     }
 
@@ -346,7 +346,7 @@ void osuCrypto::tests::LdpcEncoder_encode_test()
             b = !E.init(H, gap);
         }
 
-        std::cout << H << std::endl;
+        //std::cout << H << std::endl;
 
         std::vector<u8> m(k), c(cols);
 
@@ -358,10 +358,10 @@ void osuCrypto::tests::LdpcEncoder_encode_test()
 
         auto ss = H.mult(c);
 
-        for (auto sss : ss)
-            std::cout << int(sss) << " ";
-        std::cout << std::endl;
-        //b = (ss == std::vector<u8>(H.rows(), 0));
+        //for (auto sss : ss)
+        //    std::cout << int(sss) << " ";
+        //std::cout << std::endl;
+        assert(ss == std::vector<u8>(H.rows(), 0));
 
     }
     return;

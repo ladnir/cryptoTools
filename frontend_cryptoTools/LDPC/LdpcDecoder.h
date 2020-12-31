@@ -3,31 +3,34 @@
 #include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/Matrix.h"
 #include "cryptoTools/Common/CLP.h"
+#include "Mtx.h"
+#include "simple_bitarray.h"
 namespace osuCrypto
 {
 
     class LdpcDecoder
     {
-
+    public:
         u64 mK;
 
         double mP = 0.98;
         Matrix<double> mM, mR;
         std::vector<double> mW;
 
-        std::vector<std::vector<u64>> mCols, mRows;
+        SparseMtx mH;
+        //std::vector<std::vector<u64>> mCols, mRows;
 
         LdpcDecoder() = default;
         LdpcDecoder(const LdpcDecoder&) = default;
         LdpcDecoder(LdpcDecoder&&) = default;
 
 
-        LdpcDecoder(u64 rows, u64 cols, const std::vector<std::array<u64, 2>>& points)
+        LdpcDecoder(SparseMtx& H)
         {
-            init(rows, cols, points);
+            init(H);
         }
 
-        void init(u64 rows, u64 cols, const std::vector<std::array<u64, 2>>&);
+        void init(SparseMtx& H);
 
         std::vector<u8> bpDecode(span<u8> codeword, u64 maxIter = 1000);
 
@@ -37,13 +40,16 @@ namespace osuCrypto
             return bpDecode(codeword, maxIter);
         }
 
+
+        //bool decode2(span<u8> data, u64 maxIter = 50);
+        bool check(const span<u8>& data);
+
     };
 
-    void LdpcDecode_pb_test(const CLP& cmd)
+
+    namespace tests
     {
-        
-
-
+        void LdpcDecode_pb_test(const CLP& cmd);
     }
 
 }

@@ -1,5 +1,6 @@
 #include "Test.h"
 #include "LdpcEncoder.h"
+#include "LdpcDecoder.h"
 //#include "Test.h"
 //#include "LDPC.h"
 //#include <iostream>
@@ -735,6 +736,6 @@ namespace osuCrypto
         tests::Mtx_block_test();
         tests::LdpcEncoder_diagonalSolver_test();
         tests::LdpcEncoder_encode_test();
-
+        tests::LdpcDecode_pb_test(cmd);
     }
 }
