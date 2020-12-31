@@ -15,6 +15,9 @@ namespace osuCrypto
 
         double mP = 0.98;
         Matrix<double> mM, mR;
+
+        std::vector<span<double>> mMM, mRR;
+        std::vector<double> mMData, mRData;
         std::vector<double> mW;
 
         SparseMtx mH;
@@ -33,6 +36,7 @@ namespace osuCrypto
         void init(SparseMtx& H);
 
         std::vector<u8> bpDecode(span<u8> codeword, u64 maxIter = 1000);
+        std::vector<u8> logbpDecode(span<u8> codeword, u64 maxIter = 1000);
 
 
         std::vector<u8> decode(span<u8> codeword, u64 maxIter = 1000)

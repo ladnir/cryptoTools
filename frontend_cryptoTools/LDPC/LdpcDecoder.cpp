@@ -65,9 +65,9 @@ namespace osuCrypto {
                     {
                         if (k != i)
                         {
-                            assert(mR[j][k] != nan);
+                            assert(mR(j, k) != nan);
 
-                            auto r = mR[j][k];
+                            auto r = mR(j,k);
                             v *= (r + 1) / (r - 1);
                         }
                     }
@@ -118,6 +118,130 @@ namespace osuCrypto {
                 }
 
                 c[i] = (L >= 1) ? 0 : 1;
+            }
+
+            if (check(c))
+            {
+                c.resize(n - m);
+                return c;
+            }
+        }
+
+        return {};
+    }
+
+    double sgn(double x)
+    {
+        if (x >= 0)
+            return 1;
+        return -1;
+    }
+
+    double phi(double x)
+    {
+        return -std::log(std::tanh(x * 0.5));
+    }
+
+    std::vector<u8> LdpcDecoder::logbpDecode(span<u8> codeword, u64 maxIter)
+    {
+
+        auto n = mH.cols();
+        auto m = mH.rows();
+
+        assert(codeword.size() == n);
+
+        std::array<double, 2> wVal{
+            {std::log(mP / (1 - mP)), 
+            std::log((1 - mP) / mP)} };
+
+        auto nan = std::nan("");
+        std::fill(mR.begin(), mR.end(), nan);
+        std::fill(mM.begin(), mM.end(), nan);
+
+        // #1
+        for (u64 i = 0; i < n; ++i)
+        {
+            assert(codeword[i] < 2);
+            mW[i] = wVal[codeword[i]];
+
+            for (auto j : mH.mCols[i])
+            {
+                mR(j, i) = mW[i];
+            }
+        }
+
+        std::vector<u8> c(n);
+        std::vector<double> rr; rr.reserve(100);
+        for (u64 ii = 0; ii < maxIter; ii++)
+        {
+            // #2
+            for (u64 j = 0; j < m; ++j)
+            {
+                rr.resize(mH.mRows[j].size());
+                for (u64 i : mH.mRows[j])
+                {
+                    // \Pi_{k in Nj \ {i} }  (r_k^j + 1)/(r_k^j - 1)
+                    double v = 0;
+                    double s = 1;
+
+                    for (u64 k : mH.mRows[j])
+                    {
+                        if (k != i)
+                        {
+                            assert(mR(j, k) != nan);
+
+                            v += phi(abs(mR(j, k)));
+
+                            s *= sgn(mR(j, k));
+                        }
+                    }
+
+                    // m_j^i 
+                    mM(j, i) = s * phi(v);
+                }
+            }
+
+            // i indexes a column, [1,...,n]
+            for (u64 i = 0; i < n; ++i)
+            {
+                // j indexes a row, [1,...,m]
+                for (u64 j : mH.mCols[i])
+                {
+                    // r_i^j = w_i * Pi_{k in Ni \ {j} } m_k^i
+                    mR(j, i) = mW[i];
+
+                    // j indexes a row, [1,...,m]
+                    for (u64 k : mH.mCols[i])
+                    {
+                        if (k != j)
+                        {
+                            //auto mr = mM.rows();
+                            //assert(j < mR.rows());
+                            //assert(i < mR.cols());
+                            //assert(i < mM.rows());
+                            //assert(k < mM.cols());
+                            assert(mM(k, i) != nan);
+
+                            mR(j, i) += mM(k, i);
+                        }
+                    }
+                }
+            }
+
+            // i indexes a column, [1,...,n]
+            for (u64 i = 0; i < n; ++i)
+            {
+                //log L(ci | wi, m^i)
+                double L = mW[i];
+
+                // k indexes a row, [1,...,m]
+                for (u64 k : mH.mCols[i])
+                {
+                    assert(mM(k, i) != nan);
+                    L += mM(k, i);
+                }
+
+                c[i] = (L >= 0) ? 0 : 1;
             }
 
             if (check(c))
@@ -283,16 +407,29 @@ namespace osuCrypto {
             LDPC_bp_decoder DD(cols, rows);
             DD.init(&gen);
 
-            auto m2 = D.decode(c);
+            auto m2 = D.bpDecode(c);
+            auto m3 = D.logbpDecode(c);
             //auto cc = c;
 
 
-            bit_array_t cc(c.size());
-            for (u64 i = 0; i < cc.size(); ++i)
-                cc.set(i, c[i]);
-            auto m3 = DD.decode_BSC(cc);
-
+            //bit_array_t cc(c.size());
+            //for (u64 i = 0; i < cc.size(); ++i)
+            //    cc.set(i, c[i]);
+            //auto m3 = DD.decode_BSC(cc, 1000);
             //auto bb = DD.decode_BSC(cc);
+
+
+
+            if (m3 != m2)
+            {
+                std::cout << "mis + " << std::endl;
+            }
+            
+            //if (m3 && m2.size() == 0)
+            //{
+            //    std::cout << "mis - " << std::endl;
+
+            //}
 
             if (m != m2)
             {
