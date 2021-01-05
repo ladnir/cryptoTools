@@ -3,6 +3,7 @@
 #include "cryptoTools/Crypto/PRNG.h"
 #include <vector>
 #include <numeric>
+#include "cryptoTools/Common/CLP.h"
 
 namespace osuCrypto
 {
@@ -30,10 +31,10 @@ namespace osuCrypto
         for (u64 i = 0; i < cols; ++i)
         {
             set.clear();
-            while(set.size() < w)
+            while (set.size() < w)
             {
                 auto j = prng.get<u64>() % rows;
-                if(set.insert(j).second)
+                if (set.insert(j).second)
                     push(points, { j, i });
             }
         }
@@ -100,7 +101,7 @@ namespace osuCrypto
         for (u64 i = 0; i < rows - gap; ++i)
         {
             auto w = std::min<u64>(weight - 1, (rows - i) / 2);
-            auto s = sampleCol(i+1, rows, w, false, prng);
+            auto s = sampleCol(i + 1, rows, w, false, prng);
 
             push(points, { i, b + i });
             for (auto ss : s)
@@ -127,9 +128,9 @@ namespace osuCrypto
         {
             auto s = sampleCol(ii + 1, ii + dHeight, dWeight - 1, false, prng);
 
-            push(points,{ ii % rows, b + i });
+            push(points, { ii % rows, b + i });
             for (auto ss : s)
-                push(points,{ ss % rows, b + i });
+                push(points, { ss % rows, b + i });
 
         }
     }
@@ -145,13 +146,56 @@ namespace osuCrypto
     }
 
 
+
+    // sample a parity check which is approx triangular with. 
+    // The diagonal will have fixed weight = dWeight.
+    // The other columns will have weight = weight.
+    inline void sampleTriangularBand2(u64 rows, u64 cols, u64 weight, u64 gap, u64 dWeight, PRNG& prng, std::vector<Point>& points)
+    {
+        auto dHeight = gap + 1;
+        assert(dWeight > 0);
+        assert(dWeight <= dHeight);
+
+        sampleFixedColWeight(rows, cols - rows, weight, prng, points);
+
+        auto b = cols - rows;
+        for (u64 i = 0, ii = rows - gap; i < rows; ++i, ++ii)
+        {
+            if (ii >= rows)
+            {
+                auto s = sampleCol(ii + 1, ii + dHeight, dWeight - 1, false, prng);
+                push(points, { ii % rows, b + i });
+                for (auto ss : s)
+                    push(points, { ss % rows, b + i });
+            }
+            else
+            {
+                auto s = sampleCol(ii, ii + dHeight, dWeight, false, prng);
+                for (auto ss : s)
+                    push(points, { ss % rows, b + i });
+            }
+
+        }
+    }
+
+    // sample a parity check which is approx triangular with. 
+    // The diagonal will have fixed weight = dWeight.
+    // The other columns will have weight = weight.
+    inline SparseMtx sampleTriangularBand2(u64 rows, u64 cols, u64 weight, u64 gap, u64 dWeight, PRNG& prng)
+    {
+        std::vector<Point> points;
+        sampleTriangularBand2(rows, cols, weight, gap, dWeight, prng, points);
+        return SparseMtx(rows, cols, points);
+    }
+
+
     // sample a parity check which is approx triangular with. 
     // The other columns will have weight = weight.
     inline void sampleTriangular(u64 rows, double density, PRNG& prng, std::vector<Point>& points)
     {
         assert(density > 0);
 
-        u64 t = ~u64{ 0 } * density;
+        u64 t = ~u64{ 0 } *density;
 
         for (u64 i = 0; i < rows; ++i)
         {
@@ -185,4 +229,7 @@ namespace osuCrypto
         return SparseMtx(rows, cols, points);
     }
 
+
+
+    void sampleExp(CLP& cmd);
 }

@@ -97,9 +97,11 @@ namespace osuCrypto
 
         //assert(ep == mEp);
 
-        
+        //auto ee = mEp;
 
         mEp = mEp.invert();
+        //std::cout << ee << "\n" << (bool)mEp.rows() << std::endl;
+
 
         // Ep = (F C^-1 B + E)^-1
         //mEp = mEp.invert();

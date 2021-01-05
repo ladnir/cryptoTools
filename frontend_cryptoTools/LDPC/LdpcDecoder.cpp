@@ -254,6 +254,118 @@ namespace osuCrypto {
         return {};
     }
 
+    std::vector<u8> LdpcDecoder::minSumDecode(span<u8> codeword, u64 maxIter)
+    {
+
+        auto n = mH.cols();
+        auto m = mH.rows();
+
+        assert(codeword.size() == n);
+
+        std::array<double, 2> wVal{
+            {std::log(mP / (1 - mP)),
+            std::log((1 - mP) / mP)} };
+
+        auto nan = std::nan("");
+        std::fill(mR.begin(), mR.end(), nan);
+        std::fill(mM.begin(), mM.end(), nan);
+
+        // #1
+        for (u64 i = 0; i < n; ++i)
+        {
+            assert(codeword[i] < 2);
+            mW[i] = wVal[codeword[i]];
+
+            for (auto j : mH.mCols[i])
+            {
+                mR(j, i) = mW[i];
+            }
+        }
+
+        std::vector<u8> c(n);
+        std::vector<double> rr; rr.reserve(100);
+        for (u64 ii = 0; ii < maxIter; ii++)
+        {
+            // #2
+            for (u64 j = 0; j < m; ++j)
+            {
+                rr.resize(mH.mRows[j].size());
+                for (u64 i : mH.mRows[j])
+                {
+                    // \Pi_{k in Nj \ {i} }  (r_k^j + 1)/(r_k^j - 1)
+                    double v = std::numeric_limits<double>::max();
+                    double s = 1;
+
+                    for (u64 k : mH.mRows[j])
+                    {
+                        if (k != i)
+                        {
+                            assert(mR(j, k) != nan);
+
+                            v = std::min(v,std::abs(mR(j,k)));
+
+                            s *= sgn(mR(j, k));
+                        }
+                    }
+
+                    // m_j^i 
+                    mM(j, i) = s * v;
+                }
+            }
+
+            // i indexes a column, [1,...,n]
+            for (u64 i = 0; i < n; ++i)
+            {
+                // j indexes a row, [1,...,m]
+                for (u64 j : mH.mCols[i])
+                {
+                    // r_i^j = w_i * Pi_{k in Ni \ {j} } m_k^i
+                    mR(j, i) = mW[i];
+
+                    // j indexes a row, [1,...,m]
+                    for (u64 k : mH.mCols[i])
+                    {
+                        if (k != j)
+                        {
+                            //auto mr = mM.rows();
+                            //assert(j < mR.rows());
+                            //assert(i < mR.cols());
+                            //assert(i < mM.rows());
+                            //assert(k < mM.cols());
+                            assert(mM(k, i) != nan);
+
+                            mR(j, i) += mM(k, i);
+                        }
+                    }
+                }
+            }
+
+            // i indexes a column, [1,...,n]
+            for (u64 i = 0; i < n; ++i)
+            {
+                //log L(ci | wi, m^i)
+                double L = mW[i];
+
+                // k indexes a row, [1,...,m]
+                for (u64 k : mH.mCols[i])
+                {
+                    assert(mM(k, i) != nan);
+                    L += mM(k, i);
+                }
+
+                c[i] = (L >= 0) ? 0 : 1;
+            }
+
+            if (check(c))
+            {
+                c.resize(n - m);
+                return c;
+            }
+        }
+
+        return {};
+    }
+
     bool LdpcDecoder::check(const span<u8>& data) {
 
         bool isCW = true;
@@ -348,112 +460,111 @@ namespace osuCrypto {
 
     void tests::LdpcDecode_pb_test(const CLP& cmd)
     {
-
-
-
-        u64 rows = 16;
-        u64 cols = rows * 2;
-        u64 colWeight = 4;
-        u64 dWeight = 3;
-        u64 gap = 6;
+        u64 rows = cmd.getOr("r", 1000);
+        u64 cols = rows * cmd.getOr("e", 2.0);
+        u64 colWeight = cmd.getOr("cw", 4);
+        u64 dWeight = cmd.getOr("dw", 3);
+        u64 gap = cmd.getOr("g", 12);
 
         auto k = cols - rows;
-
         assert(gap >= dWeight);
-
-        PRNG prng(block(0, 2));
-
 
         SparseMtx H;
         LdpcEncoder E;
         LdpcDecoder D;
-        auto ease = 0ull;
-        //while (b)
+
         for (u64 i = 0; i < 40; ++i)
         {
+            PRNG prng(block(i, 1));
             bool b = true;
-            //std::cout << " +====================" << std::endl;
+            u64 tries = 0;
             while (b)
             {
                 H = sampleTriangularBand(rows, cols, colWeight, gap, dWeight, prng);
-                //H = sampleTriangular(rows, cols, colWeight, gap, prng);
+                // H = sampleTriangular(rows, cols, colWeight, gap, prng);
                 b = !E.init(H, gap);
+
+                ++tries;
             }
 
-            //std::cout << H << std::endl;
-            D.init(H);
+            std::cout << "samples " << tries << std::endl;
 
-            std::vector<u8> m(k), c(cols);
+            u64 d;
+            
+            if(cols < 35)
+                d = minDist(H.dense(), false).second.size();
+
+            LDPC_bp_decoder DD(cols, rows);
+            DD.init(H);
+            D.init(H);
+            std::vector<u8> m(k), code(cols);
 
             for (auto& mm : m)
                 mm = prng.getBit();
 
+            E.encode(code, m);
+            auto ease = 1ull;
 
-            E.encode(c, m);
 
-            for (u64 j = 0; j < ease; ++j)
+            u64 logBP = 0;
+            u64 BP = 0;
+            u64 minSum = 0;
+            while (true)
             {
-                c[j] ^= 1;
+                auto c = code;
+                for (u64 j = 0; j < ease; ++j)
+                {
+                    c[j] ^= 1;
+                }
+
+                auto m2 = D.logbpDecode(c);
+                if (m2 != m)
+                    break;
+                //if (m2 != m && !logBP)
+                //    logBP = ease;
+
+                //auto m3 = D.bpDecode(c);
+                //if (m3 != m && !BP)
+                //    BP = ease;
+
+                //auto m4 = D.minSumDecode(c);
+                //if (m4 != m && !minSum)
+                //    minSum = ease;
+
+                //if (logBP && BP && minSum)
+                //    break;
+
+                ease = std::min<u64>(ease * 2, cols);
+                std::cout << "ease " << ease << std::endl;
             }
-            //c[1] ^= 1;
-            //c[2] ^= 1;
+            std::cout << "high " << ease << std::endl;
 
+            auto low = ease / 2;
+            auto high = ease;
 
-            //auto rw = 4;
-            //auto cw = 2;
-            //LDPC_QuasiCyclic_generator gen(rw, cw, 33);
-            MyGen gen;
-            gen.init(H);
-            LDPC_bp_decoder DD(cols, rows);
-            DD.init(&gen);
-
-            auto m2 = D.bpDecode(c);
-            auto m3 = D.logbpDecode(c);
-            //auto cc = c;
-
-
-            //bit_array_t cc(c.size());
-            //for (u64 i = 0; i < cc.size(); ++i)
-            //    cc.set(i, c[i]);
-            //auto m3 = DD.decode_BSC(cc, 1000);
-            //auto bb = DD.decode_BSC(cc);
-
-
-
-            if (m3 != m2)
+            while (low + 1 < high)
             {
-                std::cout << "mis + " << std::endl;
+                auto mid = low + (high - low) / 2;
+                std::cout << "mid " << mid << std::endl; 
+
+                auto c = code;
+                for (u64 j = 0; j < mid; ++j)
+                {
+                    c[j] ^= 1;
+                }
+                auto m2 = D.logbpDecode(c);
+                if (m2 != m)
+                    high = mid;
+                else
+                    low = mid;
             }
-            
-            //if (m3 && m2.size() == 0)
-            //{
-            //    std::cout << "mis - " << std::endl;
 
-            //}
+            logBP = low;
+            //assert(logBP);
+            //assert(BP);
+            //assert(minSum);
 
-            if (m != m2)
-            {
-                std::cout << ease << " exp ";
-                for (auto mm : m)
-                    std::cout << int(mm) << " ";
-                std::cout << std::endl << "act ";
-                for (auto mm : m2)
-                    std::cout << int(mm) << " ";
-                std::cout << std::endl;
-
-                --ease;
-            }
-            else
-            {
-                ++ease;
-            }
-            //auto ss = H.mult(c);
-
-            //for (auto sss : ss)
-            //    std::cout << int(sss) << " ";
-            //std::cout << std::endl;
-            //b = (ss == std::vector<u8>(H.rows(), 0));
-
+            std::cout <<i << " " << d << ": "<< logBP << " " << BP << " " << minSum << std::endl;
         }
         return;
 

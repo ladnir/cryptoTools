@@ -3,6 +3,10 @@
   "Id": "9816c48c-6316-40c7-929c-4b29505c7e0a",
   "Items": [
     {
+      "Id": "815a7510-d55f-44aa-bece-3c1ae8ce4863",
+      "Command": "-sample -g 8 -dw 3 -trials 1 -r 20 -s 2"
+    },
+    {
       "Id": "fa68fc19-7993-4cf9-b048-f1280f788ee1",
       "Command": " -m 37 -t 1 -s 4 -g 12"
     }

@@ -2,6 +2,7 @@
 #define __LDPC_DECODER_H
 #include "LDPC_generator.h"
 #include "simple_bitarray.h"
+#include "Mtx.h"
 
 //belief-propagation decoder
 class LDPC_bp_decoder{
@@ -32,6 +33,9 @@ public:
 	bool init(LDPC_generator* generator);
 	//init by a buffered sparse graph
 	bool init(const char* filename);
+
+	bool init(oc::SparseMtx& H);
+
 	//check if a code is valid
 	bool check(const bit_array_t& data);
 	//soft-decision decoder for BSC

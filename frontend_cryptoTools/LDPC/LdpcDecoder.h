@@ -37,11 +37,12 @@ namespace osuCrypto
 
         std::vector<u8> bpDecode(span<u8> codeword, u64 maxIter = 1000);
         std::vector<u8> logbpDecode(span<u8> codeword, u64 maxIter = 1000);
+        std::vector<u8> minSumDecode(span<u8> codeword, u64 maxIter = 1000);
 
 
         std::vector<u8> decode(span<u8> codeword, u64 maxIter = 1000)
         {
-            return bpDecode(codeword, maxIter);
+            return logbpDecode(codeword, maxIter);
         }
 
 

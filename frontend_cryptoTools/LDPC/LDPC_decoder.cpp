@@ -199,6 +199,13 @@ bool LDPC_bp_decoder::init(const char* filename){
 	return true;
 }
 
+bool LDPC_bp_decoder::init(oc::SparseMtx& H)
+{
+	MyGen gen;  
+	gen.init(H);
+	return init(&gen); 
+}
+
 static inline double LLR(double d){
 	return log(d / (1 - d));
 }
