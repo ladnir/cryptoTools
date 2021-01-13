@@ -48,18 +48,18 @@ namespace osuCrypto
         }
 
         template <class Iter>
-        MatrixView(Iter start, Iter end, size_type stride, typename Iter::iterator_category *p = 0) :
+        MatrixView(Iter start, Iter end, size_type stride, typename Iter::iterator_category * = 0) :
             mView(start, end/* - ((end - start) % stride)*/),
             mStride(stride)
         {
-            std::ignore = p;
+            //std::ignore = p;
         }
 
         template<template<typename, typename...> class C, typename... Args>
-        MatrixView(const C<T, Args...>& cont, size_type stride, typename C<T, Args...>::value_type* p = 0) :
+        MatrixView(const C<T, Args...>& cont, size_type stride, typename C<T, Args...>::value_type*  = 0) :
             MatrixView(cont.begin(), cont.end(), stride)
         {
-            std::ignore = p;
+            //std::ignore = p;
         }
 
         const MatrixView<T>& operator=(const MatrixView<T>& copy)
