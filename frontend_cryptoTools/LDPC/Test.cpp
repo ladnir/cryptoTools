@@ -5,8 +5,19 @@
 
 namespace osuCrypto
 {
+
+
+
+    void printGen(CLP& cmd)
+    {
+
+    }
+
     void ldpcMain(CLP& cmd)
     {
+        if (cmd.isSet("print"))
+            return printGen(cmd);
+
         if (cmd.isSet("sample"))
             return sampleExp(cmd);
 

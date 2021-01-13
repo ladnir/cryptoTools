@@ -82,53 +82,6 @@ namespace osuCrypto
         return numNonzeroRows(m2);
     }
 
-    //struct NChooseK
-    //{
-    //    u64 mN;
-    //    u64 mK;
-    //
-    //    std::vector<u64> mSet;
-    //
-    //    NChooseK(u64 n, u64 k, u64 offset = 0)
-    //        : mN(n)
-    //        , mK(k)
-    //    {
-    //        assert(k <= n);
-    //        mSet.resize(k);
-    //        std::iota(mSet.begin(), mSet.end(), offset);
-    //    }
-    //
-    //    const std::vector<u64>& operator*() const
-    //    {
-    //        return mSet;
-    //    }
-    //
-    //    void operator++()
-    //    {
-    //        auto back = mN - 1;
-    //
-    //        while (mSet.size() && mSet.back() == back)
-    //        {
-    //            mSet.pop_back();
-    //            --back;
-    //        }
-    //        if (mSet.size())
-    //        {
-    //            back = ++mSet.back();
-    //
-    //            while (mSet.size() != mK)
-    //                mSet.push_back(++back);
-    //        }
-    //    }
-    //
-    //    explicit operator bool() const
-    //    {
-    //        return mSet.size();
-    //    }
-    //
-    //};
-
-
     std::vector<u64> ithCombination(u64 index, u64 n, u64 k)
     {
         //'''Yields the items of the single combination that would be at the provided
@@ -474,6 +427,51 @@ namespace osuCrypto
         }
         assert(0);
         return {};
+    }
+
+    DenseMtx computeGen(DenseMtx& H)
+    {
+
+
+        auto rows = H.rows();
+        auto cols = H.cols();
+
+        u64 colIdx = 0ull;
+        for (u64 i = 0; i < rows; ++i)
+        {
+            while (H(i, colIdx) == 0)
+            {
+                for (u64 j = i + 1; j < rows; ++j)
+                {
+                    if (H(j, colIdx) == 1)
+                    {
+                        H.row(i).swap(H.row(j));
+                        --colIdx;
+                        break;
+                    }
+                }
+
+                ++colIdx;
+
+                if (colIdx == cols)
+                    return H;
+            }
+
+            for (u64 j = i + 1; j < rows; ++j)
+            {
+                if (H(j, colIdx))
+                {
+                    for (u64 k = 0; k < cols; ++k)
+                    {
+                        H(j, k) ^= H(i, k);
+                    }
+                }
+            }
+
+        }
+
+        return H;
+
     }
 
     struct selectPrt
