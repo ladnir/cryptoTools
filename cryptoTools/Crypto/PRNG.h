@@ -84,29 +84,11 @@ namespace osuCrypto
         {
             u64 lengthu8 = length * sizeof(T);
             u8* destu8 = (u8*)dest;
-            if (lengthu8 > 128)
-            {
-                u64 lengthu128 = lengthu8 / 16;
-                block* destu128 = (block*)dest;
-                mAes.ecbEncCounterMode(mBlockIdx, lengthu128, destu128);
-                mBlockIdx += lengthu128;
-                lengthu8 -= lengthu128 * 16;
-            }
 
-            while (lengthu8)
-            {
-                u64 step = std::min(lengthu8, mBufferByteCapacity - mBytesIdx);
-
-                memcpy(destu8, ((u8*)mBuffer.data()) + mBytesIdx, step);
-
-                destu8 += step;
-                lengthu8 -= step;
-                mBytesIdx += step;
-
-                if (mBytesIdx == mBufferByteCapacity)
-                    refillBuffer();
-            }
+            implGet(destu8, lengthu8);
         }
+
+        void implGet(u8* datau8, u64 lengthu8);
 
 		// Templated function that fills the provided buffer 
 		// with random elements of the given type T. 

@@ -1,5 +1,6 @@
 #include <cryptoTools/Crypto/AES.h>
 #include <array>
+#include <cstring>
 
 #ifdef OC_ENABLE_AESNI
 #include <wmmintrin.h>
@@ -837,30 +838,34 @@ namespace osuCrypto {
                 temp[6] = roundEnc(temp[6], mRoundKey[9]);
                 temp[7] = roundEnc(temp[7], mRoundKey[9]);
 
-                cyphertext[idx + 0] = finalEnc(temp[0], mRoundKey[10]);
-                cyphertext[idx + 1] = finalEnc(temp[1], mRoundKey[10]);
-                cyphertext[idx + 2] = finalEnc(temp[2], mRoundKey[10]);
-                cyphertext[idx + 3] = finalEnc(temp[3], mRoundKey[10]);
-                cyphertext[idx + 4] = finalEnc(temp[4], mRoundKey[10]);
-                cyphertext[idx + 5] = finalEnc(temp[5], mRoundKey[10]);
-                cyphertext[idx + 6] = finalEnc(temp[6], mRoundKey[10]);
-                cyphertext[idx + 7] = finalEnc(temp[7], mRoundKey[10]);
+                temp[0] = finalEnc(temp[0], mRoundKey[10]);
+                temp[1] = finalEnc(temp[1], mRoundKey[10]);
+                temp[2] = finalEnc(temp[2], mRoundKey[10]);
+                temp[3] = finalEnc(temp[3], mRoundKey[10]);
+                temp[4] = finalEnc(temp[4], mRoundKey[10]);
+                temp[5] = finalEnc(temp[5], mRoundKey[10]);
+                temp[6] = finalEnc(temp[6], mRoundKey[10]);
+                temp[7] = finalEnc(temp[7], mRoundKey[10]);
+
+                memcpy(cyphertext + idx, temp, sizeof(temp));
             }
 
             for (; idx < static_cast<i32>(blockLength); ++idx)
             {
-                cyphertext[idx] = baseIdx ^ mRoundKey[0];
+                auto temp = baseIdx ^ mRoundKey[0];
                 baseIdx = baseIdx + toBlock(1);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[1]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[2]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[3]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[4]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[5]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[6]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[7]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[8]);
-                cyphertext[idx] = roundEnc(cyphertext[idx], mRoundKey[9]);
-                cyphertext[idx] = finalEnc(cyphertext[idx], mRoundKey[10]);
+                temp = roundEnc(temp, mRoundKey[1]);
+                temp = roundEnc(temp, mRoundKey[2]);
+                temp = roundEnc(temp, mRoundKey[3]);
+                temp = roundEnc(temp, mRoundKey[4]);
+                temp = roundEnc(temp, mRoundKey[5]);
+                temp = roundEnc(temp, mRoundKey[6]);
+                temp = roundEnc(temp, mRoundKey[7]);
+                temp = roundEnc(temp, mRoundKey[8]);
+                temp = roundEnc(temp, mRoundKey[9]);
+                temp = finalEnc(temp, mRoundKey[10]);
+
+                memcpy(cyphertext + idx, &temp, sizeof(temp));
             }
 
         }
