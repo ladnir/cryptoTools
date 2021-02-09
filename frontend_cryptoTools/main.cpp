@@ -11,11 +11,11 @@
 using namespace osuCrypto;
 #include <sstream>
 #include <fstream>
-#include "LDPC/LDPC.h"
-#include "LDPC/FWPC.h"
-#include "LDPC/Test.h"
-#include "LDPC/rank.h"
-#include "LDPC/Graph.h"
+//#include "LDPC/LDPC.h"
+//#include "LDPC/FWPC.h"
+//#include "LDPC/Test.h"
+//#include "LDPC/rank.h"
+//#include "LDPC/Graph.h"
 
 //#include <cryptoTools/Common/Backtrace.h>
 
@@ -172,9 +172,9 @@ int main(int argc, char** argv)
     CLP cmd(argc, argv);
     //ldpc(cmd);
     //rank(cmd);
-    ldpcMain(cmd);
+    //ldpcMain(cmd);
 
-    return 0;
+    //return 0;
     //if (cmd.isSet("nn"))
     //{
     //    auto b = oc::roundUpTo(cmd.getOr("b", 1024), 16);

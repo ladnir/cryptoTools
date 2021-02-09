@@ -6,10 +6,9 @@
 
 // use the relic library for curves
 /* #undef ENABLE_RELIC */
-#define ENABLE_RELIC ON
 
 // compile the circuit library
-#define ENABLE_CIRCUITS ON 
+/* #undef ENABLE_CIRCUITS */
 
 // include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
 #define ENABLE_FULL_GSL ON 
