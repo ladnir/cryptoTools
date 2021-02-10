@@ -8,11 +8,14 @@ add_library(cryptoTools STATIC ${SRCS})
 # make projects that include cryptoTools use this as an include folder
 target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
-target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
-target_link_options(cryptoTools PUBLIC -pthread)
 
-if(ENABLE_SSE)
-    target_compile_options(cryptoTools PRIVATE -maes -msse2 -msse3 -msse4.1 -mpclmul)
+if(NOT MSVC)
+    target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
+    target_link_options(cryptoTools PUBLIC -pthread)
+
+    if(ENABLE_SSE)
+        target_compile_options(cryptoTools PRIVATE -maes -msse2 -msse3 -msse4.1 -mpclmul)
+    endif()
 endif()
 
 #############################################
@@ -39,7 +42,6 @@ install(TARGETS cryptoTools DESTINATION lib)
 ###########################################################################
 
 if (ENABLE_MIRACL)
-
   set(Miracl_Dirs "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/miracl/")
 
   set(Miracl_Lib_Dirs "${Miracl_Dirs}/miracl/source/")
@@ -64,11 +66,25 @@ endif(ENABLE_MIRACL)
 ###########################################################################
 
 if (ENABLE_RELIC)
-  find_package(Relic REQUIRED)
 
-  if (NOT Relic_FOUND)
-    message(FATAL_ERROR "Failed to find Relic")
-  endif (NOT Relic_FOUND)
+  if(MSVC)
+        if(NOT RLC_INCLUDE_DIR)
+            set(RLC_INCLUDE_DIR "c:/libs/include")
+            set(RLC_LIBRARY "c:/libs/lib/relic_s.lib")
+        endif()
+        
+      if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
+        message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
+      endif (NOT Relic_FOUND)
+
+
+  else()
+      find_package(Relic REQUIRED)
+
+      if (NOT Relic_FOUND)
+        message(FATAL_ERROR "Failed to find Relic")
+      endif (NOT Relic_FOUND)
+  endif()
 
   message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES} ${RLC_LIBRARY}")
   message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}\n")
@@ -108,24 +124,39 @@ endif(ENABLE_WOLFSSL)
 ###########################################################################
 
 if(ENABLE_BOOST)
-    set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
-
-    if(EXISTS ${BOOST_ROOT})
-      set(Boost_NO_SYSTEM_PATHS ON)
+    
+    if(NOT BOOST_ROOT)
+        if(MSVC)
+            set(BOOST_ROOT_local "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/win/boost/")
+            set(BOOST_ROOT_install "c:/libs/boost/")
+            
+            if(EXISTS "${BOOST_ROOT_local}")
+                set(BOOST_ROOT "${BOOST_ROOT_local}")
+            else()
+                set(BOOST_ROOT "${BOOST_ROOT_install}")
+            endif()
+        else()
+            set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
+        endif()
     endif()
 
-    set(Boost_USE_STATIC_LIBS        ON) # only find static libs
+
+    if(MSVC)
+        set(Boost_LIB_PREFIX "lib")
+    endif()
+
+    #set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
-    set(Boost_USE_STATIC_RUNTIME     ON)
+    #set(Boost_USE_STATIC_RUNTIME     OFF)
+    #set (Boost_DEBUG ON)  #<---------- Real life saver
 
     macro(findBoost)
-      find_package(Boost 1.69.0 COMPONENTS system thread)
+      find_package(Boost  COMPONENTS system thread regex)
     endmacro()
 
-    findBoost()
     # then look at system dirs
     if(NOT Boost_FOUND)
-      set(Boost_NO_SYSTEM_PATHS  OFF)
+      #set(Boost_NO_SYSTEM_PATHS  OFF)
       findBoost()
     endif()
 

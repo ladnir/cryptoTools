@@ -5,7 +5,7 @@
 /* #undef ENABLE_MIRACL */
 
 // use the relic library for curves
-#define ENABLE_RELIC ON 
+#define ENABLE_RELIC True 
 
 // compile the circuit library
 /* #undef ENABLE_CIRCUITS */
@@ -27,7 +27,7 @@
 /* #undef ENABLE_WOLFSSL */
 
 // enable integration with boost for networking.
-/* #undef ENABLE_BOOST */
+#define ENABLE_BOOST ON
 
 // enable the use of intel SSE instructions.
 #define ENABLE_SSE ON

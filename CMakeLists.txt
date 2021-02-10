@@ -73,10 +73,6 @@ if(NOT ENABLE_CPP_14)
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
 endif()
 
-if(ENABLE_SSE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes -msse2 -msse4.1 -mpclmul")
-	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -maes -msse2 -msse4.1 -mpclmul")
-endif()
 
 configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )
 
