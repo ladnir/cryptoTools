@@ -151,7 +151,11 @@ if(ENABLE_BOOST)
     #set (Boost_DEBUG ON)  #<---------- Real life saver
 
     macro(findBoost)
-      find_package(Boost  COMPONENTS system thread regex)
+        if(MSVC)
+            find_package(Boost  COMPONENTS system thread regex)
+        else()
+            find_package(Boost  COMPONENTS system thread)
+        endif()
     endmacro()
 
     # then look at system dirs

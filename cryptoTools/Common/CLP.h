@@ -157,7 +157,7 @@ namespace osuCrypto
                     std::stringstream ss(*iter++);
                     ss >> x;
                     ret.push_back(x);
-                    char d0, d1;
+                    char d0 = 0, d1 = 0;
                     ss >> d0;
                     ss >> d1;
                     if (d0 == '.' && d1 == '.')

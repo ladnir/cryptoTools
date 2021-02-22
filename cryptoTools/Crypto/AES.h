@@ -189,6 +189,7 @@ namespace osuCrypto {
             std::array<block,11> mRoundKey;
         };
 
+#ifdef OC_ENABLE_AESNI
         template<>
         inline block AES<NI>::finalEnc(block state, const block& roundKey)
         {
@@ -200,6 +201,7 @@ namespace osuCrypto {
         {
             return _mm_aesenc_si128(state, roundKey);
         }
+#endif
 
         // A class to perform AES decryption.
         template<AESTypes type>
