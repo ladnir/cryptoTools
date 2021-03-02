@@ -55,6 +55,27 @@ namespace osuCrypto {
     u64 log2floor(u64);
 
     block sysRandomSeed();
+
+
+
+    static inline uint64_t mod64(uint64_t word, uint64_t p)
+    {
+#ifdef __SIZEOF_INT128__ 
+        return (uint64_t)(((__uint128_t)word * (__uint128_t)p) >> 64);
+#elif defined(_MSC_VER) && defined(_WIN64)
+        uint64_t highProduct;
+        _umul128(word, p, &highProduct); 
+        return highProduct;
+        unsigned __int64 _umul128(
+            unsigned __int64 Multiplier,
+            unsigned __int64 Multiplicand,
+            unsigned __int64* HighProduct
+        );
+#else
+        return word % p; 
+#endif 
+    }
+
 }
 
 #ifdef _MSC_VER

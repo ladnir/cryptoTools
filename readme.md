@@ -107,9 +107,13 @@ is found with the `find_library(miracl)` command.
 
 
  ## License
+This project is dual licensed under MIT and Unlicensed.
+
+For Unlicensed, this project has been placed in the public domain. As such, you are unrestricted in how you use it, 
+commercial or otherwise. However, no warranty of fitness is provided. If you found this project 
+helpful, feel free to spread the word and cite us.
  
-This project has been placed in the public domain. As such, you are unrestricted in how you use it, commercial or otherwise. However, no warranty of fitness is provided. If you found this project helpful, feel free to spread the word and cite us.
- 
+
  
  
  

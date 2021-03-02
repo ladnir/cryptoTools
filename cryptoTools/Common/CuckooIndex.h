@@ -50,6 +50,7 @@ namespace osuCrypto
    // Not Thread safe version only requires u64.
    template<> struct CuckooStorage<NotThreadSafe> { u64 mVal; };
 
+
    // A cuckoo hashing implementation. The cuckoo hash table takes {value, index}
    // pairs as input and stores the index. 
    template<CuckooTypes Mode = ThreadSafe>
@@ -63,9 +64,15 @@ namespace osuCrypto
 		// the maximum number of hash functions that are allowed.
 		#define CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT 4
 
+        u64 mReinsertLimit = 200;
+        u64 mNumBins,mNumBinMask;
+        //std::vector<u8> mRandHashIdx;
+        //PRNG mPrng;
+
         struct Bin
         {
 			CuckooStorage<Mode> mS;
+
 			Bin() {
 				mS.mVal = (-1);}
 			Bin(u64 idx, u64 hashIdx) { mS.mVal = (idx | (hashIdx << 56)); }
@@ -74,6 +81,8 @@ namespace osuCrypto
 			bool isEmpty() const { return  load() == u64(-1); }
 			u64 idx() const { return  load()  & (u64(-1) >> 8); }
 			u64 hashIdx() const { return  load() >> 56; }
+
+
 
 			void swap(u64& idx, u64& hashIdx)
 			{
@@ -93,7 +102,6 @@ namespace osuCrypto
 			typename std::enable_if< M == NotThreadSafe, u64>::type exchange(u64 newVal) { auto v = mS.mVal; mS.mVal = newVal;  return v; }
 			template<CuckooTypes M = Mode>
 			typename std::enable_if< M == NotThreadSafe, u64>::type load() const { return mS.mVal; }
-
         };
 
 
@@ -124,6 +132,8 @@ namespace osuCrypto
         // insert several items with pre-hashed values
         void insert(const u64& numInserts, const u64* itemIdxs, const block* hashs);
         
+        void insertOne(u64 itemIdx, u64 hashIdx, u64 tryIdx);
+
         struct FindResult
         {
             u64 mInputIdx;
@@ -166,7 +176,8 @@ namespace osuCrypto
 
         u64 getHash(const u64& inputIdx, const u64& hashIdx);
 
-        static u64 getHash(const block& hash, const u64& hashIdx, u64 num_bins);
+        static block expand(const block& hash, const u8& numHash, const u64& num_bins, const u64& binMask );
+        static u64 getHash2(const block& hash, const u8& hashIdx, const u64& num_bins);
         static u8 minCollidingHashIdx(u64 target, block& hashes, u8 numHashFunctions, u64 numBins);
     };
 }

@@ -41,6 +41,8 @@ namespace osuCrypto
         // Internal variable denoting the name of the program.
         std::string mProgramName;
 
+        std::string mFullStr;
+
         // The key value store of the parsed arguments.
         std::unordered_map<std::string, std::list<std::string>> mKeyValues;
 

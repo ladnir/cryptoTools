@@ -1,6 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
 
-project(cryptoTools)
+project(cryptoTools VERSION 1.2.0)
+
+
 
 
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
@@ -13,11 +18,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 		message("Please consider updating CMake to 3.12+")
 	endif()
 
-	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
-	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
-	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
-
-	
 	set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")	
@@ -43,7 +43,6 @@ endif()
 #############################################
 find_program(NASM nasm)
 
-option(ENABLE_MIRACL    "use the miracl library" OFF)
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
@@ -54,14 +53,10 @@ option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
 
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
-# make these visable to the parent scope
-set(ENABLE_MIRACL ${ENABLE_MIRACL} PARENT_SCOPE)
-set(ENABLE_RELIC  ${ENABLE_RELIC}  PARENT_SCOPE)
 
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
-message(STATUS "Option: ENABLE_MIRACL     = ${ENABLE_MIRACL}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
@@ -74,7 +69,7 @@ if(NOT ENABLE_CPP_14)
 endif()
 
 
-configure_file(cryptoTools/Common/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/cryptoTools/Common/config.h" )
+configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 
 #############################################
 #       cryptoTools, tests, frontend        #
@@ -87,3 +82,79 @@ add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
 
 install(FILES cryptotools-config.cmake DESTINATION cmake/)
+
+
+
+#
+#set(CMAKE_INCLUDE_CURRENT_DIR ON)
+#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
+#include(GenerateExportHeader)
+#
+#generate_export_header(cryptoTools)
+#
+#set_property(TARGET cryptoTools PROPERTY VERSION ${cryptoTools_VERSION})
+#set_property(TARGET cryptoTools PROPERTY
+#  INTERFACE_cryptoTools_MAJOR_VERSION 3)
+#set_property(TARGET cryptoTools APPEND PROPERTY
+#  COMPATIBLE_INTERFACE_STRING cryptoTools_MAJOR_VERSION
+#)
+#message(STATUS "---------------------- here 0")
+#
+#
+#install(TARGETS cryptoTools EXPORT cryptoToolsTargets
+#  LIBRARY DESTINATION lib
+#  ARCHIVE DESTINATION lib
+#  RUNTIME DESTINATION bin
+#  INCLUDES DESTINATION include
+#)
+#message(STATUS "------------------- here 1")
+#
+#include(CMakePackageConfigHelpers)
+#write_basic_package_version_file(
+#  "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfigVersion.cmake"
+#  VERSION ${cryptoTools_VERSION}
+#  COMPATIBILITY AnyNewerVersion
+#)
+#
+#message(STATUS "------------------- here 2")
+#
+#export(EXPORT cryptoToolsTargets
+#  FILE "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsTargets.cmake"
+#  NAMESPACE cryptoTools::
+#)
+#
+#
+#message(STATUS "------------------- here 3")
+#
+#configure_file(cmake/cryptoToolsConfig.cmake
+#  "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfig.cmake"
+#  COPYONLY
+#)
+#
+#
+#message(STATUS "------------------- here 4")
+#set(ConfigPackageLocation lib/cmake/cryptoTools)
+#install(EXPORT cryptoToolsTargets
+#  FILE
+#    cryptoToolsTargets.cmake
+#  NAMESPACE
+#    cryptoTools::
+#  DESTINATION
+#    ${ConfigPackageLocation}
+#)
+#
+#
+#message(STATUS "------------------- here 5")
+#
+#install(
+#  FILES
+#    cmake/cryptoToolsConfig.cmake
+#    "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfigVersion.cmake"
+#  DESTINATION
+#    ${ConfigPackageLocation}
+#  COMPONENT
+#    Devel
+#)
+#
+#
+#message(STATUS "------------------- here 6")
