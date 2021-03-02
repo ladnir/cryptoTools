@@ -39,7 +39,7 @@ follow [these instructions](https://stackoverflow.com/questions/41464356/build-b
  In short, this will build the project (without elliptic curves)
 
 ```
-git clone --recursive https://github.com/osu-crypto/libOTe.git
+git clone --recursive https://github.com/ladnir/cryptoTools
 cd libOTe/cryptoTools/thirdparty/linux
 bash boost.get
 cd ../../..
