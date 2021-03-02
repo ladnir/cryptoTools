@@ -256,6 +256,30 @@ namespace osuCrypto
         }
 
 
+        inline osuCrypto::block operator-(const osuCrypto::block& rhs)const
+        {
+#ifdef OC_ENABLE_SSE2
+            return mm_sub_epi64(rhs);
+#else
+            return cc_sub_epi64(rhs);
+#endif
+        }
+
+#ifdef OC_ENABLE_SSE2
+        inline block mm_sub_epi64(const osuCrypto::block& rhs) const
+        {
+            return _mm_sub_epi64(*this, rhs);
+
+        }
+#endif
+        inline block cc_sub_epi64(const osuCrypto::block& rhs) const
+        {
+            auto ret = *this;
+            ret.as<std::uint64_t>()[0] -= rhs.as<std::uint64_t>()[0];
+            ret.as<std::uint64_t>()[1] -= rhs.as<std::uint64_t>()[1];
+            return ret;
+        }
+
 
         inline bool operator==(const osuCrypto::block & rhs) const
         {
