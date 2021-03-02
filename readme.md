@@ -40,9 +40,9 @@ follow [these instructions](https://stackoverflow.com/questions/41464356/build-b
 
 ```
 git clone --recursive https://github.com/ladnir/cryptoTools
-cd libOTe/cryptoTools/thirdparty/linux
+cd thirdparty/linux
 bash boost.get
-cd ../../..
+cd ../..
 make
 ```
 
