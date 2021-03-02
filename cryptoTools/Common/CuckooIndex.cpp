@@ -131,25 +131,17 @@ namespace osuCrypto
         if (stashSize == 0 && h == 3)
         {
             // parameters that have been experimentally determined.
-            double aMax = 123.5;
-            double bMax = -130;
-            double aSD = 2.3;
-            double bSD = 2.18;
-            double aMean = 6.3;
-            double bMean = 6.45;
+            double a = 240;
+            double b = -std::log2(n) - 256;
 
-            // slope = 123.5 - some small terms when nn < 12.
-            double a = aMax / 2 * (1 + erf((nn - aMean) / (aSD * std::sqrt(2))));
-            // y-intercept = -130 - nn + some small terms when nn < 12.
-            double b = bMax / 2 * (1 + erf((nn - bMean) / (bSD * std::sqrt(2)))) - nn;
-            // small terms follow the integrel of the normal distribution.
+            auto e = (statSecParam - b) / a;
 
             // we have the statSecParam = a e + b, where e = |cuckoo|/|set| is the expenation factor
             // therefore we have that
             //
             //   e = (statSecParam - b) / a
             //
-            return CuckooParam{ 0,(statSecParam - b) / a, 3, n };
+            return CuckooParam{ 0, e, 3, n };
         }
         else if (h == 2)
         {
