@@ -2,7 +2,7 @@
 =====
 
 
-CryptoTools is a portable c++14 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (miracl, Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
+CryptoTools is a portable c++14 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
 
 Thirdparty networking is also supported. See `frontend_cryptoTools/tutorial/Network.cpp` for an example.
   
@@ -39,10 +39,10 @@ follow [these instructions](https://stackoverflow.com/questions/41464356/build-b
  In short, this will build the project (without elliptic curves)
 
 ```
-git clone --recursive https://github.com/osu-crypto/libOTe.git
-cd libOTe/cryptoTools/thirdparty/linux
+git clone --recursive https://github.com/ladnir/cryptoTools
+cd thirdparty/linux
 bash boost.get
-cd ../../..
+cd ../..
 make
 ```
 
@@ -75,5 +75,5 @@ helpful, feel free to spread the word and cite us.
  
 ## Help
  
-Contact Peter Rindal rindalp@oregonstate.edu for any assistance on building or running the library.
+Contact Peter Rindal peterrindal@gmail.com for any assistance on building or running the library.
  
