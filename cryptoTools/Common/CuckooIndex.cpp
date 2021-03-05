@@ -189,14 +189,14 @@ namespace osuCrypto
             throw std::runtime_error("parameters exceeded the maximum number of hash functions are are supported. see getHash(...); " LOCATION);
 
         mHashes.resize(mParams.mN, AllOneBlock);
-        u64 binCount = u64(mParams.mBinScaler * mParams.mN);
+        u64 binCount = mParams.numBins();
 
         //binCount = ;
 
         mBins.resize(binCount);
         mStash.resize(mParams.mStashSize);
         mNumBins = binCount;
-        mNumBinMask = (1ull << log2ceil(binCount)) - 1;
+        mNumBinMask = mParams.binMask();
         //mPrng.SetSeed(ZeroBlock);
         //mRandHashIdx.resize(100);
         //for (u64 i = 1; i < mRandHashIdx.size(); ++i)
@@ -287,7 +287,7 @@ namespace osuCrypto
     {
         for (u64 i = 0; i < numHashFunctions; ++i)
         {
-            if (target == getHash2(hashes, i, numBins))
+            if (target == getHash(hashes, i, numBins))
                 return u8(i);
         }
         return -1;
@@ -319,7 +319,8 @@ namespace osuCrypto
                 }
 #endif // ! NDEBUG
 
-                mHashes[inputIdxs[i]] = expand(hashs[i], 3, mNumBins, mNumBinMask);
+                //mHashes[inputIdxs[i]] = expand(hashs[i], 3, mNumBins, mNumBinMask);
+                mHashes[inputIdxs[i]] = hashs[i];
                 curHashIdxs[i] = 0;
                 tryCounts[i] = 0;
             }
@@ -338,25 +339,15 @@ namespace osuCrypto
 
                 // this data fetch can be slow (after the first loop).
                 // As such, lets do several fetches in parallel.
-                
-                auto h0 = (u8*)&mHashes[inputIdxs[0]];
-                auto h1 = (u8*)&mHashes[inputIdxs[1]];
-                auto h2 = (u8*)&mHashes[inputIdxs[2]];
-                auto h3 = (u8*)&mHashes[inputIdxs[3]];
-                auto h4 = (u8*)&mHashes[inputIdxs[4]];
-                auto h5 = (u8*)&mHashes[inputIdxs[5]];
-                auto h6 = (u8*)&mHashes[inputIdxs[6]];
-                auto h7 = (u8*)&mHashes[inputIdxs[7]];
 
-
-                curAddrs[0] = (*(u64*)(h0 + curHashIdxs[0] * 5)) & 1099511627775ull;
-                curAddrs[1] = (*(u64*)(h1 + curHashIdxs[1] * 5)) & 1099511627775ull;
-                curAddrs[2] = (*(u64*)(h2 + curHashIdxs[2] * 5)) & 1099511627775ull;
-                curAddrs[3] = (*(u64*)(h3 + curHashIdxs[3] * 5)) & 1099511627775ull;
-                curAddrs[4] = (*(u64*)(h4 + curHashIdxs[4] * 5)) & 1099511627775ull;
-                curAddrs[5] = (*(u64*)(h5 + curHashIdxs[5] * 5)) & 1099511627775ull;
-                curAddrs[6] = (*(u64*)(h6 + curHashIdxs[6] * 5)) & 1099511627775ull;
-                curAddrs[7] = (*(u64*)(h7 + curHashIdxs[7] * 5)) & 1099511627775ull;
+                curAddrs[0] = getHash(inputIdxs[0], curHashIdxs[0]);
+                curAddrs[1] = getHash(inputIdxs[1], curHashIdxs[1]);
+                curAddrs[2] = getHash(inputIdxs[2], curHashIdxs[2]);
+                curAddrs[3] = getHash(inputIdxs[3], curHashIdxs[3]);
+                curAddrs[4] = getHash(inputIdxs[4], curHashIdxs[4]);
+                curAddrs[5] = getHash(inputIdxs[5], curHashIdxs[5]);
+                curAddrs[6] = getHash(inputIdxs[6], curHashIdxs[6]);
+                curAddrs[7] = getHash(inputIdxs[7], curHashIdxs[7]);
 
 
                 // same thing here, this fetch is slow. Do them in parallel.
@@ -377,7 +368,8 @@ namespace osuCrypto
                     if (inputIdxs[j] == nullIdx)
                     {
                         inputIdxs[j] = inputIdxsMaster[i];
-                        mHashes[inputIdxs[j]] = expand(hashs[i], 3,mNumBins, mNumBinMask);
+                        mHashes[inputIdxs[j]] = hashs[i];
+                        //mHashes[inputIdxs[j]] = expand(hashs[i], 3,mNumBins, mNumBinMask);
                         curHashIdxs[j] = 0;
                         tryCounts[j] = 0;
                         ++i;
@@ -405,7 +397,8 @@ namespace osuCrypto
                             mStash[k].swap(inputIdxs[j], curHashIdxs[j]);
 
                             inputIdxs[j] = inputIdxsMaster[i];
-                            mHashes[inputIdxs[j]] = expand(hashs[i], 3, mNumBins, mNumBinMask);
+                            //mHashes[inputIdxs[j]] = expand(hashs[i], 3, mNumBins, mNumBinMask);
+                            mHashes[inputIdxs[j]] = hashs[i];
                             curHashIdxs[j] = 0;
                             tryCounts[j] = 0;
                             ++i;
@@ -427,7 +420,8 @@ namespace osuCrypto
 
         while (i < sizeMaster)
         {
-            mHashes[inputIdxsMaster[i]] = expand(hashs[i], mParams.mNumHashes, mNumBins, mNumBinMask);
+            //mHashes[inputIdxsMaster[i]] = expand(hashs[i], mParams.mNumHashes, mNumBins, mNumBinMask);
+            mHashes[inputIdxsMaster[i]] = hashs[i];
             insertOne(inputIdxsMaster[i], 0, 0);
             ++i;
         }
@@ -478,98 +472,22 @@ namespace osuCrypto
     u64 CuckooIndex<Mode>::getHash(const u64& inputIdx, const u64& hashIdx)
     {
         //return CuckooIndex<Mode>::getHash3(mHashes[inputIdx], hashIdx, mNumBinMask);
-        return CuckooIndex<Mode>::getHash2(mHashes[inputIdx], hashIdx, mNumBins);
+        return CuckooIndex<Mode>::getHash(mHashes[inputIdx], hashIdx, mNumBins);
     }
 
 
-    template <typename T, unsigned int b>
-    T
-        rotl(T v)
-    {
-        static_assert(std::is_integral<T>::value, "rotate of non-integral type");
-        static_assert(!std::is_signed<T>::value, "rotate of signed type");
-        constexpr unsigned int num_bits{ std::numeric_limits<T>::digits };
-        static_assert(0 == (num_bits & (num_bits - 1)), "rotate value bit length not power of two");
-        constexpr unsigned int count_mask{ num_bits - 1 };
-        constexpr unsigned int mb{ b & count_mask };
-        using promoted_type = typename std::common_type<int, T>::type;
-        using unsigned_promoted_type = typename std::make_unsigned<promoted_type>::type;
-        return ((unsigned_promoted_type{ v } << mb)
-            | (unsigned_promoted_type{ v } >> (-mb & count_mask)));
-    }
 
-
-    template<CuckooTypes Mode>
-    block CuckooIndex<Mode>::expand(const block& hash, const u8& numHash, const u64& num_bins,const u64& binMask)
-    {
-
-        static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 5,
-            "here we assume that we dont overflow the 16 byte 'block hash'. "
-            "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
-
-        assert(numHash <= 3);
-        //static const u64 mask = (1ull << 40) - 1;
-        auto& bytes = hash.as<const u8>();
-        u64 h0 = *(u64*)bytes.data();
-        u64 h1 = *(u64*)(bytes.data() + 4);
-        u64 h2 = *(u64*)(bytes.data() + 8);
-
-        while ((binMask & h0) >= num_bins)
-            h0 = rotl<u64, 7>(h0);
-        while ((binMask & h1) >= num_bins)
-            h1 =rotl<u64, 7>(h1);
-        while ((binMask & h2) >= num_bins)
-            h2 = rotl<u64, 7>(h2);
-
-        h0 = (binMask & h0);
-        h1 = (binMask & h1);
-        h2 = (binMask & h2);
-
-        //h0 = h0 % num_bins;
-        //h1 = h1 % num_bins;
-        //h2 = h2 % num_bins;
-
-        if (h0 >= num_bins)
-            throw RTE_LOC;
-        if (h1 >= num_bins)
-            throw RTE_LOC;
-        if (h2 >= num_bins)
-            throw RTE_LOC;
-
-        block ret = ZeroBlock;
-        std::memcpy(&ret.as<u8>()[0], &h0, 5);
-        std::memcpy(&ret.as<u8>()[5], &h1, 5);
-        std::memcpy(&ret.as<u8>()[10], &h2, 5);
-        return ret;
-    }
-
-
-    template<CuckooTypes Mode>
-    u64 CuckooIndex<Mode>::getHash2(const block& hash, const u8& hashIdx, const u64& num_bins)
-    {
-
-        static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 5,
-            "here we assume that we dont overflow the 16 byte 'block hash'. "
-            "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
-        //AES aes(block(0, hashIdx));
-        //auto h = aes.ecbEncBlock(hash);
-        //return (*(u64*)&h) % num_bins;
-        auto rr = (*(u64*)&hash.as<u8>()[hashIdx * 5]) & 1099511627775ull;
-        //if (rr >= num_bins)
-        //    throw RTE_LOC;
-        return rr;
-        //return mod64(*(u64*)(((u8*)&hash) + (2 * hashIdx)), num_bins);
-    }
 
     template<CuckooTypes Mode>
     typename CuckooIndex<Mode>::FindResult CuckooIndex<Mode>::find(const block& hashes_)
     {
-        auto hashes = expand(hashes_, mParams.mNumHashes, mNumBins, mNumBinMask);
+        //auto hashes = expand(hashes_, mParams.mNumHashes, mNumBins, mNumBinMask);
+        auto hashes = hashes_;
         if (mParams.mNumHashes == 2)
         {
             std::array<u64, 2>  addr{
-                getHash2(hashes, 0, mNumBins),
-                getHash2(hashes, 1, mNumBins) };
+                getHash(hashes, 0, mNumBins),
+                getHash(hashes, 1, mNumBins) };
 
             std::array<u64, 2> val{
                 mBins[addr[0]].load(),
@@ -620,7 +538,7 @@ namespace osuCrypto
 
             for (u64 i = 0; i < mParams.mNumHashes; ++i)
             {
-                u64 xrHashVal = getHash2(hashes, i, mNumBins);
+                u64 xrHashVal = getHash(hashes, i, mNumBins);
                 auto addr = (xrHashVal) % mBins.size();
 
 
@@ -704,8 +622,8 @@ namespace osuCrypto
                 {
                     idxs[i] = -1;
 
-                    addr[0] = getHash2(hashes[i], 0, mNumBins);
-                    addr[1] = getHash2(hashes[i], 1, mNumBins);
+                    addr[0] = getHash(hashes[i], 0, mNumBins);
+                    addr[1] = getHash(hashes[i], 1, mNumBins);
 
                     findVal[i][0] = mBins[addr[0]].load();
                     findVal[i][1] = mBins[addr[1]].load();
@@ -771,7 +689,7 @@ namespace osuCrypto
 
             block hash = hasher.ecbEncBlock(inputs[i]) ^ inputs[i];
 
-            hash = expand(hash, mParams.mNumHashes, mNumBins, mNumBinMask);
+            //hash = expand(hash, mParams.mNumHashes, mNumBins, mNumBinMask);
 
             if (neq(hash, mHashes[i]))
                 throw std::runtime_error(LOCATION);

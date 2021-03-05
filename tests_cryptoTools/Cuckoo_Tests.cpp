@@ -154,6 +154,7 @@ namespace tests_cryptoTools
         for (u64 i = 0; i < hashes.size(); ++i)
         {
             hashes[i] = prng.get<block>();
+
         }
 
         CuckooIndex<ThreadSafe> hashMap0;
@@ -162,6 +163,23 @@ namespace tests_cryptoTools
         hashMap0.init(setSize, 40, 0, 3);
         hashMap1.init(setSize, 40, 0, 3);
 
+
+        auto mask = hashMap0.mParams.binMask();
+
+        //for (u64 i = 0; i < hashes.size(); ++i)
+        //{
+
+        //    auto e = CuckooIndex<>::expand(hashes[i], 3, hashMap0.mNumBins, mask);
+        //    for (u64 j = 0; j < 3; ++j)
+        //    {
+        //        auto h0 = CuckooIndex<>::getHash(hashes[i], j, hashMap0.mNumBins);
+        //        auto h1 = CuckooIndex<>::getHash2(e, j, hashMap0.mNumBins);
+
+        //        if (h0 != h1)
+        //            throw RTE_LOC;
+        //    }
+
+        //}
 
         for (u64 i = 0; i < base; ++i)
         {
