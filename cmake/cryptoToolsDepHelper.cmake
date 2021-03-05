@@ -3,23 +3,24 @@
 
 if (ENABLE_RELIC)
 
-  if(MSVC)
-        if(NOT RLC_INCLUDE_DIR)
-            set(RLC_INCLUDE_DIR "c:/libs/include")
-            set(RLC_LIBRARY "c:/libs/lib/relic_s.lib")
-        endif()
+  if(NOT RLC_LIBRARY)
+      if(MSVC)
+            if(NOT RLC_INCLUDE_DIR)
+                set(RLC_INCLUDE_DIR "c:/libs/include")
+                set(RLC_LIBRARY "c:/libs/lib/relic_s.lib")
+            endif()
         
-      if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
-        message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
-      endif (NOT Relic_FOUND)
-  else()
-      find_package(Relic REQUIRED)
+          if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
+            message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
+          endif (NOT Relic_FOUND)
+      else()
+          find_package(Relic REQUIRED)
 
-      if (NOT Relic_FOUND)
-        message(FATAL_ERROR "Failed to find Relic")
-      endif (NOT Relic_FOUND)
+          if (NOT Relic_FOUND)
+            message(FATAL_ERROR "Failed to find Relic")
+          endif (NOT Relic_FOUND)
+      endif()
   endif()
-  
   set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
   set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
 
