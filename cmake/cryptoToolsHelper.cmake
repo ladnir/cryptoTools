@@ -16,3 +16,5 @@ endif()
 
 
 set(cryptoTools_INC "${CMAKE_CURRENT_LIST_DIR}/..;${cryptoTools_BIN_DIR};")
+
+include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsDepHelper.cmake")

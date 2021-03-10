@@ -2,6 +2,11 @@
 
 if(NOT cryptoTools_BIN_DIR)
     if(MSVC)
+
+        if(NOT CMAKE_BUILD_TYPE)
+            message(FATAL_ERROR "can not locate cryptoTools binary dir due to CMAKE_BUILD_TYPE not being set")
+        endif()
+
         set(CONFIG_NAME "${CMAKE_BUILD_TYPE}")
         if("${CONFIG_NAME}" STREQUAL "RelWithDebInfo" )
             set(CONFIG_NAME "Release")

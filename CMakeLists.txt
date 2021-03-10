@@ -18,9 +18,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 		message("Please consider updating CMake to 3.12+")
 	endif()
 
-	set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
-	set(CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")	
 
 	# Set a default build type for single-configuration
 	# CMake generators if no build type is set.
@@ -28,11 +25,17 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	   SET(CMAKE_BUILD_TYPE Release)
 	endif()
 
-	# Select flags.
-	SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
-	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb")
-	SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb")
-	
+	if(MSVC)
+
+	else()
+		# Select flags.
+		set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")	
+		SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
+		SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb")
+		SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb")
+	endif()
+
 endif() 
 
 
