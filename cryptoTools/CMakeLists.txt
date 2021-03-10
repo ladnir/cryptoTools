@@ -6,8 +6,8 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS})
 # make projects that include cryptoTools use this as an include folder
-target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/..")
+target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 
 

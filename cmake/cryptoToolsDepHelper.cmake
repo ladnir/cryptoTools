@@ -68,7 +68,7 @@ if(ENABLE_BOOST)
 
     if(NOT BOOST_ROOT OR NOT EXISTS "${BOOST_ROOT}")
         if(MSVC)
-            set(BOOST_ROOT_local "${CMAKE_CURRENT_SOURCE_DIR}/../cryptoTools/thirdparty/win/boost/")
+            set(BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../cryptoTools/thirdparty/win/boost/")
             set(BOOST_ROOT_install "c:/libs/boost/")
             
 
@@ -80,7 +80,7 @@ if(ENABLE_BOOST)
                 set(BOOST_ROOT "${BOOST_ROOT_install}")
             endif()
         else()
-            set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
+            set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/linux/boost/")
         
             set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT}")
         endif()
