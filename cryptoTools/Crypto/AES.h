@@ -180,7 +180,7 @@ namespace osuCrypto {
             inline void hashBlocks(span<const block> plaintexts, span<block> ciphertext) const
             {
                 //assert(plaintexts.size() == ciphertext.size());
-                auto main = (plaintexts.size() / 8) * 8;
+                auto main = u64(plaintexts.size() / 8) * 8;
                 u64 i = 0;
                 auto o = ciphertext.data();
                 auto p = plaintexts.data();
@@ -189,7 +189,7 @@ namespace osuCrypto {
                     hash8Blocks(p + i, o + i);
                 }
 
-                for (; i < ciphertext.size(); ++i)
+                for (; i < u64(ciphertext.size()); ++i)
                 {
                     o[i] = hashBlock(p[i]);
                 }

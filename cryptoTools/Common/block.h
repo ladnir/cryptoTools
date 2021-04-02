@@ -412,7 +412,6 @@ namespace osuCrypto
             if (*this == block(0,0))
                 return block(0, 0);
 
-            auto& x = *this;
             block pow2 = *this;
             block s = block(0, 1);
             while (i)

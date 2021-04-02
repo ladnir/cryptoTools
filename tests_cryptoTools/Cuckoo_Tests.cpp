@@ -164,7 +164,7 @@ namespace tests_cryptoTools
         hashMap1.init(setSize, 40, 0, 3);
 
 
-        auto mask = hashMap0.mParams.binMask();
+        //auto mask = hashMap0.mParams.binMask();
 
         //for (u64 i = 0; i < hashes.size(); ++i)
         //{

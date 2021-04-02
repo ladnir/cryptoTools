@@ -114,10 +114,10 @@ namespace osuCrypto
 
         bool operator==(const Matrix<T>&m) const
         {
-            if (m.rows() != rows() || m.cols() != cols())
+            if (m.rows() != MatrixView<T>::rows() || m.cols() != MatrixView<T>::cols())
                 return false;
 
-            return memcmp(m.data(), data(), size() * sizeof(T))==0;
+            return memcmp(m.data(), MatrixView<T>::data(), MatrixView<T>::size() * sizeof(T))==0;
         }
     };
 
