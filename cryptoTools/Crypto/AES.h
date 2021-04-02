@@ -440,7 +440,9 @@ namespace osuCrypto {
         void hashNBlocks(const block* plaintext, block* hashes) const
         {
             std::array<block, N> buff;
-            memcpy(buff.data(), plaintext, 16 * N);
+            for (int i = 0; i < N; ++i)
+                buff[i] = plaintext[i];
+            //memcpy(buff.data(), plaintext, 16 * N);
             ecbEncNBlocks(buff.data(), buff.data());
             for (int i = 0; i < N; ++i) hashes[i] = buff[i] ^ plaintext[i];
         }

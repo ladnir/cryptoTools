@@ -61,10 +61,29 @@ namespace osuCrypto
         const Matrix<T>& operator=(const Matrix<T>& copy)
         {
             resize(copy.rows(), copy.stride());
-            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
+            auto b = copy.begin();
+            auto e = copy.end();
+
+            std::copy(b, e, MatrixView<T>::mView.begin());
+            //memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
             return copy;
         }
 
+        template<typename T2> 
+        static 
+            typename std::enable_if<std::is_trivially_constructible<T2>::value>::type 
+            zeroFill(T2* begin, T2* end)
+        {
+            std::memset(begin, 0, (end-begin) * sizeof(T2));
+        }
+
+        template<typename T2>
+        static
+            typename std::enable_if<!std::is_trivially_constructible<T2>::value>::type
+            zeroFill(T2* begin, T2* end)
+        {
+            std::fill(begin, end, T2{});
+        }
 
         void resize(u64 rows, u64 columns, AllocType type = AllocType::Zeroed)
         {
@@ -81,8 +100,8 @@ namespace osuCrypto
 
                 auto min = std::min<u64>(old.size(), mCapacity) * sizeof(T);
     
-                if(min)
-                    memcpy(MatrixView<T>::mView.data(), old.data(), min);
+                if (min)
+                    std::copy(old.begin(), old.end(), MatrixView<T>::mView.begin());
 
                 delete[] old.data();
 
@@ -92,7 +111,9 @@ namespace osuCrypto
                 auto newSize = rows * columns;
                 if (MatrixView<T>::size() && newSize > MatrixView<T>::size() && type == AllocType::Zeroed)
                 {
-                    memset(MatrixView<T>::data() + MatrixView<T>::size(), 0, newSize - MatrixView<T>::size());
+                    auto b = MatrixView<T>::data() + MatrixView<T>::size();
+                    auto e = b + newSize - MatrixView<T>::size();
+                    zeroFill<T>(b, e);
                 }
 
                 MatrixView<T>::mView = span<T>(MatrixView<T>::data(), newSize);
@@ -116,8 +137,10 @@ namespace osuCrypto
         {
             if (m.rows() != MatrixView<T>::rows() || m.cols() != MatrixView<T>::cols())
                 return false;
-
-            return memcmp(m.data(), MatrixView<T>::data(), MatrixView<T>::size() * sizeof(T))==0;
+            auto b0 = m.begin();
+            auto e0 = m.end();
+            auto b1 = MatrixView<T>::begin();
+            return std::equal(b0,e0,b1);
         }
     };
 
