@@ -12,7 +12,7 @@ if (ENABLE_RELIC)
         
           if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
             message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
-          endif (NOT Relic_FOUND)
+          endif ()
       else()
           find_package(Relic REQUIRED)
 
