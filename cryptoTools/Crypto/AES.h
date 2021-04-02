@@ -290,7 +290,7 @@ namespace osuCrypto {
 
 #ifdef OC_ENABLE_AESNI
 
-        template<char SS>
+        template<int SS>
         void keyGenHelper8(std::array<block,8>& key)
         {
             std::array<block, 8> keyRcon, t, p;
@@ -370,13 +370,20 @@ namespace osuCrypto {
                 aes[6].mRoundKey[i] = buff[6];
                 aes[7].mRoundKey[i] = buff[7];
             };
+            std::array<block, 8> buff;
 
             for (u64 i = 0; i < main; i += 8)
             {
                 auto* aes = &mAESs[i];
 
-                std::array<block, 8> buff;
-                memcpy(buff.data(), &keys[i], 8 * 16);
+                buff[0] = keys[i + 0];
+                buff[1] = keys[i + 1];
+                buff[2] = keys[i + 2];
+                buff[3] = keys[i + 3];
+                buff[4] = keys[i + 4];
+                buff[5] = keys[i + 5];
+                buff[6] = keys[i + 6];
+                buff[7] = keys[i + 7];
                 cp(0, aes, buff);
 
                 keyGenHelper8<0x01>(buff);
