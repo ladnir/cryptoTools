@@ -53,7 +53,7 @@ namespace osuCrypto {
             void ecbEncFourBlocks(const block* plaintexts, block* ciphertext) const;
 
             // Encrypts 8 blocks pointer to by plaintexts and writes the result to ciphertext
-            void ecbEnc8Blocks(const block* plaintexts, block* ciphertext) const
+            inline void ecbEnc8Blocks(const block* plaintexts, block* ciphertext) const
             {
 
                 block temp[8];
@@ -156,6 +156,43 @@ namespace osuCrypto {
                 ciphertext[5] = finalEnc(temp[5], mRoundKey[10]);
                 ciphertext[6] = finalEnc(temp[6], mRoundKey[10]);
                 ciphertext[7] = finalEnc(temp[7], mRoundKey[10]);
+            }
+
+            inline block hashBlock(const block& plaintexts) const
+            {
+                return ecbEncBlock(plaintexts) ^ plaintexts;
+            }
+
+            inline void hash8Blocks(const block* plaintexts, block* ciphertext) const
+            {
+                std::array<block, 8> buff;
+                ecbEnc8Blocks(plaintexts, buff.data());
+                ciphertext[0] = plaintexts[0] ^ buff[0];
+                ciphertext[1] = plaintexts[1] ^ buff[1];
+                ciphertext[2] = plaintexts[2] ^ buff[2];
+                ciphertext[3] = plaintexts[3] ^ buff[3];
+                ciphertext[4] = plaintexts[4] ^ buff[4];
+                ciphertext[5] = plaintexts[5] ^ buff[5];
+                ciphertext[6] = plaintexts[6] ^ buff[6];
+                ciphertext[7] = plaintexts[7] ^ buff[7];
+            }
+
+            inline void hashBlocks(span<const block> plaintexts, span<block> ciphertext) const
+            {
+                //assert(plaintexts.size() == ciphertext.size());
+                auto main = (plaintexts.size() / 8) * 8;
+                u64 i = 0;
+                auto o = ciphertext.data();
+                auto p = plaintexts.data();
+                for (; i < main; i += 8)
+                {
+                    hash8Blocks(p + i, o + i);
+                }
+
+                for (; i < ciphertext.size(); ++i)
+                {
+                    o[i] = hashBlock(p[i]);
+                }
             }
 
             // Encrypts 16 blocks pointer to by plaintexts and writes the result to ciphertext

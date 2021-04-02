@@ -110,6 +110,15 @@ namespace osuCrypto
             mCapacity = 0;
             return ret;
         }
+
+
+        bool operator==(const Matrix<T>&m) const
+        {
+            if (m.rows() != rows() || m.cols() != cols())
+                return false;
+
+            return memcmp(m.data(), data(), size() * sizeof(T))==0;
+        }
     };
 
 

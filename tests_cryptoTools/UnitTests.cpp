@@ -72,7 +72,6 @@ namespace tests_cryptoTools
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
 
-#ifdef ENABLE_CIRCUITS
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);
         th.add("BetaCircuit_int_Adder_Test              ", BetaCircuit_int_Adder_Test);
         th.add("BetaCircuit_int_Adder_const_Test        ", BetaCircuit_int_Adder_const_Test);
@@ -100,7 +99,6 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_aes_sbox_test               ", BetaCircuit_aes_sbox_test);
         //th.add("BetaCircuit_aes_shiftRows_test          ", BetaCircuit_aes_shiftRows_test);
         //th.add("BetaCircuit_aes_mixColumns_test         ", BetaCircuit_aes_mixColumns_test);
-#endif
     });
 
 

@@ -1242,4 +1242,36 @@ void BetaCircuit_bin_Tests()
     }
 
 }
+
+#else
+
+auto throwNotEnabled()
+{
+    throw UnitTestSkipped("ENABLE_CIRCUITS not defined");
+}
+
+void BetaCircuit_SequentialOp_Test() { throwNotEnabled(); }
+void BetaCircuit_int_Adder_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_Adder_const_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_Subtractor_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_Subtractor_const_Test(){ throwNotEnabled(); }
+void BetaCircuit_uint_Adder_Test(){ throwNotEnabled(); }
+void BetaCircuit_uint_Subtractor_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_Multiply_Test(){ throwNotEnabled(); }
+void BetaCircuit_uint_Multiply_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_Divide_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_LessThan_Test(){ throwNotEnabled(); }
+void BetaCircuit_int_GreaterThanEq_Test(){ throwNotEnabled(); }
+void BetaCircuit_uint_LessThan_Test(){ throwNotEnabled(); }
+void BetaCircuit_uint_GreaterThanEq_Test(){ throwNotEnabled(); }
+void BetaCircuit_multiplex_Test(){ throwNotEnabled(); }
+void BetaCircuit_negate_Test(){ throwNotEnabled(); }
+void BetaCircuit_bitInvert_Test(){ throwNotEnabled(); }
+void BetaCircuit_removeSign_Test(){ throwNotEnabled(); }
+void BetaCircuit_addSign_Test(){ throwNotEnabled(); }
+
+void BetaCircuit_aes_test(){ throwNotEnabled(); }
+void BetaCircuit_json_Tests(){ throwNotEnabled(); }
+void BetaCircuit_bin_Tests(){ throwNotEnabled(); }
+
 #endif
