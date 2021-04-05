@@ -216,6 +216,7 @@
     <ClCompile Include="Network\Session.cpp" />
     <ClCompile Include="Network\IOService.cpp" />
     <ClCompile Include="Common\TestCollection.cpp" />
+    <ClCompile Include="Network\SocketAdapter.cpp" />
     <ClCompile Include="Network\TLS.cpp" />
   </ItemGroup>
   <ItemGroup>

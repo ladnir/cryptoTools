@@ -19,6 +19,8 @@ namespace osuCrypto
 
         for (int i = 1; i < argc;)
         {
+            mFullStr += std::string(argv[i]) + " ";
+
             auto ptr = argv[i];
             if (*ptr++ != '-')
             {

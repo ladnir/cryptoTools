@@ -1779,5 +1779,112 @@ namespace tests_cryptoTools
         chl1.recv(data);
     }
 
+
+
+    void BtNetwork_BasicSocket_test(const osuCrypto::CLP& cmd)
+    {
+        IOService ios;
+
+        std::thread party0 = std::thread([&]() {
+
+            Channel yourSocket = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
+            BasicAdapter adapter;
+
+            // create a seperate thread to run your protocol...
+            std::thread protocol = std::thread([&]() {
+
+                Channel chl(ios, adapter.getSocket());
+
+                std::vector<u8> data(1024);
+                chl.asyncSend(data);
+                chl.recv(data);
+            });
+
+
+            // perform the communication in the main thread.
+            while (true)
+            {
+                auto op = adapter.getOp();
+
+                if (op.mType == BasicAdapter::Operation::Recv)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.recv(buffer);
+                    }
+                    op.finished();
+                }
+                if (op.mType == BasicAdapter::Operation::Send)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.send(buffer);
+                    }
+                    op.finished();
+                }
+
+                if (op.mType == BasicAdapter::Operation::Done)
+                {
+                    protocol.join();
+                    return;
+                }
+            }
+
+
+            });
+
+
+        // create a seperate thread to run your protocol...
+        std::thread party1 = std::thread([&]() {
+
+            Channel yourSocket = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
+            BasicAdapter adapter;
+
+
+            std::thread protocol = std::thread([&]() {
+
+                std::vector<u8> data(1024);
+                Channel chl(ios, adapter.getSocket());
+                chl.recv(data);
+                chl.asyncSend(data);
+                });
+
+
+            // perform the communication in the main thread.
+            while (true)
+            {
+                auto op = adapter.getOp();
+
+                if (op.mType == BasicAdapter::Operation::Recv)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.recv(buffer);
+                    }
+
+                    op.finished();
+                }
+                if (op.mType == BasicAdapter::Operation::Send)
+                {
+                    for (auto buffer : op.mBuffers)
+                    {
+                        yourSocket.send(buffer);
+                    }
+                    op.finished();
+                }
+
+                if (op.mType == BasicAdapter::Operation::Done)
+                {
+                    protocol.join();
+                    return;
+                }
+            }
+
+            });
+
+        party0.join();
+        party1.join();
+
+    }
 }
 #endif

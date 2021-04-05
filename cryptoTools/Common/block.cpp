@@ -5,6 +5,7 @@
 #include "BitIterator.h"
 #include <sstream>
 #include <vector>
+#include "cryptoTools/Crypto/AES.h"
 
 namespace osuCrypto
 {
@@ -103,4 +104,16 @@ std::ostream& operator<<(std::ostream& out, const oc::block& blk)
 
     out << std::dec << std::setw(0);
     return out;
+}
+
+
+namespace
+{
+    oc::AES defaultBlockHasher(oc::block(4632453, 57432));
+}
+
+std::size_t std::hash<oc::block>::operator()(const oc::block& k) const
+{
+    auto h = defaultBlockHasher.ecbEncBlock(k) ^ k;
+    return h.as<std::size_t>()[0];
 }

@@ -76,7 +76,7 @@ class Commit
         }
 
 		// Utility function to test if two commitments are equal.
-        bool operator==(const Commit& rhs)
+        bool operator==(const Commit& rhs) const
         {
             for (u64 i = 0; i < COMMIT_BUFF_u32_SIZE; ++i)
             {
@@ -87,7 +87,7 @@ class Commit
         }
 
 		// Utility function to test if two commitments are not equal.
-		bool operator!=(const Commit& rhs)
+		bool operator!=(const Commit& rhs) const
         {
             return !(*this == rhs);
         }
@@ -127,5 +127,5 @@ class Commit
     static_assert(sizeof(Commit) == RandomOracle::HashSize, "needs to be Pod type");
 
 
-	std::ostream& operator<<(std::ostream& out, const Commit& comm);
+	//std::ostream& operator<<(std::ostream& out, const Commit& comm);
 }

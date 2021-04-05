@@ -56,6 +56,37 @@ namespace osuCrypto {
         refillBuffer();
     }
 
+    void PRNG::implGet(u8* destu8, u64 lengthu8)
+    {
+        while (lengthu8)
+        {
+            u64 step = std::min(lengthu8, mBufferByteCapacity - mBytesIdx);
+
+            memcpy(destu8, ((u8*)mBuffer.data()) + mBytesIdx, step);
+
+            destu8 += step;
+            lengthu8 -= step;
+            mBytesIdx += step;
+
+            if (mBytesIdx == mBufferByteCapacity)
+            {
+                if (lengthu8 >= 8 * sizeof(block))
+                {
+                    span<block> b((block*)destu8, lengthu8 / sizeof(block));
+                    mAes.ecbEncCounterMode(mBlockIdx, b.size(), b.data());
+                    mBlockIdx += b.size(); 
+
+                    step = b.size() * sizeof(block);
+
+                    destu8 += step;
+                    lengthu8 -= step;
+                }
+
+                refillBuffer();
+            }
+        }
+    }
+
     u8 PRNG::getBit() { return get<bool>(); }
 
     const block PRNG::getSeed() const
