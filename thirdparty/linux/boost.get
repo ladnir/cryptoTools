@@ -3,10 +3,10 @@
 set -e
 
 if [ ! -d boost ]; then
-    wget -c 'https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.bz2' -O ./boost_1_69_0.tar.bz2
-    tar xfj boost_1_69_0.tar.bz2
-    mv boost_1_69_0 boost
-    rm  boost_1_69_0.tar.bz2
+    wget -c 'https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.bz2' -O ./boost_1_75_0.tar.bz2
+    tar xfj boost_1_75_0.tar.bz2
+    mv boost_1_75_0 boost
+    rm  boost_1_75_0.tar.bz2
 fi
 
 cd ./boost
