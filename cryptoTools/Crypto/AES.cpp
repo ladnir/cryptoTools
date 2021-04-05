@@ -728,7 +728,7 @@ namespace osuCrypto {
                 temp[6] = finalEnc(temp[6], mRoundKey[10]);
                 temp[7] = finalEnc(temp[7], mRoundKey[10]);
 
-                memcpy(ciphertext + idx, temp, sizeof(temp));
+                memcpy((u8*)(ciphertext + idx), temp, sizeof(temp));
             }
 
             for (; idx < static_cast<i32>(blockLength); ++idx)
@@ -746,7 +746,7 @@ namespace osuCrypto {
                 temp = roundEnc(temp, mRoundKey[9]);
                 temp = finalEnc(temp, mRoundKey[10]);
 
-                memcpy(ciphertext + idx, &temp, sizeof(temp));
+                memcpy((u8*)(ciphertext + idx), &temp, sizeof(temp));
             }
 
         }
