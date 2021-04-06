@@ -80,7 +80,7 @@ add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
 
-install(FILES cryptotools-config.cmake DESTINATION cmake/)
+#install(FILES cryptotools-config.cmake DESTINATION cmake/)
 
 
 
