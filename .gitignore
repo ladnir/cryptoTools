@@ -22,6 +22,9 @@ frontend_cryptoTools/frontend_cryptoTools
 
 frontend_cryptoTools/certs/*
 
+.DS_Store
+*/.DS_Store
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

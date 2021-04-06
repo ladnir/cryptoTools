@@ -78,18 +78,4 @@ namespace osuCrypto {
 
 }
 
-#ifdef _MSC_VER
-#ifdef ENABLE_RELIC
-#pragma comment(lib, "relic_s.lib")
-#endif
-
-#ifdef ENABLE_MIRACL
-#pragma comment(lib, "miracl.lib")
-#endif
-
-#ifdef ENABLE_WOLFSSL
-#pragma comment(lib, "wolfssl.lib")
-#endif
-#endif
-
 namespace oc = osuCrypto;

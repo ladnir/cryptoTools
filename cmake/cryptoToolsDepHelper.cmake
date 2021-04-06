@@ -46,7 +46,7 @@ if(ENABLE_WOLFSSL)
   find_library(WOLFSSL_LIB NAMES wolfssl  HINTS "${WolfSSL_DIR}")
   set(WOLFSSL_LIB_INCLUDE_DIRS "${WolfSSL_DIR}include/")
   
-  # if we cant fint it, throw an error
+  # if we cant find it, throw an error
   if(NOT WOLFSSL_LIB)
       message(FATAL_ERROR "Failed to find WolfSSL at " ${WolfSSL_DIR})
   endif()

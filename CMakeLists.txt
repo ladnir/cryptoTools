@@ -59,7 +59,7 @@ set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
 message(STATUS "cryptoTools options\n=======================================================")
 
-message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
+message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
@@ -77,14 +77,13 @@ configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 #############################################
 #       cryptoTools, tests, frontend        #
 #############################################
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}) 
 
 
 add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
 
-install(FILES cryptotools-config.cmake DESTINATION cmake/)
+#install(FILES cryptotools-config.cmake DESTINATION cmake/)
 
 
 

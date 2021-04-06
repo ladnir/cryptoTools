@@ -21,8 +21,9 @@ git clone --recursive https://github.com/ladnir/cryptoTools
 cd cryptoTools/thirdparty/win
 [build boost at c:\libs\boost or thirdparty\win\boost]
 cd ../..
-cmake .
+[build using cmake, eg with visual studio]
 ```
+The `libOTe` library will be written to `[build_dir]/libOTe/` and the exectable to `[build_dir]/frontend_cryptoTools/`.
 
  * See `cmake .` for build options.
 
@@ -43,8 +44,10 @@ git clone --recursive https://github.com/ladnir/cryptoTools
 cd thirdparty/linux
 bash boost.get
 cd ../..
+cmake .
 make
 ```
+The `libOTe` library will be written to `[build_dir]/libOTe/` and the exectable to `[build_dir]/frontend_cryptoTools/`, where `[build_dir]=.` for in source build.
 
 This will build the minimum version of the library (wihtout elliptic curves).
  To see all the command line options, execute the program 

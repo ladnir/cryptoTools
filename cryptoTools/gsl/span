@@ -514,6 +514,7 @@ public:
     // [span.obs], span observers
     constexpr index_type length() const GSL_NOEXCEPT { return size(); }
     constexpr index_type size() const GSL_NOEXCEPT { return storage_.size(); }
+    constexpr std::uint64_t usize() const GSL_NOEXCEPT { return (std::uint64_t)size(); }
     constexpr index_type length_bytes() const GSL_NOEXCEPT { return size_bytes(); }
     constexpr index_type size_bytes() const GSL_NOEXCEPT
     {
