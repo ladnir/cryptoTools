@@ -15,6 +15,6 @@ if(NOT cryptoTools_LIB)
 endif()
 
 
-set(cryptoTools_INC "${CMAKE_CURRENT_LIST_DIR}/..;${cryptoTools_BIN_DIR};")
+set(cryptoTools_INC "${cryptoTools_BIN_DIR};${CMAKE_CURRENT_LIST_DIR}/..;")
 
 include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsDepHelper.cmake")
