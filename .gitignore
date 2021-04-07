@@ -24,6 +24,7 @@ frontend_cryptoTools/certs/*
 
 .DS_Store
 */.DS_Store
+__pycache__/
 
 # Build results
 [Dd]ebug/

@@ -2,68 +2,33 @@
 =====
 
 
-CryptoTools is a portable c++14 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2, SHA1 (assembly), and eliptic curve crypto (Relic-Toolkit). There are also several other utilities tailered for implementing protocols.
+CryptoTools is a portable c++14 library containing a collection of tools for building cryptographic protocols. This include asynchronous networking (Boost Asio), several fast primitives such as AES (AES-NI), Blake2 (assembly), and eliptic curve crypto (Relic-Toolkit). There are also several other utilities tailored for implementing protocols.
 
 Thirdparty networking is also supported. See `frontend_cryptoTools/tutorial/Network.cpp` for an example.
   
 
  
-## Install
+## Build
  
 The library is *cross platform* and has been tested on both Windows, Linux and Mac. There are two **optional dependencies** including [Boost 1.69](http://www.boost.org/) (networking), and [Relic](https://github.com/relic-toolkit/relic/) for elliptic curves. 
 
-### Windows
-
-In `Powershell`, this will set up the project 
-
-```
-git clone --recursive https://github.com/ladnir/cryptoTools
-cd cryptoTools/thirdparty/win
-[build boost at c:\libs\boost or thirdparty\win\boost]
-cd ../..
-[build using cmake, eg with visual studio]
-```
-The `libOTe` library will be written to `[build_dir]/libOTe/` and the exectable to `[build_dir]/frontend_cryptoTools/`.
-
- * See `cmake .` for build options.
-
-**Enable elliptic curves using:**
- * `cmake .  -DENABLE_RELIC=ON`: Build the library with integration to the 
-      [Relic](https://github.com/relic-toolkit/relic/) library. Requires that
-      relic is built with `cmake . -DMULTI=OPENMP` and installed.
-
-**Boost and visual studio:**  If boost does not build with visual studio 2017+
-follow [these instructions](https://stackoverflow.com/questions/41464356/build-boost-with-msvc-14-1-vs2017-rc). 
-
-### Unix
  
- In short, this will build the project (without elliptic curves)
+ In short, this will build the project
 
 ```
-git clone --recursive https://github.com/ladnir/cryptoTools
-cd thirdparty/linux
-bash boost.get
-cd ../..
-cmake .
-make
+git clone https://github.com/ladnir/cryptoTools
+python build.py setup boost relic
+python build.py -DENABLE_RELIC=ON 
 ```
-The `libOTe` library will be written to `[build_dir]/libOTe/` and the exectable to `[build_dir]/frontend_cryptoTools/`, where `[build_dir]=.` for in source build.
+The resulting binaries are written to `out/build/linux` or `out/build/x64-Release` depending on a unix or windows build. The frontend executable is `frontend_cryptoTools/`.
 
-This will build the minimum version of the library (wihtout elliptic curves).
- To see all the command line options, execute the program 
- 
-`./frontend_libOTe`
+Relic and Boost are not required. In this case `boost`, `relic` can be omitted, e.g.
+```
+python build.py setup 
+python build.py -DENABLE_RELIC=OFF -DENABLE_BOOST=OFF
+```
 
-
-**Enable elliptic curves using:**
- * `cmake .  -DENABLE_RELIC=ON`: Build the library with integration to the 
-      [Relic](https://github.com/relic-toolkit/relic/) library. Requires that
-      relic is built with `cmake . -DMULTI=PTHREAD` and installed.
-
-**Note:** In the case that miracl or boost is already installed, the steps 
-`cd cryptoTools/thirdparty/linux; bash boost.get` can be skipped and CMake will attempt 
-to find them instead. Boost is found with the CMake findBoost package. 
-
+Several other build options are available. See the output of `python build.py` or `cmake .`
 
  ## License
 This project is dual licensed under MIT and Unlicensed.

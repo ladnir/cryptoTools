@@ -68,7 +68,7 @@ if(ENABLE_BOOST)
 
     if(NOT BOOST_ROOT OR NOT EXISTS "${BOOST_ROOT}")
         if(MSVC)
-            set(BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../cryptoTools/thirdparty/win/boost/")
+            set(BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
             set(BOOST_ROOT_install "c:/libs/boost/")
             
 
@@ -80,7 +80,7 @@ if(ENABLE_BOOST)
                 set(BOOST_ROOT "${BOOST_ROOT_install}")
             endif()
         else()
-            set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/linux/boost/")
+            set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
         
             set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT}")
         endif()
@@ -98,9 +98,9 @@ if(ENABLE_BOOST)
 
     macro(findBoost)
         if(MSVC)
-            find_package(Boost 1.69 COMPONENTS system thread regex)
+            find_package(Boost 1.75 COMPONENTS system thread regex)
         else()
-            find_package(Boost 1.69 COMPONENTS system thread)
+            find_package(Boost 1.75 COMPONENTS system thread)
         endif()
     endmacro()
 
@@ -110,7 +110,7 @@ if(ENABLE_BOOST)
     endif()
 
     if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Failed to find boost 1.69+ at ${BOOST_SEARCH_PATHS} or at system install")
+        message(FATAL_ERROR "Failed to find boost 1.75+ at ${BOOST_ROOT} or at system install")
     endif()
 
     message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )

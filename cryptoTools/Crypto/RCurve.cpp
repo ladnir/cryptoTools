@@ -31,7 +31,7 @@ extern "C" {
 #define RLC_BN_SIZE BN_SIZE
 #endif
 
-#if !defined(MULTI) || ((MULTI != PTHREAD) && (MULTI != OPENMP))
+#if !defined(MULTI) || ((MULTI != PTHREAD) && (MULTI != OPENMP) && (MULTI != MSVCTLS))
 static_assert(0, "Relic must be built with -DMULTI=PTHREAD or -DMULTI=OPENMP");
 #endif
 
