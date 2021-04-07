@@ -2,7 +2,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsFindBuildDir.cmake")
 
 
 if(NOT EXISTS "${cryptoTools_BIN_DIR}")
-	message(FATAL_ERROR "failed to find cryptoTools build directoy")
+	message(FATAL_ERROR "failed to find cryptoTools build directory")
 endif()
 
 

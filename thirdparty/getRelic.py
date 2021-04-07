@@ -10,20 +10,22 @@ def getRelic():
     
     if os.path.isdir("relic") == False:
         os.system("git clone https://github.com/relic-toolkit/relic.git")
-        #os.system("git checkout e670262184f8dd16e69765446d159f1dbcc1ebdd")
 
     os.chdir(cwd + "/relic")
+    os.system("git checkout 3f616ad64c3e63039277b8c90915607b6a2c504c")
+
     buildDir = cwd + "/relic/build"
         
     config = ""
     argStr = "-DCMAKE_BUILD_TYPE=Release"
+    #RelWithDebInfo
 
     osStr = (platform.system())
     sudo = ""
     if(osStr == "Windows"):
-        argStr = argStr + " -DMULTI=MSVCTLS"
+        argStr = argStr + " -DMULTI=OPENMP"
         argStr = argStr + " -DCMAKE_INSTALL_PREFIX:PATH=C:\libs"
-        argStr = argStr + " -DWSIZE=32 ARCH=X86"
+        #argStr = argStr + " -DWSIZE=32 -DARCH=X86"
         config = " --config Release "
         buildDir = buildDir + "_win"
     else:
@@ -32,7 +34,6 @@ def getRelic():
         buildDir = buildDir + "_linux"
 
         
-    mkDirCmd = "mkdir -p {0}".format(buildDir); 
     CMakeCmd = "cmake -S . -B {0} {1}".format(buildDir, argStr)
     BuildCmd = "cmake --build {0} {1} --parallel ".format(buildDir, config)
 
@@ -42,8 +43,10 @@ def getRelic():
     
     
 
-    print(mkDirCmd + "\n\n")
-    os.system(mkDirCmd)
+    print("mkdir "+ buildDir+ "\n\n")
+    if not os.path.exists(buildDir):
+        os.mkdir(buildDir)
+    #os.system(mkDirCmd)
     print(CMakeCmd + "\n\n")
     os.system(CMakeCmd)
     print(BuildCmd + "\n\n")
