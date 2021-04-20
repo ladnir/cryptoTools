@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <list>
 #include <functional>
 #include <string>
 #include <cryptoTools/Common/Defines.h>
@@ -48,6 +49,9 @@ namespace osuCrypto
         Result runAll(uint64_t repeatCount = 1, CLP const * cmd = nullptr);
         Result runIf(CLP& cmd);
         void list();
+
+        std::vector<u64> search(const std::list<std::string>& s);
+
 
         void add(std::string name, std::function<void()> test);
         void add(std::string name, std::function<void(const CLP&)> test);

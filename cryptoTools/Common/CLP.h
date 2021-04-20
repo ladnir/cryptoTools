@@ -237,5 +237,9 @@ namespace osuCrypto
 
             throw error(span<const std::string>(names.data(), names.size()));
         }
+
+
+        const std::list<std::string>& getList(std::vector<std::string> names) const;
+
     };
 }

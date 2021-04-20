@@ -109,14 +109,7 @@ namespace osuCrypto
         {
 			Expects(v >= 0);
 
-            BitIterator ret(*this);
-            ret.mByte += (v / 8);
-            ret.mShift += (v & 7);
-            
-            if (ret.mShift > 7) ++ret.mByte;
-            
-            ret.mShift &= 7;
-            ret.mMask = 1 << mShift;
+            BitIterator ret(mByte, mShift + v);
 
             return ret;
         }

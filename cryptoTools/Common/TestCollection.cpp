@@ -5,6 +5,7 @@
 #include <cryptoTools/Common/CLP.h>
 #include <iomanip>
 #include <cmath>
+#include <algorithm>
 
 namespace osuCrypto
 {
@@ -109,6 +110,38 @@ namespace osuCrypto
         }
     }
 
+    std::vector<u64> TestCollection::search(const std::list<std::string>& s)
+    {
+        std::set<u64> ss;
+        std::vector<u64> ret;
+        std::vector<std::string> names;
+
+        auto toLower = [](std::string data) {
+            std::transform(data.begin(), data.end(), data.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+            return data;
+        };
+
+        for (auto& t : mTests)
+            names.push_back(toLower(t.mName));
+
+        for (auto str : s)
+        {
+            auto lStr = toLower(str);
+            for (auto& t : names)
+            {
+                if (t.find(lStr) != std::string::npos)
+                {
+                    auto i = &t - names.data();
+                   if( ss.insert(i).second)
+                       ret.push_back(i);
+                }
+            }
+        }
+
+        return ret;
+    }
+
     TestCollection::Result TestCollection::runIf(CLP& cmd)
     {
         if (cmd.isSet("list"))
@@ -123,7 +156,13 @@ namespace osuCrypto
             auto loop = cmd.get<u64>("loop");
 
             if (cmd.hasValue(unitTestTag))
-                return run(cmd.getMany<u64>(unitTestTag), loop, &cmd);
+            {
+                auto& str = cmd.getList(unitTestTag);
+                if (str.front().size() && std::isalpha(str.front()[0]))
+                    return run(search(str), loop, &cmd);
+                else
+                    return run(cmd.getMany<u64>(unitTestTag), loop, &cmd);
+            }
             else
                 return runAll(loop, &cmd);
         }
