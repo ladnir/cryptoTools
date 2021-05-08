@@ -64,9 +64,9 @@ namespace tests_cryptoTools
         th.add("BitVector_Copy_Test                     ", BitVector_Copy_Test_Impl);
         th.add("BitVector_Resize_Test                   ", BitVector_Resize_Test_Impl);
         
-        //th.add("CuckooIndex_many_Test                   ", CuckooIndex_many_Test_Impl);
-        //th.add("CuckooIndex_paramSweep_Test             ", CuckooIndex_paramSweep_Test_Impl);
-        //th.add("CuckooIndex_parallel_Test               ", CuckooIndex_parallel_Test_Impl);
+        th.add("CuckooIndex_many_Test                   ", CuckooIndex_many_Test_Impl);
+        th.add("CuckooIndex_paramSweep_Test             ", CuckooIndex_paramSweep_Test_Impl);
+        th.add("CuckooIndex_parallel_Test               ", CuckooIndex_parallel_Test_Impl);
 
         th.add("Ecc2mNumber_Test                        ", Ecc2mNumber_Test);
         th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);
@@ -76,7 +76,6 @@ namespace tests_cryptoTools
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
 
-#ifdef ENABLE_CIRCUITS
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);
         th.add("BetaCircuit_int_Adder_Test              ", BetaCircuit_int_Adder_Test);
         th.add("BetaCircuit_int_Adder_const_Test        ", BetaCircuit_int_Adder_const_Test);
@@ -104,7 +103,6 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_aes_sbox_test               ", BetaCircuit_aes_sbox_test);
         //th.add("BetaCircuit_aes_shiftRows_test          ", BetaCircuit_aes_shiftRows_test);
         //th.add("BetaCircuit_aes_mixColumns_test         ", BetaCircuit_aes_mixColumns_test);
-#endif
     });
 
 

@@ -14,9 +14,8 @@ namespace osuCrypto
 		BitReference(const BitReference& rhs) = default;
 
 		// Construct a reference to the bit in the provided byte offset by the shift.
-		// Shift should be less than 8.
-        BitReference(u8* byte, u8 shift)
-            :mByte(byte), mMask(1 << shift), mShift(shift) {}
+        BitReference(u8* byte, u64 shift)
+            :mByte(byte + (shift / 8)), mMask(1 << (shift%8)), mShift(shift % 8) {}
 
 		// Construct a reference to the bit in the provided byte offset by the shift and mask.
 		// Shift should be less than 8. and the mask should equal 1 << shift.
@@ -54,7 +53,7 @@ namespace osuCrypto
     class BitIterator
     {
     public:
-
+        BitIterator() = default;
 		// Default copy constructor
 		BitIterator(const BitIterator& cp) = default;
 
@@ -110,14 +109,7 @@ namespace osuCrypto
         {
 			Expects(v >= 0);
 
-            BitIterator ret(*this);
-            ret.mByte += (v / 8);
-            ret.mShift += (v & 7);
-            
-            if (ret.mShift > 7) ++ret.mByte;
-            
-            ret.mShift &= 7;
-            ret.mMask = 1 << mShift;
+            BitIterator ret(mByte, mShift + v);
 
             return ret;
         }

@@ -16,6 +16,7 @@ namespace osuCrypto
         u64 mNumHashes, mN;
 
         u64 numBins() { return static_cast<u64>(mN * mBinScaler); }
+        u64 binMask() { return (1ull << log2ceil(numBins())) - 1; }
     };
 
    extern CuckooParam k2n32s40CuckooParam;
@@ -50,6 +51,7 @@ namespace osuCrypto
    // Not Thread safe version only requires u64.
    template<> struct CuckooStorage<NotThreadSafe> { u64 mVal; };
 
+
    // A cuckoo hashing implementation. The cuckoo hash table takes {value, index}
    // pairs as input and stores the index. 
    template<CuckooTypes Mode = ThreadSafe>
@@ -61,11 +63,17 @@ namespace osuCrypto
         ~CuckooIndex();
 
 		// the maximum number of hash functions that are allowed.
-		#define CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT 4
+		#define CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT 3
+
+        u64 mReinsertLimit = 200;
+        u64 mNumBins,mNumBinMask;
+        //std::vector<u8> mRandHashIdx;
+        //PRNG mPrng;
 
         struct Bin
         {
 			CuckooStorage<Mode> mS;
+
 			Bin() {
 				mS.mVal = (-1);}
 			Bin(u64 idx, u64 hashIdx) { mS.mVal = (idx | (hashIdx << 56)); }
@@ -74,6 +82,8 @@ namespace osuCrypto
 			bool isEmpty() const { return  load() == u64(-1); }
 			u64 idx() const { return  load()  & (u64(-1) >> 8); }
 			u64 hashIdx() const { return  load() >> 56; }
+
+
 
 			void swap(u64& idx, u64& hashIdx)
 			{
@@ -93,7 +103,6 @@ namespace osuCrypto
 			typename std::enable_if< M == NotThreadSafe, u64>::type exchange(u64 newVal) { auto v = mS.mVal; mS.mVal = newVal;  return v; }
 			template<CuckooTypes M = Mode>
 			typename std::enable_if< M == NotThreadSafe, u64>::type load() const { return mS.mVal; }
-
         };
 
 
@@ -124,6 +133,8 @@ namespace osuCrypto
         // insert several items with pre-hashed values
         void insert(const u64& numInserts, const u64* itemIdxs, const block* hashs);
         
+        void insertOne(u64 itemIdx, u64 hashIdx, u64 tryIdx);
+
         struct FindResult
         {
             u64 mInputIdx;
@@ -166,7 +177,107 @@ namespace osuCrypto
 
         u64 getHash(const u64& inputIdx, const u64& hashIdx);
 
-        static u64 getHash(const block& hash, const u64& hashIdx, u64 num_bins);
+        //template <typename T, unsigned int b>
+        //inline static T
+        //    rotl(T v)
+        //{
+        //    static_assert(std::is_integral<T>::value, "rotate of non-integral type");
+        //    static_assert(!std::is_signed<T>::value, "rotate of signed type");
+        //    constexpr unsigned int num_bits{ std::numeric_limits<T>::digits };
+        //    static_assert(0 == (num_bits & (num_bits - 1)), "rotate value bit length not power of two");
+        //    constexpr unsigned int count_mask{ num_bits - 1 };
+        //    constexpr unsigned int mb{ b & count_mask };
+        //    using promoted_type = typename std::common_type<int, T>::type;
+        //    using unsigned_promoted_type = typename std::make_unsigned<promoted_type>::type;
+        //    return ((unsigned_promoted_type{ v } << mb)
+        //        | (unsigned_promoted_type{ v } >> (-mb & count_mask)));
+        //}
+
+
+        //inline static block expand(const block& hash, const u8& numHash, const u64& num_bins, const u64& binMask)
+        //{
+
+        //    static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 5,
+        //        "here we assume that we dont overflow the 16 byte 'block hash'. "
+        //        "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
+
+        //    assert(numHash <= 3);
+        //    //static const u64 mask = (1ull << 40) - 1;
+        //    auto& bytes = hash.as<const u8>();
+        //    u64 h0 = *(u64*)bytes.data();
+        //    u64 h1 = *(u64*)(bytes.data() + 4);
+        //    u64 h2 = *(u64*)(bytes.data() + 8);
+
+        //    while ((binMask & h0) >= num_bins)
+        //        h0 = rotl<u64, 7>(h0);
+        //    while ((binMask & h1) >= num_bins)
+        //        h1 = rotl<u64, 7>(h1);
+        //    while ((binMask & h2) >= num_bins)
+        //        h2 = rotl<u64, 7>(h2);
+
+        //    h0 = (binMask & h0);
+        //    h1 = (binMask & h1);
+        //    h2 = (binMask & h2);
+
+        //    //h0 = h0 % num_bins;
+        //    //h1 = h1 % num_bins;
+        //    //h2 = h2 % num_bins;
+
+        //    if (h0 >= num_bins)
+        //        throw RTE_LOC;
+        //    if (h1 >= num_bins)
+        //        throw RTE_LOC;
+        //    if (h2 >= num_bins)
+        //        throw RTE_LOC;
+
+        //    block ret = ZeroBlock;
+        //    std::memcpy(&ret.as<u8>()[0], &h0, 5);
+        //    std::memcpy(&ret.as<u8>()[5], &h1, 5);
+        //    std::memcpy(&ret.as<u8>()[10], &h2, 5);
+        //    return ret;
+        //}
+
+        //inline static u64 getHash2(const block& hash, const u8& hashIdx, const u64& num_bins)
+        //{
+
+        //    static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 4,
+        //        "here we assume that we dont overflow the 16 byte 'block hash'. "
+        //        "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
+        //    //AES aes(block(0, hashIdx));
+        //    //auto h = aes.ecbEncBlock(hash);
+        //    //return (*(u64*)&h) % num_bins;
+        //    //auto rr = (*(u64*)&hash.as<u8>()[hashIdx * 5]) & 1099511627775ull;
+        //    //if (rr >= num_bins)
+        //    //    throw RTE_LOC;
+        //    //return rr;
+        //    return mod64(*(u64*)(((u8*)&hash) + (2 * hashIdx)), num_bins);
+        //}
+
+        inline static u64 getHash(const block& hash, const u8& hashIdx, const u64& num_bins)
+        {
+            u8* ptr = (u8*)&hash;
+            ptr += 2 * hashIdx;
+            //if (ptr > &hash.as<u8>()[8])
+            //    throw RTE_LOC;
+            static_assert(CUCKOOINDEX_MAX_HASH_FUNCTION_COUNT < 4,
+                "here we assume that we dont overflow the 16 byte 'block hash'. "
+                "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
+
+
+            u64 h = *(u64*)ptr;
+            return h % num_bins;
+
+            //auto& bytes = hash.as<const u8>();
+            //u64& h = *(u64*)(bytes.data() + 4 * hashIdx);
+
+            //auto binMask = (1ull << log2ceil(num_bins)) - 1;
+            //while ((binMask & h) >= num_bins)
+            //    h = rotl<u64, 7>(h);
+
+            //return getHash2(hash, hashIdx, num_bins);
+        }
+
+
         static u8 minCollidingHashIdx(u64 target, block& hashes, u8 numHashFunctions, u64 numBins);
     };
 }

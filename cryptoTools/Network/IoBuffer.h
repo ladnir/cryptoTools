@@ -107,6 +107,8 @@ namespace osuCrypto
     };
 
 
+#define _SILENCE_CXX20_IS_POD_DEPRECATION_WARNING
+
     /// type trait that defines what is considered a STL like Container
     /// 
     /// Must have the following member types:  pointer, size_type, value_type
@@ -174,6 +176,7 @@ namespace osuCrypto
             return mTrueReceiveSize;
         }
     };
+
     static_assert(is_container<ReceiveAtMost<u8>>::value, "sss");
     static_assert(has_resize<ReceiveAtMost<u8>, void(typename ReceiveAtMost<u8>::size_type)>::value, "sss");
 

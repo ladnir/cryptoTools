@@ -17,8 +17,15 @@ config.h
 
 CMakeCache.txt
 */CMakeCache.txt
+*.a
+cryptoTools/Common/config.h
+frontend_cryptoTools/frontend_cryptoTools
 
 frontend_cryptoTools/certs/*
+
+.DS_Store
+*/.DS_Store
+__pycache__/
 
 # Build results
 [Dd]ebug/

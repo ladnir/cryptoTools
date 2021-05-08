@@ -13,7 +13,7 @@
 
 namespace osuCrypto {
 
-
+ 
 
 #ifdef ENABLE_NET_LOG
 #define LOG_MSG(m) mLog.push(m);
@@ -167,6 +167,7 @@ namespace osuCrypto {
             if (mFinalized == false && canceled() == false)
             {
                 IF_LOG(mChl->mLog.push("in StartSocketOp::cancel(...), sender=" +std::to_string(sendOp)+", t=" + time()));
+                std::ignore=(sendOp);
 
                 mTimer.cancel();
                 mCanceled = true;
@@ -742,6 +743,7 @@ namespace osuCrypto {
             else
             {
                 LOG_MSG("recv defered "+str+": " + std::to_string(hasItems) + " && " + std::to_string(available));
+                std::ignore = str;
             }
         });
     }
@@ -775,6 +777,7 @@ namespace osuCrypto {
             else
             {
                 LOG_MSG("send defered "+str+": " + std::to_string(hasItems) + " && " + std::to_string(available));
+                std::ignore = str;
             }
         });
     }

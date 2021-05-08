@@ -19,6 +19,8 @@ namespace osuCrypto
 
         for (int i = 1; i < argc;)
         {
+            mFullStr += std::string(argv[i]) + " ";
+
             auto ptr = argv[i];
             if (*ptr++ != '-')
             {
@@ -115,93 +117,14 @@ namespace osuCrypto
         return false;
     }
 
-
-
-    //
-    //int CLP::getInt(std::vector<std::string> names, std::string failMessage)
-    //{
-    //    for (auto name : names)
-    //    {
-    //        if (hasValue(name))
-    //        {
-    //            return getInt(name);
-    //        }
-    //    }
-    //
-    //    if (failMessage != "")
-    //        std::cout << failMessage << std::endl;
-    //
-    //    throw CommandLineParserError();
-    //}
-    //
-    //double CLP::getDouble(std::string name)
-    //{
-    //    std::stringstream ss;
-    //    ss << *mKeyValues[name].begin();
-    //
-    //    double ret;
-    //    ss >> ret;
-    //
-    //    return ret;
-    //}
-    //
-    //double CLP::getDouble(std::vector<std::string> names, std::string failMessage)
-    //{
-    //    for (auto name : names)
-    //    {
-    //        if (hasValue(name))
-    //        {
-    //            return getDouble(name);
-    //        }
-    //    }
-    //
-    //    if (failMessage != "")
-    //        std::cout << failMessage << std::endl;
-    //
-    //    throw CommandLineParserError();
-    //}
-    //
-    //std::string CLP::getString(std::string name)
-    //{
-    //    return *mKeyValues[name].begin();
-    //}
-    //
-    //std::list<std::string> CLP::getStrings(std::string name)
-    //{
-    //    return mKeyValues[name];
-    //}
-    //
-    //std::list<std::string> CLP::getStrings(std::vector<std::string> names, std::string failMessage)
-    //{
-    //    for (auto name : names)
-    //    {
-    //        if (hasValue(name))
-    //        {
-    //            return getStrings(name);
-    //        }
-    //    }
-    //
-    //    if (failMessage != "")
-    //        std::cout << failMessage << std::endl;
-    //
-    //    throw CommandLineParserError();
-    //}
-    //
-    //
-    //std::string CLP::getString(std::vector<std::string> names, std::string failMessage)
-    //{
-    //    for (auto name : names)
-    //    {
-    //        if (hasValue(name))
-    //        {
-    //            return getString(name);
-    //        }
-    //    }
-    //
-    //    if (failMessage != "")
-    //        std::cout << failMessage << std::endl;
-    //
-    //    throw CommandLineParserError();
-    //}
-    //
+    const std::list<std::string>& CLP::getList(std::vector<std::string> names) const
+    {
+        for (auto name : names)
+        {
+            if (isSet(name))
+            {
+                return mKeyValues.find(name)->second;
+            }
+        }
+    }
 }
