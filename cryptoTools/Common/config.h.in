@@ -10,6 +10,9 @@
 // use the libsodium library for curves
 #cmakedefine ENABLE_SODIUM @ENABLE_SODIUM@
 
+// does the libsodium library support noclamp operations on Montgomery curves?
+#cmakedefine SODIUM_MONTGOMERY @SODIUM_MONTGOMERY@
+
 // compile the circuit library
 #cmakedefine ENABLE_CIRCUITS @ENABLE_CIRCUITS@
 

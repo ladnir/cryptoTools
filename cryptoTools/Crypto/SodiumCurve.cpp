@@ -134,6 +134,8 @@ Rist25519 Rist25519::fromHash(const unsigned char* d)
     return out;
 }
 
+#ifdef SODIUM_MONTGOMERY
+
 bool Monty25519::operator==(const Monty25519& cmp) const
 {
     return sodium_memcmp(data, cmp.data, size) == 0;
@@ -142,7 +144,7 @@ bool Monty25519::operator==(const Monty25519& cmp) const
 Monty25519 operator*(const Scalar25519& a, const Monty25519& b)
 {
     Monty25519 prod;
-    if (crypto_scalarmult(prod.data, a.data, b.data) < 0)
+    if (crypto_scalarmult_noclamp(prod.data, a.data, b.data) < 0)
         throw std::runtime_error(LOCATION);
     return prod;
 }
@@ -150,7 +152,7 @@ Monty25519 operator*(const Scalar25519& a, const Monty25519& b)
 Monty25519 Monty25519::mulGenerator(const Scalar25519& n)
 {
     Monty25519 prod;
-    if (crypto_scalarmult_base(prod.data, n.data) < 0)
+    if (crypto_scalarmult_base_noclamp(prod.data, n.data) < 0)
         throw std::runtime_error(LOCATION);
     return prod;
 }
@@ -159,6 +161,8 @@ const Monty25519 Monty25519::primeSubgroupGenerator{9};
 const Monty25519 Monty25519::primeTwistSubgroupGenerator{2};
 const Monty25519 Monty25519::wholeGroupGenerator{6};
 const Monty25519 Monty25519::wholeTwistGroupGenerator{3};
+
+#endif
 
 }
 }

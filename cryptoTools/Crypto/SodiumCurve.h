@@ -27,9 +27,8 @@ struct Scalar25519
         data[size - 1] &= 0x7f;
     }
 
-    // Generate a random scalar. If clamp, clear the bottom 3 bits and set bit 254 so that
-    // multiplication will always clear the cofactor and it will always have the same bit
-    // length.
+    // Generate a random scalar. If clamp, clear the bottom 3 bits and set bit 254 so that curve
+    // multiplication will always clear the cofactor and it will always have the same bit length.
     Scalar25519(PRNG& prng, bool clamp_ = true)
     {
         prng.get(data, size);
@@ -155,6 +154,8 @@ inline Prime25519 operator/(const Prime25519& a, const Prime25519& b)
     return a * b.inverse();
 }
 
+static_assert(std::is_pod<Prime25519>::value);
+
 struct Ed25519;
 
 Ed25519 operator*(const Prime25519&, const Ed25519&);
@@ -202,6 +203,8 @@ struct Ed25519
     static const size_t size = crypto_core_ed25519_BYTES;
     unsigned char data[size];
 };
+
+static_assert(std::is_pod<Ed25519>::value);
 
 struct Rist25519;
 
@@ -277,6 +280,10 @@ struct Rist25519
     unsigned char data[size];
 };
 
+static_assert(std::is_pod<Rist25519>::value);
+
+#ifdef SODIUM_MONTGOMERY
+
 struct Monty25519;
 
 Monty25519 operator*(const Scalar25519&, const Monty25519&);
@@ -284,9 +291,6 @@ Monty25519 operator*(const Scalar25519&, const Monty25519&);
 // Montgomery curve for 25519. It only stores the x coordinate, so point addition is impossible,
 // only multiplication and (internally) differential addition. Represents the curve and its twist
 // equally well.
-//
-// All multiplication operations clamp the scalar operand, as unfortunately libsodium does not have
-// a way of avoiding this.
 struct Monty25519
 {
     Monty25519() = default;
@@ -343,10 +347,9 @@ struct Monty25519
     static const Monty25519 wholeTwistGroupGenerator;
 };
 
-static_assert(std::is_pod<Prime25519>::value);
-static_assert(std::is_pod<Ed25519>::value);
-static_assert(std::is_pod<Rist25519>::value);
 static_assert(std::is_pod<Monty25519>::value);
+
+#endif
 
 }
 }

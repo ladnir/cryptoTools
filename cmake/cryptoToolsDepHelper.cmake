@@ -1,3 +1,5 @@
+include(CheckSymbolExists)
+
 ## Relic
 ###########################################################################
 
@@ -44,6 +46,20 @@ if (ENABLE_SODIUM)
   message(STATUS "SODIUM_INCLUDE_DIRS:  ${SODIUM_INCLUDE_DIRS}")
   message(STATUS "SODIUM_LIBRARY_DIRS:  ${SODIUM_LIBRARY_DIRS}")
   message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}\n")
+
+  set(CMAKE_REQUIRED_INCLUDES ${SODIUM_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_LINK_OPTIONS ${SODIUM_LDFLAGS})
+  set(CMAKE_REQUIRED_LIBRARIES ${SODIUM_LIBRARIES})
+  check_symbol_exists(crypto_scalarmult_noclamp "sodium.h" SODIUM_MONTGOMERY)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  unset(CMAKE_REQUIRED_INCLUDES)
+
+  if (SODIUM_MONTGOMERY)
+    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
+  else()
+    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
+  endif()
 endif (ENABLE_SODIUM)
 
 
