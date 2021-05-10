@@ -73,8 +73,6 @@ if(NOT ENABLE_CPP_14)
 endif()
 
 
-configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
-
 #############################################
 #       cryptoTools, tests, frontend        #
 #############################################
@@ -83,6 +81,8 @@ configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
+
+configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 
 #install(FILES cryptotools-config.cmake DESTINATION cmake/)
 
