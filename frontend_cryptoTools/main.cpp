@@ -142,6 +142,7 @@ void print_aes_bristol()
 
 int main(int argc, char** argv)
 {
+
     CLP cmd(argc, argv);
 
     if (cmd.isSet("tut"))

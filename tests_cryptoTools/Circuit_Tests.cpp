@@ -75,7 +75,7 @@ void BetaCircuit_int_Adder_Test()
 
     for (u64 i = 0; i < tries; ++i)
     {
-        size = i + 2;// (prng.get<u64>() % 63) + 2;
+        size = (prng.get<u64>() % 63) + 2;// i + 2;//
         i64 a = signExtend(prng.get<i64>(), size);
         i64 b = signExtend(prng.get<i64>(), size);
         i64 c = signExtend((a + b), size);
@@ -84,20 +84,23 @@ void BetaCircuit_int_Adder_Test()
         auto* msb = lib.int_int_add_msb(size);
         auto* cir1 = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Depth);
         auto* cir2 = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Size);
+        auto* cir3 = lib.int_int_add(size, size, size, BetaLibrary::Optimized::Size);
 
         //msb->levelByAndDepth();
         cir1->levelByAndDepth();
+        cir3->levelByAndDepth(BetaCircuit::LevelizeType::NoReorder);
 
-
-        std::vector<BitVector> inputs(2), output1(1), output2(1), output3(1);
+        std::vector<BitVector> inputs(2), output1(1), output2(1), output3(1), output4(1);
         inputs[0].append((u8*)&a, size);
         inputs[1].append((u8*)&b, size);
         output1[0].resize(size);
         output2[0].resize(1);
         output3[0].resize(size);
+        output4[0].resize(size);
 
         cir1->evaluate(inputs, output1);
         cir2->evaluate(inputs, output3);
+        cir3->evaluate(inputs, output4);
         msb->evaluate(inputs, output2);
         //std::cout << "msb " << size << "  -> " << msb->mNonlinearGateCount / double(size) << std::endl;
 
@@ -129,12 +132,101 @@ void BetaCircuit_int_Adder_Test()
 
         if (output3.back().back() != output1.back().back())
         {
-        	std::cout << "exp: " << output1.back().back() << std::endl;
-        	std::cout << "act: " << output3.back().back() << std::endl;
-        	throw std::runtime_error(LOCATION);
+            std::cout << "exp: " << output1.back().back() << std::endl;
+            std::cout << "act: " << output3.back().back() << std::endl;
+            throw std::runtime_error(LOCATION);
+        }
+        if (output4.back().back() != output1.back().back())
+        {
+            std::cout << "exp: " << output1.back().back() << std::endl;
+            std::cout << "act: " << output4.back().back() << std::endl;
+            throw std::runtime_error(LOCATION);
         }
     }
 }
+
+
+
+void BetaCircuit_xor_and_lvl_test(const oc::CLP& cmd)
+{
+
+    u64 w = 8;
+    u64 n = 10;
+
+    BetaCircuit cir;
+
+    BetaBundle a(w);
+    BetaBundle b(w);
+    BetaBundle c(w);
+    BetaBundle t0(w);
+    BetaBundle t1(w);
+    BetaBundle z(w);
+
+    cir.addInputBundle(a);
+    cir.addInputBundle(b);
+    cir.addInputBundle(c);
+    cir.addTempWireBundle(t0);
+    cir.addTempWireBundle(t1);
+    cir.addOutputBundle(z);
+
+    for (u64 i = 0; i < w; ++i)
+    {
+        cir.addGate(a[i], c[i], oc::GateType::Xor, t0[i]);
+        //cir.addCopy(t0[i], t1[i]);
+        cir.addGate(t0[i], b[i], oc::GateType::And, z[i]);
+    }
+
+
+
+    BitVector in0(w);
+    BitVector in1(w);
+    BitVector in2(w);
+
+    for (u64 j = 0; j < n; ++j)
+    {
+        PRNG prng(block(0, 0));
+        prng.get(in0.data(), in0.sizeBytes());
+        prng.get(in1.data(), in1.sizeBytes());
+        prng.get(in2.data(), in2.sizeBytes());
+
+        std::vector<BitVector> inputs{ in0, in1, in2 };
+        std::vector<BitVector> outputs{ 1 }; outputs[0].resize(w);
+        cir.evaluate(inputs, outputs);
+
+
+        for (u64 i = 0; i < w; ++i)
+        {
+            u8 exp = (in0[i] ^ in2[i]) & in1[i];
+            u8 act = outputs[0][i];
+
+            if (exp != act)
+                throw RTE_LOC;
+        }
+
+
+        auto cirLvl = cir;
+        cirLvl.levelByAndDepth();
+
+        cirLvl.evaluate(inputs, outputs);
+
+        for (u64 i = 0; i < w; ++i)
+        {
+            u8 exp = (in0[i] ^ in2[i]) & in1[i];
+            u8 act = outputs[0][i];
+
+            if (exp != act)
+                throw RTE_LOC;
+        }
+        //std::cout << "check" << std::endl;
+        //for (auto gate : cirLvl.mGates)
+        //{
+
+        //    oc::lout << "g " << gate.mInput[0] << " " << gate.mInput[1] << " " <<
+        //        gateToString(gate.mType) << " " << gate.mOutput << std::endl;
+        //}
+    }
+}
+
 
 u8 msb(i64 v)
 {
