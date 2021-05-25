@@ -1343,6 +1343,7 @@ auto throwNotEnabled()
 }
 
 void BetaCircuit_SequentialOp_Test() { throwNotEnabled(); }
+void BetaCircuit_xor_and_lvl_test(const oc::CLP& cmd){ throwNotEnabled(); }
 void BetaCircuit_int_Adder_Test(){ throwNotEnabled(); }
 void BetaCircuit_int_Adder_const_Test(){ throwNotEnabled(); }
 void BetaCircuit_int_Subtractor_Test(){ throwNotEnabled(); }
