@@ -6,6 +6,7 @@
 extern "C" {
 #include "relic/relic_core.h"
 #include "relic/relic_fp.h"
+#include "relic/relic_util.h"
 }
 
 #if !defined(GSL_UNLIKELY)
@@ -686,21 +687,81 @@ namespace osuCrypto
             throw std::runtime_error("Relic ep_read error " LOCATION);
     }
 
+
+
+    namespace
+    {
+#ifndef RLC_TRY
+#define RLC_TRY TRY
+#define RLC_CATCH_ANY CATCH_ANY
+#define RLC_THROW THROW
+#define RLC_FINALLY FINALLY
+#endif // !RLC_TRY
+
+        void bn_rand(bn_t a, int sign, int bits, PRNG& prng) {
+            int digits;
+
+            RLC_RIP(bits, digits, bits);
+            digits += (bits > 0 ? 1 : 0);
+
+            bn_grow(a, digits);
+
+            prng.get((uint8_t*)a->dp, digits * sizeof(dig_t));
+
+            a->used = digits;
+            a->sign = sign;
+            if (bits > 0) {
+                dig_t mask = ((dig_t)1 << (dig_t)bits) - 1;
+                a->dp[a->used - 1] &= mask;
+            }
+            bn_trim(a);
+        }
+
+        void bn_rand_mod(bn_t a, bn_t b, PRNG& prng) {
+            do {
+                bn_rand(a, bn_sign(b), bn_bits(b) + 40, prng);
+                bn_mod(a, a, b);
+            } while (bn_is_zero(a) || bn_cmp_abs(a, b) != RLC_LT);
+        }
+
+        void ep_rand(ep_t p, PRNG& prng) {
+            bn_t n, k;
+
+            bn_null(k);
+            bn_null(n);
+
+            RLC_TRY{
+                bn_new(k);
+                bn_new(n);
+                ep_curve_get_ord(n);
+                bn_rand_mod(k, n, prng);
+
+                ep_mul_gen(p, k);
+            } RLC_CATCH_ANY{
+                RLC_THROW(ERR_CAUGHT);
+            } RLC_FINALLY{
+                bn_free(k);
+                bn_free(n);
+            }
+        }
+    }
+
+
     void REccPoint::randomize(PRNG& prng)
     {
-        randomize(prng.get<block>());
+        ep_rand(*this, prng);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_rand error " LOCATION);
     }
 
     void REccPoint::randomize(const block& seed)
     {
-        ep_map(*this, (u8*)&seed, sizeof(block));
-        if (GSL_UNLIKELY(err_get_code()))
-            throw std::runtime_error("Relic ep_map error " LOCATION);
+        PRNG prng(seed);
+        randomize(prng);
     }
-
     void REccPoint::randomize()
     {
-        ep_rand(*this);
+        ::ep_rand(*this);
         if (GSL_UNLIKELY(err_get_code()))
             throw std::runtime_error("Relic ep_rand error " LOCATION);
     }

@@ -81,7 +81,44 @@ namespace osuCrypto
 		u64 mNonlinearGateCount;
         BetaWire mWireCount;
         std::vector<BetaGate> mGates;
-        std::vector<std::tuple<u64, BetaWire, std::string, bool>> mPrints;
+
+
+        struct Print
+        {
+            u64 mGateIdx;
+            BetaWire mWire;
+            std::string mMsg;
+            bool mInvert;
+
+            Print() = default;
+            Print(const Print&) = default;
+            Print(Print&&) = default;
+            Print& operator=(const Print&) = default;
+            Print& operator=(Print&&) = default;
+
+            Print(u64 g, BetaWire w, std::string m, bool inv)
+                :mGateIdx(g)
+                , mWire(w)
+                , mMsg(m)
+                , mInvert(inv)
+            {}
+
+            bool operator==(const Print& p) const
+            {
+                return 
+                    mGateIdx == p.mGateIdx &&
+                    mWire == p.mWire &&
+                    mMsg == p.mMsg &&
+                    mInvert == p.mInvert;
+            }
+            bool operator!=(const Print& p) const
+            {
+                return !(*this == p);
+            }
+        };
+        std::vector<Print> mPrints;
+        using PrintIter = std::vector<Print>::iterator;
+
         std::vector<BetaWireFlag> mWireFlags;
 
         std::vector<BetaBundle> mInputs, mOutputs;
@@ -110,8 +147,14 @@ namespace osuCrypto
 
 		void evaluate(span<BitVector> input, span<BitVector> output, bool print = true);
 
-
-		void levelByAndDepth();
+        enum LevelizeType
+        {
+            Reorder,
+            NoReorder,
+            SingleNoReorder
+        };
+        void levelByAndDepth();
+        void levelByAndDepth(LevelizeType type);
 
 #ifdef USE_JSON
         void writeJson(std::ostream& out);
@@ -132,6 +175,23 @@ namespace osuCrypto
         bool operator!=(const BetaCircuit& rhs)const;
 
         block hash() const;
+
+
+        BetaCircuit& operator<<(const std::string& s)
+        {
+            addPrint(s);
+            return *this;
+        }
+        BetaCircuit& operator<<(const BetaWire& s)
+        {
+            addPrint(s);
+            return *this;
+        }
+        BetaCircuit& operator<<(const BetaBundle& s)
+        {
+            addPrint(s);
+            return *this;
+        }
 
 	};
 

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "cryptoTools/Common/CLP.h"
 
 
 void BetaCircuit_SequentialOp_Test();
@@ -21,6 +21,7 @@ void BetaCircuit_negate_Test();
 void BetaCircuit_bitInvert_Test();
 void BetaCircuit_removeSign_Test();
 void BetaCircuit_addSign_Test();
+void BetaCircuit_xor_and_lvl_test(const oc::CLP& cmd);
 
 void BetaCircuit_aes_test();
 void BetaCircuit_json_Tests();
