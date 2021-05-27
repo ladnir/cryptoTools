@@ -13,6 +13,7 @@ CMakeFiles/*
 *install_manifest.txt*
 */CMakeFiles/*
 *cmake_install.cmake
+config.h
 
 CMakeCache.txt
 */CMakeCache.txt

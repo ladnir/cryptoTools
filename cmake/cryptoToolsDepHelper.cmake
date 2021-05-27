@@ -1,3 +1,5 @@
+include(CheckSymbolExists)
+
 ## Relic
 ###########################################################################
 
@@ -9,7 +11,7 @@ if (ENABLE_RELIC)
                 set(RLC_INCLUDE_DIR "c:/libs/include")
                 set(RLC_LIBRARY "c:/libs/lib/relic_s.lib")
             endif()
-        
+
           if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
             message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
           endif ()
@@ -31,6 +33,34 @@ if (ENABLE_RELIC)
 endif (ENABLE_RELIC)
 
 
+# libsodium
+###########################################################################
+
+if (ENABLE_SODIUM)
+  pkg_check_modules(SODIUM REQUIRED libsodium)
+
+  if (NOT SODIUM_FOUND)
+    message(FATAL_ERROR "Failed to find libsodium")
+  endif (NOT SODIUM_FOUND)
+
+  message(STATUS "SODIUM_INCLUDE_DIRS:  ${SODIUM_INCLUDE_DIRS}")
+  message(STATUS "SODIUM_LIBRARY_DIRS:  ${SODIUM_LIBRARY_DIRS}")
+  message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}\n")
+
+  set(CMAKE_REQUIRED_INCLUDES ${SODIUM_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_LINK_OPTIONS ${SODIUM_LDFLAGS})
+  set(CMAKE_REQUIRED_LIBRARIES ${SODIUM_LIBRARIES})
+  check_symbol_exists(crypto_scalarmult_noclamp "sodium.h" SODIUM_MONTGOMERY)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  unset(CMAKE_REQUIRED_INCLUDES)
+
+  if (SODIUM_MONTGOMERY)
+    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
+  else()
+    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
+  endif()
+endif (ENABLE_SODIUM)
 
 
 ## WolfSSL
@@ -41,11 +71,11 @@ if(ENABLE_WOLFSSL)
   if(NOT DEFINED WolfSSL_DIR)
     set(WolfSSL_DIR "/usr/local/")
   endif()
-  
+
 
   find_library(WOLFSSL_LIB NAMES wolfssl  HINTS "${WolfSSL_DIR}")
   set(WOLFSSL_LIB_INCLUDE_DIRS "${WolfSSL_DIR}include/")
-  
+
   # if we cant find it, throw an error
   if(NOT WOLFSSL_LIB)
       message(FATAL_ERROR "Failed to find WolfSSL at " ${WolfSSL_DIR})
@@ -53,7 +83,7 @@ if(ENABLE_WOLFSSL)
 
   message(STATUS "WOLFSSL_LIB:  ${WOLFSSL_LIB}")
   message(STATUS "WOLFSSL_INC:  ${WOLFSSL_LIB_INCLUDE_DIRS}\n")
-  
+
 endif(ENABLE_WOLFSSL)
 
 
@@ -63,14 +93,14 @@ endif(ENABLE_WOLFSSL)
 
 
 if(ENABLE_BOOST)
-    
+
     set(BOOST_SEARCH_PATHS "${BOOST_ROOT}")
 
     if(NOT BOOST_ROOT OR NOT EXISTS "${BOOST_ROOT}")
         if(MSVC)
             set(BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
             set(BOOST_ROOT_install "c:/libs/boost/")
-            
+
 
             set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT_local} ${BOOST_ROOT_install}")
 
@@ -81,7 +111,7 @@ if(ENABLE_BOOST)
             endif()
         else()
             set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
-        
+
             set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT}")
         endif()
     endif()
@@ -115,5 +145,5 @@ if(ENABLE_BOOST)
 
     message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
     message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
-    
+
 endif()

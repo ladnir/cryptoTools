@@ -47,6 +47,7 @@ endif()
 find_program(NASM nasm)
 
 option(ENABLE_RELIC     "use the relic library" OFF)
+option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
@@ -56,11 +57,11 @@ option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
 
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
-
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
+message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
@@ -72,8 +73,6 @@ if(NOT ENABLE_CPP_14)
 endif()
 
 
-configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
-
 #############################################
 #       cryptoTools, tests, frontend        #
 #############################################
@@ -82,6 +81,8 @@ configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
+
+configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 
 #install(FILES cryptotools-config.cmake DESTINATION cmake/)
 

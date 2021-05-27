@@ -2,19 +2,25 @@
 
 
 // use the miracl library for curves
-#cmakedefine ENABLE_MIRACL @ENABLE_MIRACL@ 
+#cmakedefine ENABLE_MIRACL @ENABLE_MIRACL@
 
 // use the relic library for curves
-#cmakedefine ENABLE_RELIC @ENABLE_RELIC@ 
+#cmakedefine ENABLE_RELIC @ENABLE_RELIC@
+
+// use the libsodium library for curves
+#cmakedefine ENABLE_SODIUM @ENABLE_SODIUM@
+
+// does the libsodium library support noclamp operations on Montgomery curves?
+#cmakedefine SODIUM_MONTGOMERY @SODIUM_MONTGOMERY@
 
 // compile the circuit library
-#cmakedefine ENABLE_CIRCUITS @ENABLE_CIRCUITS@ 
+#cmakedefine ENABLE_CIRCUITS @ENABLE_CIRCUITS@
 
 // include the full GSL header (C++14). If not defined, uses gsl_lite (c++11)
-#cmakedefine ENABLE_FULL_GSL @ENABLE_FULL_GSL@ 
+#cmakedefine ENABLE_FULL_GSL @ENABLE_FULL_GSL@
 
 // defined if we should use cpp 14 and undefined means cpp 11
-#cmakedefine ENABLE_CPP_14 @ENABLE_CPP_14@ 
+#cmakedefine ENABLE_CPP_14 @ENABLE_CPP_14@
 
 // enables the use of assembly based SHA1
 #cmakedefine ENABLE_NASM @ENABLE_NASM@
