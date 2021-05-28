@@ -386,6 +386,29 @@ namespace osuCrypto
             return ret;
         }
 
+        inline int testc(const block& b) const
+        {
+#ifdef OC_ENABLE_SSE2
+            return mm_testc_si128(b);
+#else
+            return cc_testc_si128(b);
+#endif
+        }
+
+        inline int cc_testc_si128(const block& b) const
+        {
+            auto v0 = ~as<uint64_t>()[0] & b.as<uint64_t>()[0];
+            auto v1 = ~as<uint64_t>()[1] & b.as<uint64_t>()[1];
+            return (v0 || v1) ? 0 : 1;
+        }
+
+#ifdef OC_ENABLE_SSE2
+        inline int mm_testc_si128(const block& b) const
+        {
+            return _mm_testc_si128(*this, b);
+        }
+#endif
+
         inline void gf128Mul(const block& y, block& xy1, block& xy2) const
         {
 #ifdef OC_ENABLE_PCLMUL

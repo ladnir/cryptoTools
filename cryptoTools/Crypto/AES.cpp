@@ -250,7 +250,7 @@ namespace osuCrypto {
 
 
         template<>
-        block AES<Portable>::roundEnc(block& state, const block& roundKey)
+        block AES<Portable>::roundEnc(block state, const block& roundKey)
         {
             SubBytes(state);
             ShiftRows(state);
@@ -260,7 +260,7 @@ namespace osuCrypto {
         }
 
         template<>
-        block AES<Portable>::finalEnc(block& state, const block& roundKey)
+        block AES<Portable>::finalEnc(block state, const block& roundKey)
         {
             SubBytes(state);
             ShiftRows(state);
