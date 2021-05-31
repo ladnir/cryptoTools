@@ -22,15 +22,6 @@ extern "C" {
 #ifndef RLC_GT
 #define RLC_GT CMP_GT
 #endif
-#ifndef RLC_FP_BYTES
-#define RLC_FP_BYTES FP_BYTES
-#endif
-#ifndef RLC_FP_BYTES
-#define RLC_FP_BYTES FP_BYTES
-#endif
-#ifndef RLC_BN_SIZE
-#define RLC_BN_SIZE BN_SIZE
-#endif
 
 #if !defined(MULTI) || ((MULTI != PTHREAD) && (MULTI != OPENMP) && (MULTI != MSVCTLS))
 static_assert(0, "Relic must be built with -DMULTI=PTHREAD or -DMULTI=OPENMP");
@@ -677,6 +668,11 @@ namespace osuCrypto
         return ep_cmp(*this, cmp) != RLC_EQ;
     }
 
+    void REccPoint::fromHash(const unsigned char* data, size_t len)
+    {
+        ep_map(*this, data, len);
+    }
+
     void REccPoint::toBytes(u8* dest) const
     {
         ep_write_bin(dest, static_cast<int>(sizeBytes()), *this, 1);
@@ -819,8 +815,6 @@ namespace osuCrypto
         PRNG prng(seed);
         randomize(prng);
     }
-
-    const size_t REccPoint::size = 1 + RLC_FP_BYTES;
 }
 
 #endif

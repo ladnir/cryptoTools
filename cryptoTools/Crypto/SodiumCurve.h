@@ -320,6 +320,14 @@ struct Rist25519
         return fromHash(h.data());
     }
 
+    // Feed data[0..len] into a hash function, then map the hash to the curve.
+    void fromHash(const unsigned char* data, size_t len)
+    {
+        RandomOracle ro(fromHashLength);
+        ro.Update(data, len);
+        *this = fromHash(ro);
+    }
+
     size_t sizeBytes() const
     {
         return size;

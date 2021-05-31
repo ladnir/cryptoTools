@@ -13,6 +13,11 @@ extern "C" {
 #undef MONTY
 #endif
 #include <cryptoTools/Crypto/PRNG.h>
+#include "Hashable.h"
+
+#ifndef RLC_FP_BYTES
+#define RLC_FP_BYTES FP_BYTES
+#endif
 
 namespace osuCrypto
 {
@@ -189,6 +194,9 @@ namespace osuCrypto
         bool operator==(const REccPoint& cmp) const;
         bool operator!=(const REccPoint& cmp) const;
 
+        // Feed data[0..len] into a hash function, then map the hash to the curve.
+        void fromHash(const unsigned char* data, size_t len);
+
         u64 sizeBytes() const { return size; }
         void toBytes(u8* dest) const;
         void fromBytes(u8* src);
@@ -206,7 +214,7 @@ namespace osuCrypto
         operator ep_t& () { return mVal; }
         operator const ep_t& () const { return mVal; }
 
-        static const u64 size;
+        static const u64 size = 1 + RLC_FP_BYTES;
 
         ep_t mVal;
     private:
@@ -254,6 +262,18 @@ namespace osuCrypto
 
         friend Point;
         friend REccNumber;
+    };
+
+    template<>
+    struct Hashable<REccPoint, void> : std::true_type
+    {
+        template<typename Hasher>
+        static void hash(const REccPoint& p, Hasher& hasher)
+        {
+            u8 buff[REccPoint::size];
+            p.toBytes(buff);
+            hasher.Update(buff, REccPoint::size);
+        }
     };
 }
 #endif
