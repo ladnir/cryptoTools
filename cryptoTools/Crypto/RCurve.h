@@ -13,6 +13,7 @@ extern "C" {
 #undef MONTY
 #endif
 #include <cryptoTools/Crypto/PRNG.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
 #include "Hashable.h"
 
 #ifndef RLC_FP_BYTES
@@ -194,8 +195,26 @@ namespace osuCrypto
         bool operator==(const REccPoint& cmp) const;
         bool operator!=(const REccPoint& cmp) const;
 
+        // Generate randomly from a 256 bit hash. d must point to fromHashLength uniformly random
+        // bytes.
+        static REccPoint fromHash(const unsigned char* d)
+        {
+            REccPoint p;
+            p.fromHash(d, fromHashLength);
+            return p;
+        }
+
+        static REccPoint fromHash(RandomOracle ro)
+        {
+            std::array<unsigned char, fromHashLength> h;
+            ro.Final(h);
+            return fromHash(h.data());
+        }
+
         // Feed data[0..len] into a hash function, then map the hash to the curve.
         void fromHash(const unsigned char* data, size_t len);
+
+        static const size_t fromHashLength = 0x20;
 
         u64 sizeBytes() const { return size; }
         void toBytes(u8* dest) const;
