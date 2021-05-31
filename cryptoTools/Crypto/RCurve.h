@@ -4,7 +4,7 @@
 
 #ifdef ENABLE_RELIC
 
-
+#include <string.h>
 extern "C" {
     #include <relic/relic_bn.h>
     #include <relic/relic_ep.h>
@@ -29,6 +29,13 @@ namespace osuCrypto
 
         REccNumber();
         REccNumber(const REccNumber& num);
+
+        REccNumber(REccNumber&& moveFrom)
+        {
+            memcpy(&mVal, &moveFrom.mVal, sizeof(bn_t));
+            bn_null(moveFrom.mVal);
+        }
+
         REccNumber(PRNG& prng);
         REccNumber(const i32& val);
 
@@ -41,6 +48,12 @@ namespace osuCrypto
         ~REccNumber();
 
         REccNumber& operator=(const REccNumber& c);
+        REccNumber& operator=(REccNumber&& moveFrom)
+        {
+            std::swap(mVal, moveFrom.mVal);
+            return *this;
+        }
+
         REccNumber& operator=(const bn_t c);
         REccNumber& operator=(int i);
 
@@ -140,6 +153,12 @@ namespace osuCrypto
         REccPoint(PRNG& prng) { ep_new(mVal); randomize(prng); }
         REccPoint(const REccPoint& copy) { ep_new(mVal); ep_copy(*this, copy); }
 
+        REccPoint(REccPoint&& moveFrom)
+        {
+            memcpy(&mVal, &moveFrom.mVal, sizeof(ep_t));
+            ep_null(moveFrom.mVal);
+        }
+
         // backwards compatible constructors
         REccPoint(REllipticCurve&) { ep_new(mVal); };
         REccPoint(REllipticCurve&, const REccPoint& copy) { ep_new(mVal); ep_copy(*this, copy);}
@@ -147,6 +166,12 @@ namespace osuCrypto
         ~REccPoint() { ep_free(mVal); }
 
         REccPoint& operator=(const REccPoint& copy);
+        REccPoint& operator=(REccPoint&& moveFrom)
+        {
+            std::swap(mVal, moveFrom.mVal);
+            return *this;
+        }
+
         REccPoint& operator+=(const REccPoint& addIn);
         REccPoint& operator-=(const REccPoint& subtractIn);
         REccPoint& operator*=(const REccNumber& multIn);
