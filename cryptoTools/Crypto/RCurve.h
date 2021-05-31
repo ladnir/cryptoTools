@@ -181,10 +181,15 @@ namespace osuCrypto
         REccPoint operator-(const REccPoint& subtractIn) const;
         REccPoint operator*(const REccNumber& multIn) const;
 
+        // Multiply a scalar by the generator of the elliptic curve. Unsure if this is the whole
+        // curve or a prime order subgroup, but it should be the same as
+        // REllipticCurve::getGenerator() * n.
+        static REccPoint mulGenerator(const REccNumber& n);
+
         bool operator==(const REccPoint& cmp) const;
         bool operator!=(const REccPoint& cmp) const;
 
-        u64 sizeBytes() const;
+        u64 sizeBytes() const { return size; }
         void toBytes(u8* dest) const;
         void fromBytes(u8* src);
 
@@ -200,6 +205,8 @@ namespace osuCrypto
 
         operator ep_t& () { return mVal; }
         operator const ep_t& () const { return mVal; }
+
+        static const u64 size;
 
         ep_t mVal;
     private:

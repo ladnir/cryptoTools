@@ -4,6 +4,7 @@
 
 #ifdef ENABLE_SODIUM
 
+#include <string.h>
 #include <type_traits>
 #include <cryptoTools/Crypto/PRNG.h>
 #include <cryptoTools/Crypto/Rijndael256.h>
@@ -56,6 +57,26 @@ struct Scalar25519
     {
         data[0] &= 0xf8;
         data[size - 1] |= 0x40;
+    }
+
+    size_t sizeBytes() const
+    {
+        return size;
+    }
+
+    void toBytes(unsigned char* dest) const
+    {
+        memcpy(dest, data, size);
+    }
+
+    void fromBytes(const unsigned char* src)
+    {
+        memcpy(data, src, size);
+    }
+
+    void randomize(PRNG& prng)
+    {
+        *this = Scalar25519(prng);
     }
 
     bool operator==(const Scalar25519& cmp) const;
@@ -147,6 +168,20 @@ struct Prime25519 : public Scalar25519
     }
 
     Prime25519 inverse() const;
+
+    void fromBytes(const unsigned char* src)
+    {
+        Scalar25519 x;
+        x.fromBytes(src);
+
+        // This reduces x modulo p.
+        *this = x;
+    }
+
+    void randomize(PRNG& prng)
+    {
+        *this = Prime25519(prng);
+    }
 };
 
 inline Prime25519 operator/(const Prime25519& a, const Prime25519& b)
@@ -193,6 +228,21 @@ struct Ed25519
 
     // Multiply a scalar by the generator of the prime order subgroup.
     static Ed25519 mulGenerator(const Prime25519& n);
+
+    size_t sizeBytes() const
+    {
+        return size;
+    }
+
+    void toBytes(unsigned char* dest) const
+    {
+        memcpy(dest, data, size);
+    }
+
+    void fromBytes(const unsigned char* src)
+    {
+        memcpy(data, src, size);
+    }
 
     bool operator==(const Ed25519& cmp) const;
     bool operator!=(const Ed25519& cmp) const
@@ -270,6 +320,31 @@ struct Rist25519
         return fromHash(h.data());
     }
 
+    size_t sizeBytes() const
+    {
+        return size;
+    }
+
+    void toBytes(unsigned char* dest) const
+    {
+        memcpy(dest, data, size);
+    }
+
+    void fromBytes(const unsigned char* src)
+    {
+        memcpy(data, src, size);
+    }
+
+    void randomize(PRNG& prng)
+    {
+        *this = Rist25519(prng);
+    }
+
+    void randomize(const block& seed)
+    {
+        *this = Rist25519(seed);
+    }
+
     bool operator==(const Rist25519& cmp) const;
     bool operator!=(const Rist25519& cmp) const
     {
@@ -330,6 +405,31 @@ struct Monty25519
         Scalar25519 x;
         ro.Final(x);
         return Monty25519(x);
+    }
+
+    size_t sizeBytes() const
+    {
+        return size;
+    }
+
+    void toBytes(unsigned char* dest) const
+    {
+        memcpy(dest, data, size);
+    }
+
+    void fromBytes(const unsigned char* src)
+    {
+        memcpy(data, src, size);
+    }
+
+    void randomize(PRNG& prng)
+    {
+        *this = Monty25519(prng);
+    }
+
+    void randomize(const block& seed)
+    {
+        *this = Monty25519(seed);
     }
 
     bool operator==(const Monty25519& cmp) const;

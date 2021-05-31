@@ -658,6 +658,15 @@ namespace osuCrypto
         return r;
     }
 
+    REccPoint REccPoint::mulGenerator(const REccNumber& n)
+    {
+        REccPoint r;
+        ep_mul_gen(r, n);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_mul_gen error " LOCATION);
+        return r;
+    }
+
     bool REccPoint::operator==(const REccPoint& cmp) const
     {
         return ep_cmp(*this, cmp) == RLC_EQ;
@@ -666,11 +675,6 @@ namespace osuCrypto
     bool REccPoint::operator!=(const REccPoint& cmp) const
     {
         return ep_cmp(*this, cmp) != RLC_EQ;
-    }
-
-    u64 REccPoint::sizeBytes() const
-    {
-        return 1 + RLC_FP_BYTES;
     }
 
     void REccPoint::toBytes(u8* dest) const
@@ -816,6 +820,7 @@ namespace osuCrypto
         randomize(prng);
     }
 
+    const size_t REccPoint::size = 1 + RLC_FP_BYTES;
 }
 
 #endif
