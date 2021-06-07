@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.15)
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
@@ -26,7 +26,13 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	endif()
 
 	if(MSVC)
-
+		# optionally add the following to CMAKE_PREFIX_PATH
+		if(NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED NO_OC_DEFAULT_PREFIX)
+			set(CMAKE_PREFIX_PATH 
+				"c:/libs"
+				"${CMAKE_CURRENT_SOURCE_DIR}/.."
+				)
+		endif()
 	else()
 		# Select flags.
 		set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
@@ -44,7 +50,6 @@ endif()
 #############################################
 #                  CONFIGURE                #
 #############################################
-find_program(NASM nasm)
 
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_SODIUM    "use libsodium" OFF)
@@ -84,80 +89,5 @@ add_subdirectory(frontend_cryptoTools)
 
 configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 
-#install(FILES cryptotools-config.cmake DESTINATION cmake/)
 
-
-
-#
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
-#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
-#include(GenerateExportHeader)
-#
-#generate_export_header(cryptoTools)
-#
-#set_property(TARGET cryptoTools PROPERTY VERSION ${cryptoTools_VERSION})
-#set_property(TARGET cryptoTools PROPERTY
-#  INTERFACE_cryptoTools_MAJOR_VERSION 3)
-#set_property(TARGET cryptoTools APPEND PROPERTY
-#  COMPATIBLE_INTERFACE_STRING cryptoTools_MAJOR_VERSION
-#)
-#message(STATUS "---------------------- here 0")
-#
-#
-#install(TARGETS cryptoTools EXPORT cryptoToolsTargets
-#  LIBRARY DESTINATION lib
-#  ARCHIVE DESTINATION lib
-#  RUNTIME DESTINATION bin
-#  INCLUDES DESTINATION include
-#)
-#message(STATUS "------------------- here 1")
-#
-#include(CMakePackageConfigHelpers)
-#write_basic_package_version_file(
-#  "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfigVersion.cmake"
-#  VERSION ${cryptoTools_VERSION}
-#  COMPATIBILITY AnyNewerVersion
-#)
-#
-#message(STATUS "------------------- here 2")
-#
-#export(EXPORT cryptoToolsTargets
-#  FILE "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsTargets.cmake"
-#  NAMESPACE cryptoTools::
-#)
-#
-#
-#message(STATUS "------------------- here 3")
-#
-#configure_file(cmake/cryptoToolsConfig.cmake
-#  "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfig.cmake"
-#  COPYONLY
-#)
-#
-#
-#message(STATUS "------------------- here 4")
-#set(ConfigPackageLocation lib/cmake/cryptoTools)
-#install(EXPORT cryptoToolsTargets
-#  FILE
-#    cryptoToolsTargets.cmake
-#  NAMESPACE
-#    cryptoTools::
-#  DESTINATION
-#    ${ConfigPackageLocation}
-#)
-#
-#
-#message(STATUS "------------------- here 5")
-#
-#install(
-#  FILES
-#    cmake/cryptoToolsConfig.cmake
-#    "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools/cryptoToolsConfigVersion.cmake"
-#  DESTINATION
-#    ${ConfigPackageLocation}
-#  COMPONENT
-#    Devel
-#)
-#
-#
-#message(STATUS "------------------- here 6")
+include("cmake/install.cmake")

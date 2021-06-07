@@ -7,6 +7,7 @@
 #include <tmmintrin.h>
 #include <wmmintrin.h>
 
+
 namespace osuCrypto {
     // This implement's Rijndael256 RotateRows step, then cancels out the RotateRows of AES so
     // that AES-NI can be used to implement Rijndael256.
@@ -196,9 +197,10 @@ namespace osuCrypto {
         }
     }
 
+    template<unsigned char round_cosntant>
     static inline void expandRound(
         std::array<Rijndael256Enc::Block, Rijndael256Enc::rounds + 1>& roundKeys,
-        unsigned int round, unsigned char round_cosntant)
+        unsigned int round)
     {
         __m128i t1 = roundKeys[round - 1][0];
         __m128i t2;
@@ -233,20 +235,20 @@ namespace osuCrypto {
     void Rijndael256Enc::setKey(const Block& userKey)
     {
         mRoundKey[0] = userKey;
-        expandRound(mRoundKey, 1, 0x01);
-        expandRound(mRoundKey, 2, 0x02);
-        expandRound(mRoundKey, 3, 0x04);
-        expandRound(mRoundKey, 4, 0x08);
-        expandRound(mRoundKey, 5, 0x10);
-        expandRound(mRoundKey, 6, 0x20);
-        expandRound(mRoundKey, 7, 0x40);
-        expandRound(mRoundKey, 8, 0x80);
-        expandRound(mRoundKey, 9, 0x1B);
-        expandRound(mRoundKey, 10, 0x36);
-        expandRound(mRoundKey, 11, 0x6C);
-        expandRound(mRoundKey, 12, 0xD8);
-        expandRound(mRoundKey, 13, 0xAB);
-        expandRound(mRoundKey, 14, 0x4D);
+        expandRound<0x01>(mRoundKey, 1);
+        expandRound<0x02>(mRoundKey, 2);
+        expandRound<0x04>(mRoundKey, 3);
+        expandRound<0x08>(mRoundKey, 4);
+        expandRound<0x10>(mRoundKey, 5);
+        expandRound<0x20>(mRoundKey, 6);
+        expandRound<0x40>(mRoundKey, 7);
+        expandRound<0x80>(mRoundKey, 8);
+        expandRound<0x1B>(mRoundKey, 9);
+        expandRound<0x36>(mRoundKey, 10);
+        expandRound<0x6C>(mRoundKey, 11);
+        expandRound<0xD8>(mRoundKey, 12);
+        expandRound<0xAB>(mRoundKey, 13);
+        expandRound<0x4D>(mRoundKey, 14);
     }
 
     void Rijndael256Dec::setKey(const Rijndael256Enc& enc)

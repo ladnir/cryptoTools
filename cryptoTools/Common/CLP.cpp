@@ -126,5 +126,6 @@ namespace osuCrypto
                 return mKeyValues.find(name)->second;
             }
         }
+        throw CommandLineParserError("key not set");
     }
 }

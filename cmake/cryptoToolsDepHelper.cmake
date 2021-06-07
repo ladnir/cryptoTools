@@ -1,4 +1,70 @@
 include(CheckSymbolExists)
+cmake_policy(SET CMP0057 NEW)
+cmake_policy(SET CMP0045 NEW)
+# a macro that resolved the linked libraries and includes
+# of a target.
+macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
+   if(NOT TARGET ${iTarget})
+        message(WARNING "${iTarget} is not a target")
+    else()
+    
+        # get inlcude
+        get_target_property(TARGET_INCS ${iTarget} INTERFACE_INCLUDE_DIRECTORIES)
+
+        # if it has any, add any new ones.
+        if(TARGET_INCS)
+            FOREACH(path ${TARGET_INCS})
+
+                if(NOT ${path} IN_LIST ${INCLUDES})
+                    list(APPEND ${INCLUDES} ${path})
+                endif()
+            ENDFOREACH()
+        else()
+            #message("iTarget no include ${iTarget}")
+        endif()
+
+        # get the location of this libraries
+        get_target_property(type ${iTarget} TYPE)
+        if (${type} STREQUAL "INTERFACE_LIBRARY")
+            get_target_property(path ${iTarget} INTERFACE_LOCATION)
+        else()
+            get_target_property(path ${iTarget} INTERFACE)
+        endif()
+        if(NOT ${path} IN_LIST ${LIBRARIES})
+            if(path)
+                list(APPEND ${LIBRARIES} ${path})
+            else()
+                #message("iTarget no location ${iTarget}, ${path}")
+            endif()
+        endif()
+
+        # recurse on the linked libraries.
+        get_target_property(linkedLibrairies ${iTarget} INTERFACE_LINK_LIBRARIES)
+
+        #message(STATUS "\n\n ${iTarget} -> ${linkedLibrairies}")
+
+        if(NOT "${linkedLibrairies}" STREQUAL "")
+            FOREACH(linkedLibrary ${linkedLibrairies})
+                if(TARGET ${linkedLibrary})
+                    OC_getAllLinkedLibraries(${linkedLibrary} ${LIBRARIES} ${INCLUDES})
+                elseif(linkedLibrary AND (NOT ${linkedLibrary} IN_LIST ${LIBRARIES}))
+                    #message("\n\n\nnon-target lib ${linkedLibrary}\n\n\n")
+
+                    list(APPEND ${LIBRARIES} ${linkedLibrary})
+                endif()
+            ENDFOREACH()
+        endif()
+    endif()
+endmacro()
+
+
+if(NOT DEFINED OC_THIRDPARTY_HINT)
+    if(MSVC)
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
+    else()
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
+    endif()
+endif()
 
 ## Relic
 ###########################################################################
@@ -6,25 +72,14 @@ include(CheckSymbolExists)
 if (ENABLE_RELIC)
 
   if(NOT RLC_LIBRARY)
-      if(MSVC)
-            if(NOT RLC_INCLUDE_DIR)
-                set(RLC_INCLUDE_DIR "c:/libs/include")
-                set(RLC_LIBRARY "c:/libs/lib/relic_s.lib")
-            endif()
+      find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
 
-          if (NOT EXISTS "${RLC_INCLUDE_DIR}/relic")
-            message(FATAL_ERROR "Failed to find Relic at ${RLC_INCLUDE_DIR}/relic. Please set RLC_INCLUDE_DIR and RLC_LIBRARY manually.")
-          endif ()
-      else()
-          find_package(Relic REQUIRED)
-
-          if (NOT Relic_FOUND)
-            message(FATAL_ERROR "Failed to find Relic")
-          endif (NOT Relic_FOUND)
-      endif()
   endif()
-  set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
-  set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
+
+  if(NOT DEFINED RLC_LIBRARY)
+      set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
+      set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
+  endif()
 
   message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
   message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
@@ -94,27 +149,28 @@ endif(ENABLE_WOLFSSL)
 
 if(ENABLE_BOOST)
 
-    set(BOOST_SEARCH_PATHS "${BOOST_ROOT}")
-
-    if(NOT BOOST_ROOT OR NOT EXISTS "${BOOST_ROOT}")
-        if(MSVC)
-            set(BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
-            set(BOOST_ROOT_install "c:/libs/boost/")
-
-
-            set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT_local} ${BOOST_ROOT_install}")
-
-            if(EXISTS "${BOOST_ROOT_local}")
-                set(BOOST_ROOT "${BOOST_ROOT_local}")
-            else()
-                set(BOOST_ROOT "${BOOST_ROOT_install}")
-            endif()
-        else()
-            set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/boost/")
-
-            set(BOOST_SEARCH_PATHS "${BOOST_SEARCH_PATHS} ${BOOST_ROOT}")
-        endif()
+    #set(OC_BOOST_SEARCH_PATHS "${BOOST_ROOT}")
+    if(NOT BOOST_ROOT)
+        set(BOOST_ROOT ${OC_THIRDPARTY_HINT})
+    #    if(MSVC)
+    #        set(OC_BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../#thirdparty/boost/")
+    #        #set(OC_BOOST_ROOT_install "c:/libs/boost/")
+    #        #message("\n\n\n\nhere 1 >${OC_BOOST_ROOT_install}<\n\n\n")
+    #
+    #        set(OC_BOOST_SEARCH_PATHS "${OC_BOOST_SEARCH_PATHS} #${OC_BOOST_ROOT_local} ${OC_BOOST_ROOT_install}")
+    #
+    #        if(EXISTS "${OC_BOOST_ROOT_local}")
+    #            set(BOOST_ROOT "${OC_BOOST_ROOT_local}")
+    #            message("\n\n\n\nhere ${BOOST_ROOT}\n\n\n\n")
+    #        else()
+    #            #set(BOOST_ROOT "${OC_BOOST_ROOT_install}")
+    #            #message("\n\n\n\nhere 2 >${BOOST_ROOT}<\n\n\n\n")
+    #        endif()
+    #    else()
+    #        set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/#boost/")
+    #    endif()
     endif()
+
 
 
     if(MSVC)
@@ -125,6 +181,7 @@ if(ENABLE_BOOST)
     set(Boost_USE_MULTITHREADED      ON)
     #set(Boost_USE_STATIC_RUNTIME     OFF)
     #set (Boost_DEBUG ON)  #<---------- Real life saver
+    #message("BOOST_ROOT=${BOOST_ROOT}")
 
     macro(findBoost)
         if(MSVC)
@@ -140,7 +197,7 @@ if(ENABLE_BOOST)
     endif()
 
     if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Failed to find boost 1.75+ at ${BOOST_ROOT} or at system install")
+        message(FATAL_ERROR "Failed to find boost 1.75+ at \"${BOOST_ROOT}\" or at system install")
     endif()
 
     message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )

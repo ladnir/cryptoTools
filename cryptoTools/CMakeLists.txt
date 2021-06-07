@@ -7,10 +7,14 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 # add the source files
 file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS})
-# make projects that include cryptoTools use this as an include folder
-target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/..")
-target_include_directories(cryptoTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
+# make projects that include cryptoTools use this as an include folder
+target_include_directories(cryptoTools PUBLIC 
+                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
+                    $<INSTALL_INTERFACE:include>) 
+target_include_directories(cryptoTools PUBLIC 
+                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+                    $<INSTALL_INTERFACE:include>) 
 
 if(NOT MSVC)
     target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
@@ -20,14 +24,6 @@ if(NOT MSVC)
         target_compile_options(cryptoTools PUBLIC -maes -msse2 -msse3 -mssse3 -msse4.1 -mpclmul)
     endif()
 endif()
-
-#############################################
-#            Install                        #
-#############################################
-
-install(DIRECTORY . DESTINATION include/cryptoTools FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY gsl DESTINATION include/cryptoTools)
-install(TARGETS cryptoTools DESTINATION lib)
 
 
 ###########################################################################
@@ -47,7 +43,9 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cryptoToolsDepHelper.cmake")
 ###########################################################################
 
 if (ENABLE_RELIC)
-  target_include_directories(cryptoTools PUBLIC ${RLC_INCLUDE_DIR})
+  target_include_directories(cryptoTools PUBLIC 
+                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
+                    $<INSTALL_INTERFACE:>)
   target_link_libraries(cryptoTools ${RLC_LIBRARY})
 endif (ENABLE_RELIC)
 
@@ -71,7 +69,13 @@ endif(ENABLE_WOLFSSL)
 ## Boost
 ###########################################################################
 
+
 if(ENABLE_BOOST)
-    target_include_directories(cryptoTools PUBLIC ${Boost_INCLUDE_DIR})
+    target_include_directories(cryptoTools PUBLIC 
+                    $<BUILD_INTERFACE:${Boost_INCLUDE_DIR}>
+                    $<INSTALL_INTERFACE:>)
     target_link_libraries(cryptoTools ${Boost_LIBRARIES})
 endif()
+
+
+
