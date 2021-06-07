@@ -84,7 +84,7 @@ def getBoost(install, prefix):
             b2Args  += " -j "
 
         cmd0 = "cd boost; bash bootstrap.sh"
-        cmd1 = "cd boost; ./b2 "+b2Args + " " + parallel +";"
+        cmd1 = "cd boost; ./b2 "+b2Args + ";"
         cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args+" install "
 
         if len(prefix) > 0:
