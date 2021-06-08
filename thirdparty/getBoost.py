@@ -48,11 +48,19 @@ def getBoost(install, prefix):
         preamble = r"\"\"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat\"\"" +"\n" + \
             "cd boost\n"
 
+        b2Args =\
+            "toolset=msvc-14.2 architecture=x86 address-model=64 --with-thread" +\
+            " --with-system --with-filesystem --with-regex --with-date_time" +\
+            " link=static variant=debug,release threading=multi "
+
         cmd0 = preamble + \
             "bootstrap.bat"
         cmd1 = preamble + \
-            "b2.exe  toolset=msvc-14.2 architecture=x86 address-model=64 --with-thread --with-system --with-filesystem --with-regex --with-date_time link=static variant=debug,release threading=multi  install --prefix=" + installPrefix
+            "b2.exe " + b2Args + " install "
             
+        if len(predix) >0:
+            cmd1 += " --prefix=" + prefix
+
         print("cmd0: {0}".format(cmd0))    
         print("cmd1: {0}\n\n".format(cmd1))    
 
@@ -85,10 +93,11 @@ def getBoost(install, prefix):
 
         cmd0 = "cd boost; bash bootstrap.sh"
         cmd1 = "cd boost; ./b2 "+par + b2Args + ";"
-        cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args+" install "
+        cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args  +" install "
+
 
         if len(prefix) > 0:
-            cmd2 += "--prefix=" + prefix;
+            cmd2 += " --prefix=" + prefix;
 
         os.system(cmd0)
         if len(sudo):

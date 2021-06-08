@@ -268,7 +268,7 @@ namespace tests_cryptoTools
 
         u64 numThreads = 2;
         //u64 step = 1024;
-        u64 setSize = u64(1) << 18;
+        u64 setSize = u64(1) << 12;
         //u64 h = 2;
         CuckooIndex<ThreadSafe> hashMap;
 
