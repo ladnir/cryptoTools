@@ -1666,8 +1666,6 @@ namespace tests_cryptoTools
 
     void BtNetwork_socketAdapter_test(const osuCrypto::CLP& cmd)
     {
-        throw RTE_LOC;
-
         struct SmallBuff
         {
             struct Socket
