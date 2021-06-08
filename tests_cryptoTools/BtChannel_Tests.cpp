@@ -1666,6 +1666,8 @@ namespace tests_cryptoTools
 
     void BtNetwork_socketAdapter_test(const osuCrypto::CLP& cmd)
     {
+        throw RTE_LOC;
+
         struct SmallBuff
         {
             struct Socket
@@ -1699,7 +1701,7 @@ namespace tests_cryptoTools
                                 mBase.mBuffer[i][j++ % buffSize] = *data++;
                             }
                             sizeLeft -= writeSize;
-                            lout << "buff[" << i << "] wrote " << writeSize << ", rem " << sizeLeft << std::endl;
+                            //lout << "buff[" << i << "] wrote " << writeSize << ", rem " << sizeLeft << std::endl;
                             mBase.mWriteIdx[i] += writeSize;
                         }
                         //else
@@ -1727,7 +1729,7 @@ namespace tests_cryptoTools
                                 *data++ = mBase.mBuffer[i][j++ % buffSize];
                             }
                             sizeLeft -= readSize;
-                            lout << "buff[" << i << "] read " << readSize<< ", rem " << sizeLeft << std::endl;
+                            //lout << "buff[" << i << "] read " << readSize<< ", rem " << sizeLeft << std::endl;
                             mBase.mReadIdx[i] += readSize;
                         }
                         //else
