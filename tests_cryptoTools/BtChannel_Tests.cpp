@@ -1772,7 +1772,7 @@ namespace tests_cryptoTools
         Channel chl1(ios, ad1);
 
 
-        std::vector<u8> data(1024);
+        std::vector<u8> data(64);
         chl0.asyncSend(data);
         chl1.asyncSend(data);
         chl0.recv(data);
