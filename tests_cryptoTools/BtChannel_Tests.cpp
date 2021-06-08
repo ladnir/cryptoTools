@@ -1684,6 +1684,7 @@ namespace tests_cryptoTools
                     auto i = mIdx ^ 1;
                     while (sizeLeft)
                     {
+                        std::lock_guard<std::mutex> lock(mBase.mMtx);
                         if (mCanceled)
                             return;
 
@@ -1711,6 +1712,7 @@ namespace tests_cryptoTools
 
                     while (sizeLeft)
                     {
+                        std::lock_guard<std::mutex> lock(mBase.mMtx);
                         if (mCanceled)
                             return;
 
@@ -1757,7 +1759,8 @@ namespace tests_cryptoTools
                 return std::array<Socket, 2>{ {Socket(*this, 0), Socket(*this, 1)}};
             }
             std::array<std::vector<u8>, 2> mBuffer;
-            std::array<std::atomic<u64>, 2> mWriteIdx, mReadIdx;
+            std::array<u64, 2> mWriteIdx, mReadIdx;
+            std::mutex mMtx;
 
         };
 
