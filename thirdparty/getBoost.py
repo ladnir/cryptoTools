@@ -42,8 +42,8 @@ def getBoost(install, prefix):
     osStr = (platform.system())
     if(osStr == "Windows"):
         
-        if not install and len(installPrefix) == 0:
-            installPrefix = cwd + "/win"
+        if not install and len(prefix) == 0:
+            prefix = cwd + "/win"
 
         preamble = r"\"\"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat\"\"" +"\n" + \
             "cd boost\n"
