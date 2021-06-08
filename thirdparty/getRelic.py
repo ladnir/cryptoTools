@@ -4,7 +4,7 @@ import sys
 import platform
 
 
-def getRelic(install, prefix):
+def getRelic(install, prefix, par):
     
     cwd = os.getcwd()
     #thirdparty = os.path.dirname(os.path.realpath(__file__))
@@ -43,8 +43,8 @@ def getRelic(install, prefix):
     argStr = argStr + " -DCMAKE_INSTALL_PREFIX:PATH=" + prefix
     
     parallel = ""
-    if "--noPar" not in sys.argv:
-        parallel = "--parallel"
+    if par != 1:
+        parallel = "--parallel " + str(par)
         
     CMakeCmd = "cmake -S . -B {0} {1}".format(buildDir, argStr)
     BuildCmd = "cmake --build {0} {1} {2} ".format(buildDir, config, parallel)

@@ -10,7 +10,7 @@ import urllib.request
 import platform
 
 
-def getBoost(install, prefix):
+def getBoost(install, prefix, par):
     version = "75"
     folder = "boost_1_{0}_0".format(version)
     arch = "{0}.tar.bz2".format(folder)
@@ -53,6 +53,9 @@ def getBoost(install, prefix):
             " --with-system --with-filesystem --with-regex --with-date_time" +\
             " link=static variant=debug,release threading=multi "
 
+        if par != 1:
+            b2Args = "-j" + str(par) + " " + b2Args
+
         cmd0 = preamble + \
             "bootstrap.bat"
         cmd1 = preamble + \
@@ -87,12 +90,11 @@ def getBoost(install, prefix):
 
         b2Args = "--with-system --with-thread --with-filesystem --with-atomic --with-regex"
 
-        par = ""
-        if "--noPar" not in sys.argv:
-            par  = " -j$(nproc) "
+        if par != 1:
+            b2Args = " -j" + str(par) + " " + b2Args
 
         cmd0 = "cd boost; bash bootstrap.sh"
-        cmd1 = "cd boost; ./b2 "+par + b2Args + ";"
+        cmd1 = "cd boost; ./b2 " + b2Args + ";"
         cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args  +" install "
 
 

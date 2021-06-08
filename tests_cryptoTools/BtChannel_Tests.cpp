@@ -1764,7 +1764,7 @@ namespace tests_cryptoTools
 
         };
 
-        IOService ios;
+        IOService ios(3);
         SmallBuff b;
         auto sock = b.makeSockets();
 

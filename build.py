@@ -1,7 +1,7 @@
 import os
 import platform
 import sys
-
+import multiprocessing
 
 if __name__ == "__main__":
     import thirdparty.getBoost as getBoost
@@ -12,18 +12,29 @@ else:
 
 #import thirdparty
 
+def getParallel(args):
+    par = multiprocessing.cpu_count()
+    for x in args:
+        if x.startswith("--par="):
+            val = x.split("=",1)[1]
+            par = int(val)
+            if par < 1:
+                par = 1
+    return par
 
-def Setup(boost, relic, install, prefix):
+
+def Setup(boost, relic, install, prefix, par):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(dir_path + "/thirdparty")
 
+
     if boost:
-        getBoost.getBoost(install,prefix)
+        getBoost.getBoost(install,prefix, par)
     if relic:
-        getRelic.getRelic(install,prefix)
+        getRelic.getRelic(install,prefix, par)
 
 
-def Build(mainArgs, cmakeArgs,install, prefix):
+def Build(mainArgs, cmakeArgs,install, prefix, par):
 
     osStr = (platform.system())
     buildDir = ""
@@ -35,7 +46,6 @@ def Build(mainArgs, cmakeArgs,install, prefix):
         args = args[1:]
     else:
         buildType = "Release"
-
 
     if osStr == "Windows":
         buildDir = "out/build/x64-{0}".format(buildType)
@@ -55,8 +65,8 @@ def Build(mainArgs, cmakeArgs,install, prefix):
         argStr = argStr + " " + a
 
     parallel = ""
-    if "--noPar" not in sys.argv:
-        parallel = "--parallel"
+    if par != 1:
+        parallel = " --parallel " + str(par)
 
     mkDirCmd = "mkdir -p {0}".format(buildDir); 
     CMakeCmd = "cmake -S . -B {0} {1}".format(buildDir, argStr)
@@ -161,11 +171,12 @@ def main():
     boost = ("--boost" in mainArgs)
     setup = ("--setup" in mainArgs)
     install, prefix = getInstallArgs(mainArgs)
-    
+    par = getParallel(mainArgs)
+
     if(setup):
-        Setup(boost, relic,install, prefix)
+        Setup(boost, relic,install, prefix, par)
     else:
-        Build(mainArgs, cmake,install, prefix)
+        Build(mainArgs, cmake,install, prefix, par)
 
 if __name__ == "__main__":
 
