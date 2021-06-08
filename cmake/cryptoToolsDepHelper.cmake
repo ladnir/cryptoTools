@@ -1,6 +1,7 @@
 include(CheckSymbolExists)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
+cmake_policy(SET CMP0074 NEW)
 # a macro that resolved the linked libraries and includes
 # of a target.
 macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
@@ -26,9 +27,12 @@ macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
         # get the location of this libraries
         get_target_property(type ${iTarget} TYPE)
         if (${type} STREQUAL "INTERFACE_LIBRARY")
-            get_target_property(path ${iTarget} INTERFACE_LOCATION)
+            #message("iTarget interface target ${iTarget}")
+            get_target_property(path ${iTarget} INTERFACE_LINK_LIBRARIES)
         else()
-            get_target_property(path ${iTarget} INTERFACE)
+            #message("iTarget normal target ${iTarget}, ${type}")
+
+            get_target_property(path ${iTarget} LOCATION)
         endif()
         if(NOT ${path} IN_LIST ${LIBRARIES})
             if(path)
@@ -72,6 +76,9 @@ endif()
 if (ENABLE_RELIC)
 
   if(NOT RLC_LIBRARY)
+      if(EXISTS "${OC_THIRDPARTY_HINT}/cmake/relic-config.cmake")
+        set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
+      endif()
       find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
 
   endif()

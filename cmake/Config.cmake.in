@@ -17,3 +17,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsDepHelper.cmake")
 set(cryptoTools_INCLUDE_DIRS "")
 OC_getAllLinkedLibraries(oc::cryptoTools cryptoTools_LIBRARIES cryptoTools_INCLUDE_DIRS)
 OC_getAllLinkedLibraries(oc::tests_cryptoTools tests_cryptoTools_LIBRARIES tests_cryptoTools_INCLUDE_DIRS)
+
+
+# short names
+set(cryptoTools_LIB ${cryptoTools_LIBRARIES})
+set(cryptoTools_INC ${cryptoTools_INCLUDE_DIRS})
+set(tests_cryptoTools_LIB ${tests_cryptoTools_LIBRARIES})
+set(tests_cryptoTools_INC ${tests_cryptoTools_INCLUDE_DIRS})

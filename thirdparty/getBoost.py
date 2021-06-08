@@ -79,12 +79,12 @@ def getBoost(install, prefix):
 
         b2Args = "--with-system --with-thread --with-filesystem --with-atomic --with-regex"
 
-        
+        par = ""
         if "--noPar" not in sys.argv:
-            b2Args  += " -j "
+            par  = " -j$(nproc) "
 
         cmd0 = "cd boost; bash bootstrap.sh"
-        cmd1 = "cd boost; ./b2 "+b2Args + ";"
+        cmd1 = "cd boost; ./b2 "+par + b2Args + ";"
         cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args+" install "
 
         if len(prefix) > 0:
