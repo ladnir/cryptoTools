@@ -58,7 +58,7 @@ def getBoost(install, prefix):
         cmd1 = preamble + \
             "b2.exe " + b2Args + " install "
             
-        if len(predix) >0:
+        if len(prefix) >0:
             cmd1 += " --prefix=" + prefix
 
         print("cmd0: {0}".format(cmd0))    

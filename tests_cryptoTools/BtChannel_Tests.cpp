@@ -1701,8 +1701,8 @@ namespace tests_cryptoTools
                             //lout << "buff[" << i << "] wrote " << writeSize << ", rem " << sizeLeft << std::endl;
                             mBase.mWriteIdx[i] += writeSize;
                         }
-                        else
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        //else
+                            //std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     }
                 }
                 void recv(u8* data, u64 sizeLeft)
@@ -1728,8 +1728,8 @@ namespace tests_cryptoTools
                             //lout << "buff[" << i << "] read " << readSize<< ", rem " << sizeLeft << std::endl;
                             mBase.mReadIdx[i] += readSize;
                         }
-                        else
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        //else
+                            //std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     }
                 }
 
