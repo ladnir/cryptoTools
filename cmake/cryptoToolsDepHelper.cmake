@@ -75,21 +75,34 @@ endif()
 
 if (ENABLE_RELIC)
 
-  if(NOT RLC_LIBRARY)
-      if(EXISTS "${OC_THIRDPARTY_HINT}/cmake/relic-config.cmake")
-        set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
-      endif()
-      find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
+    if(NOT RLC_LIBRARY)
+        if(EXISTS "${OC_THIRDPARTY_HINT}/cmake/relic-config.cmake")
+            set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
+        endif()
+      
+        # does not property work on windows. Need to do a PR on relic.
+        #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
+      
+        find_path(RLC_INCLUDE_DIR relic/relic.h HINTS  "${RELIC_ROOT}/include")
+        find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}/lib")
 
-  endif()
+        include (FindPackageHandleStandardArgs)
+        find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
 
-  if(NOT DEFINED RLC_LIBRARY)
-      set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
-      set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
-  endif()
+        if(RLC_FOUND)
+            set(RLC_LIBRARIES ${RLC_LIBRARY})
+            set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
+        endif()
+    endif()
 
-  message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
-  message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
+
+    if(NOT DEFINED RLC_LIBRARY)
+        set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
+        set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
+    endif()
+
+    message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
+    message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
 
 
 endif (ENABLE_RELIC)
