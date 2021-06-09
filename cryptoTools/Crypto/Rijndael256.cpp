@@ -117,7 +117,9 @@ namespace osuCrypto {
         // Each iteration depends on the previous, so unrolling the outer loop isn't useful,
         // especially because there are a decent number of operations in each iteration.
         // TODO: Benchmark, use different pragmas for different compilers.
+#ifndef _MSC_VER
         #pragma GCC unroll 1
+#endif // !_MSC_VER
         for (int i = 1; i < rounds; ++i)
             for (size_t j = 0; j < numBlocks; ++j)
                 blocks[j] = roundEnc(blocks[j], mRoundKey[i]);
@@ -163,7 +165,9 @@ namespace osuCrypto {
 
         // Each iteration depends on the previous, so unrolling the outer loop isn't useful,
         // especially because there are a decent number of operations in each iteration.
-        #pragma GCC unroll 1
+#ifndef _MSC_VER
+#pragma GCC unroll 1
+#endif // !_MSC_VER
         for (int i = rounds - 1; i > 0; --i)
             for (size_t j = 0; j < numBlocks; ++j)
                 blocks[j] = roundDec(blocks[j], mRoundKey[i]);
