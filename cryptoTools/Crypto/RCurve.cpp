@@ -22,15 +22,6 @@ extern "C" {
 #ifndef RLC_GT
 #define RLC_GT CMP_GT
 #endif
-#ifndef RLC_FP_BYTES
-#define RLC_FP_BYTES FP_BYTES
-#endif
-#ifndef RLC_FP_BYTES
-#define RLC_FP_BYTES FP_BYTES
-#endif
-#ifndef RLC_BN_SIZE
-#define RLC_BN_SIZE BN_SIZE
-#endif
 
 #if !defined(MULTI) || ((MULTI != PTHREAD) && (MULTI != OPENMP) && (MULTI != MSVCTLS))
 static_assert(0, "Relic must be built with -DMULTI=PTHREAD or -DMULTI=OPENMP");
@@ -658,6 +649,15 @@ namespace osuCrypto
         return r;
     }
 
+    REccPoint REccPoint::mulGenerator(const REccNumber& n)
+    {
+        REccPoint r;
+        ep_mul_gen(r, n);
+        if (GSL_UNLIKELY(err_get_code()))
+            throw std::runtime_error("Relic ep_mul_gen error " LOCATION);
+        return r;
+    }
+
     bool REccPoint::operator==(const REccPoint& cmp) const
     {
         return ep_cmp(*this, cmp) == RLC_EQ;
@@ -668,9 +668,9 @@ namespace osuCrypto
         return ep_cmp(*this, cmp) != RLC_EQ;
     }
 
-    u64 REccPoint::sizeBytes() const
+    void REccPoint::fromHash(const unsigned char* data, size_t len)
     {
-        return 1 + RLC_FP_BYTES;
+        ep_map(*this, data, len);
     }
 
     void REccPoint::toBytes(u8* dest) const
@@ -815,7 +815,6 @@ namespace osuCrypto
         PRNG prng(seed);
         randomize(prng);
     }
-
 }
 
 #endif
