@@ -4,7 +4,7 @@
 
 #ifdef ENABLE_RELIC
 
-
+#include <string.h>
 extern "C" {
     #include <relic/relic_bn.h>
     #include <relic/relic_ep.h>
@@ -13,6 +13,12 @@ extern "C" {
 #undef MONTY
 #endif
 #include <cryptoTools/Crypto/PRNG.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
+#include "Hashable.h"
+
+#ifndef RLC_FP_BYTES
+#define RLC_FP_BYTES FP_BYTES
+#endif
 
 namespace osuCrypto
 {
@@ -29,6 +35,13 @@ namespace osuCrypto
 
         REccNumber();
         REccNumber(const REccNumber& num);
+
+        REccNumber(REccNumber&& moveFrom)
+        {
+            memcpy(&mVal, &moveFrom.mVal, sizeof(bn_t));
+            bn_null(moveFrom.mVal);
+        }
+
         REccNumber(PRNG& prng);
         REccNumber(const i32& val);
 
@@ -41,6 +54,12 @@ namespace osuCrypto
         ~REccNumber();
 
         REccNumber& operator=(const REccNumber& c);
+        REccNumber& operator=(REccNumber&& moveFrom)
+        {
+            std::swap(mVal, moveFrom.mVal);
+            return *this;
+        }
+
         REccNumber& operator=(const bn_t c);
         REccNumber& operator=(int i);
 
@@ -140,6 +159,12 @@ namespace osuCrypto
         REccPoint(PRNG& prng) { ep_new(mVal); randomize(prng); }
         REccPoint(const REccPoint& copy) { ep_new(mVal); ep_copy(*this, copy); }
 
+        REccPoint(REccPoint&& moveFrom)
+        {
+            memcpy(&mVal, &moveFrom.mVal, sizeof(ep_t));
+            ep_null(moveFrom.mVal);
+        }
+
         // backwards compatible constructors
         REccPoint(REllipticCurve&) { ep_new(mVal); };
         REccPoint(REllipticCurve&, const REccPoint& copy) { ep_new(mVal); ep_copy(*this, copy);}
@@ -147,6 +172,12 @@ namespace osuCrypto
         ~REccPoint() { ep_free(mVal); }
 
         REccPoint& operator=(const REccPoint& copy);
+        REccPoint& operator=(REccPoint&& moveFrom)
+        {
+            std::swap(mVal, moveFrom.mVal);
+            return *this;
+        }
+
         REccPoint& operator+=(const REccPoint& addIn);
         REccPoint& operator-=(const REccPoint& subtractIn);
         REccPoint& operator*=(const REccNumber& multIn);
@@ -156,10 +187,36 @@ namespace osuCrypto
         REccPoint operator-(const REccPoint& subtractIn) const;
         REccPoint operator*(const REccNumber& multIn) const;
 
+        // Multiply a scalar by the generator of the elliptic curve. Unsure if this is the whole
+        // curve or a prime order subgroup, but it should be the same as
+        // REllipticCurve::getGenerator() * n.
+        static REccPoint mulGenerator(const REccNumber& n);
+
         bool operator==(const REccPoint& cmp) const;
         bool operator!=(const REccPoint& cmp) const;
 
-        u64 sizeBytes() const;
+        // Generate randomly from a 256 bit hash. d must point to fromHashLength uniformly random
+        // bytes.
+        static REccPoint fromHash(const unsigned char* d)
+        {
+            REccPoint p;
+            p.fromHash(d, fromHashLength);
+            return p;
+        }
+
+        static REccPoint fromHash(RandomOracle ro)
+        {
+            std::array<unsigned char, fromHashLength> h;
+            ro.Final(h);
+            return fromHash(h.data());
+        }
+
+        // Feed data[0..len] into a hash function, then map the hash to the curve.
+        void fromHash(const unsigned char* data, size_t len);
+
+        static const size_t fromHashLength = 0x20;
+
+        u64 sizeBytes() const { return size; }
         void toBytes(u8* dest) const;
         void fromBytes(u8* src);
 
@@ -175,6 +232,8 @@ namespace osuCrypto
 
         operator ep_t& () { return mVal; }
         operator const ep_t& () const { return mVal; }
+
+        static const u64 size = 1 + RLC_FP_BYTES;
 
         ep_t mVal;
     private:
@@ -222,6 +281,18 @@ namespace osuCrypto
 
         friend Point;
         friend REccNumber;
+    };
+
+    template<>
+    struct Hashable<REccPoint, void> : std::true_type
+    {
+        template<typename Hasher>
+        static void hash(const REccPoint& p, Hasher& hasher)
+        {
+            u8 buff[REccPoint::size];
+            p.toBytes(buff);
+            hasher.Update(buff, REccPoint::size);
+        }
     };
 }
 #endif

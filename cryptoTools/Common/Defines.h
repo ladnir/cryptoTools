@@ -49,8 +49,8 @@ namespace osuCrypto {
     typedef uint8_t u8;
     typedef int8_t i8;
 
-    inline u64 divCeil(u64 val, u64 d) { return (val + d - 1) / d; }
-    inline u64 roundUpTo(u64 val, u64 step) { return divCeil(val, step) * step; }
+    constexpr u64 divCeil(u64 val, u64 d) { return (val + d - 1) / d; }
+    constexpr u64 roundUpTo(u64 val, u64 step) { return divCeil(val, step) * step; }
 
     u64 log2ceil(u64);
     u64 log2floor(u64);

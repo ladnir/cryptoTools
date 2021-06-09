@@ -9,6 +9,8 @@
 #endif
 #include <cstring>
 
+#include "Hashable.h"
+
 namespace osuCrypto {
 
 	// An implementation of Blake 2
@@ -48,9 +50,9 @@ namespace osuCrypto {
 			const unsigned char * v = (const unsigned char *)(blake2b_IV);
 			std::memset(&state, 0, sizeof(blake2b_state));
 			state.outlen = outputLength;
-            std::memcpy(state.h, v, BLAKE2B_OUTBYTES);
+			std::memcpy(state.h, v, BLAKE2B_OUTBYTES);
 #endif
-	}
+		}
 
 		// Add length bytes pointed to by dataIn to the internal Blake2 state.
 		template<typename T>
@@ -60,9 +62,9 @@ namespace osuCrypto {
 		}
 
 		template<typename T>
-		typename std::enable_if<std::is_pod<T>::value>::type Update(const T& blk)
+		typename std::enable_if<Hashable<T>::value>::type Update(const T& t)
 		{
-			Update((u8*)&blk, sizeof(T));
+			Hashable<T>::hash(t, *this);
 		}
 
 		// Finalize the Blake2 hash and output the result to DataOut.
@@ -93,7 +95,5 @@ namespace osuCrypto {
 		}
 	private:
 		blake2b_state state;
-
-		static blake2b_state _start_state;
-};
+	};
 }

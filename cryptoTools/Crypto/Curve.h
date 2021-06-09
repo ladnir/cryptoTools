@@ -307,6 +307,9 @@ namespace osuCrypto
 
 
 		EccPoint(EllipticCurve& curve);
+		EccPoint(EllipticCurve& curve, PRNG& prng) : EccPoint(curve) {
+			randomize(prng);
+		}
 		EccPoint(EllipticCurve& curve, const EccPoint& copy);
 		EccPoint(const EccPoint& copy);
 		EccPoint(EccPoint&& move);
