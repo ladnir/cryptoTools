@@ -53,16 +53,16 @@ endif (ENABLE_RELIC)
 ###########################################################################
 
 if (ENABLE_SODIUM)
-  target_include_directories(cryptoTools PUBLIC ${SODIUM_INCLUDE_DIRS})
-  target_link_directories(cryptoTools PUBLIC ${SODIUM_LIBRARY_DIRS})
-  target_link_libraries(cryptoTools ${SODIUM_LIBRARIES})
+  target_link_libraries(cryptoTools sodium)
 endif (ENABLE_SODIUM)
 
 ## WolfSSL
 ###########################################################################
 
 if(ENABLE_WOLFSSL)
-  target_include_directories(cryptoTools PUBLIC "${WOLFSSL_LIB_INCLUDE_DIRS}")
+  target_include_directories(cryptoTools PUBLIC 
+                    $<BUILD_INTERFACE:${WOLFSSL_LIB_INCLUDE_DIRS}>
+                    $<INSTALL_INTERFACE:>)
   target_link_libraries(cryptoTools ${WOLFSSL_LIB})
 endif(ENABLE_WOLFSSL)
 

@@ -6,9 +6,11 @@ import multiprocessing
 if __name__ == "__main__":
     import thirdparty.getBoost as getBoost
     import thirdparty.getRelic as getRelic
+    import thirdparty.getSodium as getSodium
 else:
     from .thirdparty import getBoost
     from .thirdparty import getRelic
+    from .thirdparty import getSodium
 
 #import thirdparty
 
@@ -23,7 +25,7 @@ def getParallel(args):
     return par
 
 
-def Setup(boost, relic, install, prefix, par):
+def Setup(boost, relic,sodium, install, prefix, par):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(dir_path + "/thirdparty")
 
@@ -32,6 +34,8 @@ def Setup(boost, relic, install, prefix, par):
         getBoost.getBoost(install,prefix, par)
     if relic:
         getRelic.getRelic(install,prefix, par)
+    if sodium:
+        getSodium.getSodium(install, prefix, par)
 
 
 def Build(mainArgs, cmakeArgs,install, prefix, par):
@@ -132,7 +136,7 @@ def parseArgs():
 
 def help():
     print(" --setup    \n\tfetch, build and optionally install the dependencies. \
-    Must also pass --relic and/or --boost to specify which to build. Without \
+    Must also pass --relic, --sodium and/or --boost to specify which to build. Without \
     --setup, the main library is built.")
 
     print(" --install \n\tInstructs the script to install whatever is currently being built to the default location.")
@@ -169,12 +173,13 @@ def main():
 
     relic = ("--relic" in mainArgs)
     boost = ("--boost" in mainArgs)
+    sodium = ("--sodium" in mainArgs)
     setup = ("--setup" in mainArgs)
     install, prefix = getInstallArgs(mainArgs)
     par = getParallel(mainArgs)
 
     if(setup):
-        Setup(boost, relic,install, prefix, par)
+        Setup(boost, relic,sodium,install, prefix, par)
     else:
         Build(mainArgs, cmake,install, prefix, par)
 

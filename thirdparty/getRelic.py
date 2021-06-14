@@ -69,4 +69,4 @@ def getRelic(install, prefix, par):
 
 
 if __name__ == "__main__":
-    getRelic("")
+    getRelic(False, "", 1)

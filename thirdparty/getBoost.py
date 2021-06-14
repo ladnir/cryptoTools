@@ -114,4 +114,4 @@ def getBoost(install, prefix, par):
 
 if __name__ == "__main__":
     prefix = ""
-    getBoost(prefix)
+    getBoost(False,prefix,1)

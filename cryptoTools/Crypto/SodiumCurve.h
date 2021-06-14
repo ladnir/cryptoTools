@@ -88,8 +88,8 @@ struct Scalar25519
 
     bool iszero() const;
 
-    static_assert(crypto_core_ed25519_SCALARBYTES == crypto_scalarmult_SCALARBYTES);
-    static_assert(crypto_core_ed25519_SCALARBYTES == crypto_core_ristretto255_SCALARBYTES);
+    static_assert(crypto_core_ed25519_SCALARBYTES == crypto_scalarmult_SCALARBYTES,"");
+    static_assert(crypto_core_ed25519_SCALARBYTES == crypto_core_ristretto255_SCALARBYTES,"");
     static const size_t size = crypto_core_ed25519_SCALARBYTES;
     unsigned char data[size];
 };
@@ -189,7 +189,7 @@ inline Prime25519 operator/(const Prime25519& a, const Prime25519& b)
     return a * b.inverse();
 }
 
-static_assert(std::is_pod<Prime25519>::value);
+static_assert(std::is_pod<Prime25519>::value, "");
 
 struct Ed25519;
 
@@ -254,7 +254,7 @@ struct Ed25519
     unsigned char data[size];
 };
 
-static_assert(std::is_pod<Ed25519>::value);
+static_assert(std::is_pod<Ed25519>::value, "");
 
 struct Rist25519;
 
@@ -363,7 +363,7 @@ struct Rist25519
     unsigned char data[size];
 };
 
-static_assert(std::is_pod<Rist25519>::value);
+static_assert(std::is_pod<Rist25519>::value, "");
 
 #ifdef SODIUM_MONTGOMERY
 
@@ -382,7 +382,7 @@ struct Monty25519
     // curve or its twist.
     Monty25519(const Scalar25519& x)
     {
-        static_assert(size == Scalar25519::size);
+        static_assert(size == Scalar25519::size,"");
         memcpy(data, x.data, size);
         data[size - 1] &= 0x7f;
     }
@@ -455,7 +455,7 @@ struct Monty25519
     static const Monty25519 wholeTwistGroupGenerator;
 };
 
-static_assert(std::is_pod<Monty25519>::value);
+static_assert(std::is_pod<Monty25519>::value, "");
 
 #endif
 

@@ -112,29 +112,45 @@ endif (ENABLE_RELIC)
 ###########################################################################
 
 if (ENABLE_SODIUM)
-  pkg_check_modules(SODIUM REQUIRED libsodium)
+    #pkg_check_modules(SODIUM REQUIRED libsodium)
+  
+    find_path(SODIUM_INCLUDE_DIRS sodium.h HINTS  "${OC_THIRDPARTY_HINT}/include")
+    find_library(SODIUM_LIBRARIES NAMES sodium libsodium HINTS "${OC_THIRDPARTY_HINT}/lib")
 
-  if (NOT SODIUM_FOUND)
-    message(FATAL_ERROR "Failed to find libsodium")
-  endif (NOT SODIUM_FOUND)
+    if (NOT SODIUM_INCLUDE_DIRS OR NOT SODIUM_LIBRARIES)
+        message(FATAL_ERROR "Failed to find libsodium.\n  OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}\n  SODIUM_INCLUDE_DIRS=${SODIUM_INCLUDE_DIRS}\n  SODIUM_LIBRARIES=${SODIUM_LIBRARIES}")
+    endif ()
 
-  message(STATUS "SODIUM_INCLUDE_DIRS:  ${SODIUM_INCLUDE_DIRS}")
-  message(STATUS "SODIUM_LIBRARY_DIRS:  ${SODIUM_LIBRARY_DIRS}")
-  message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}\n")
+    #set(CMAKE_REQUIRED_INCLUDES ${SODIUM_INCLUDE_DIRS})
+    #set(CMAKE_REQUIRED_LIBRARIES ${SODIUM_LIBRARIES})
+    #check_symbol_exists(crypto_scalarmult_noclamp "sodium.h" VAR)
+    #unset(CMAKE_REQUIRED_LIBRARIES)
+    #unset(CMAKE_REQUIRED_INCLUDES)
+    #if(VAR)
+    #else()
+    #    set(SODIUM_MONTGOMERY OFF CACHE BOOL "SODIUM_MONTGOMERY..." FORCE)
+    #endif()
+    set(SODIUM_MONTGOMERY ON CACHE BOOL "SODIUM_MONTGOMERY...")
 
-  set(CMAKE_REQUIRED_INCLUDES ${SODIUM_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_LINK_OPTIONS ${SODIUM_LDFLAGS})
-  set(CMAKE_REQUIRED_LIBRARIES ${SODIUM_LIBRARIES})
-  check_symbol_exists(crypto_scalarmult_noclamp "sodium.h" SODIUM_MONTGOMERY)
-  unset(CMAKE_REQUIRED_LIBRARIES)
-  unset(CMAKE_REQUIRED_LINK_OPTIONS)
-  unset(CMAKE_REQUIRED_INCLUDES)
+    message(STATUS "SODIUM_INCLUDE_DIRS:  ${SODIUM_INCLUDE_DIRS}")
+    message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}")
+    message(STATUS "SODIUM_MONTGOMERY:  ${SODIUM_MONTGOMERY}\n")
 
-  if (SODIUM_MONTGOMERY)
-    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
-  else()
-    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
-  endif()
+    add_library(sodium STATIC IMPORTED)
+    
+    set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
+    target_include_directories(sodium INTERFACE 
+                    $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
+                    $<INSTALL_INTERFACE:>)
+
+    if(MSVC)
+        target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
+    endif()
+    #if (SODIUM_MONTGOMERY)
+    #    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
+    #else()
+    #    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
+    #endif()
 endif (ENABLE_SODIUM)
 
 
