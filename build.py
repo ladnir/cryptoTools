@@ -89,7 +89,7 @@ def Build(mainArgs, cmakeArgs,install, prefix, par):
         InstallCmd += "cmake --install {0} {1} ".format(buildDir, config)
 
         if len(prefix):
-            InstallCmd += " --prefix {3} ".format(prefix)
+            InstallCmd += " --prefix {0} ".format(prefix)
 
         print("  {0}".format(InstallCmd))
 
