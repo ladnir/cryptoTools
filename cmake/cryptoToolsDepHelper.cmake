@@ -1,4 +1,4 @@
-include(CheckSymbolExists)
+
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
@@ -60,33 +60,35 @@ macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
         endif()
     endif()
 endmacro()
-
-
 if(NOT DEFINED OC_THIRDPARTY_HINT)
     if(MSVC)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
     else()
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
     endif()
+
+    if(NOT EXISTS ${OC_THIRDPARTY_HINT})
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../..")
+    endif()
 endif()
 
 ## Relic
 ###########################################################################
 
+include (FindPackageHandleStandardArgs)
 if (ENABLE_RELIC)
 
     if(NOT RLC_LIBRARY)
-        if(EXISTS "${OC_THIRDPARTY_HINT}/cmake/relic-config.cmake")
+        if(NOT DEFINED RELIC_ROOT)
             set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
         endif()
       
         # does not property work on windows. Need to do a PR on relic.
         #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
       
-        find_path(RLC_INCLUDE_DIR relic/relic.h HINTS  "${RELIC_ROOT}/include")
-        find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}/lib")
+        find_path(RLC_INCLUDE_DIR relic/relic.h HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/")
+        find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
 
-        include (FindPackageHandleStandardArgs)
         find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
 
         if(RLC_FOUND)
@@ -94,19 +96,15 @@ if (ENABLE_RELIC)
             set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
         endif()
     endif()
-
-
-    if(NOT DEFINED RLC_LIBRARY)
-        set(RLC_LIBRARY "${RELIC_LIBRARIES}${RLC_LIBRARY}")
-        set(RLC_INCLUDE_DIR "${RELIC_INCLUDE_DIR}${RLC_INCLUDE_DIR}")
+    
+    if(NOT EXISTS ${RLC_INCLUDE_DIR} OR NOT  EXISTS ${RLC_LIBRARY})
+        message(FATAL_ERROR "could not find relic.\n\nRLC_LIBRARY=${RLC_LIBRARY}\nRLC_INCLUDE_DIR=${RLC_INCLUDE_DIR}\n Looked at RELIC_ROOT=${RELIC_ROOT}; and system installs.\n\nOC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}")
     endif()
-
     message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
     message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
 
 
 endif (ENABLE_RELIC)
-
 
 # libsodium
 ###########################################################################
