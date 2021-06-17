@@ -42,19 +42,16 @@ def Build(mainArgs, cmakeArgs,install, prefix, par):
 
     osStr = (platform.system())
     buildDir = ""
-    args = sys.argv[1:]
     config = ""
     buildType = ""
-    if len(args) > 0 and args[0] == "--Debug":
+    if "--Debug" in mainArgs or "--debug" in mainArgs:
         buildType = "Debug"
-        args = args[1:]
     else:
         buildType = "Release"
 
     if osStr == "Windows":
         buildDir = "out/build/x64-{0}".format(buildType)
         config = "--config {0}".format(buildType)
-        args.append("-DCOMMON_FLAGS=/MP /Qpar")
     else:
         buildDir = "out/build/linux"
 
