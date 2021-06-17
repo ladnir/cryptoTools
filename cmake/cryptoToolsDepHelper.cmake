@@ -1,4 +1,4 @@
-
+cmake_policy(PUSH)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
@@ -238,3 +238,4 @@ if(ENABLE_BOOST)
     message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 
 endif()
+cmake_policy(POP)
