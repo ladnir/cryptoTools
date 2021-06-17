@@ -225,5 +225,4 @@ endif()
 
 # resort the previous prefix path
 set(CMAKE_PREFIX_PATH ${PUSHED_CMAKE_PREFIX_PATH})
-
 cmake_policy(POP)
