@@ -1,7 +1,9 @@
-
+cmake_policy(PUSH)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
+
+
 # a macro that resolved the linked libraries and includes
 # of a target.
 macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
@@ -60,7 +62,9 @@ macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
         endif()
     endif()
 endmacro()
+
 if(NOT DEFINED OC_THIRDPARTY_HINT)
+
     if(MSVC)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
     else()
@@ -68,9 +72,13 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
     endif()
 
     if(NOT EXISTS ${OC_THIRDPARTY_HINT})
-        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../..")
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
     endif()
 endif()
+
+set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${OC_THIRDPARTY_HINT}")
+
 
 ## Relic
 ###########################################################################
@@ -95,6 +103,14 @@ if (ENABLE_RELIC)
             set(RLC_LIBRARIES ${RLC_LIBRARY})
             set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
         endif()
+
+        
+        add_library(relic STATIC IMPORTED)
+    
+        set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
+        target_include_directories(relic INTERFACE 
+                        $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
+                        $<INSTALL_INTERFACE:>)
     endif()
     
     if(NOT EXISTS ${RLC_INCLUDE_DIR} OR NOT  EXISTS ${RLC_LIBRARY})
@@ -144,11 +160,6 @@ if (ENABLE_SODIUM)
     if(MSVC)
         target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
     endif()
-    #if (SODIUM_MONTGOMERY)
-    #    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
-    #else()
-    #    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
-    #endif()
 endif (ENABLE_SODIUM)
 
 
@@ -179,41 +190,13 @@ endif(ENABLE_WOLFSSL)
 ## Boost
 ###########################################################################
 
-
-
 if(ENABLE_BOOST)
-
-    #set(OC_BOOST_SEARCH_PATHS "${BOOST_ROOT}")
-    if(NOT BOOST_ROOT)
-        set(BOOST_ROOT ${OC_THIRDPARTY_HINT})
-    #    if(MSVC)
-    #        set(OC_BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../#thirdparty/boost/")
-    #        #set(OC_BOOST_ROOT_install "c:/libs/boost/")
-    #        #message("\n\n\n\nhere 1 >${OC_BOOST_ROOT_install}<\n\n\n")
-    #
-    #        set(OC_BOOST_SEARCH_PATHS "${OC_BOOST_SEARCH_PATHS} #${OC_BOOST_ROOT_local} ${OC_BOOST_ROOT_install}")
-    #
-    #        if(EXISTS "${OC_BOOST_ROOT_local}")
-    #            set(BOOST_ROOT "${OC_BOOST_ROOT_local}")
-    #            message("\n\n\n\nhere ${BOOST_ROOT}\n\n\n\n")
-    #        else()
-    #            #set(BOOST_ROOT "${OC_BOOST_ROOT_install}")
-    #            #message("\n\n\n\nhere 2 >${BOOST_ROOT}<\n\n\n\n")
-    #        endif()
-    #    else()
-    #        set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/#boost/")
-    #    endif()
-    endif()
-
-
 
     if(MSVC)
         set(Boost_LIB_PREFIX "lib")
     endif()
 
-    #set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
-    #set(Boost_USE_STATIC_RUNTIME     OFF)
     #set (Boost_DEBUG ON)  #<---------- Real life saver
     #message("BOOST_ROOT=${BOOST_ROOT}")
 
@@ -238,3 +221,9 @@ if(ENABLE_BOOST)
     message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 
 endif()
+
+
+# resort the previous prefix path
+set(CMAKE_PREFIX_PATH ${PUSHED_CMAKE_PREFIX_PATH})
+
+cmake_policy(POP)

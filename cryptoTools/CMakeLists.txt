@@ -43,10 +43,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cryptoToolsDepHelper.cmake")
 ###########################################################################
 
 if (ENABLE_RELIC)
-  target_include_directories(cryptoTools PUBLIC 
-                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
-                    $<INSTALL_INTERFACE:>)
-  target_link_libraries(cryptoTools ${RLC_LIBRARY})
+  target_link_libraries(cryptoTools relic)
 endif (ENABLE_RELIC)
 
 # libsodium

@@ -103,11 +103,12 @@ def Build(mainArgs, cmakeArgs,install, prefix, par):
 
 
 def getInstallArgs(args):
-    install = ""
+    prefix = ""
     for x in args:
         if x.startswith("--install="):
-            install = x.split("=",1)[1]
-            return (True, install)
+            prefix = x.split("=",1)[1]
+            prefix = os.path.abspath(os.path.expanduser(prefix))
+            return (True, prefix)
         if x == "--install":
             return (True, "")
     return (False, "")

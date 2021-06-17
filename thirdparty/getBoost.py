@@ -101,11 +101,11 @@ def getBoost(install, prefix, par):
         if len(prefix) > 0:
             cmd2 += " --prefix=" + prefix;
 
+        print("installing boost: {0}".format(cmd2))
         os.system(cmd0)
         if len(sudo):
             # build boost without sudo
             os.system(cmd1)
-            print("installing boost: {0}".format(cmd2))
             
         os.system(cmd2)
 
