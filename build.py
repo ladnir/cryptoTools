@@ -142,7 +142,7 @@ def help():
     print(" --install \n\tInstructs the script to install whatever is currently being built to the default location.")
     print(" --install=prefix  \n\tinstall to the provided predix.")
     print(" --sudo  \n\twhen installing, use sudo. May require password.")
-    print(" --noPar  \n\twhen building do not use parallel builds.")
+    print(" --par=n  \n\twhen building do use parallel  builds with n threads. default = num cores.")
     print(" --  \n\tafter the \"--\" argument, all command line args are passed to cmake")
 
     print("\n\nExamples:")
