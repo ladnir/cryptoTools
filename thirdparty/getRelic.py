@@ -40,7 +40,7 @@ def getRelic(install, prefix, par):
         if not install:
             prefix = cwd + "/unix"
 
-    argStr = argStr + " -DCMAKE_INSTALL_PREFIX:PATH=" + prefix
+
     
     parallel = ""
     if par != 1:
@@ -50,7 +50,9 @@ def getRelic(install, prefix, par):
     BuildCmd = "cmake --build {0} {1} {2} ".format(buildDir, config, parallel)
 
     InstallCmd = "{0}cmake --install {1}".format(sudo, buildDir)
-
+    if len(prefix):
+        InstallCmd += " --prefix {0} ".format(prefix)
+    
     print("mkdir "+ buildDir+ "\n\n")
 
     if not os.path.exists(buildDir):
