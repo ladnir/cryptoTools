@@ -55,10 +55,6 @@ def Build(mainArgs, cmakeArgs,install, prefix, par):
     else:
         buildDir = "out/build/linux"
 
-    if len(prefix) > 0:
-        cmakeArgs.append("-DCMAKE_INSTALL_PREFIX={0}".format(prefix))
-        
-
     cmakeArgs.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
 
     argStr = ""

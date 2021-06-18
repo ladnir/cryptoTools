@@ -26,17 +26,6 @@ if(NOT MSVC)
 endif()
 
 
-###########################################################################
-#                        Link external libraries                          #
-#                        -----------------------                          #
-#                                                                         #
-#  Define the expected location for miracl and boost.                     #
-#  Boost will be found using the findBoost  module in CMake               #
-#  It should look in the location specified and then look elsewhere       #
-#                                                                         #
-###########################################################################
-
-
 include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cryptoToolsDepHelper.cmake")
 
 ## Relic
