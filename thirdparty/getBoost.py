@@ -120,7 +120,7 @@ def getBoost(install, prefix, par):
             os.system(cmd1)
         os.system(cmd2)
 
-        os.chdir(cwd)
+    os.chdir(cwd)
 
 
 
