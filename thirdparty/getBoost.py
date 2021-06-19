@@ -1,5 +1,5 @@
 import sys
-
+import shutil
 if sys.version_info < (3, 0):
     sys.stdout.write("Sorry, requires Python 3.x, not Python 2.x\n")
     sys.exit(1)
@@ -7,6 +7,7 @@ if sys.version_info < (3, 0):
 import tarfile
 import os 
 import urllib.request
+import subprocess
 import platform
 
 
@@ -38,6 +39,7 @@ def getBoost(install, prefix, par):
         os.remove(arch)
         os.rename(folder, "boost")
 
+    os.chdir(cwd+ "/boost")
 
     osStr = (platform.system())
     if(osStr == "Windows"):
@@ -45,9 +47,11 @@ def getBoost(install, prefix, par):
         if not install and len(prefix) == 0:
             prefix = cwd + "/win"
 
-        preamble = r"\"\"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat\"\"" +"\n" + \
-            "cd boost\n"
+        temp = "./buildboost_deleteMe.ps1"
+        findvsPath = cwd + "/findvs.ps1"
 
+        f2 = open(temp, 'w')
+        f2.write("\n")
         b2Args =\
             "toolset=msvc-14.2 architecture=x86 address-model=64 --with-thread" +\
             " --with-system --with-filesystem --with-regex --with-date_time" +\
@@ -56,29 +60,29 @@ def getBoost(install, prefix, par):
         if par != 1:
             b2Args = "-j" + str(par) + " " + b2Args
 
-        cmd0 = preamble + \
-            "bootstrap.bat"
-        cmd1 = preamble + \
-            "b2.exe " + b2Args + " install "
-            
+        findvs = ". \"" + findvsPath +"\""
+        cmd0 = "./bootstrap.bat"
+        cmd1 = "./b2.exe " + b2Args + " install "
         if len(prefix) >0:
             cmd1 += " --prefix=" + prefix
 
+        f2.write(findvs + "\n")
+        f2.write(cmd0 + "\n")
+        f2.write(cmd1 + "\n")
+        f2.close()
+
+
         print("\n\n=========== getBoost.py ================")
-        print("{0}".format(cmd0))    
-        print("{0}".format(cmd1))    
+        print(findvs)    
+        print(cmd0)    
+        print(cmd1)    
         print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
+        p = subprocess.Popen(['powershell.exe', temp])
+        p.communicate()
 
-        with open("buildBoost_deleteMe.bat", "wt") as f:
-            f.write(cmd0);
-        os.system("buildBoost_deleteMe.bat")
+        os.remove(temp)
 
-        with open("buildBoost_deleteMe.bat", "wt") as f:
-            f.write(cmd1);
-        os.system("buildBoost_deleteMe.bat")
-
-        os.remove("buildBoost_deleteMe.bat")
 
     else:
         
@@ -103,7 +107,6 @@ def getBoost(install, prefix, par):
             cmd2 += " --prefix=" + prefix;
 
 
-        os.chdir(cwd+ "/boost")
         print("\n\n=========== getBoost.py ================")
         print(cmd0)
         if len(sudo):
@@ -117,7 +120,7 @@ def getBoost(install, prefix, par):
             os.system(cmd1)
         os.system(cmd2)
 
-        os.chdir(cwd)
+    os.chdir(cwd)
 
 
 
