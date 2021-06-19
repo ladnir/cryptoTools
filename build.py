@@ -69,9 +69,7 @@ def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
     CMakeCmd = "cmake -S . -B {0} {1}".format(buildDir, argStr)
     BuildCmd = "cmake --build {0} {1} {2} ".format(buildDir, config, parallel)
 
-    print("Build Cmd:\n  {0}\n  {1}\n  {2}".format(mkDirCmd, CMakeCmd, BuildCmd))
-
-
+    
     InstallCmd = ""
     sudo = ""
     if "--sudo" in sys.argv:
@@ -83,15 +81,13 @@ def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
 
         if len(prefix):
             InstallCmd += " --prefix {0} ".format(prefix)
-
-        print("  {0}".format(InstallCmd))
-
     
     print("\n\n====== build.py ("+projectName+") ========")
     print(mkDirCmd)
     print(CMakeCmd)
     print(BuildCmd)
-    print(InstallCmd)
+    if len(InstallCmd):
+        print(InstallCmd)
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
     os.system(mkDirCmd)
