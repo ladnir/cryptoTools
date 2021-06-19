@@ -53,14 +53,17 @@ def getRelic(install, prefix, par):
     if len(prefix):
         InstallCmd += " --prefix {0} ".format(prefix)
     
-    print("mkdir "+ buildDir+ "\n\n")
+    print("\n\n=========== getRelic.py ================")
+    print("mkdir "+ buildDir)
+    print(CMakeCmd)
+    print(BuildCmd)
+    print(InstallCmd)
+    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
     if not os.path.exists(buildDir):
         os.mkdir(buildDir)
 
-    print(CMakeCmd + "\n\n")
     os.system(CMakeCmd)
-    print(BuildCmd + "\n\n")
     os.system(BuildCmd)
     
     if len(sudo):

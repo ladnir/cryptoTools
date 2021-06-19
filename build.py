@@ -38,7 +38,7 @@ def Setup(boost, relic,sodium, install, prefix, par):
         getSodium.getSodium(install, prefix, par)
 
 
-def Build(mainArgs, cmakeArgs,install, prefix, par):
+def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
 
     osStr = (platform.system())
     buildDir = ""
@@ -86,14 +86,20 @@ def Build(mainArgs, cmakeArgs,install, prefix, par):
 
         print("  {0}".format(InstallCmd))
 
-    print("")
+    
+    print("\n\n====== build.py ("+projectName+") ========")
+    print(mkDirCmd)
+    print(CMakeCmd)
+    print(BuildCmd)
+    print(InstallCmd)
+    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
     os.system(mkDirCmd)
     os.system(CMakeCmd)
     os.system(BuildCmd)
 
     if len(sudo) > 0:
-        print("installing libraries: {0}".format(InstallCmd))
+        print("installing "+projectName+": {0}".format(InstallCmd))
 
     os.system(InstallCmd)
 
@@ -159,7 +165,8 @@ def help():
 
 
 
-def main():
+def main(projectName):
+
     (mainArgs, cmake) = parseArgs()
     if "--help" in mainArgs:
         help()
@@ -175,8 +182,8 @@ def main():
     if(setup):
         Setup(boost, relic,sodium,install, prefix, par)
     else:
-        Build(mainArgs, cmake,install, prefix, par)
+        Build(projectName, mainArgs, cmake,install, prefix, par)
 
 if __name__ == "__main__":
 
-    main()
+    main("cryptoTools")
