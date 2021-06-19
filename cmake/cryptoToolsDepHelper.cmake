@@ -2,6 +2,8 @@ cmake_policy(PUSH)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
+
+
 # a macro that resolved the linked libraries and includes
 # of a target.
 macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
@@ -60,7 +62,9 @@ macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
         endif()
     endif()
 endmacro()
+
 if(NOT DEFINED OC_THIRDPARTY_HINT)
+
     if(MSVC)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
     else()
@@ -68,9 +72,13 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
     endif()
 
     if(NOT EXISTS ${OC_THIRDPARTY_HINT})
-        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../..")
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
     endif()
 endif()
+
+set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${OC_THIRDPARTY_HINT}")
+
 
 ## Relic
 ###########################################################################
@@ -78,27 +86,34 @@ endif()
 include (FindPackageHandleStandardArgs)
 if (ENABLE_RELIC)
 
-    if(NOT RLC_LIBRARY)
-        if(NOT DEFINED RELIC_ROOT)
-            set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
-        endif()
-      
-        # does not property work on windows. Need to do a PR on relic.
-        #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
-      
-        find_path(RLC_INCLUDE_DIR relic/relic.h HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/")
-        find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
-
-        find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
-
-        if(RLC_FOUND)
-            set(RLC_LIBRARIES ${RLC_LIBRARY})
-            set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
-        endif()
+    if(NOT DEFINED RELIC_ROOT)
+        set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
     endif()
+      
+    # does not property work on windows. Need to do a PR on relic.
+    #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
+      
+    find_path(RLC_INCLUDE_DIR relic.h HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/relic/")
+    find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
+
+    find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
+
+    if(RLC_FOUND)
+        set(RLC_LIBRARIES ${RLC_LIBRARY})
+        set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
+    endif()
+
+        
+    add_library(relic STATIC IMPORTED)
+    
+    set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
+    target_include_directories(relic INTERFACE 
+                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
+                    $<INSTALL_INTERFACE:>)
+    
     
     if(NOT EXISTS ${RLC_INCLUDE_DIR} OR NOT  EXISTS ${RLC_LIBRARY})
-        message(FATAL_ERROR "could not find relic.\n\nRLC_LIBRARY=${RLC_LIBRARY}\nRLC_INCLUDE_DIR=${RLC_INCLUDE_DIR}\n Looked at RELIC_ROOT=${RELIC_ROOT}; and system installs.\n\nOC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}")
+        message(FATAL_ERROR "could not find relic.\n\nRLC_LIBRARY=${RLC_LIBRARY}\nRLC_INCLUDE_DIR=${RLC_INCLUDE_DIR}\n Looked at RELIC_ROOT=${RELIC_ROOT}; and system installs.\n OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}\n")
     endif()
     message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
     message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
@@ -110,7 +125,6 @@ endif (ENABLE_RELIC)
 ###########################################################################
 
 if (ENABLE_SODIUM)
-    #pkg_check_modules(SODIUM REQUIRED libsodium)
   
     find_path(SODIUM_INCLUDE_DIRS sodium.h HINTS  "${OC_THIRDPARTY_HINT}/include")
     find_library(SODIUM_LIBRARIES NAMES sodium libsodium HINTS "${OC_THIRDPARTY_HINT}/lib")
@@ -118,16 +132,7 @@ if (ENABLE_SODIUM)
     if (NOT SODIUM_INCLUDE_DIRS OR NOT SODIUM_LIBRARIES)
         message(FATAL_ERROR "Failed to find libsodium.\n  OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}\n  SODIUM_INCLUDE_DIRS=${SODIUM_INCLUDE_DIRS}\n  SODIUM_LIBRARIES=${SODIUM_LIBRARIES}")
     endif ()
-
-    #set(CMAKE_REQUIRED_INCLUDES ${SODIUM_INCLUDE_DIRS})
-    #set(CMAKE_REQUIRED_LIBRARIES ${SODIUM_LIBRARIES})
-    #check_symbol_exists(crypto_scalarmult_noclamp "sodium.h" VAR)
-    #unset(CMAKE_REQUIRED_LIBRARIES)
-    #unset(CMAKE_REQUIRED_INCLUDES)
-    #if(VAR)
-    #else()
-    #    set(SODIUM_MONTGOMERY OFF CACHE BOOL "SODIUM_MONTGOMERY..." FORCE)
-    #endif()
+    
     set(SODIUM_MONTGOMERY ON CACHE BOOL "SODIUM_MONTGOMERY...")
 
     message(STATUS "SODIUM_INCLUDE_DIRS:  ${SODIUM_INCLUDE_DIRS}")
@@ -144,11 +149,6 @@ if (ENABLE_SODIUM)
     if(MSVC)
         target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
     endif()
-    #if (SODIUM_MONTGOMERY)
-    #    message(STATUS "Sodium supports Montgomery curve noclamp operations.")
-    #else()
-    #    message(STATUS "Sodium does not support Montgomery curve noclamp operations.")
-    #endif()
 endif (ENABLE_SODIUM)
 
 
@@ -179,41 +179,13 @@ endif(ENABLE_WOLFSSL)
 ## Boost
 ###########################################################################
 
-
-
 if(ENABLE_BOOST)
-
-    #set(OC_BOOST_SEARCH_PATHS "${BOOST_ROOT}")
-    if(NOT BOOST_ROOT)
-        set(BOOST_ROOT ${OC_THIRDPARTY_HINT})
-    #    if(MSVC)
-    #        set(OC_BOOST_ROOT_local "${CMAKE_CURRENT_LIST_DIR}/../#thirdparty/boost/")
-    #        #set(OC_BOOST_ROOT_install "c:/libs/boost/")
-    #        #message("\n\n\n\nhere 1 >${OC_BOOST_ROOT_install}<\n\n\n")
-    #
-    #        set(OC_BOOST_SEARCH_PATHS "${OC_BOOST_SEARCH_PATHS} #${OC_BOOST_ROOT_local} ${OC_BOOST_ROOT_install}")
-    #
-    #        if(EXISTS "${OC_BOOST_ROOT_local}")
-    #            set(BOOST_ROOT "${OC_BOOST_ROOT_local}")
-    #            message("\n\n\n\nhere ${BOOST_ROOT}\n\n\n\n")
-    #        else()
-    #            #set(BOOST_ROOT "${OC_BOOST_ROOT_install}")
-    #            #message("\n\n\n\nhere 2 >${BOOST_ROOT}<\n\n\n\n")
-    #        endif()
-    #    else()
-    #        set(BOOST_ROOT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/#boost/")
-    #    endif()
-    endif()
-
-
 
     if(MSVC)
         set(Boost_LIB_PREFIX "lib")
     endif()
 
-    #set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
-    #set(Boost_USE_STATIC_RUNTIME     OFF)
     #set (Boost_DEBUG ON)  #<---------- Real life saver
     #message("BOOST_ROOT=${BOOST_ROOT}")
 
@@ -238,4 +210,8 @@ if(ENABLE_BOOST)
     message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 
 endif()
+
+
+# resort the previous prefix path
+set(CMAKE_PREFIX_PATH ${PUSHED_CMAKE_PREFIX_PATH})
 cmake_policy(POP)

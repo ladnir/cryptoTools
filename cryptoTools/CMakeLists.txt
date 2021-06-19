@@ -26,27 +26,13 @@ if(NOT MSVC)
 endif()
 
 
-###########################################################################
-#                        Link external libraries                          #
-#                        -----------------------                          #
-#                                                                         #
-#  Define the expected location for miracl and boost.                     #
-#  Boost will be found using the findBoost  module in CMake               #
-#  It should look in the location specified and then look elsewhere       #
-#                                                                         #
-###########################################################################
-
-
 include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cryptoToolsDepHelper.cmake")
 
 ## Relic
 ###########################################################################
 
 if (ENABLE_RELIC)
-  target_include_directories(cryptoTools PUBLIC 
-                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
-                    $<INSTALL_INTERFACE:>)
-  target_link_libraries(cryptoTools ${RLC_LIBRARY})
+  target_link_libraries(cryptoTools relic)
 endif (ENABLE_RELIC)
 
 # libsodium

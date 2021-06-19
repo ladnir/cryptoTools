@@ -64,19 +64,21 @@ def getBoost(install, prefix, par):
         if len(prefix) >0:
             cmd1 += " --prefix=" + prefix
 
-        print("cmd0: {0}".format(cmd0))    
-        print("cmd1: {0}\n\n".format(cmd1))    
+        print("\n\n=========== getBoost.py ================")
+        print("{0}".format(cmd0))    
+        print("{0}".format(cmd1))    
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
 
-        with open("deleteMe.bat", "wt") as f:
+        with open("buildBoost_deleteMe.bat", "wt") as f:
             f.write(cmd0);
-        os.system("deleteMe.bat")
+        os.system("buildBoost_deleteMe.bat")
 
-        with open("deleteMe.bat", "wt") as f:
+        with open("buildBoost_deleteMe.bat", "wt") as f:
             f.write(cmd1);
-        os.system("deleteMe.bat")
+        os.system("buildBoost_deleteMe.bat")
 
-        os.remove("deleteMe.bat")
+        os.remove("buildBoost_deleteMe.bat")
 
     else:
         
@@ -93,21 +95,29 @@ def getBoost(install, prefix, par):
         if par != 1:
             b2Args = " -j" + str(par) + " " + b2Args
 
-        cmd0 = "cd boost; bash bootstrap.sh"
-        cmd1 = "cd boost; ./b2 " + b2Args + ";"
-        cmd2 = "cd boost;"+sudo+" ./b2 "+b2Args  +" install "
 
-
+        cmd0 = "bash bootstrap.sh"
+        cmd1 = "./b2 " + b2Args
+        cmd2 = sudo+" ./b2 " + b2Args  +" install "
         if len(prefix) > 0:
             cmd2 += " --prefix=" + prefix;
 
-        os.system(cmd0)
+
+        os.chdir(cwd+ "/boost")
+        print("\n\n=========== getBoost.py ================")
+        print(cmd0)
         if len(sudo):
-            # build boost without sudo
+            print(cmd1)
+        print(cmd2)
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
+
+        os.system(cmd0)
+        # build boost without sudo
+        if len(sudo):
             os.system(cmd1)
-            print("installing boost: {0}".format(cmd2))
-            
         os.system(cmd2)
+
+        os.chdir(cwd)
 
 
 
