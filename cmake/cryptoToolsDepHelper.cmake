@@ -93,7 +93,7 @@ if (ENABLE_RELIC)
     # does not property work on windows. Need to do a PR on relic.
     #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
       
-    find_path(RLC_INCLUDE_DIR relic.h HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/relic/")
+    find_path(RLC_INCLUDE_DIR "relic/relic.h" HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/")
     find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
 
     find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
