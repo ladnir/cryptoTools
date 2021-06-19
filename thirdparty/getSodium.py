@@ -44,7 +44,7 @@ def getSodium(install, prefix, par):
     sudo = ""
     if(osStr == "Windows"):
         findVS = "../findvs.ps1"
-        temp = "./deleteMe.ps1"
+        temp = "./buildSodium_deleteMe.ps1"
 
         f1 = open(findVS, 'r')
         f2 = open(temp, 'w')
