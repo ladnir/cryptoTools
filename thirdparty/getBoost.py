@@ -98,7 +98,7 @@ def getBoost(install, prefix, par):
 
         cmd0 = "bash bootstrap.sh"
         cmd1 = "./b2 " + b2Args
-        cmd2 = +sudo+" ./b2 "+b2Args  +" install "
+        cmd2 = sudo+" ./b2 " + b2Args  +" install "
         if len(prefix) > 0:
             cmd2 += " --prefix=" + prefix;
 
