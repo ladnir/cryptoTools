@@ -9,7 +9,7 @@ import os
 import urllib.request
 import subprocess
 import platform
-
+import time
 
 def getBoost(install, prefix, par):
     version = "75"
@@ -24,13 +24,25 @@ def getBoost(install, prefix, par):
 
     if os.path.isdir("boost") == False:
         if not os.path.exists(arch):
-            try:
-                print("url: ", url)
-                print("downloading boost...")
-                urllib.request.urlretrieve(url, arch)
-            except:
-                print("failed to download boost. please manually download the archive to")
-                print("{0}/{1}".format(cwd, arch))
+            
+            print("url: ", url)
+            print("downloading boost...")
+            t = 0
+            maxTries = 3
+            success = False
+            while success == False:
+                try:
+                    urllib.request.urlretrieve(url, arch)
+                    success = True
+                except:
+                    if t == maxTries:
+                        print("failed to download boost. please manually download the archive to")
+                        print("{0}/{1}".format(cwd, arch))
+                        exit()
+                    else:
+                        time.sleep(1)
+                        print("failed to download boost. retrying...")
+                        t += 1
 
         print("extracting boost...")
         tar = tarfile.open(arch, 'r:bz2')
