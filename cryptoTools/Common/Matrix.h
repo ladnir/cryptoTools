@@ -6,7 +6,7 @@
 #endif
 #include <cryptoTools/Common/MatrixView.h>
 #include <cstring>
-
+#include <type_traits>
 namespace osuCrypto
 {
     enum class AllocType
@@ -19,27 +19,64 @@ namespace osuCrypto
     class Matrix : public MatrixView<T>
     {
         u64 mCapacity = 0;
+        using Storage = u8[sizeof(T)];
     public:
         Matrix() = default;
 
         Matrix(u64 rows, u64 columns, AllocType t = AllocType::Zeroed)
         {
-            resize(rows, columns, t);
+            mCapacity = rows * columns;
+            Storage* ptr;
+            if (t == AllocType::Zeroed)
+            {
+                if (std::is_trivially_constructible<T>::value)
+                    ptr = new Storage[mCapacity]();
+                else
+                {
+                    ptr = new Storage[mCapacity];
+                    auto iter = (T*)ptr;
+                    for (u64 i = 0; i < mCapacity; ++i)
+                    {
+                        new (iter++)T();
+                    }
+                }
+            }
+            else
+            {
+                ptr = new Storage[mCapacity];
+            }
+
+            *((MatrixView<T>*)this) = MatrixView<T>((T*)ptr, rows, columns);
         }
 
+        template<typename T2,
+            typename std::enable_if<
+            std::is_same<T, T2>::value&&
+            std::is_copy_constructible<T2>::value, int>::type = 0>
+            Matrix(const Matrix<T2>& copy)
+            : Matrix(static_cast<const MatrixView<T2>&>(copy))
+        { }
 
-        Matrix(const Matrix<T>& copy)
-            : MatrixView<T>(new T[copy.size()], copy.bounds()[0], copy.stride())
-            , mCapacity(copy.size())
+        template<typename T2,
+            typename std::enable_if<
+            std::is_same<T, T2>::value&&
+            std::is_copy_constructible<T2>::value, int>::type = 0>
+            Matrix(const MatrixView<T2>& copy)
+            : mCapacity(copy.size())
         {
-            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
-        }
+            auto ptr = new Storage[copy.size()];
+            *((MatrixView<T>*)this) = MatrixView<T>((T*)ptr, copy.rows(), copy.cols());
 
-        Matrix(const MatrixView<T>& copy)
-            : MatrixView<T>(new T[copy.size()], copy.bounds()[0], copy.stride())
-            , mCapacity(copy.size())
-        {
-            memcpy(MatrixView<T>::mView.data(), copy.data(), copy.size() * sizeof(T));
+            if (std::is_trivially_copyable<T>::value)
+                memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
+            else
+            {
+                auto iter = MatrixView<T>::mView.data();
+                for (u64 i = 0; i < copy.size(); ++i)
+                {
+                    new ((char*)iter++)T(copy(i));
+                }
+            }
         }
 
         Matrix(Matrix<T>&& copy)
@@ -54,7 +91,13 @@ namespace osuCrypto
 
         ~Matrix()
         {
-            delete[] MatrixView<T>::mView.data();
+            if (std::is_trivially_destructible<T>::value == false)
+            {
+                for (u64 i = 0; i < size(); ++i)
+                    (data() + i)->~T();
+            }
+
+            delete[](Storage*)(MatrixView<T>::mView.data());
         }
 
 
@@ -65,55 +108,72 @@ namespace osuCrypto
             auto e = copy.end();
 
             std::copy(b, e, MatrixView<T>::mView.begin());
-            //memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
             return copy;
-        }
-
-        template<typename T2> 
-        static 
-            typename std::enable_if<std::is_trivially_constructible<T2>::value>::type 
-            zeroFill(T2* begin, T2* end)
-        {
-            std::memset(begin, 0, (end-begin) * sizeof(T2));
-        }
-
-        template<typename T2>
-        static
-            typename std::enable_if<!std::is_trivially_constructible<T2>::value>::type
-            zeroFill(T2* begin, T2* end)
-        {
-            std::fill(begin, end, T2{});
         }
 
         void resize(u64 rows, u64 columns, AllocType type = AllocType::Zeroed)
         {
             if (rows * columns > mCapacity)
             {
-                mCapacity = rows * columns;
                 auto old = MatrixView<T>::mView;
+                mCapacity = rows * columns;
 
-                if (type == AllocType::Zeroed)
-                    MatrixView<T>::mView = span<T>(new T[mCapacity](), mCapacity);
-                else
-                    MatrixView<T>::mView = span<T>(new T[mCapacity], mCapacity);
+                if (std::is_trivially_constructible<T>::value)
+                {
+                    if (type == AllocType::Zeroed)
+                        MatrixView<T>::mView = span<T>((T*)new Storage[mCapacity](), mCapacity);
+                    else
+                        MatrixView<T>::mView = span<T>((T*)new Storage[mCapacity], mCapacity);
 
-
-                auto min = std::min<u64>(old.size(), mCapacity) * sizeof(T);
-    
-                if (min)
                     std::copy(old.begin(), old.end(), MatrixView<T>::mView.begin());
+                }
+                else
+                {
+                    MatrixView<T>::mView = span<T>((T*)new Storage[mCapacity], mCapacity);
 
-                delete[] old.data();
+                    auto iter = MatrixView<T>::mView.data();
+                    for (u64 i = 0; i < old.size(); ++i)
+                    {
+                        new (iter++) T(std::move(old[i]));
+                    }
 
+                    if (type == AllocType::Zeroed)
+                    {
+                        for (u64 i = old.size(); i < mCapacity; ++i)
+                        {
+                            new (iter++) T;
+                        }
+                    }
+                }
+
+
+                if (std::is_trivially_destructible<T>::value == false)
+                {
+                    for (u64 i = 0; i < old.size(); ++i)
+                        (old.data() + i)->~T();
+                }
+
+                delete[](Storage*)old.data();
             }
             else
             {
                 auto newSize = rows * columns;
-                if (MatrixView<T>::size() && newSize > MatrixView<T>::size() && type == AllocType::Zeroed)
+                if (MatrixView<T>::size() &&
+                    newSize > MatrixView<T>::size() &&
+                    type == AllocType::Zeroed)
                 {
                     auto b = MatrixView<T>::data() + MatrixView<T>::size();
                     auto e = b + newSize - MatrixView<T>::size();
-                    zeroFill<T>(b, e);
+
+                    if (std::is_trivially_constructible<T>::value)
+                    {
+                        std::memset(b, 0, (e - b) * sizeof(T));
+                    }
+                    else
+                    {
+                        for (auto i = b; i < e; ++i)
+                            new(i)T;
+                    }
                 }
 
                 MatrixView<T>::mView = span<T>(MatrixView<T>::data(), newSize);
@@ -133,14 +193,14 @@ namespace osuCrypto
         }
 
 
-        bool operator==(const Matrix<T>&m) const
+        bool operator==(const Matrix<T>& m) const
         {
             if (m.rows() != MatrixView<T>::rows() || m.cols() != MatrixView<T>::cols())
                 return false;
             auto b0 = m.begin();
             auto e0 = m.end();
             auto b1 = MatrixView<T>::begin();
-            return std::equal(b0,e0,b1);
+            return std::equal(b0, e0, b1);
         }
     };
 
