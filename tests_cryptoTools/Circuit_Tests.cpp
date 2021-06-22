@@ -1363,7 +1363,6 @@ void BetaCircuit_bitInvert_Test(){ throwNotEnabled(); }
 void BetaCircuit_removeSign_Test(){ throwNotEnabled(); }
 void BetaCircuit_addSign_Test(){ throwNotEnabled(); }
 
-void BetaCircuit_aes_test(){ throwNotEnabled(); }
 void BetaCircuit_json_Tests(){ throwNotEnabled(); }
 void BetaCircuit_bin_Tests(){ throwNotEnabled(); }
 

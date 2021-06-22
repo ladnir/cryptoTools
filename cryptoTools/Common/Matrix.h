@@ -49,26 +49,21 @@ namespace osuCrypto
             *((MatrixView<T>*)this) = MatrixView<T>((T*)ptr, rows, columns);
         }
 
-        template<typename T2,
-            typename std::enable_if<
-            std::is_same<T, T2>::value&&
-            std::is_copy_constructible<T2>::value, int>::type = 0>
-            Matrix(const Matrix<T2>& copy)
-            : Matrix(static_cast<const MatrixView<T2>&>(copy))
+        Matrix(const Matrix<T>& copy)
+            : Matrix(static_cast<const MatrixView<T>&>(copy))
         { }
 
-        template<typename T2,
-            typename std::enable_if<
-            std::is_same<T, T2>::value&&
-            std::is_copy_constructible<T2>::value, int>::type = 0>
-            Matrix(const MatrixView<T2>& copy)
+
+        Matrix(const MatrixView<T>& copy)
             : mCapacity(copy.size())
         {
+            static_assert(std::is_copy_constructible<T>::value, "T must by copy");
+
             auto ptr = new Storage[copy.size()];
             *((MatrixView<T>*)this) = MatrixView<T>((T*)ptr, copy.rows(), copy.cols());
 
             if (std::is_trivially_copyable<T>::value)
-                memcpy(MatrixView<T>::mView.data(), copy.data(), copy.mView.size_bytes());
+                memcpy(MatrixView<T>::data(), copy.data(), copy.size() * sizeof(T));
             else
             {
                 auto iter = MatrixView<T>::mView.data();
