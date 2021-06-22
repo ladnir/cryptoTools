@@ -88,11 +88,11 @@ namespace osuCrypto
         {
             if (std::is_trivially_destructible<T>::value == false)
             {
-                for (u64 i = 0; i < size(); ++i)
-                    (data() + i)->~T();
+                for (u64 i = 0; i < MatrixView<T>::size(); ++i)
+                    (MatrixView<T>::data() + i)->~T();
             }
 
-            delete[](Storage*)(MatrixView<T>::mView.data());
+            delete[](Storage*)(MatrixView<T>::data());
         }
 
 
