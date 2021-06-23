@@ -65,15 +65,16 @@ endmacro()
 
 if(NOT DEFINED OC_THIRDPARTY_HINT)
 
-    if(MSVC)
-        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
-    else()
-        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
-    endif()
+    #if(MSVC)
+    #    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
+    #else()
+    #    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
+    #endif()
 
-    if(NOT EXISTS ${OC_THIRDPARTY_HINT})
-        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
-    endif()
+    # this is for installed packages, moves up lib/cmake/libOTe
+    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
+    #if(NOT EXISTS ${OC_THIRDPARTY_HINT})
+    #endif()
 endif()
 
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
