@@ -26,7 +26,6 @@ if(NOT MSVC)
 endif()
 
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cryptoToolsDepHelper.cmake")
 
 ## Relic
 ###########################################################################

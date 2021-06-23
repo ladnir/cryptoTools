@@ -82,6 +82,8 @@ endif()
 #       cryptoTools, tests, frontend        #
 #############################################
 
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/cryptoToolsDepHelper.cmake")
+
 
 add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)

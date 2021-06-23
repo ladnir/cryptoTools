@@ -63,18 +63,22 @@ macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
     endif()
 endmacro()
 
+
+
 if(NOT DEFINED OC_THIRDPARTY_HINT)
 
-    #if(MSVC)
-    #    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
-    #else()
-    #    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
-    #endif()
+    if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/cryptoToolsFindBuildDir.cmake)
+        # we currenty are in the cryptoTools source tree, cryptoTools/cmake
+        if(MSVC)
+            set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
+        else()
+            set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
+        endif()
 
-    # this is for installed packages, moves up lib/cmake/libOTe
-    set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
-    #if(NOT EXISTS ${OC_THIRDPARTY_HINT})
-    #endif()
+    else()
+        # we currenty are in install tree, <install-prefix>/lib/cmake/cryptoTools
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
+    endif()
 endif()
 
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
@@ -96,9 +100,7 @@ if (ENABLE_RELIC)
       
     find_path(RLC_INCLUDE_DIR "relic/relic.h" HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/")
     find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
-
-    find_package_handle_standard_args(RELIC DEFAULT_MSG RLC_INCLUDE_DIR RLC_LIBRARY)
-
+    
     if(RLC_FOUND)
         set(RLC_LIBRARIES ${RLC_LIBRARY})
         set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
