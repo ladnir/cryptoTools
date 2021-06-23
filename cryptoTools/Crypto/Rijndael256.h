@@ -2,15 +2,13 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 
-#ifdef OC_ENABLE_AESNI
-
 namespace osuCrypto {
     namespace details
     {
         static const int rijndael256_rounds = 14;
     }
 
-    struct Block256: public std::array<block, 2>
+    struct Block256 : public std::array<block, 2>
     {
     private:
         using Base = std::array<block, 2>;
@@ -20,21 +18,25 @@ namespace osuCrypto {
         using Base::Base;
         using Base::operator=;
 
-        Block256(block b0, block b1) : Base({b0, b1}) {}
-        Block256(const std::uint8_t* data) : Base({toBlock(data), toBlock(data + 16)}) {}
-        Block256(std::uint64_t low_u64) : Base({toBlock(low_u64), toBlock((std::uint64_t) 0)}) {}
+        Block256(block b0, block b1) : Base({ b0, b1 }) {}
+        Block256(const std::uint8_t* data) : Base({ toBlock(data), toBlock(data + 16) }) {}
+        Block256(std::uint64_t low_u64) : Base({ toBlock(low_u64), toBlock((std::uint64_t)0) }) {}
 
         const unsigned char* data() const
         {
             // Unsafe, but I don't see a better way.
-            return (const unsigned char*) &(*this)[0];
+            return (const unsigned char*)&(*this)[0];
         }
 
         unsigned char* data()
         {
-            return (unsigned char*) &(*this)[0];
+            return (unsigned char*)&(*this)[0];
         }
     };
+
+
+#ifdef OC_ENABLE_AESNI
+
 
     class Rijndael256Enc
     {
@@ -139,6 +141,6 @@ namespace osuCrypto {
     };
 
     // TODO: encryption of N values under N different keys
+#endif
 }
 
-#endif
