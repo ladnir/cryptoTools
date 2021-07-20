@@ -132,6 +132,11 @@ namespace osuCrypto
         }
 
 
+        operator MatrixView<const T>()
+        {
+            return { data(), rows(), cols() };
+        }
+
 
         template<typename TT = T>
         typename std::enable_if<std::is_pod<TT>::value>::type setZero()

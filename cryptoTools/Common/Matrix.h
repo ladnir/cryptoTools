@@ -187,7 +187,6 @@ namespace osuCrypto
             return ret;
         }
 
-
         bool operator==(const Matrix<T>& m) const
         {
             if (m.rows() != MatrixView<T>::rows() || m.cols() != MatrixView<T>::cols())
