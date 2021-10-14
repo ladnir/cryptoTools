@@ -45,6 +45,13 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 endif() 
 
 
+macro(EVAL var)
+     if(${ARGN})
+         set(${var} ON)
+     else()
+         set(${var} OFF)
+     endif()
+endmacro()
 
 
 #############################################
@@ -60,22 +67,44 @@ option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 option(ENABLE_SSE       "compile with SSE instrctions" ON)
 option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
 
+
+option(FETCH_AUTO      "automaticly download and build dependancies" OFF)
+
+#option(FETCH_RELIC		"download and build Relic" OFF))
+EVAL(FETCH_RELIC_IMPL 
+	(DEFINED FETCH_RELIC AND FETCH_RELIC) OR
+	((NOT DEFINED FETCH_RELIC) AND (FETCH_AUTO AND ENABLE_RELIC)))
+
+#option(FETCH_SODIUM	"download and build Sodium" OFF))
+EVAL(FETCH_SODIUM_IMPL 
+	(DEFINED FETCH_SODIUM AND FETCH_SODIUM) OR
+	((NOT DEFINED FETCH_SODIUM) AND (FETCH_AUTO AND ENABLE_SODIUM)))
+
+#option(FETCH_SODIUM	"download and build Boost" OFF))
+EVAL(FETCH_BOOST_IMPL 
+	(DEFINED FETCH_BOOST AND FETCH_BOOST) OR
+	((NOT DEFINED FETCH_BOOST) AND (FETCH_AUTO AND ENABLE_BOOST)))
+	message("FETCH_BOOST_IMPL=${FETCH_BOOST_IMPL}")
+
 set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
 message(STATUS "cryptoTools options\n=======================================================")
 
+message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
+message(STATUS "Option: FETCH_RELIC       = ${FETCH_RELIC}")
+message(STATUS "Option: FETCH_SODIUM      = ${FETCH_SODIUM}")
+message(STATUS "Option: FETCH_BOOST       = ${FETCH_BOOST}\n")
+
 message(STATUS "Option: CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
+message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n")
+
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
-message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
-message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n\n")
+message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}\n\n")
 
-if(NOT ENABLE_CPP_14)
-	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -Wno-narrowing")
-endif()
 
 
 #############################################

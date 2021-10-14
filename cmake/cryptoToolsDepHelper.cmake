@@ -4,77 +4,24 @@ cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
 
 
-# a macro that resolved the linked libraries and includes
-# of a target.
-macro(OC_getAllLinkedLibraries iTarget LIBRARIES INCLUDES)
-   if(NOT TARGET ${iTarget})
-        message(WARNING "${iTarget} is not a target")
-    else()
-    
-        # get inlcude
-        get_target_property(TARGET_INCS ${iTarget} INTERFACE_INCLUDE_DIRECTORIES)
-
-        # if it has any, add any new ones.
-        if(TARGET_INCS)
-            FOREACH(path ${TARGET_INCS})
-
-                if(NOT ${path} IN_LIST ${INCLUDES})
-                    list(APPEND ${INCLUDES} ${path})
-                endif()
-            ENDFOREACH()
-        else()
-            #message("iTarget no include ${iTarget}")
-        endif()
-
-        # get the location of this libraries
-        get_target_property(type ${iTarget} TYPE)
-        if (${type} STREQUAL "INTERFACE_LIBRARY")
-            #message("iTarget interface target ${iTarget}")
-            get_target_property(path ${iTarget} INTERFACE_LINK_LIBRARIES)
-        else()
-            #message("iTarget normal target ${iTarget}, ${type}")
-
-            get_target_property(path ${iTarget} LOCATION)
-        endif()
-        if(NOT ${path} IN_LIST ${LIBRARIES})
-            if(path)
-                list(APPEND ${LIBRARIES} ${path})
-            else()
-                #message("iTarget no location ${iTarget}, ${path}")
-            endif()
-        endif()
-
-        # recurse on the linked libraries.
-        get_target_property(linkedLibrairies ${iTarget} INTERFACE_LINK_LIBRARIES)
-
-        #message(STATUS "\n\n ${iTarget} -> ${linkedLibrairies}")
-
-        if(NOT "${linkedLibrairies}" STREQUAL "")
-            FOREACH(linkedLibrary ${linkedLibrairies})
-                if(TARGET ${linkedLibrary})
-                    OC_getAllLinkedLibraries(${linkedLibrary} ${LIBRARIES} ${INCLUDES})
-                elseif(linkedLibrary AND (NOT ${linkedLibrary} IN_LIST ${LIBRARIES}))
-                    #message("\n\n\nnon-target lib ${linkedLibrary}\n\n\n")
-
-                    list(APPEND ${LIBRARIES} ${linkedLibrary})
-                endif()
-            ENDFOREACH()
-        endif()
-    endif()
-endmacro()
-
+if(MSVC)
+    set(OC_CONFIG "x64-${CMAKE_BUILD_TYPE}")
+elseif(APPLE)
+    set(OC_CONFIG "osx")
+else()
+    set(OC_CONFIG "linux")
+endif()
 
 
 if(NOT DEFINED OC_THIRDPARTY_HINT)
 
     if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/cryptoToolsFindBuildDir.cmake)
         # we currenty are in the cryptoTools source tree, cryptoTools/cmake
-        if(MSVC)
-            set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/win/")
-        else()
-            set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../thirdparty/unix/")
+        set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../out/install/${OC_CONFIG}")
+        
+        if(NOT DEFINED OC_THIRDPARTY_INSTALL_PREFIX)
+            set(OC_THIRDPARTY_INSTALL_PREFIX ${OC_THIRDPARTY_HINT})
         endif()
-
     else()
         # we currenty are in install tree, <install-prefix>/lib/cmake/cryptoTools
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
@@ -82,31 +29,45 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
 endif()
 
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${OC_THIRDPARTY_HINT}")
+set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 
 
 ## Relic
 ###########################################################################
 
-include (FindPackageHandleStandardArgs)
-if (ENABLE_RELIC)
-
-    if(NOT DEFINED RELIC_ROOT)
-        set(RELIC_ROOT ${OC_THIRDPARTY_HINT})
+macro(FIND_RELIC)
+    set(ARGS ${ARGN})
+    if(FETCH_RELIC_IMPL)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
     endif()
-      
+
+    find_path(RLC_INCLUDE_DIR "relic/relic.h" PATH_SUFFIXES "/include/" ${ARGS})
+    find_library(RLC_LIBRARY NAMES relic relic_s  PATH_SUFFIXES "/lib/" ${ARGS})
+    if(EXISTS ${RLC_INCLUDE_DIR} AND EXISTS ${RLC_LIBRARY})
+        set(RELIC_FOUND ON)
+    else() 
+        set(RELIC_FOUND OFF) 
+    endif()
+endmacro()
+    
+if(FETCH_RELIC_IMPL)
+    FIND_RELIC()
+    include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getRelic.cmake)
+
+    
+endif()
+
+
+if (ENABLE_RELIC)
+    
+    FIND_RELIC()
+
+    if(NOT RELIC_FOUND)
+        message(FATAL_ERROR "could not find relic. Add -DFETCH_RELIC=ON or -DFETCH_ALL=ON to auto download.\n")
+    endif()
+
     # does not property work on windows. Need to do a PR on relic.
     #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
-      
-    find_path(RLC_INCLUDE_DIR "relic/relic.h" HINTS  "${RELIC_ROOT}" PATH_SUFFIXES "/include/")
-    find_library(RLC_LIBRARY NAMES relic relic_s  HINTS "${RELIC_ROOT}" PATH_SUFFIXES "/lib/")
-    
-    if(RLC_FOUND)
-        set(RLC_LIBRARIES ${RLC_LIBRARY})
-        set(RLC_INCLUDE_DIRS ${RLC_INCLUDE_DIR})
-    endif()
-
-        
     add_library(relic STATIC IMPORTED)
     
     set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
@@ -114,26 +75,39 @@ if (ENABLE_RELIC)
                     $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
                     $<INSTALL_INTERFACE:>)
     
-    
-    if(NOT EXISTS ${RLC_INCLUDE_DIR} OR NOT  EXISTS ${RLC_LIBRARY})
-        message(FATAL_ERROR "could not find relic.\n\nRLC_LIBRARY=${RLC_LIBRARY}\nRLC_INCLUDE_DIR=${RLC_INCLUDE_DIR}\n Looked at RELIC_ROOT=${RELIC_ROOT}; and system installs.\n OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}\n")
-    endif()
     message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
     message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
 
-
-endif (ENABLE_RELIC)
+endif()
 
 # libsodium
 ###########################################################################
 
+macro(FIND_SODIUM)
+    set(ARGS ${ARGN})
+    if(FETCH_SODIUM_IMPL)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
+    endif()
+    find_path(SODIUM_INCLUDE_DIRS sodium.h PATH_SUFFIXES "/include/" ${ARGS})
+    find_library(SODIUM_LIBRARIES NAMES sodium libsodium PATH_SUFFIXES "/lib/" ${ARGS})
+    if(EXISTS ${SODIUM_INCLUDE_DIRS} AND EXISTS ${SODIUM_LIBRARIES})
+        set(SODIUM_FOUND  ON)
+    else() 
+        set(SODIUM_FOUND  OFF) 
+    endif()
+endmacro()
+
+if(FETCH_SODIUM_IMPL)
+    FIND_SODIUM()
+    include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSodium.cmake)
+endif()
+
 if (ENABLE_SODIUM)
   
-    find_path(SODIUM_INCLUDE_DIRS sodium.h HINTS  "${OC_THIRDPARTY_HINT}/include")
-    find_library(SODIUM_LIBRARIES NAMES sodium libsodium HINTS "${OC_THIRDPARTY_HINT}/lib")
+    FIND_SODIUM()
 
-    if (NOT SODIUM_INCLUDE_DIRS OR NOT SODIUM_LIBRARIES)
-        message(FATAL_ERROR "Failed to find libsodium.\n  OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}\n  SODIUM_INCLUDE_DIRS=${SODIUM_INCLUDE_DIRS}\n  SODIUM_LIBRARIES=${SODIUM_LIBRARIES}")
+    if (NOT SODIUM_FOUND)
+        message(FATAL_ERROR "Failed to find libsodium.\n Add -DFETCH_SODIUM=ON or -DFETCH_ALL=ON to auto download.")
     endif ()
     
     set(SODIUM_MONTGOMERY ON CACHE BOOL "SODIUM_MONTGOMERY...")
@@ -153,6 +127,7 @@ if (ENABLE_SODIUM)
         target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
     endif()
 endif (ENABLE_SODIUM)
+
 
 
 ## WolfSSL
@@ -182,31 +157,32 @@ endif(ENABLE_WOLFSSL)
 ## Boost
 ###########################################################################
 
-if(ENABLE_BOOST)
+macro(FIND_BOOST)
+    set(ARGS ${ARGN})
+    if(FETCH_BOOST_IMPL)
+        list(APPEND ARGS NO_DEFAULT_PATH  PATHS ${OC_THIRDPARTY_HINT} )
+    endif()
+    option(Boost_USE_MULTITHREADED "mt boost" ON)
+    option(Boost_USE_STATIC_LIBS "static boost" ON)
 
     if(MSVC)
-        set(Boost_LIB_PREFIX "lib")
+        option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
     endif()
+    #set(Boost_DEBUG ON)  #<---------- Real life saver
+ 
+    find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS})
+endmacro()
 
-    set(Boost_USE_MULTITHREADED      ON)
-    #set (Boost_DEBUG ON)  #<---------- Real life saver
-    #message("BOOST_ROOT=${BOOST_ROOT}")
+if(FETCH_BOOST_IMPL)
+    FIND_BOOST(QUIET)
+    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
+endif()
 
-    macro(findBoost)
-        if(MSVC)
-            find_package(Boost 1.75 COMPONENTS system thread regex)
-        else()
-            find_package(Boost 1.75 COMPONENTS system thread)
-        endif()
-    endmacro()
+if(ENABLE_BOOST)
 
-    # then look at system dirs
+    FIND_BOOST()
     if(NOT Boost_FOUND)
-        findBoost()
-    endif()
-
-    if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Failed to find boost 1.75+ at \"${BOOST_ROOT}\" or at system install")
+        message(FATAL_ERROR "Failed to find boost 1.77. Add -DFETCH_BOOST=ON or -DFETCH_ALL=ON to auto download.")
     endif()
 
     message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )

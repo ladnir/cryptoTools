@@ -8,6 +8,7 @@
 .vs/
 *.args.json
 
+out/*
 CMakeFiles/*
 *Makefile*
 *install_manifest.txt*

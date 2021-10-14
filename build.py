@@ -3,17 +3,6 @@ import platform
 import sys
 import multiprocessing
 
-if __name__ == "__main__":
-    import thirdparty.getBoost as getBoost
-    import thirdparty.getRelic as getRelic
-    import thirdparty.getSodium as getSodium
-else:
-    from .thirdparty import getBoost
-    from .thirdparty import getRelic
-    from .thirdparty import getSodium
-
-#import thirdparty
-
 def getParallel(args):
     par = multiprocessing.cpu_count()
     for x in args:
@@ -25,40 +14,37 @@ def getParallel(args):
     return par
 
 
-def Setup(boost, relic,sodium, install, prefix, par):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(dir_path + "/thirdparty")
+def replace(list, find, replace):
+    if find in list:
+        idx = list.index(find)
+        list[idx] = replace;
+    return list
 
-
-    if boost:
-        getBoost.getBoost(install,prefix, par)
-    if relic:
-        getRelic.getRelic(install,prefix, par)
-    if sodium:
-        getSodium.getSodium(install, prefix, par)
-
-
-def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
+def Build(projectName, argv, install, par, sudo):
 
     osStr = (platform.system())
     buildDir = ""
     config = ""
     buildType = ""
-    if "--Debug" in mainArgs or "--debug" in mainArgs:
+    if "--debug" in argv:
         buildType = "Debug"
     else:
         buildType = "Release"
+    argv = replace(argv, "--debug", "")
+
 
     if osStr == "Windows":
         buildDir = "out/build/x64-{0}".format(buildType)
         config = "--config {0}".format(buildType)
+    elif osStr == "Darwin":
+        buildDir = "out/build/osx"
     else:
         buildDir = "out/build/linux"
 
-    cmakeArgs.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
+    argv.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
 
     argStr = ""
-    for a in cmakeArgs:
+    for a in argv:
         argStr = argStr + " " + a
 
     parallel = ""
@@ -71,9 +57,11 @@ def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
 
     
     InstallCmd = ""
-    sudo = ""
-    if "--sudo" in sys.argv:
+    if sudo:
         sudo = "sudo "
+    else:
+        sudo = ""
+
 
     if install:
         InstallCmd = sudo
@@ -100,86 +88,72 @@ def Build(projectName, mainArgs, cmakeArgs,install, prefix, par):
     os.system(InstallCmd)
 
 
-def getInstallArgs(args):
-    prefix = ""
-    for x in args:
-        if x.startswith("--install="):
-            prefix = x.split("=",1)[1]
-            prefix = os.path.abspath(os.path.expanduser(prefix))
-            return (True, prefix)
-        if x == "--install":
-            return (True, "")
-    return (False, "")
-
-
-def parseArgs():
-    
-    
-    hasCmakeArgs = "--" in sys.argv
-    mainArgs = []
-    cmakeArgs = []
-
-    if hasCmakeArgs:
-        idx = sys.argv.index("--")
-        mainArgs = sys.argv[:idx]
-        cmakeArgs = sys.argv[idx+1:]
-
-    else:
-        mainArgs = sys.argv
-
-
-    return (mainArgs, cmakeArgs)
 
 def help():
-    print(" --setup    \n\tfetch, build and optionally install the dependencies. \
-    Must also pass --relic, --sodium and/or --boost to specify which to build. Without \
-    --setup, the main library is built.")
 
     print(" --install \n\tInstructs the script to install whatever is currently being built to the default location.")
     print(" --install=prefix  \n\tinstall to the provided predix.")
     print(" --sudo  \n\twhen installing, use sudo. May require password.")
     print(" --par=n  \n\twhen building do use parallel  builds with n threads. default = num cores.")
-    print(" --  \n\tafter the \"--\" argument, all command line args are passed to cmake")
+    print(" --noauto  \n\twhen building do not automaticly fetch dependancies.")
+    print(" --par=n  \n\twhen building do use parallel  builds with n threads. default = num cores.")
+    print(" --debug  \n\tdebug build.")
+    print("any additioanl arguments are forwared to cmake.\n")
 
-    print("\n\nExamples:")
-    print("-fetch the dependancies and dont install")
-    print("     python build.py --setup --boost --relic")
-    print("-fetch the dependancies and install with sudo")
-    print("     python build.py --setup --boost --relic --install --sudo")
-    print("-fetch the dependancies and install to a specified location")
-    print("     python build.py --setup --boost --relic --install=~/my/install/dir")
-    print("")
-    print("-build the main library")
+    print("-build the library")
     print("     python build.py")
-    print("-build the main library with cmake configurations")
-    print("     python build.py -- -DCMAKE_BUILD_TYPE=Debug -DENABLE_SSE=ON")
-    print("-build the main library and install with sudo")
+    print("-build the library with cmake configurations")
+    print("     python build.py --debug -DENABLE_SSE=ON")
+    print("-build the library and install with sudo")
     print("     python build.py --install --sudo")
-    print("-build the main library and install to prefix")
+    print("-build the library and install to prefix")
     print("     python build.py --install=~/my/install/dir ")
 
 
 
+def parseInstallArgs(args):
+    prefix = ""
+    doInstall = False
+    for x in args:
+        if x.startswith("--install="):
+            prefix = x.split("=",1)[1]
+            prefix = os.path.abspath(os.path.expanduser(prefix))
+            idx = args.index(x)
+            args[idx] = "-DCMAKE_INSTALL_PREFIX=" + prefix
+            doInstall = True
+        if x == "--install":
+            idx = args.index(x)
+            argv[idx] = ""
+            doInstall = True
 
-def main(projectName):
+    return (args, doInstall)
 
-    (mainArgs, cmake) = parseArgs()
-    if "--help" in mainArgs:
+def main(projectName, argv):
+
+    if "--help" in argv:
         help()
         return 
 
-    relic = ("--relic" in mainArgs)
-    boost = ("--boost" in mainArgs)
-    sodium = ("--sodium" in mainArgs)
-    setup = ("--setup" in mainArgs)
-    install, prefix = getInstallArgs(mainArgs)
-    par = getParallel(mainArgs)
+    sudo = "--sudo" in argv;
 
-    if(setup):
-        Setup(boost, relic,sodium,install, prefix, par)
+    if "--noauto" in argv:
+        argv = replace(argv, "--noauto", "")
+        argv.append("-DFETCH_AUTO=OFF")
     else:
-        Build(projectName, mainArgs, cmake,install, prefix, par)
+        argv.append("-DFETCH_AUTO=ON")
+
+    argv = replace(argv, "--relic", "-DENABLE_RELIC=ON")
+    argv = replace(argv, "--boost", "-DENABLE_BOOST=ON")
+    argv = replace(argv, "--sodium", "-DENABLE_SODIUM=ON")
+    argv = replace(argv, "--sudo", "-DSUDO_FETCH=ON")
+        
+    argv, install = parseInstallArgs(argv)
+    par = getParallel(argv)
+
+    argv.append("-DPARALLEL_FETCH="+str(par))
+
+    Build(projectName, argv, install, par, sudo)
 
 if __name__ == "__main__":
 
-    main("cryptoTools")
+    main("cryptoTools", sys.argv[1:])

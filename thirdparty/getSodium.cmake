@@ -1,0 +1,109 @@
+
+
+set(GIT_REPOSITORY      https://github.com/osu-crypto/libsodium.git)
+set(GIT_TAG             "4e825a68baebdf058543f29762c73c17b1816ec0" )
+
+set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/libsodium")
+set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
+set(CONFIG    --config Release)
+set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-libsodium.txt")
+
+include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
+
+find_program(GIT git REQUIRED)
+set(DOWNLOAD_CMD  ${GIT} clone ${GIT_REPOSITORY})
+set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
+
+
+if(NOT SODIUM_FOUND)
+    message("============= Building Sodium =============")
+
+    if(NOT EXISTS ${CLONE_DIR})
+        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+    endif()
+    run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
+
+    if(MSVC)
+        # delete the post build tests
+        file(WRITE ${CLONE_DIR}/test/default/wintest.bat "")
+        set(FINDVS_PATH "${CMAKE_CURRENT_LIST_DIR}/findvs.ps1")
+        set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/buildSodium_deleteMe.ps1")
+        file(READ ${FINDVS_PATH} FINDVS)
+        file(WRITE ${TEMP_PATH} 
+            "${FINDVS}"
+            "\n"
+            "MSBuild.exe ./libsodium.sln -t:libsodium -p:Configuration=Release /p:PlatformToolset=v${MSVC_TOOLSET_VERSION} /p:Platform=x64\n"
+            "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/include/ -Force\n"
+            "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
+            "cp ./src/libsodium/include/* ${OC_THIRDPARTY_INSTALL_PREFIX}/include/ -Recurse -Force\n"
+            "cp ./Build/Release/x64/libsodium.lib ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
+            )
+
+    
+        find_program(POWERSHELL
+          NAMES powershell
+          DOC "PowerShell command"
+          REQUIRED
+        )
+    
+        set(BUILD_CMD "${POWERSHELL}" "${TEMP_PATH}")
+        run(NAME "Build & install" CMD ${BUILD_CMD} WD ${CLONE_DIR})
+
+        if(NOT EXISTS "${CLONE_DIR}/Build/Release/x64/libsodium.lib")
+            message(FATAL_ERROR "Sodium failed to build. See ${LOG_FILE}")
+        endif()
+
+        file(REMOVE ${TEMP_PATH})
+
+    else()
+
+        ## in case this is hosted in WSL
+        find_program(DOS2UNIX dos2unix)
+        if(DOS2UNIX)
+            set(DOS2UNIX_CMD bash -c "find . \\( -name \"*.m4\" -o -name \"*.ac\" -o -name \"*.am\" \\) | xargs ${DOS2UNIX}")
+            run(NAME "dos2unix" CMD ${DOS2UNIX_CMD} WD ${CLONE_DIR})
+        endif()
+
+    
+        set(AUTOGEN_CMD "./autogen.sh" "-s")
+        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
+        set(BUILD_CMD     "make" "${PARALLEL}")
+        set(INSTALL_CMD   ${SUDO} "make" "install")
+
+        if(NOT EXISTS ${CLONE_DIR})
+            run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+        endif()
+
+        run(NAME "Autogen"         CMD ${AUTOGEN_CMD} WD ${CLONE_DIR})
+        run(NAME "Configure"       CMD ${CONFIGURE_CMD} WD ${CLONE_DIR})
+        run(NAME "Build"           CMD ${BUILD_CMD}     WD ${CLONE_DIR})
+        run(NAME "Install"         CMD ${INSTALL_CMD}   WD ${CLONE_DIR})
+
+    endif()
+
+    message("log ${LOG_FILE}\n==========================================")
+
+else()
+        message("sodium already fetched.")
+endif()
+
+
+if(MSVC)
+    install(
+        DIRECTORY "${CLONE_DIR}/src/libsodium/include/"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
+        FILES_MATCHING PATTERN "*.h")
+    install(
+        FILES "${CLONE_DIR}/Build/Release/x64/libsodium.lib"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+else()
+    install(CODE "
+            execute_process(
+                COMMAND ./configure --prefix=\"${CMAKE_INSTALL_PREFIX}\"
+                COMMAND ${SUDO} make install
+                WORKING_DIRECTORY \"${CLONE_DIR}\"
+                RESULT_VARIABLE RESULT
+                COMMAND_ECHO STDOUT
+            )
+    ")
+endif()
