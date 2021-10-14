@@ -139,7 +139,9 @@ namespace osuCrypto
 
 
         template<typename TT = T>
-        typename std::enable_if<std::is_pod<TT>::value>::type setZero()
+        typename std::enable_if<
+            std::is_standard_layout<TT>::value&&
+            std::is_trivial<TT>::value>::type setZero()
         {
             static_assert(std::is_same<TT, T>::value, "");
 

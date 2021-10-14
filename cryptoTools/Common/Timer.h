@@ -13,33 +13,7 @@ namespace osuCrypto
 
         typedef std::chrono::system_clock::time_point timeUnit;
 
-        //struct TimerSpan
-        //{
-        //    TimerSpan(Timer&t, std::string name)
-        //        : mTimer(&t)
-        //        , mName(std::move(name))
-        //        , mBegin(timeUnit::clock::now())
-        //    {}
-        //    ~TimerSpan()
-        //    {
-        //        end();
-        //    }
-        //    void end()
-        //    {
-        //        if (mTimer)
-        //        {
-        //            mTimer->addSpan(mBegin, timeUnit::clock::now());
-        //            mTimer = nullptr;
-        //        }
-        //    }
-        //    Timer* mTimer;
-        //    std::string mName;
-        //    timeUnit mBegin;
-        //};
-        //void addSpan(timeUnit begin, timeUnit end);
-
-
-        std::list< std::pair<timeUnit, std::string>> mTimes;
+        std::list<std::pair<timeUnit, std::string>> mTimes;
         bool mLocking;
         std::mutex mMtx;
 

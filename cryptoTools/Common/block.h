@@ -85,7 +85,8 @@ namespace osuCrypto
 #endif
         template<typename T>
         typename std::enable_if<
-            std::is_pod<T>::value &&
+            std::is_standard_layout<T>::value&&
+            std::is_trivial<T>::value &&
             (sizeof(T) <= 16) &&
             (16 % sizeof(T) == 0)
             ,
@@ -97,7 +98,8 @@ namespace osuCrypto
 
         template<typename T>
         typename std::enable_if<
-            std::is_pod<T>::value &&
+            std::is_standard_layout<T>::value&&
+            std::is_trivial<T>::value &&
             (sizeof(T) <= 16) &&
             (16 % sizeof(T) == 0)
             ,

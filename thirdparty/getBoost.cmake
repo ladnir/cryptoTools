@@ -5,7 +5,7 @@ set(BOOST_NAME    "boost_1_${BOOST_VERSION}_0")
 set(CLONE_DIR     "${CMAKE_CURRENT_LIST_DIR}/${BOOST_NAME}")
 set(ARCH_PATH     "${CMAKE_CURRENT_LIST_DIR}/${BOOST_NAME}.tar.bz2")
 
-set(URL           "https://boostorg.jfrog.io/ui/native/main/release/1.${BOOST_VERSION}.0/source/${BOOST_NAME}.tar.bz2")
+set(URL           "https://boostorg.jfrog.io/artifactory/main/release/1.${BOOST_VERSION}.0/source/boost_1_${BOOST_VERSION}_0.tar.bz2")
 set(LOG_FILE      "${CMAKE_CURRENT_LIST_DIR}/log-boost.txt")
 set(SHA256_VAL    fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854)
 
