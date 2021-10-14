@@ -26,35 +26,18 @@ if(NOT SODIUM_FOUND)
     if(MSVC)
         # delete the post build tests
         file(WRITE ${CLONE_DIR}/test/default/wintest.bat "")
-        set(FINDVS_PATH "${CMAKE_CURRENT_LIST_DIR}/findvs.ps1")
-        set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/buildSodium_deleteMe.ps1")
-        file(READ ${FINDVS_PATH} FINDVS)
-        file(WRITE ${TEMP_PATH} 
-            "${FINDVS}"
-            "\n"
+        vsrun(NAME "build-sodium" CMD
             "MSBuild.exe ./libsodium.sln -t:libsodium -p:Configuration=Release /p:PlatformToolset=v${MSVC_TOOLSET_VERSION} /p:Platform=x64\n"
             "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/include/ -Force\n"
             "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
             "cp ./src/libsodium/include/* ${OC_THIRDPARTY_INSTALL_PREFIX}/include/ -Recurse -Force\n"
             "cp ./Build/Release/x64/libsodium.lib ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
+            WD ${CLONE_DIR}
             )
-
-    
-        find_program(POWERSHELL
-          NAMES powershell
-          DOC "PowerShell command"
-          REQUIRED
-        )
-    
-        set(BUILD_CMD "${POWERSHELL}" "${TEMP_PATH}")
-        run(NAME "Build & install" CMD ${BUILD_CMD} WD ${CLONE_DIR})
 
         if(NOT EXISTS "${CLONE_DIR}/Build/Release/x64/libsodium.lib")
             message(FATAL_ERROR "Sodium failed to build. See ${LOG_FILE}")
         endif()
-
-        file(REMOVE ${TEMP_PATH})
-
     else()
 
         ## in case this is hosted in WSL

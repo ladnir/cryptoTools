@@ -26,6 +26,9 @@ def Build(projectName, argv, install, par, sudo):
     buildDir = ""
     config = ""
     buildType = ""
+    setup = "--setup" in argv;
+    argv = replace(argv, "--setup", "")
+
     if "--debug" in argv:
         buildType = "Debug"
     else:
@@ -67,25 +70,27 @@ def Build(projectName, argv, install, par, sudo):
         InstallCmd = sudo
         InstallCmd += "cmake --install {0} {1} ".format(buildDir, config)
 
-        if len(prefix):
-            InstallCmd += " --prefix {0} ".format(prefix)
     
     print("\n\n====== build.py ("+projectName+") ========")
     print(mkDirCmd)
     print(CMakeCmd)
-    print(BuildCmd)
-    if len(InstallCmd):
-        print(InstallCmd)
+
+    if not setup:
+        print(BuildCmd)
+        if len(InstallCmd):
+            print(InstallCmd)
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
     os.system(mkDirCmd)
     os.system(CMakeCmd)
-    os.system(BuildCmd)
 
-    if len(sudo) > 0:
-        print("installing "+projectName+": {0}".format(InstallCmd))
+    if not setup:
+        os.system(BuildCmd)
 
-    os.system(InstallCmd)
+        if len(sudo) > 0:
+            print("installing "+projectName+": {0}\n".format(InstallCmd))
+
+        os.system(InstallCmd)
 
 
 

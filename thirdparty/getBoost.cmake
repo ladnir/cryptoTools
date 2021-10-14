@@ -11,6 +11,15 @@ set(SHA256_VAL    fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a268408
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
+
+if(MSVC)
+    set(BOOTSTRAP "${CLONE_DIR}/bootstrap.bat")
+    set(B2 "${CLONE_DIR}/b2.exe")
+else()
+    set(BOOTSTRAP "${CLONE_DIR}/bootstrap.sh")
+    set(B2 "${CLONE_DIR}/b2")
+endif()
+
 SET(B2_ARGS 
         --with-system
         --with-thread 
@@ -69,52 +78,55 @@ if(NOT Boost_FOUND)
 
         message("extracting")
         file(ARCHIVE_EXTRACT INPUT ${ARCH_PATH} DESTINATION ${CMAKE_CURRENT_LIST_DIR})
+        
+        file(REMOVE ${ARCH_PATH})
     endif()
 
 
     if(MSVC)
-        file(READ ${FINDVS_PATH} FINDVS)
+        set(B2 "${CLONE_DIR}/b2.exe")
 
         list(JOIN B2_ARGS " " B2_ARGS)
-        file(WRITE ${TEMP_PATH} 
-            "${FINDVS}"
-            "\n"
-            "./bootstrap.bat\n"
-            "./b2.exe ${B2_ARGS} install --prefix=${OC_THIRDPARTY_INSTALL_PREFIX}\n"
+        vsrun(NAME "boost-build" CMD 
+            "${BOOTSTRAP}\n"
+            "${B2} ${B2_ARGS} install --prefix=${OC_THIRDPARTY_INSTALL_PREFIX}\n"
+            WD ${CLONE_DIR}
             )
-
-        find_program(POWERSHELL
-          NAMES powershell
-          DOC "PowerShell command"
-          REQUIRED
-        )
-    
-        set(BUILD_CMD "${POWERSHELL}" "${TEMP_PATH}")
-        run(NAME "Build" CMD ${BUILD_CMD} WD ${CLONE_DIR})
-
-        file(REMOVE ${TEMP_PATH})
-        file(REMOVE ${ARCH_PATH})
+            
     else()
+        set(B2 "${CLONE_DIR}/b2")
 
-        run(NAME "configure" CMD "bash" "${CLONE_DIR}/bootstrap.sh" WD ${CLONE_DIR})
+        run(NAME "configure" CMD "bash" "${BOOTSTRAP}" WD ${CLONE_DIR})
 
         if(DEFINED SUDO)
-            run(NAME "build" CMD "${CLONE_DIR}/b2" "${B2_ARGS}" WD ${CLONE_DIR})
+            run(NAME "build" CMD "${B2}" "${B2_ARGS}" WD ${CLONE_DIR})
         endif()
 
-        run(NAME "install" CMD "${CLONE_DIR}/b2" ${B2_ARGS} install --prefix=${OC_THIRDPARTY_INSTALL_PREFIX} WD ${CLONE_DIR})
+        run(NAME "install" CMD "${B2}" ${B2_ARGS} install --prefix=${OC_THIRDPARTY_INSTALL_PREFIX} WD ${CLONE_DIR})
     endif()
+
+
 
     message("log ${LOG_FILE}\n==========================================")
 else()
     message("Boost already fetched.")
 endif()
 
-install(CODE "
-    execute_process(
-        COMMAND ${SUDO} \"${CLONE_DIR}/b2\" ${B2_ARGS} install --prefix=\"${CMAKE_INSTALL_PREFIX}\"
-        WORKING_DIRECTORY ${CLONE_DIR}
-        RESULT_VARIABLE RESULT
-        COMMAND_ECHO STDOUT
-    )
-")
+if(MSVC)
+    list(JOIN B2_ARGS " " B2_ARGS)
+    install(CODE "
+        include(${CMAKE_CURRENT_LIST_DIR}/fetch.cmake)
+        vsrun(NAME install-boost CMD             
+            \"${B2} ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}\n\"
+            WD ${CLONE_DIR})
+    ")
+else()
+    install(CODE "
+        execute_process(
+            COMMAND ${SUDO} \"${B2}\" ${B2_ARGS} install --prefix=\"${CMAKE_INSTALL_PREFIX}\"
+            WORKING_DIRECTORY ${CLONE_DIR}
+            RESULT_VARIABLE RESULT
+            COMMAND_ECHO STDOUT
+        )
+    ")
+endif()
