@@ -11,7 +11,9 @@ def getParallel(args):
             par = int(val)
             if par < 1:
                 par = 1
-    return par
+            idx = args.index(x)
+            args[idx] = ""
+    return (args,par)
 
 
 def replace(list, find, replace):
@@ -153,7 +155,7 @@ def main(projectName, argv):
     argv = replace(argv, "--sudo", "-DSUDO_FETCH=ON")
         
     argv, install = parseInstallArgs(argv)
-    par = getParallel(argv)
+    argv, par = getParallel(argv)
 
     argv.append("-DPARALLEL_FETCH="+str(par))
 
