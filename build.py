@@ -137,7 +137,7 @@ def parseInstallArgs(args):
                 args[idx] = "-DCMAKE_INSTALL_PREFIX=/usr/local"
             doInstall = True
 
-    return (args, doInstall, prefix)
+    return (args, doInstall)
 
 def main(projectName, argv):
 
