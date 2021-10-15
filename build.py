@@ -22,7 +22,7 @@ def replace(list, find, replace):
         list[idx] = replace;
     return list
 
-def Build(projectName, argv, install, par, sudo):
+def Build(projectName, argv, install, prefix, par, sudo):
 
     osStr = (platform.system())
     buildDir = ""
@@ -71,7 +71,8 @@ def Build(projectName, argv, install, par, sudo):
     if install:
         InstallCmd = sudo
         InstallCmd += "cmake --install {0} {1} ".format(buildDir, config)
-
+        if len(prefix) > 0:
+            InstallCmd += " --prefix {0}".format(prefix)
     
     print("\n\n====== build.py ("+projectName+") ========")
     print(mkDirCmd)
@@ -126,14 +127,14 @@ def parseInstallArgs(args):
             prefix = x.split("=",1)[1]
             prefix = os.path.abspath(os.path.expanduser(prefix))
             idx = args.index(x)
-            args[idx] = "-DCMAKE_INSTALL_PREFIX=" + prefix
+            args[idx] = ""
             doInstall = True
         if x == "--install":
             idx = args.index(x)
             args[idx] = ""
             doInstall = True
 
-    return (args, doInstall)
+    return (args, doInstall, prefix)
 
 def main(projectName, argv):
 
@@ -154,12 +155,12 @@ def main(projectName, argv):
     argv = replace(argv, "--sodium", "-DENABLE_SODIUM=ON")
     argv = replace(argv, "--sudo", "-DSUDO_FETCH=ON")
         
-    argv, install = parseInstallArgs(argv)
+    argv, install, prefix = parseInstallArgs(argv)
     argv, par = getParallel(argv)
 
     argv.append("-DPARALLEL_FETCH="+str(par))
 
-    Build(projectName, argv, install, par, sudo)
+    Build(projectName, argv, install, prefix, par, sudo)
 
 if __name__ == "__main__":
 
