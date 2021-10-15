@@ -42,7 +42,7 @@ macro(FIND_RELIC)
     endif()
 
     find_path(RLC_INCLUDE_DIR "relic/relic.h" PATH_SUFFIXES "/include/" ${ARGS})
-    find_library(RLC_LIBRARY NAMES relic relic_s  PATH_SUFFIXES "/lib/" ${ARGS})
+    find_library(RLC_LIBRARY NAMES relic_s  PATH_SUFFIXES "/lib/" ${ARGS})
     if(EXISTS ${RLC_INCLUDE_DIR} AND EXISTS ${RLC_LIBRARY})
         set(RELIC_FOUND ON)
     else() 
