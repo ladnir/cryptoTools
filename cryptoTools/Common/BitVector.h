@@ -7,7 +7,7 @@
 
 namespace osuCrypto {
 
-	// A class to access a vector of packed bits. Similar to std::vector<bool>.
+    // A class to access a vector of packed bits. Similar to std::vector<bool>.
     class BitVector
     {
     public:
@@ -15,36 +15,36 @@ namespace osuCrypto {
         typedef value_type* pointer;
         typedef u64 size_type;
 
-		// Default constructor.
-		BitVector() = default;
+        // Default constructor.
+        BitVector() = default;
 
-		// Inititialize the BitVector with length bits pointed to by data.
+        // Inititialize the BitVector with length bits pointed to by data.
         BitVector(u8* data, u64 length);
 
         // Inititialize the BitVector from a string of '0' and '1' characters.
         BitVector(std::string data);
 
-		// Construct a zero initialized BitVector of size n.
+        // Construct a zero initialized BitVector of size n.
         explicit BitVector(u64 n) { reset(n); }
 
-		// Copy an existing BitVector.
+        // Copy an existing BitVector.
         BitVector(const BitVector& K) { assign(K); }
 
-		// Move an existing BitVector. Moved from is set to size zero.
+        // Move an existing BitVector. Moved from is set to size zero.
         BitVector(BitVector&& rref);
 
         ~BitVector() { delete[] mData; }
 
-		// Reset the BitVector to have value b.
+        // Reset the BitVector to have value b.
         void assign(const block& b);
 
-		// Copy an existing BitVector
-        void assign(const BitVector& K); 
+        // Copy an existing BitVector
+        void assign(const BitVector& K);
 
-		// Append length bits pointed to by data starting a the bit index by offset.
+        // Append length bits pointed to by data starting a the bit index by offset.
         void append(u8* data, u64 length, u64 offset = 0);
 
-		// Append an existing BitVector to this BitVector.
+        // Append an existing BitVector to this BitVector.
         void append(const BitVector& k) { append(k.data(), k.size()); }
 
         // Append length bits pointed to by data starting a the bit index by offset.
@@ -53,108 +53,108 @@ namespace osuCrypto {
         // erases original contents and set the new size, default 0.
         void reset(size_t new_nbits = 0);
 
-		// Resize the BitVector to have the desired number of bits.
+        // Resize the BitVector to have the desired number of bits.
         void resize(u64 newSize);
 
         // Resize the BitVector to have the desired number of bits.
         // Fill each new bit with val.
         void resize(u64 newSize, u8 val);
 
-		// Reserve enough space for the specified number of bits.
+        // Reserve enough space for the specified number of bits.
         void reserve(u64 bits);
 
-		// Copy length bits from src starting at offset idx.
+        // Copy length bits from src starting at offset idx.
         void copy(const BitVector& src, u64 idx, u64 length);
 
-		// Returns the number of bits this BitVector can contain using the current allocation.
+        // Returns the number of bits this BitVector can contain using the current allocation.
         u64 capacity() const { return mAllocBytes * 8; }
 
-		// Returns the number of bits this BitVector current has.
+        // Returns the number of bits this BitVector current has.
         u64 size() const { return mNumBits; }
 
-		// Return the number of bytes the BitVector currently utilize.
+        // Return the number of bytes the BitVector currently utilize.
         u64 sizeBytes() const { return (mNumBits + 7) / 8; }
 
-		// Returns a byte pointer to the underlying storage.
+        // Returns a byte pointer to the underlying storage.
         u8* data() const { return mData; }
 
-		// Copy and existing BitVector.
+        // Copy and existing BitVector.
         BitVector& operator=(const BitVector& K);
 
-		// Get a reference to a specific bit.
+        // Get a reference to a specific bit.
         BitReference operator[](const u64 idx) const;
 
-		// Xor two BitVectors together and return the result. Must have the same size. 
+        // Xor two BitVectors together and return the result. Must have the same size. 
         BitVector operator^(const BitVector& B)const;
 
-		// AND two BitVectors together and return the result. Must have the same size. 
+        // AND two BitVectors together and return the result. Must have the same size. 
         BitVector operator&(const BitVector& B)const;
 
-		// OR two BitVectors together and return the result. Must have the same size. 
+        // OR two BitVectors together and return the result. Must have the same size. 
         BitVector operator|(const BitVector& B)const;
 
-		// Invert the bits of the BitVector and return the result. 
+        // Invert the bits of the BitVector and return the result. 
         BitVector operator~()const;
 
-		// Xor the rhs into this BitVector
+        // Xor the rhs into this BitVector
         void operator^=(const BitVector& A);
 
-		// And the rhs into this BitVector
+        // And the rhs into this BitVector
         void operator&=(const BitVector& A);
 
-		// Or the rhs into this BitVector
+        // Or the rhs into this BitVector
         void operator|=(const BitVector& A);
 
-		// Check for equality between two BitVectors
+        // Check for equality between two BitVectors
         bool operator==(const BitVector& k) { return equals(k); }
 
-		// Check for inequality between two BitVectors
+        // Check for inequality between two BitVectors
         bool operator!=(const BitVector& k)const { return !equals(k); }
 
-		// Check for equality between two BitVectors
-		bool equals(const BitVector& K) const;
-         
-		// Initialize this BitVector from a string of '0' and '1' characters.
+        // Check for equality between two BitVectors
+        bool equals(const BitVector& K) const;
+
+        // Initialize this BitVector from a string of '0' and '1' characters.
         void fromString(std::string data);
 
-		// Returns an Iterator for the first bit.
+        // Returns an Iterator for the first bit.
         BitIterator begin() const;
 
-		// Returns an Iterator for the position past the last bit.
+        // Returns an Iterator for the position past the last bit.
         BitIterator end() const;
 
-		// Initialize this bit vector to size n with a random set of k bits set to 1.
+        // Initialize this bit vector to size n with a random set of k bits set to 1.
         void nChoosek(u64 n, u64 k, PRNG& prng);
 
-		// Return the hamming weight of the BitVector.
+        // Return the hamming weight of the BitVector.
         u64 hammingWeight() const;
 
-		// Append the bit to the end of the BitVector.
+        // Append the bit to the end of the BitVector.
         void pushBack(u8 bit);
 
-		// Returns a refernce to the last bit.
+        // Returns a refernce to the last bit.
         inline BitReference back() { return (*this)[size() - 1]; }
 
-		// Set all the bits to random values.
-        void randomize(PRNG& G); 
+        // Set all the bits to random values.
+        void randomize(PRNG& G);
 
-		// Return the parity of the vector.
-        u8 parity();  
+        // Return the parity of the vector.
+        u8 parity();
 
-		// Return the hex representation of the vector.
+        // Return the hex representation of the vector.
         std::string hex()const;
 
-		// Reinterpret the vector of bits as a vector of type T.
+        // Reinterpret the vector of bits as a vector of type T.
         template<class T>
         span<T> getArrayView() const;
 
-		// Reinterpret the vector of bits as a vector of type T.
-		template<class T>
+        // Reinterpret the vector of bits as a vector of type T.
+        template<class T>
         span<T> getSpan() const;
 
-	private:
-		u8* mData = nullptr;
-		u64 mNumBits = 0, mAllocBytes = 0;
+    private:
+        u8* mData = nullptr;
+        u64 mNumBits = 0, mAllocBytes = 0;
     };
 
     template<class T>
@@ -191,4 +191,12 @@ namespace osuCrypto {
     }
 #endif
 
+    inline oc::u64 u8Size(oc::BitVector& bv)
+    {
+        return bv.sizeBytes();
+    }
+    inline oc::u64 u8Size(const oc::BitVector& bv)
+    {
+        return bv.sizeBytes();
+    }
 }
