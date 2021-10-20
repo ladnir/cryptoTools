@@ -49,9 +49,9 @@ if(NOT SODIUM_FOUND)
 
     
         set(AUTOGEN_CMD "./autogen.sh" "-s")
-        set(CONFIGURE_CMD "./configure" )
+        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
         set(BUILD_CMD     "make" "-j" "${PARALLEL_FETCH}")
-        set(INSTALL_CMD   ${SUDO} "make" "install" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
+        set(INSTALL_CMD   ${SUDO} "make" "install")
 
         if(NOT EXISTS ${CLONE_DIR})
             run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
@@ -82,7 +82,10 @@ if(MSVC)
 else()
     install(CODE "
             execute_process(
-                COMMAND ${SUDO} make install  --prefix=\${CMAKE_INSTALL_PREFIX}
+                COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/lib/
+                COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/include
+                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/libsodium* ${CMAKE_INSTALL_PREFIX}/lib/
+                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium* ${CMAKE_INSTALL_PREFIX}/include/
                 WORKING_DIRECTORY \"${CLONE_DIR}\"
                 RESULT_VARIABLE RESULT
                 COMMAND_ECHO STDOUT
