@@ -20,8 +20,6 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../out/install/${OC_CONFIG}")
         
         if(NOT DEFINED OC_THIRDPARTY_INSTALL_PREFIX)
-            message("* OC_THIRDPARTY_INSTALL_PREFIX=${OC_THIRDPARTY_INSTALL_PREFIX}\nOC_CONFIG=${OC_CONFIG}")
-
             set(OC_THIRDPARTY_INSTALL_PREFIX ${OC_THIRDPARTY_HINT})
         endif()
     else()
@@ -39,7 +37,7 @@ set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 
 macro(FIND_SPAN)
     set(ARGS ${ARGN})
-    if(FETCH_SPAN_LITE_IMPL)
+    if(FETCH_SPAN_LITE)
         list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
     endif()
     find_package(span-lite ${ARGS})
@@ -58,7 +56,7 @@ FIND_SPAN(REQUIRED)
 
 macro(FIND_RELIC)
     set(ARGS ${ARGN})
-    if(FETCH_RELIC_IMPL)
+    if(FETCH_RELIC)
         list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
     endif()
 
@@ -74,8 +72,6 @@ endmacro()
 if(FETCH_RELIC_IMPL)
     FIND_RELIC()
     include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getRelic.cmake)
-
-    
 endif()
 
 
@@ -106,7 +102,7 @@ endif()
 
 macro(FIND_SODIUM)
     set(ARGS ${ARGN})
-    if(FETCH_SODIUM_IMPL)
+    if(FETCH_SODIUM)
         list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
     endif()
     find_path(SODIUM_INCLUDE_DIRS sodium.h PATH_SUFFIXES "/include/" ${ARGS})
