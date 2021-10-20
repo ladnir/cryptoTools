@@ -32,7 +32,7 @@ if(NOT span-lite_FOUND)
 
     message("log ${LOG_FILE}\n==========================================")
 else()
-    message("${DEP_NAME} already fetched.")
+    message("${DEP_NAME} already fetched (cryptoTools).")
 endif()
 
 install(CODE "

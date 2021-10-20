@@ -27,6 +27,13 @@ endif()
 
 
 
+## span-lite
+###########################################################################
+
+if (ENABLE_SPAN_LITE)
+  target_link_libraries(cryptoTools nonstd::span-lite)
+endif (ENABLE_SPAN_LITE)
+
 ## Relic
 ###########################################################################
 
