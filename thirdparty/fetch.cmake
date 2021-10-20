@@ -15,9 +15,9 @@ function(RUN)
     )
     message("${PARSED_ARGS_NAME}")
     file(APPEND ${LOG_FILE}
-        "############# ${PARSED_ARGS_NAME} ###########"
-        "${PARSED_ARGS_CMD}"
-        "#############################################"
+        "vvvvvvvvvvvvv RUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
+        "${PARSED_ARGS_CMD}\n"
+        "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
     )
 
     message("RUN_OUTPUT_TYPE = ${RUN_OUTPUT_TYPE}")
@@ -49,9 +49,9 @@ function(VSRUN)
     )
     message("${PARSED_ARGS_NAME}")
     file(APPEND ${LOG_FILE}
-        "############# VSRUN ${PARSED_ARGS_NAME} ###########"
-        "${PARSED_ARGS_CMD}"
-        "#############################################"
+        "vvvvvvvvvvvvv VSRUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
+        "${PARSED_ARGS_CMD}\n"
+        "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
     )
     
     set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/runvs-${PARSED_ARGS_NAME}_delete-me.ps1")
