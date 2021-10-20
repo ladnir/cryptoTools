@@ -74,11 +74,11 @@ endif()
 if(MSVC)
     install(
         DIRECTORY "${CLONE_DIR}/src/libsodium/include/"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
+        DESTINATION "\${CMAKE_INSTALL_PREFIX}/include"
         FILES_MATCHING PATTERN "*.h")
     install(
         FILES "${CLONE_DIR}/Build/Release/x64/libsodium.lib"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+        DESTINATION "\${CMAKE_INSTALL_PREFIX}/lib")
 else()
     install(CODE "
 
@@ -86,9 +86,9 @@ else()
                 COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/lib/
                 COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/include
                 COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/include/sodium
-                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/libsodium.a ${CMAKE_INSTALL_PREFIX}/lib/
-                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium.h ${CMAKE_INSTALL_PREFIX}/include/
-                COMMAND ${SUDO} cp -r ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium ${CMAKE_INSTALL_PREFIX}/include/
+                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/libsodium.a \${CMAKE_INSTALL_PREFIX}/lib/
+                COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium.h \${CMAKE_INSTALL_PREFIX}/include/
+                COMMAND ${SUDO} cp -r ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium \${CMAKE_INSTALL_PREFIX}/include/
                 WORKING_DIRECTORY \"${CLONE_DIR}\"
                 RESULT_VARIABLE RESULT
                 COMMAND_ECHO STDOUT

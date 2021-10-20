@@ -23,7 +23,7 @@ if(NOT RELIC_FOUND)
                        -DCMAKE_BUILD_TYPE:STRING=Release
                        ${MP_ARG})
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} ${CONFIG})
-    set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} --prefix ${OC_THIRDPARTY_INSTALL_PREFIX})
+    set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} ${CONFIG} --prefix ${OC_THIRDPARTY_INSTALL_PREFIX})
 
 
     message("============= Building Relic =============")
@@ -43,7 +43,7 @@ endif()
 
 install(CODE "
     execute_process(
-        COMMAND ${SUDO} ${CMAKE_COMMAND} --install ${BUILD_DIR} --prefix \${CMAKE_INSTALL_PREFIX}
+        COMMAND ${SUDO} ${CMAKE_COMMAND} --install ${BUILD_DIR} ${CONFIG} --prefix \${CMAKE_INSTALL_PREFIX}
         WORKING_DIRECTORY ${CLONE_DIR}
         RESULT_VARIABLE RESULT
         COMMAND_ECHO STDOUT
