@@ -49,9 +49,9 @@ if(NOT SODIUM_FOUND)
 
     
         set(AUTOGEN_CMD "./autogen.sh" "-s")
-        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
+        set(CONFIGURE_CMD "./configure" )
         set(BUILD_CMD     "make" "-j" "${PARALLEL_FETCH}")
-        set(INSTALL_CMD   ${SUDO} "make" "install")
+        set(INSTALL_CMD   ${SUDO} "make" "install" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
 
         if(NOT EXISTS ${CLONE_DIR})
             run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
@@ -82,8 +82,7 @@ if(MSVC)
 else()
     install(CODE "
             execute_process(
-                COMMAND ./configure --prefix=\${CMAKE_INSTALL_PREFIX}
-                COMMAND ${SUDO} make install
+                COMMAND ${SUDO} make install  --prefix=\${CMAKE_INSTALL_PREFIX}
                 WORKING_DIRECTORY \"${CLONE_DIR}\"
                 RESULT_VARIABLE RESULT
                 COMMAND_ECHO STDOUT
