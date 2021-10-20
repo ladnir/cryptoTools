@@ -20,8 +20,6 @@ function(RUN)
         "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
     )
 
-    message("RUN_OUTPUT_TYPE = ${RUN_OUTPUT_TYPE}")
-
     execute_process(
         COMMAND ${PARSED_ARGS_CMD}
         WORKING_DIRECTORY ${PARSED_ARGS_WD}

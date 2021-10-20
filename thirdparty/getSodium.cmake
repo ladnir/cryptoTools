@@ -82,7 +82,7 @@ if(MSVC)
 else()
     install(CODE "
             execute_process(
-                COMMAND ./configure --prefix=\"${CMAKE_INSTALL_PREFIX}\"
+                COMMAND ./configure --prefix=\"\${CMAKE_INSTALL_PREFIX}\"
                 COMMAND ${SUDO} make install
                 WORKING_DIRECTORY \"${CLONE_DIR}\"
                 RESULT_VARIABLE RESULT

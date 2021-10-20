@@ -123,7 +123,7 @@ if(MSVC)
 else()
     install(CODE "
         execute_process(
-            COMMAND ${SUDO} \"${B2}\" ${B2_ARGS} install --prefix=${CMAKE_INSTALL_PREFIX}
+            COMMAND ${SUDO} \"${B2}\" ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}
             WORKING_DIRECTORY ${CLONE_DIR}
             RESULT_VARIABLE RESULT
             COMMAND_ECHO STDOUT
