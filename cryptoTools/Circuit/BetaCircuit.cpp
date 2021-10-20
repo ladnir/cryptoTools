@@ -7,6 +7,7 @@
 #include <numeric>
 #include "cryptoTools/Common/BitVector.h"
 #include <cryptoTools/Crypto/RandomOracle.h>
+#include <string>
 
 #ifdef USE_JSON
 #include <nlohmann/json.hpp>

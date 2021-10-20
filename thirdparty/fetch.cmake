@@ -15,6 +15,7 @@ function(RUN)
         "#############################################"
     )
 
+
     execute_process(
         COMMAND ${PARSED_ARGS_CMD}
         WORKING_DIRECTORY ${PARSED_ARGS_WD}
@@ -25,6 +26,7 @@ function(RUN)
         OUTPUT_QUIET
     )
     if(RESULT)
+        file(READ ${LOG_FILE} LOG_STRING)
         message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).\nLOG:\n${LOG_STRING}")
     endif()
 endfunction()
@@ -72,7 +74,12 @@ function(VSRUN)
     )
 
     if(RESULT)
-        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).\nLOG:\n${LOG_STRING}")
+        if(DEFINED LOG_FILE)
+            file(READ ${LOG_FILE} LOG_STRING)
+            message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).\nLOG:\n${LOG_STRING}")
+        else()
+            message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT})")
+        endif()
     endif()
 
     if(NOT DEFINED VSRUN_NO_DEL)
