@@ -4,7 +4,7 @@ set(GIT_REPOSITORY      https://github.com/martinmoene/span-lite.git)
 set(GIT_TAG             "2987dd8d3b8fe7c861e3c3f879234cc1c412f03f" )
 
 set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/${DEP_NAME}")
-set(BUILD_DIR "${CLONE_DIR}/build/${COPROTO_CONFIG}")
+set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 set(CONFIG    --config ${CMAKE_BUILD_TYPE})
 
@@ -17,7 +17,7 @@ if(NOT span-lite_FOUND)
     set(CONFIGURE_CMD ${CMAKE_COMMAND} -S ${CLONE_DIR} -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} -DSPAN_LITE_OPT_BUILD_TESTS=OFF)
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} ${CONFIG})
-    set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} ${CONFIG} --prefix ${COPROTO_THIRDPARTY_HINT})
+    set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} ${CONFIG} --prefix ${OC_THIRDPARTY_INSTALL_PREFIX})
 
 
     message("============= Building ${DEP_NAME} =============")
