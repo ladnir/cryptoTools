@@ -11,14 +11,11 @@ namespace osuCrypto
     class MatrixView
     {
     public:
-#ifdef ENABLE_FULL_GSL
-        using iterator = gsl::details::span_iterator<gsl::span<T>, false>;
-        using const_iterator = gsl::details::span_iterator<gsl::span<T>, true>;
-#else
-		typedef T* iterator;
-		typedef T const*  const_iterator;
-#endif
-		using reverse_iterator = std::reverse_iterator<iterator>;
+
+        using iterator = typename span<T>::iterator;
+        using const_iterator = typename span<T>::const_iterator;
+
+        using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
         typedef T value_type;

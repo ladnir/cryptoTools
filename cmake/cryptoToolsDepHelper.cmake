@@ -34,6 +34,25 @@ set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
 set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 
 
+## Span
+###########################################################################
+
+macro(FIND_SPAN)
+    set(ARGS ${ARGN})
+    if(FETCH_SPAN_LITE_IMPL)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
+    endif()
+    find_package(span-lite ${ARGS})
+endmacro()
+    
+if (FETCH_SPAN_LITE_IMPL)
+    FIND_SPAN(QUIET)
+    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
+endif()
+
+FIND_SPAN(REQUIRED)
+
+
 ## Relic
 ###########################################################################
 

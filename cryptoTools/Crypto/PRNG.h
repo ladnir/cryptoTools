@@ -68,7 +68,7 @@ namespace osuCrypto
 			get()
         {
             T ret;
-            if (GSL_LIKELY(mBufferByteCapacity - mBytesIdx >= sizeof(T)))
+            if (mBufferByteCapacity - mBytesIdx >= sizeof(T))
             {
                 memcpy(&ret, ((u8*)mBuffer.data()) + mBytesIdx, sizeof(T));
                 mBytesIdx += sizeof(T);

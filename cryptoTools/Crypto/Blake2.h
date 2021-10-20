@@ -37,7 +37,7 @@ namespace osuCrypto {
 		{
 
 #ifdef TRUE_BLAKE2_INIT
-			Expects(blake2b_init(&state, outputLength) == 0);
+			blake2b_init(&state, outputLength);
 #else
 			const uint64_t blake2b_IV[8] =
 			{
@@ -58,7 +58,7 @@ namespace osuCrypto {
 		template<typename T>
 		typename std::enable_if<std::is_pod<T>::value>::type Update(const T* dataIn, u64 length)
 		{
-			Expects(blake2b_update(&state, dataIn, length * sizeof(T)) == 0);
+			blake2b_update(&state, dataIn, length * sizeof(T));
 		}
 
 		template<typename T>
@@ -71,7 +71,7 @@ namespace osuCrypto {
 		// Required: DataOut must be at least outputLength() bytes long.
 		void Final(u8* DataOut)
 		{
-			Expects(blake2b_final(&state, DataOut, state.outlen) == 0);
+			blake2b_final(&state, DataOut, state.outlen);
 		}
 
 		// Finalize the Blake2 hash and output the result to out.

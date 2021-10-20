@@ -107,8 +107,6 @@ namespace osuCrypto
 		// v must be possitive.
         BitIterator operator+(i64 v)const
         {
-			Expects(v >= 0);
-
             BitIterator ret(mByte, mShift + v);
 
             return ret;

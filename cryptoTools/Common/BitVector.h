@@ -164,9 +164,9 @@ namespace osuCrypto {
     }
 
     template<class T>
-    inline gsl::span<T> BitVector::getSpan() const
+    inline span<T> BitVector::getSpan() const
     {
-        return gsl::span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
+        return span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
     }
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);

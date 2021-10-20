@@ -6,10 +6,10 @@
 #include "cryptoTools/Common/config.h"
 #include "block.h"
 
-#ifdef ENABLE_FULL_GSL
-#include <cryptoTools/gsl/span>
+#ifdef ENABLE_SPAN_LITE
+#include <nonstd/span.hpp>
 #else
-#include <cryptoTools/gsl/gls-lite.hpp>
+#include <span>
 #endif
 
 #define STRINGIZE_DETAIL(x) #x
@@ -38,7 +38,11 @@ namespace osuCrypto {
     template<typename T> using ptr = T*;
     template<typename T> using uPtr = std::unique_ptr<T>;
     template<typename T> using sPtr = std::shared_ptr<T>;
-    template<typename T> using span = gsl::span<T>;
+#ifdef ENABLE_SPAN_LITE
+    template<typename T> using span = nonstd::span<T>;
+#else
+    template<typename T> using span = std::span<T>;
+#endif
 
     typedef uint64_t u64;
     typedef int64_t i64;
