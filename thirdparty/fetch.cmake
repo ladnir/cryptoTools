@@ -25,7 +25,7 @@ function(RUN)
         OUTPUT_QUIET
     )
     if(RESULT)
-        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}). See ${LOG_FILE}")
+        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).\nLOG:\n${LOG_STRING}")
     endif()
 endfunction()
 
