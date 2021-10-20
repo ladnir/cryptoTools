@@ -1,9 +1,9 @@
 
-    if(VERBOSE_FETCH)
-        unset(RUN_OUTPUT_TYPE)
-    else()
-        set(RUN_OUTPUT_TYPE OUTPUT_QUIET)
-    endif()
+if(VERBOSE_FETCH)
+    unset(RUN_OUTPUT_TYPE)
+else()
+    set(RUN_OUTPUT_TYPE OUTPUT_QUIET)
+endif()
 
 function(RUN)
     cmake_parse_arguments(
@@ -20,6 +20,7 @@ function(RUN)
         "#############################################"
     )
 
+    message("RUN_OUTPUT_TYPE = ${RUN_OUTPUT_TYPE}")
 
     execute_process(
         COMMAND ${PARSED_ARGS_CMD}
