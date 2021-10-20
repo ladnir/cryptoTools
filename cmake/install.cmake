@@ -62,10 +62,6 @@ install(
     DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/cryptoTools"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/"
     FILES_MATCHING PATTERN "*.h")
-# special case for gsl headers
-install(
-    DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../cryptoTools/gsl"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/cryptoTools")
 
 # tests_cryptoTools headers
 install(

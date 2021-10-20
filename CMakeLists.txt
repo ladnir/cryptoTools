@@ -61,7 +61,6 @@ option(ENABLE_SPAN_LITE "use the span-lite library" ON)
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
-option(ENABLE_CPP_14    "compile with the c++14" ON)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 option(ENABLE_SSE       "compile with SSE instrctions" ON)
@@ -89,8 +88,6 @@ EVAL(FETCH_SODIUM_IMPL
 EVAL(FETCH_BOOST_IMPL 
 	(DEFINED FETCH_BOOST AND FETCH_BOOST) OR
 	((NOT DEFINED FETCH_BOOST) AND (FETCH_AUTO AND ENABLE_BOOST)))
-
-set(ENABLE_FULL_GSL ${ENABLE_CPP_14})
 
 message(STATUS "cryptoTools options\n=======================================================")
 
