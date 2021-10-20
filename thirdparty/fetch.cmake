@@ -1,4 +1,9 @@
 
+    if(VERBOSE_FETCH)
+        unset(RUN_OUTPUT_TYPE)
+    else()
+        set(RUN_OUTPUT_TYPE OUTPUT_QUIET)
+    endif()
 
 function(RUN)
     cmake_parse_arguments(
@@ -23,7 +28,7 @@ function(RUN)
         COMMAND_ECHO STDOUT
         OUTPUT_FILE ${LOG_FILE}
         ERROR_FILE ${LOG_FILE}
-        OUTPUT_QUIET
+        ${RUN_OUTPUT_TYPE}
     )
     if(RESULT)
         file(READ ${LOG_FILE} LOG_STRING)
@@ -60,7 +65,7 @@ function(VSRUN)
     
     set(BUILD_CMD "${POWERSHELL}" "${TEMP_PATH}")
     if(DEFINED LOG_FILE)
-        set(VS_LOG_SETTING OUTPUT_FILE ${LOG_FILE} ERROR_FILE ${LOG_FILE} OUTPUT_QUIET)
+        set(VS_LOG_SETTING OUTPUT_FILE ${LOG_FILE} ERROR_FILE ${LOG_FILE} ${OUTPUT_QUIET})
     else()
         unset(VS_LOG_SETTING)
     endif()
