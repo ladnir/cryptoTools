@@ -72,7 +72,7 @@ function(VSRUN)
     )
 
     if(RESULT)
-        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}). See ${LOG_FILE}")
+        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).\nLOG:\n${LOG_STRING}")
     endif()
 
     if(NOT DEFINED VSRUN_NO_DEL)
