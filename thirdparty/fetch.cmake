@@ -1,8 +1,8 @@
 
-if(VERBOSE_FETCH)
-    unset(RUN_OUTPUT_TYPE)
+if(DEFINED LOG_FILE AND (NOT DEFINED VERBOSE_FETCH OR NOT VERBOSE_FETCH))
+    set(LOG_SETTING OUTPUT_FILE ${LOG_FILE} ERROR_FILE ${LOG_FILE} ${OUTPUT_QUIET})
 else()
-    set(RUN_OUTPUT_TYPE OUTPUT_QUIET)
+    unset(LOG_SETTING)
 endif()
 
 function(RUN)
@@ -27,9 +27,7 @@ function(RUN)
         WORKING_DIRECTORY ${PARSED_ARGS_WD}
         RESULT_VARIABLE RESULT
         COMMAND_ECHO STDOUT
-        OUTPUT_FILE ${LOG_FILE}
-        ERROR_FILE ${LOG_FILE}
-        ${RUN_OUTPUT_TYPE}
+        ${LOG_SETTING}
     )
     if(RESULT)
         file(READ ${LOG_FILE} LOG_STRING)
@@ -65,18 +63,14 @@ function(VSRUN)
     )
     
     set(BUILD_CMD "${POWERSHELL}" "${TEMP_PATH}")
-    if(DEFINED LOG_FILE)
-        set(VS_LOG_SETTING OUTPUT_FILE ${LOG_FILE} ERROR_FILE ${LOG_FILE} ${OUTPUT_QUIET})
-    else()
-        unset(VS_LOG_SETTING)
-    endif()
+
 
     execute_process(
         COMMAND ${BUILD_CMD}
         WORKING_DIRECTORY ${PARSED_ARGS_WD}
         RESULT_VARIABLE RESULT
         COMMAND_ECHO STDOUT
-        ${VS_LOG_SETTING}
+        ${LOG_SETTING}
     )
 
     if(RESULT)
