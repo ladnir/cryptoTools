@@ -148,6 +148,8 @@ def main(projectName, argv):
         return 
 
     sudo = "--sudo" in argv;
+    if not sudo:
+        argv.append("-DENABLE_SUDO=OFF")
 
     if "--noauto" in argv:
         argv = replace(argv, "--noauto", "")
