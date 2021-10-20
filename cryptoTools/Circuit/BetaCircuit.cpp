@@ -8,6 +8,8 @@
 #include "cryptoTools/Common/BitVector.h"
 #include <cryptoTools/Crypto/RandomOracle.h>
 #include <string>
+#include <algorithm>
+#include <list>
 
 #ifdef USE_JSON
 #include <nlohmann/json.hpp>
