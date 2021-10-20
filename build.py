@@ -22,7 +22,7 @@ def replace(list, find, replace):
         list[idx] = replace;
     return list
 
-def Build(projectName, argv, install, par, sudo):
+def Build(projectName, argv, install, par, sudo, noConfig):
 
     osStr = (platform.system())
     buildDir = ""
@@ -74,8 +74,9 @@ def Build(projectName, argv, install, par, sudo):
 
     
     print("\n\n====== build.py ("+projectName+") ========")
-    print(mkDirCmd)
-    print(CMakeCmd)
+    if not noConfig:
+        print(mkDirCmd)
+        print(CMakeCmd)
 
     if not setup:
         print(BuildCmd)
@@ -83,8 +84,9 @@ def Build(projectName, argv, install, par, sudo):
             print(InstallCmd)
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
-    os.system(mkDirCmd)
-    os.system(CMakeCmd)
+    if not noConfig:
+        os.system(mkDirCmd)
+        os.system(CMakeCmd)
 
     if not setup:
         os.system(BuildCmd)
@@ -163,7 +165,11 @@ def main(projectName, argv):
 
     argv.append("-DPARALLEL_FETCH="+str(par))
 
-    Build(projectName, argv, install, par, sudo)
+    noConfig = "--nc" in argv
+    argv = replace(argv, "--nc", "")
+
+
+    Build(projectName, argv, install, par, sudo, noConfig)
 
 if __name__ == "__main__":
 
