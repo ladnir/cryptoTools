@@ -140,15 +140,17 @@ if (ENABLE_SODIUM)
     message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}")
     message(STATUS "SODIUM_MONTGOMERY:  ${SODIUM_MONTGOMERY}\n")
 
-    add_library(sodium STATIC IMPORTED)
+    if(NOT TARGET sodium)
+        add_library(sodium STATIC IMPORTED)
     
-    set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
-    target_include_directories(sodium INTERFACE 
+        set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
+        target_include_directories(sodium INTERFACE 
                     $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
                     $<INSTALL_INTERFACE:>)
 
-    if(MSVC)
-        target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
+        if(MSVC)
+            target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
+        endif()
     endif()
 endif (ENABLE_SODIUM)
 
