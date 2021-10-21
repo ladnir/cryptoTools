@@ -6,7 +6,7 @@ set(GIT_TAG             "2987dd8d3b8fe7c861e3c3f879234cc1c412f03f" )
 set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/${DEP_NAME}")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
-set(CONFIG    --config ${CMAKE_BUILD_TYPE})
+set(CONFIG    "--config ${CMAKE_BUILD_TYPE}")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 

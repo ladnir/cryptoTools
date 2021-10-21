@@ -5,7 +5,6 @@ set(GIT_TAG             "4e825a68baebdf058543f29762c73c17b1816ec0" )
 
 set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/libsodium")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
-set(CONFIG    --config Release)
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-libsodium.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
