@@ -74,11 +74,11 @@ endif()
 if(MSVC)
     install(
         DIRECTORY "${CLONE_DIR}/src/libsodium/include/"
-        DESTINATION "\${CMAKE_INSTALL_PREFIX}/include"
+        DESTINATION "include"
         FILES_MATCHING PATTERN "*.h")
     install(
         FILES "${CLONE_DIR}/Build/Release/x64/libsodium.lib"
-        DESTINATION "\${CMAKE_INSTALL_PREFIX}/lib")
+        DESTINATION "lib")
 else()
     install(CODE "
 
