@@ -83,10 +83,13 @@ if (ENABLE_RELIC)
         message(FATAL_ERROR "could not find relic. Add -DFETCH_RELIC=ON or -DFETCH_ALL=ON to auto download.\n")
     endif()
 
-    # does not property work on windows. Need to do a PR on relic.
-    #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
-    add_library(relic STATIC IMPORTED)
-    
+
+    if(NOT TARGET relic)
+        # does not property work on windows. Need to do a PR on relic.
+        #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
+        add_library(relic STATIC IMPORTED)
+    endif()
+
     set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
     target_include_directories(relic INTERFACE 
                     $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
