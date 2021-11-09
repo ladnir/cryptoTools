@@ -34,7 +34,7 @@ jobs:
         run:  python3 build.py --setup --relic --par=4
         
       - name: build cryptoTools
-        run:  python3 build.py --par=4 ENABLE_RELIC=ON -DENABLE_CIRCUIT=ON
+        run:  python3 build.py --par=4 -DENABLE_RELIC=ON -DENABLE_CIRCUIT=ON
 
       - name: unit tests
         run:  ./out/build/linux/frontend_cryptoTools/frontend_cryptoTools -u

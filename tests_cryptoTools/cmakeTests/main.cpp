@@ -1,6 +1,6 @@
 
 
-#include "cryptoTools/Common/PRNG.h"
+#include "cryptoTools/Crypto/PRNG.h"
 
 int main()
 {
