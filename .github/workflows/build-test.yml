@@ -42,7 +42,7 @@ jobs:
 
       - name: find source tree
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
             cmake --build out/
             ./out/main
@@ -51,7 +51,7 @@ jobs:
             
       - name: hint test
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
             cmake --build out/
             ./out/main
@@ -62,7 +62,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --relic --install=~/install
             python3 build.py --install=~/install
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
             ./out/main
@@ -74,7 +74,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --relic --install --sudo
             python3 build.py --install --sudo
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
             cmake --build out/
             ./out/main
@@ -93,7 +93,7 @@ jobs:
 
       - name: find source tree
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
             cmake --build out/
             ./out/main
@@ -102,7 +102,7 @@ jobs:
             
       - name: hint test
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
             cmake --build out/
             ./out/main
@@ -113,7 +113,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --relic --sodium --install=~/install
             python3 build.py --install=~/install
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
             ./out/main
@@ -125,7 +125,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --sodium --install --sudo
             python3 build.py --install --sudo
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
             cmake --build out/
             ./out/main
@@ -160,7 +160,7 @@ jobs:
 
       - name: find source tree
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
             cmake --build out/
             ./out/main
@@ -169,7 +169,7 @@ jobs:
             
       - name: hint test
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
             cmake --build out/
             ./out/main
@@ -180,7 +180,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --relic --install=~/install
             python3 build.py --install=~/install
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
             ./out/main
@@ -192,7 +192,7 @@ jobs:
         run: |
             python3 build.py --setup --boost --relic --install --sudo
             python3 build.py --install --sudo
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
             cmake --build out/
             ./out/main
@@ -229,7 +229,7 @@ jobs:
           
       - name: find source tree
         run: |
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
             cmake --build out/ --config Release
             ./out/Release/main.exe
@@ -240,7 +240,7 @@ jobs:
         run: |
             python3 build.py --setup 
             python3 build.py
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
             cmake --build out/ --config Release
             ./out/Release/main.exe
@@ -251,7 +251,7 @@ jobs:
         run: |
             python3 build.py --setup --relic --boost --install=~/install 
             python3 build.py --install=~/install 
-            cd cryptoTools_Tests/cmakeTests
+            cd tests_cryptoTools/cmakeTests
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/ --config Release
             ./out/Release/main.exe
