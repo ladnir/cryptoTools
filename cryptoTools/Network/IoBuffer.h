@@ -8,6 +8,7 @@
 
 #include <string> 
 #include <future> 
+#include <cassert> 
 #include <functional> 
 #include <memory> 
 #include <boost/asio.hpp>
@@ -317,12 +318,12 @@ namespace osuCrypto
                 : mHeaderSize(size_header_type(size))
                 , mBuff{ (u8*)data,  span<u8>::size_type(size) }
             {
-                Expects(size < std::numeric_limits<size_header_type>::max());
+                assert(size < std::numeric_limits<size_header_type>::max());
             }
 
             void set(const u8* data, u64 size)
             {
-                Expects(size < std::numeric_limits<size_header_type>::max());
+                assert(size < std::numeric_limits<size_header_type>::max());
                 mBuff = { (u8*)data, span<u8>::size_type(size) };
             }
 
@@ -332,7 +333,7 @@ namespace osuCrypto
 
             inline std::array<boost::asio::mutable_buffer, 2> getSendBuffer()
             {
-                Expects(mBuff.size());
+                assert(mBuff.size());
                 mHeaderSize = size_header_type(mBuff.size());
                 return { { getRecvHeaderBuffer(), getRecvBuffer() } };
             }

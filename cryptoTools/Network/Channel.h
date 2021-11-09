@@ -12,6 +12,7 @@
 #include <cryptoTools/Common/Log.h>
 #endif
 #include <future>
+#include <cassert>
 #include <ostream>
 #include <list>
 #include <deque>
@@ -576,7 +577,7 @@ namespace osuCrypto {
     typename std::enable_if<is_container<Container>::value, void>::type Channel::asyncSend(std::unique_ptr<Container> c)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(*c) - 1 < u32(-2));
+        assert(channelBuffSize(*c) - 1 < u32(-2));
 
         auto op = make_SBO_ptr<
             details::SendOperation,
@@ -591,7 +592,7 @@ namespace osuCrypto {
     typename std::enable_if<is_container<Container>::value, void>::type Channel::asyncSend(std::shared_ptr<Container> c)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(*c) - 1 < u32(-2));
+        assert(channelBuffSize(*c) - 1 < u32(-2));
 
 
         auto op = make_SBO_ptr<
@@ -608,7 +609,7 @@ namespace osuCrypto {
     typename std::enable_if<is_container<Container>::value, void>::type Channel::asyncSend(const Container& c)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(c) - 1 < u32(-2));
+        assert(channelBuffSize(c) - 1 < u32(-2));
 
         auto* buff = (u8*)c.data();
         auto size = c.size() * sizeof(typename Container::value_type);
@@ -624,7 +625,7 @@ namespace osuCrypto {
     typename std::enable_if<is_container<Container>::value, void>::type Channel::asyncSend(Container&& c)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(c) - 1 < u32(-2));
+        assert(channelBuffSize(c) - 1 < u32(-2));
 
         auto op = make_SBO_ptr<
             details::SendOperation, 
@@ -641,7 +642,7 @@ namespace osuCrypto {
         Channel::asyncRecv(Container & c)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(c) - 1 < u32(-2));
+        assert(channelBuffSize(c) - 1 < u32(-2));
 
         std::future<void> future;
         auto op = make_SBO_ptr<
@@ -758,7 +759,7 @@ namespace osuCrypto {
         auto size = sizeT * sizeof(T);
 
         // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2));
+        assert(size - 1 < u32(-2));
 
         std::future<void> future;
         auto op = make_SBO_ptr<
@@ -787,7 +788,7 @@ namespace osuCrypto {
         auto size = sizeT * sizeof(T);
 
         // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2));
+        assert(size - 1 < u32(-2));
 
         std::future<void> future;
         auto op = make_SBO_ptr<
@@ -807,7 +808,7 @@ namespace osuCrypto {
         auto size = sizeT * sizeof(T);
 
         // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2));
+        assert(size - 1 < u32(-2));
 
         std::future<void> future;
         auto op = make_SBO_ptr<
@@ -828,7 +829,7 @@ namespace osuCrypto {
         auto size = sizeT * sizeof(T);
 
         // not zero and less that 32 bits
-        Expects(size - 1 < u32(-2));
+        assert(size - 1 < u32(-2));
 
         auto op = make_SBO_ptr<
             details::SendOperation, 
@@ -854,7 +855,7 @@ namespace osuCrypto {
         Channel::asyncSend(Container&& c, std::function<void()> callback)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(c) - 1 < u32(-2));
+        assert(channelBuffSize(c) - 1 < u32(-2));
 
         auto op = make_SBO_ptr<
             details::SendOperation,
@@ -872,7 +873,7 @@ namespace osuCrypto {
         Channel::asyncSend(Container&& c, std::function<void(const error_code&)> callback)
     {
         // not zero and less that 32 bits
-        Expects(channelBuffSize(c) - 1 < u32(-2));
+        assert(channelBuffSize(c) - 1 < u32(-2));
 
         auto op = make_SBO_ptr<
             details::SendOperation,

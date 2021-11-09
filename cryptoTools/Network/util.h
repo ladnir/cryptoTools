@@ -6,6 +6,7 @@
 #include <boost/circular_buffer.hpp>
 #include <memory>
 #include <mutex>
+#include <cassert>
 #include <unordered_map>
 //#include <cryptoTools/Network/IOService.h>
 
@@ -175,7 +176,7 @@ namespace osuCrypto
 
             void moveTo(SBO_ptr<T, StorageSize>& dest) override
             {
-                Expects(dest.get() == nullptr);
+                assert(dest.get() == nullptr);
                 dest.New<U>(std::move(mU));
             }
 
