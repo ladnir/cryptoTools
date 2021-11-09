@@ -14,11 +14,14 @@ function(RUN)
         ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
     message("${PARSED_ARGS_NAME}")
-    file(APPEND ${LOG_FILE}
-        "vvvvvvvvvvvvv RUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
-        "${PARSED_ARGS_CMD}\n"
-        "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
-    )
+
+    if(DEFINED LOG_FILE)
+        file(APPEND ${LOG_FILE}
+            "vvvvvvvvvvvvv RUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
+            "${PARSED_ARGS_CMD}\n"
+            "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+        )
+    endif()
 
     execute_process(
         COMMAND ${PARSED_ARGS_CMD}
@@ -46,11 +49,14 @@ function(VSRUN)
         ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
     message("${PARSED_ARGS_NAME}")
-    file(APPEND ${LOG_FILE}
-        "vvvvvvvvvvvvv VSRUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
-        "${PARSED_ARGS_CMD}\n"
-        "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
-    )
+
+    if(DEFINED LOG_FILE)
+        file(APPEND ${LOG_FILE}
+            "vvvvvvvvvvvvv VSRUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
+            "${PARSED_ARGS_CMD}\n"
+            "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+        )
+    endif()
     
     set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/runvs-${PARSED_ARGS_NAME}_delete-me.ps1")
     file(WRITE ${TEMP_PATH}  "${FINDVS}\n\n" ${PARSED_ARGS_CMD})
