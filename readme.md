@@ -14,7 +14,7 @@ Thirdparty networking is also supported. See `frontend_cryptoTools/tutorial/Netw
 The library is *cross platform* and has been tested on Windows, Mac and Linux. 
 There is one mandatory dependency on [Boost 1.75](http://www.boost.org/) (networking),
 and **optional dependency** on
-[Relic](https://github.com/relic-toolkit/relic). CMake 3.15+ is required and the build script assumes python 3.
+[Relic](https://github.com/relic-toolkit/relic). CMake 3.18+ is required and the build script assumes python 3.
  
 
 ```
