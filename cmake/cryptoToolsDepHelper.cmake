@@ -6,7 +6,9 @@ cmake_policy(SET CMP0074 NEW)
 
 
 if(MSVC)
-    if(NOT DEFINED CMAKE_BUILD_TYPE OR (MSVC AND ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo"))
+    if(NOT DEFINED CMAKE_BUILD_TYPE)
+        set(OC_BUILD_TYPE "Release")
+    elseif(MSVC AND ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
         set(OC_BUILD_TYPE "Release")
     else()
         set(OC_BUILD_TYPE ${CMAKE_BUILD_TYPE})
