@@ -4,8 +4,15 @@ cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
 
 
+
 if(MSVC)
-    set(OC_CONFIG "x64-${CMAKE_BUILD_TYPE}")
+    if(NOT DEFINED CMAKE_BUILD_TYPE OR (MSVC AND ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo"))
+        set(OC_BUILD_TYPE "Release")
+    else()
+        set(OC_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+    endif()
+
+    set(OC_CONFIG "x64-${OC_BUILD_TYPE}")
 elseif(APPLE)
     set(OC_CONFIG "osx")
 else()
