@@ -107,7 +107,7 @@ jobs:
         run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SSE=OFF
 
       - name: unit tests
-        run:  ./out/build/linux/frontend_cryptoTools/frontend_cryptoTools -u
+        run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
        
 
       - name: find source tree
@@ -167,13 +167,13 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: build boost
-        run: python3 build.py --setup --boost --par=4
+        run: python3 build.py --setup --boost --par=4 -G Ninja
 
       - name: build relic
-        run: python3 build.py --setup --relic --par=4
+        run: python3 build.py --setup --relic --par=4 -G Ninja
         
       - name: build sodium
-        run:  python3 build.py --setup --sodium --par=4
+        run:  python3 build.py --setup --sodium --par=4 -G Ninja
 
       - name: build cryptoTools
         run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SODIUM=ON -G Ninja
