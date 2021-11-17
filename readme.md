@@ -21,13 +21,13 @@ and **optional dependency** on
 git clone https://github.com/ladnir/cryptoTools
 cd cryptoTools
 python build.py --setup --boost --relic
-python build.py -- -D ENABLE_RELIC=ON
+python build.py -D ENABLE_RELIC=ON
 ```
 It is possible to build only the protocol(s) that are desired via cmake command. In addition, if boost and or relic are already installed, then `boost` or `relic` can be ommitted from `python build.py setup boost relic`.
 
 See the output of `python build.py` or `cmake .` for available compile options. For example, 
 ```
-python build.py -- -D ENABLE_SSE=OFF
+python build.py -D ENABLE_SSE=OFF
 ```
 will build without SSE instrisics. Argument after the `--` are forwarded to cmake.
 
@@ -37,12 +37,12 @@ The main executable with examples is `frontend` and is located in the build dire
  * The library can be built without Relic as
 ```
 python build.py --setup --boost
-python build.py -- -D -D ENABLE_RELIC=OFF
+python build.py -D -D ENABLE_RELIC=OFF
 ```
  * The library can be built without Boost as
 ```
 python build.py --setup --relic
-python build.py -- -D -D ENABLE_BOOST=OFF
+python build.py -D -D ENABLE_BOOST=OFF
 ```
  
 
