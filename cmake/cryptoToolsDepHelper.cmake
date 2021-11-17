@@ -97,13 +97,12 @@ if (ENABLE_RELIC)
         # does not property work on windows. Need to do a PR on relic.
         #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
         add_library(relic STATIC IMPORTED)
-    endif()
-
-    set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
-    target_include_directories(relic INTERFACE 
-                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
-                    $<INSTALL_INTERFACE:>)
     
+        set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
+        target_include_directories(relic INTERFACE 
+                        $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
+                        $<INSTALL_INTERFACE:>)
+    endif()
     message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
     message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
 
@@ -157,8 +156,9 @@ if (ENABLE_SODIUM)
     
         set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
         target_include_directories(sodium INTERFACE 
-                    $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
-                    $<INSTALL_INTERFACE:>)
+            $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
+            $<INSTALL_INTERFACE:>)
+
 
         if(MSVC)
             target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
