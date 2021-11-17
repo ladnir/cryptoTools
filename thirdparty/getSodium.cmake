@@ -82,9 +82,9 @@ else()
     install(CODE "
 
             execute_process(
-                COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/lib/
-                COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/include
-                COMMAND ${SUDO} mkdir -p ${CMAKE_INSTALL_PREFIX}/include/sodium
+                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/lib/
+                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/include
+                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/include/sodium
                 COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/libsodium.a \${CMAKE_INSTALL_PREFIX}/lib/
                 COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium.h \${CMAKE_INSTALL_PREFIX}/include/
                 COMMAND ${SUDO} cp -r ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium \${CMAKE_INSTALL_PREFIX}/include/
