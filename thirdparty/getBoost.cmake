@@ -56,7 +56,7 @@ if(MSVC)
 endif()
 
 
-if(NOT Boost_FOUND)
+if(NOT EXISTS ${CLONE_DIR} OR NOT Boost_FOUND)
 
     message("============= Building Boost =============")
     if(NOT EXISTS ${CLONE_DIR})

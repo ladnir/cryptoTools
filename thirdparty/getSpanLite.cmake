@@ -9,7 +9,7 @@ set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
-if(NOT span-lite_FOUND)
+if(NOT EXISTS ${BUILD_DIR} OR NOT span-lite_FOUND)
     find_program(GIT git REQUIRED)
     set(DOWNLOAD_CMD  ${GIT} clone ${GIT_REPOSITORY})
     set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})

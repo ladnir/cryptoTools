@@ -14,7 +14,7 @@ set(DOWNLOAD_CMD  ${GIT} clone ${GIT_REPOSITORY})
 set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
 
 
-if(NOT SODIUM_FOUND)
+if(NOT EXISTS ${BUILD_DIR} OR NOT SODIUM_FOUND)
     message("============= Building Sodium =============")
 
     if(NOT EXISTS ${CLONE_DIR})
