@@ -66,15 +66,17 @@ if (ENABLE_RELIC)
         message(FATAL_ERROR "could not find relic. Add -DFETCH_RELIC=ON or -DFETCH_ALL=ON to auto download.\n")
     endif()
 
-    # does not property work on windows. Need to do a PR on relic.
-    #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
-    add_library(relic STATIC IMPORTED)
+
+    if(NOT TARGET relic)
+        # does not property work on windows. Need to do a PR on relic.
+        #find_package(RELIC REQUIRED HINTS "${OC_THIRDPARTY_HINT}")
+        add_library(relic STATIC IMPORTED)
     
-    set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
-    target_include_directories(relic INTERFACE 
-                    $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
-                    $<INSTALL_INTERFACE:>)
-    
+        set_property(TARGET relic PROPERTY IMPORTED_LOCATION ${RLC_LIBRARY})
+        target_include_directories(relic INTERFACE 
+                        $<BUILD_INTERFACE:${RLC_INCLUDE_DIR}>
+                        $<INSTALL_INTERFACE:>)
+    endif()
     message(STATUS "Relic_LIB:  ${RLC_LIBRARY}")
     message(STATUS "Relic_inc:  ${RLC_INCLUDE_DIR}\n")
 
@@ -116,15 +118,17 @@ if (ENABLE_SODIUM)
     message(STATUS "SODIUM_LIBRARIES:  ${SODIUM_LIBRARIES}")
     message(STATUS "SODIUM_MONTGOMERY:  ${SODIUM_MONTGOMERY}\n")
 
-    add_library(sodium STATIC IMPORTED)
+    if(NOT TARGET sodium)
+        add_library(sodium STATIC IMPORTED)
     
-    set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
-    target_include_directories(sodium INTERFACE 
-                    $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
-                    $<INSTALL_INTERFACE:>)
+        set_property(TARGET sodium PROPERTY IMPORTED_LOCATION ${SODIUM_LIBRARIES})
+        target_include_directories(sodium INTERFACE 
+                        $<BUILD_INTERFACE:${SODIUM_INCLUDE_DIRS}>
+                        $<INSTALL_INTERFACE:>)
 
-    if(MSVC)
-        target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
+        if(MSVC)
+            target_compile_definitions(sodium INTERFACE SODIUM_STATIC=1)
+        endif()
     endif()
 endif (ENABLE_SODIUM)
 
