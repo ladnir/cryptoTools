@@ -60,7 +60,7 @@ void print_aes_bristol()
         lib.aes_exapnded_build(cir, m, k, c);
 
         // c = c ^ cMask
-        lib.int_int_bitwiseXor_build(cir, c, cMask, c);
+        lib.bitwiseXor_build(cir, c, cMask, c);
 
         auto name = "./aes_r_" + std::to_string(rounds) + ".txt";
 

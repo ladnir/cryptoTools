@@ -85,16 +85,18 @@ namespace tests_cryptoTools
         th.add("BetaCircuit_uint_Subtractor_Test        ", BetaCircuit_uint_Subtractor_Test);
         th.add("BetaCircuit_int_Multiply_Test           ", BetaCircuit_int_Multiply_Test);
         th.add("BetaCircuit_uint_Multiply_Test          ", BetaCircuit_uint_Multiply_Test);
-        th.add("BetaCircuit_int_Divide_Test             ", BetaCircuit_int_Divide_Test);
+        
         th.add("BetaCircuit_int_LessThan_Test           ", BetaCircuit_int_LessThan_Test);
         th.add("BetaCircuit_int_GreaterThanEq_Test      ", BetaCircuit_int_GreaterThanEq_Test);
         th.add("BetaCircuit_uint_LessThan_Test          ", BetaCircuit_uint_LessThan_Test);
         th.add("BetaCircuit_uint_GreaterThanEq_Test     ", BetaCircuit_uint_GreaterThanEq_Test);
-        th.add("BetaCircuit_multiplex_Test              ", BetaCircuit_multiplex_Test);
         th.add("BetaCircuit_negate_Test                 ", BetaCircuit_negate_Test);
         th.add("BetaCircuit_bitInvert_Test              ", BetaCircuit_bitInvert_Test);
         th.add("BetaCircuit_removeSign_Test             ", BetaCircuit_removeSign_Test);
         th.add("BetaCircuit_addSign_Test                ", BetaCircuit_addSign_Test);
+
+        th.add("BetaCircuit_int_Divide_Test             ", BetaCircuit_int_Divide_Test);
+        th.add("BetaCircuit_multiplex_Test              ", BetaCircuit_multiplex_Test);
         //th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
         th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
         th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
