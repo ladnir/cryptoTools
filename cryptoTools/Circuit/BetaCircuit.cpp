@@ -340,8 +340,13 @@ namespace osuCrypto
         for (u64 i = 0; i < static_cast<u64>(input.size()); ++i)
         {
             if (input[i].size() != mInputs[i].mWires.size())
-                throw std::runtime_error(LOCATION);
+            {
+                std::cout << "BetaCircuit::evaluate error. Bad input size at input " << i
+                    << ". Expecting " << mInputs.size() << " bits but evaluate called with "
+                    << input[i].size() << " bits." << std::endl;
 
+                throw std::runtime_error(LOCATION);
+            }
             for (u64 j = 0; j < input[i].size(); ++j)
             {
                 mem[mInputs[i].mWires[j]] = input[i][j];

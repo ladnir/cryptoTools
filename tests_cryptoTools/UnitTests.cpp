@@ -4,7 +4,6 @@
 #include "tests_cryptoTools/AES_Tests.h"
 #include "tests_cryptoTools/Rijndael256_Tests.h"
 #include "tests_cryptoTools/BtChannel_Tests.h"
-#include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/REcc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
 #include "tests_cryptoTools/Cuckoo_Tests.h"
@@ -68,10 +67,6 @@ namespace tests_cryptoTools
         th.add("CuckooIndex_paramSweep_Test             ", CuckooIndex_paramSweep_Test_Impl);
         th.add("CuckooIndex_parallel_Test               ", CuckooIndex_parallel_Test_Impl);
 
-        th.add("Ecc2mNumber_Test                        ", Ecc2mNumber_Test);
-        th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);
-        th.add("EccpNumber_Test                         ", EccpNumber_Test);
-        th.add("EccpPoint_Test                          ", EccpPoint_Test);
         th.add("REccpNumber_Test                        ", REccpNumber_Test);
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 

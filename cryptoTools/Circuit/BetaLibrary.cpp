@@ -1,9 +1,10 @@
 #include "BetaLibrary.h"
+#ifdef ENABLE_CIRCUITS
+#include "cryptoTools/Crypto/RandomOracle.h"
 #include <cstring>
 #include <string>
 #include "cryptoTools/Common/Matrix.h"
 
-#ifdef ENABLE_CIRCUITS
 #include <algorithm>
 #include <cassert>
 
@@ -14,21 +15,30 @@ namespace osuCrypto
 	namespace {
 
 		template<typename THead>
-		size_t hash(THead h)
+		void _hash(RandomOracle& ro, THead h)
 		{
-			auto hh = std::hash<THead>()(h);
-			return hh;
+			ro.Update(h);
+			//auto hh = std::hash<THead>()(h);
+			//return hh;
+		}
+		template<typename THead, typename... TTail>
+		void _hash(RandomOracle& ro, THead h, TTail... tail)
+		{
+			_hash(ro, h);
+			_hash<TTail...>(ro, tail...);
 		}
 
-		template<typename THead, typename... TTail>
-		size_t hash(THead h, TTail... tail)
+		template<typename... TTail>
+		size_t hash(TTail... tail)
 		{
-			auto h0 = hash(h);
-			auto h1 = hash<TTail...>(tail...);
-			auto s = h1 * 3.334242;
-			auto hh = h0 ^ *(size_t*)&s;
-			return hh;
+			RandomOracle ro(sizeof(size_t));
+
+			_hash<TTail...>(ro, tail...);
+			size_t ret;
+			ro.Final(ret);
+			return ret;
 		}
+
 	}
 
 	BetaLibrary::BetaLibrary()
@@ -1061,7 +1071,7 @@ namespace osuCrypto
 			}
 		}
 
-		//std::cout << "~~~~~~~~~~~\n";
+		//std::cout << "~~~~~~~~~~~\n";	
 		//cd << "**~~~~~~~~~~~\n";
 
 	}
