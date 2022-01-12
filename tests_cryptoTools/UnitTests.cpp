@@ -4,7 +4,6 @@
 #include "tests_cryptoTools/AES_Tests.h"
 #include "tests_cryptoTools/Rijndael256_Tests.h"
 #include "tests_cryptoTools/BtChannel_Tests.h"
-#include "tests_cryptoTools/Ecc_Tests.h"
 #include "tests_cryptoTools/REcc_Tests.h"
 #include "tests_cryptoTools/Misc_Tests.h"
 #include "tests_cryptoTools/Cuckoo_Tests.h"
@@ -68,10 +67,6 @@ namespace tests_cryptoTools
         th.add("CuckooIndex_paramSweep_Test             ", CuckooIndex_paramSweep_Test_Impl);
         th.add("CuckooIndex_parallel_Test               ", CuckooIndex_parallel_Test_Impl);
 
-        th.add("Ecc2mNumber_Test                        ", Ecc2mNumber_Test);
-        th.add("Ecc2mPoint_Test                         ", Ecc2mPoint_Test);
-        th.add("EccpNumber_Test                         ", EccpNumber_Test);
-        th.add("EccpPoint_Test                          ", EccpPoint_Test);
         th.add("REccpNumber_Test                        ", REccpNumber_Test);
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
@@ -85,16 +80,18 @@ namespace tests_cryptoTools
         th.add("BetaCircuit_uint_Subtractor_Test        ", BetaCircuit_uint_Subtractor_Test);
         th.add("BetaCircuit_int_Multiply_Test           ", BetaCircuit_int_Multiply_Test);
         th.add("BetaCircuit_uint_Multiply_Test          ", BetaCircuit_uint_Multiply_Test);
-        th.add("BetaCircuit_int_Divide_Test             ", BetaCircuit_int_Divide_Test);
+        
         th.add("BetaCircuit_int_LessThan_Test           ", BetaCircuit_int_LessThan_Test);
         th.add("BetaCircuit_int_GreaterThanEq_Test      ", BetaCircuit_int_GreaterThanEq_Test);
         th.add("BetaCircuit_uint_LessThan_Test          ", BetaCircuit_uint_LessThan_Test);
         th.add("BetaCircuit_uint_GreaterThanEq_Test     ", BetaCircuit_uint_GreaterThanEq_Test);
-        th.add("BetaCircuit_multiplex_Test              ", BetaCircuit_multiplex_Test);
         th.add("BetaCircuit_negate_Test                 ", BetaCircuit_negate_Test);
         th.add("BetaCircuit_bitInvert_Test              ", BetaCircuit_bitInvert_Test);
         th.add("BetaCircuit_removeSign_Test             ", BetaCircuit_removeSign_Test);
         th.add("BetaCircuit_addSign_Test                ", BetaCircuit_addSign_Test);
+
+        th.add("BetaCircuit_int_Divide_Test             ", BetaCircuit_int_Divide_Test);
+        th.add("BetaCircuit_multiplex_Test              ", BetaCircuit_multiplex_Test);
         //th.add("BetaCircuit_int_piecewise_Test          ", BetaCircuit_int_piecewise_Test);
         th.add("BetaCircuit_json_Tests                  ", BetaCircuit_json_Tests);
         th.add("BetaCircuit_bin_Tests                   ", BetaCircuit_bin_Tests);
