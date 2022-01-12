@@ -636,17 +636,21 @@ namespace osuCrypto
             curNode.mGate = mGates[i - numInputs];
             curNode.mIdx = i;
             curNode.mDepth = 0;
+            if (curNode.mGate.mInput[0] == curNode.mGate.mInput[1] && curNode.mGate.mType != GateType::a)
+                throw std::runtime_error("Gate has the same input for both inputs. Not allowed. " LOCATION);
 
             for (u64 in = 0; in < 2; ++in)
             {
+                // the node that produced our input
                 auto& inNode = *wireOwner[curNode.mGate.mInput[in]];
                 curNode.mInput[in] = &inNode;
 
-                for (auto& oo : inNode.mOutputs)
-                {
-                    if (oo->mIdx == curNode.mIdx)
-                        throw std::runtime_error(LOCATION);
-                }
+                //// check that we haven't already included
+                //for (auto& oo : inNode.mOutputs)
+                //{
+                //    if (oo->mIdx == curNode.mIdx)
+                //        throw std::runtime_error(LOCATION);
+                //}
 
                 inNode.mOutputs.emplace_back(&curNode);
 
@@ -700,12 +704,14 @@ namespace osuCrypto
 
             auto iter = std::find(depList.begin(), depList.end(), &node);
 
-            if (iter == depList.end() || std::find(iter + 1, depList.end(), &node) != depList.end())
-                throw std::runtime_error(LOCATION);
+            if (iter == depList.end() || 
+                (   node.mGate.mType != GateType::a && 
+                    std::find(iter + 1, depList.end(), &node) != depList.end()))
+                throw std::runtime_error("input value appears more than once... " LOCATION);
 
             auto wire = node.mInput[i]->mWire;
             if (wire < 0)
-                throw std::runtime_error(LOCATION);
+                throw std::runtime_error("wire is uninit... " LOCATION);
 
 
             if (depList.size() == 1 && node.mInput[i]->mFixedWireValue == false)
