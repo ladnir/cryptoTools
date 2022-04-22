@@ -240,6 +240,105 @@ void BetaCircuit_xor_and_lvl_test(const oc::CLP& cmd)
 }
 
 
+void compare(oc::BetaCircuit& c0, oc::BetaCircuit& c1)
+{
+	u64 numTrials = 10;
+	using namespace oc;
+
+	u64 numInputs = c0.mInputs.size();
+	u64 numOutputs = c0.mOutputs.size();
+
+	if (numInputs != c1.mInputs.size())
+		throw std::runtime_error(LOCATION);
+	if (numOutputs != c1.mOutputs.size())
+		throw std::runtime_error(LOCATION);
+
+	std::vector<BitVector> inputs(numInputs);
+	std::vector<BitVector> output0(numOutputs), output1(numOutputs);
+	PRNG prng(ZeroBlock);
+
+	for (u64 t = 0; t < numTrials; ++t)
+	{
+		for (u64 i = 0; i < numInputs; ++i)
+		{
+			if (c0.mInputs[i].size() != c1.mInputs[i].size())
+				throw RTE_LOC;
+
+			inputs[i].resize(c0.mInputs[i].size());
+			inputs[i].randomize(prng);
+		}
+		for (u64 i = 0; i < numOutputs; ++i)
+		{
+			if (c0.mOutputs[i].size() != c1.mOutputs[i].size())
+				throw RTE_LOC;
+			output0[i].resize(c0.mOutputs[i].size());
+			output1[i].resize(c0.mOutputs[i].size());
+		}
+
+		c0.evaluate(inputs, output0, false);
+		//std::cout << "\n";
+		c1.evaluate(inputs, output1, false);
+
+		for (u64 i = 0; i < numOutputs; ++i)
+		{
+			if (output0[i] != output1[i])
+			{
+				for (u64 j = 0; j < output0[i].size(); ++j)
+					std::cout << (j / 10);
+				std::cout << std::endl;
+				for (u64 j = 0; j < output0[i].size(); ++j)
+					std::cout << (j % 10);
+				std::cout << std::endl;
+				std::cout << output0[i] << std::endl;
+				std::cout << output1[i] << std::endl;
+				std::cout << (output0[i] ^ output1[i]) << std::endl;
+
+				throw RTE_LOC;
+			}
+		}
+	}
+}
+
+
+//void BetaCircuit_reorg_lvl_test(const oc::CLP& cmd)
+//{
+//
+//	BetaCircuit cir;
+//	BetaBundle in(1), out(3), temp(2);
+//	cir.addInputBundle(in);
+//	cir.addInputBundle(out);
+//	cir.mOutputs.push_back(out);
+//	cir.addTempWireBundle(temp);
+//
+//	BetaWire w0 = in[0];
+//
+//	BetaWire w64 = out[0];
+//	BetaWire w72 = out[1];
+//	BetaWire w128 = out[2];
+//	//BetaWire w64 = out[1];
+//
+//	BetaWire w192 = temp[0];
+//	BetaWire w193 = temp[1];
+//
+//
+//	cir.addCopy(w0, w192);
+//
+//	cir.addGate(w192, w64, GateType::Xor, w193);
+//	cir.addGate(w193, w72, GateType::And, w192);
+//	cir.addGate(w192, w64, GateType::Xor, w128);
+//
+//	cir.addCopy(w0, w64);
+//
+//
+//	auto c2 = cir;
+//	cir.levelByAndDepth();
+//
+//
+//	compare(c2, cir);
+//
+//}
+
+
 u8 msb(i64 v)
 {
 	return (v >> 63) & 1;

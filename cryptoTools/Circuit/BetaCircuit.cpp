@@ -265,14 +265,14 @@ namespace osuCrypto
             ++i;
             mWireFlags[*d] = mWireFlags[*s];
 
-            u64 rem = (dd - d);
+            //u64 rem = (dd - d);
             u64 len = 1;
-            while (len < rem && *i == *(i - 1) + 1)
-            {
-                ++i;
-                mWireFlags[*(d + len)] = mWireFlags[*(s + len)];
-                ++len;
-            }
+            //while (len < rem && *i == *(i - 1) + 1)
+            //{
+            //    ++i;
+            //    mWireFlags[*(d + len)] = mWireFlags[*(s + len)];
+            //    ++len;
+            //}
 
             mGates.emplace_back(*s, u32(len), GateType::a, *d);
             d += len;
@@ -593,6 +593,14 @@ namespace osuCrypto
 
     void BetaCircuit::levelByAndDepth()
     {
+        if (mNonlinearGateCount == 0)
+        {
+            mLevelAndCounts.resize(1);
+            mLevelCounts.resize(1);
+            mLevelCounts[0] = mGates.size();
+            return;
+        }
+
         static const i64 freed(-3), uninit(-2)/*, inputWire(-1)*/;
         struct Node
         {

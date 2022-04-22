@@ -106,7 +106,7 @@ namespace osuCrypto {
         void operator|=(const BitVector& A);
 
         // Check for equality between two BitVectors
-        bool operator==(const BitVector& k) { return equals(k); }
+        bool operator==(const BitVector& k)const { return equals(k); }
 
         // Check for inequality between two BitVectors
         bool operator!=(const BitVector& k)const { return !equals(k); }
