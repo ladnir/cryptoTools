@@ -13,7 +13,7 @@ namespace osuCrypto
     public:
 
         using iterator = typename span<T>::iterator;
-        using const_iterator = typename span<T>::const_iterator;
+        using const_iterator = typename span<T>::iterator;
 
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
