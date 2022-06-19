@@ -92,6 +92,8 @@ EVAL(FETCH_BOOST_IMPL
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
+message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
+
 message(STATUS "Option: FETCH_SPAN_LITE   = ${FETCH_SPAN_LITE}")
 message(STATUS "Option: FETCH_RELIC       = ${FETCH_RELIC}")
 message(STATUS "Option: FETCH_SODIUM      = ${FETCH_SODIUM}")

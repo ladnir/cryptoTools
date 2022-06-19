@@ -227,7 +227,7 @@ namespace osuCrypto
     void REccNumber::init()
     {
         bn_new(mVal);
-        bn_init(mVal, static_cast<int>(sizeDigits()));
+        //bn_init(mVal, static_cast<int>(sizeDigits()));
     }
 
     void REccNumber::reduce()

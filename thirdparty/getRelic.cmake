@@ -1,6 +1,6 @@
 
 set(GIT_REPOSITORY      https://github.com/relic-toolkit/relic.git )
-set(GIT_TAG             "3f616ad64c3e63039277b8c90915607b6a2c504c" )
+set(GIT_TAG             "0.6.0" )
 
 set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/relic")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
