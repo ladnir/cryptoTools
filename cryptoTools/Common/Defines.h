@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <boost/config.hpp>
 #include "cryptoTools/Common/config.h"
 #include "block.h"
 
@@ -11,6 +12,9 @@
 #else
 #include <span>
 #endif
+
+// Use boost in case C++20 isn't available.
+#include <boost/core/bit.hpp>
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
@@ -21,12 +25,26 @@
     #ifndef _WIN32_WINNT
         // compile for win 7 and up.
         #define _WIN32_WINNT 0x0601
-    #endif 
-	#pragma warning( disable : 4018) // signed unsigned comparison warning
-	#define TODO(x) __pragma(message (__FILE__ ":" STRINGIZE(__LINE__) " Warning:TODO - " #x))
+    #endif
+    #pragma warning( disable : 4018) // signed unsigned comparison warning
+    #define TODO(x) __pragma(message (__FILE__ ":" STRINGIZE(__LINE__) " Warning:TODO - " #x))
 #else
-	#define TODO(x)
+    #define TODO(x)
 #endif
+
+// OC_FORCEINELINE ---------------------------------------------//
+// Macro to use in place of 'inline' to force a function to be inline
+#if !defined(OC_FORCEINELINE)
+#  if defined(_MSC_VER)
+#    define OC_FORCEINELINE __forceinline
+#  elif defined(__GNUC__) && __GNUC__ > 3
+     // Clang also defines __GNUC__ (as 4)
+#    define OC_FORCEINELINE inline __attribute__ ((__always_inline__))
+#  else
+#    define OC_FORCEINELINE inline
+#  endif
+#endif
+
 
 // add instrinsics names that intel knows but clang doesn't…
 #ifdef __clang__
@@ -54,10 +72,21 @@ namespace osuCrypto {
     typedef int8_t i8;
 
     constexpr u64 divCeil(u64 val, u64 d) { return (val + d - 1) / d; }
+    constexpr u64 divNearest(u64 val, u64 d) { return (val + (d/2)) / d; } // Ties go towards infinity.
     constexpr u64 roundUpTo(u64 val, u64 step) { return divCeil(val, step) * step; }
 
-    u64 log2ceil(u64);
-    u64 log2floor(u64);
+    inline u64 log2ceil(u64 x)
+    {
+        return boost::core::bit_width(x - 1);
+    }
+    inline u64 log2floor(u64 x)
+    {
+        return boost::core::bit_width(x) - 1;
+    }
+    inline int popcount(u64 x)
+    {
+        return boost::core::popcount(x);
+    }
 
     block sysRandomSeed();
 
@@ -65,11 +94,11 @@ namespace osuCrypto {
 
     static inline uint64_t mod64(uint64_t word, uint64_t p)
     {
-#ifdef __SIZEOF_INT128__ 
+#ifdef __SIZEOF_INT128__
         return (uint64_t)(((__uint128_t)word * (__uint128_t)p) >> 64);
 #elif defined(_MSC_VER) && defined(_WIN64)
         uint64_t highProduct;
-        _umul128(word, p, &highProduct); 
+        _umul128(word, p, &highProduct);
         return highProduct;
         unsigned __int64 _umul128(
             unsigned __int64 Multiplier,
@@ -77,8 +106,8 @@ namespace osuCrypto {
             unsigned __int64* HighProduct
         );
 #else
-        return word % p; 
-#endif 
+        return word % p;
+#endif
     }
 
 }

@@ -31,7 +31,7 @@ namespace osuCrypto {
         template<>
         void AES<NI>::setKey(const block& userKey)
         {
-            
+
             mRoundKey[0] = userKey;
             mRoundKey[1] = keyGenHelper(mRoundKey[0], _mm_aeskeygenassist_si128(mRoundKey[0], 0x01));
             mRoundKey[2] = keyGenHelper(mRoundKey[1], _mm_aeskeygenassist_si128(mRoundKey[1], 0x02));
@@ -50,7 +50,7 @@ namespace osuCrypto {
 
 #if defined(OC_ENABLE_PORTABLE_AES)
         // The lookup-tables are marked const so they can be placed in read-only storage instead of RAM
-        // The numbers below can be computed dynamically trading ROM for RAM - 
+        // The numbers below can be computed dynamically trading ROM for RAM -
         // This can be useful in (embedded) bootloader applications, where ROM is often limited.
         static const u8 sbox[256] = {
             //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
@@ -93,19 +93,18 @@ namespace osuCrypto {
         inline u8 getSBoxValue(int num) { return  sbox[num]; }
         inline u8 getSBoxInvert(int num) { return rsbox[num]; }
 
-        static const uint8_t Rcon[11] = {
+        static const uint8_t Rcon[AES<Portable>::rounds + 1] = {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36 };
 
         // The number of columns comprising a state in AES. This is a constant in AES. Value=4
         const u64 Nb = 4;
         const u64 Nk = 4;        // The number of 32 bit words in a key.
-        const u64 Nr = 10;       // The number of rounds in AES Cipher.
 
 
         template<>
         void AES<Portable>::setKey(const block& userKey)
         {
-            // This function produces 4(4+1) round keys. The round keys are used in each round to decrypt the states. 
+            // This function produces 4(4+1) round keys. The round keys are used in each round to decrypt the states.
             auto RoundKey = (u8*)mRoundKey.data();
             auto Key = (const u8*)&userKey;
 
@@ -122,7 +121,7 @@ namespace osuCrypto {
             }
 
             // All other round keys are found from the previous round keys.
-            for (i = 4; i < 4 * (11); ++i)
+            for (i = 4; i < 4 * (rounds + 1); ++i)
             {
                 {
                     k = (i - 1) * 4;
@@ -147,7 +146,7 @@ namespace osuCrypto {
                         tempa[3] = u8tmp;
                     }
 
-                    // SubWord() is a function that takes a four-byte input word and 
+                    // SubWord() is a function that takes a four-byte input word and
                     // applies the S-box to each of the four bytes to produce an output word.
 
                     // Function Subword()
@@ -179,7 +178,7 @@ namespace osuCrypto {
         // state matrix with values in an S-box.
         inline void SubBytes(block& state_)
         {
-            u8* state = (u8*)&state_;
+            u8* state = state_.data();
             for (u64 i = 0; i < 16; ++i)
                 state[i] = getSBoxValue(state[i]);
         }
@@ -193,14 +192,14 @@ namespace osuCrypto {
             uint8_t temp;
             auto& state = stateView(state_);
 
-            // Rotate first row 1 columns to left  
+            // Rotate first row 1 columns to left
             temp = state[0][1];
             state[0][1] = state[1][1];
             state[1][1] = state[2][1];
             state[2][1] = state[3][1];
             state[3][1] = temp;
 
-            // Rotate second row 2 columns to left  
+            // Rotate second row 2 columns to left
             temp = state[0][2];
             state[0][2] = state[2][2];
             state[2][2] = temp;
@@ -275,480 +274,49 @@ namespace osuCrypto {
             setKey(userKey);
         }
 
-        template<AESTypes type>
-        void AES<type>::ecbEncBlock(const block& plaintext, block& ciphertext) const
+        // Use templates for loop unrolling.
+        template<AESTypes type, u64 step, u64 i = 0>
+        static OC_FORCEINELINE typename std::enable_if<(i < step)>::type
+        ctrModeEnd(const AES<type>& aes, block baseIdx, u64 misalignment,
+                   block superBlock[step], u8* ciphertext)
         {
-            //std::cout << (type == NI ?"NI":"Port") << "\n";
-            //auto print = [](int i, block s, span<const block> k)
-            //{
-            //    std::cout << "enc " << i << " " << s << " " << k[i] << std::endl;
-            //};
-            //print(0, plaintext, mRoundKey);
-            ciphertext = plaintext ^ mRoundKey[0];
-            for (u64 i = 1; i < 10; ++i)
+            if (misalignment > i)
             {
-                ///print(i, ciphertext, mRoundKey);
-                ciphertext = roundEnc(ciphertext, mRoundKey[i]);
+                superBlock[i] = baseIdx + toBlock(i);
+                ctrModeEnd<type, step, i + 1>(
+                    aes, baseIdx, misalignment, superBlock, ciphertext);
+                memcpy(ciphertext + i * sizeof(block), superBlock + i, sizeof(block));
             }
-            //print(10, ciphertext, mRoundKey);
-            ciphertext = finalEnc(ciphertext, mRoundKey[10]);
-
-//            std::cout << "enc 11 " << ciphertext << std::endl;
+            else
+                aes.template ecbEncBlocks<i>(superBlock, superBlock);
         }
 
-        template<AESTypes type>
-        block AES<type>::ecbEncBlock(const block& plaintext) const
-        {
-            block ret;
-            ecbEncBlock(plaintext, ret);
-            return ret;
-        }
+        // Base case
+        template<AESTypes type, u64 step, u64 i = 0>
+        static OC_FORCEINELINE typename std::enable_if<(i == step)>::type
+        ctrModeEnd(const AES<type>& aes, block baseIdx, u64 misalignment,
+                   block superBlock[step], u8* ciphertext) {}
 
         template<AESTypes type>
-        void AES<type>::ecbEncBlocks(const block* plaintexts, u64 blockLength, block* ciphertext) const
-        {
-            const u64 step = 8;
-            u64 idx = 0;
-            u64 length = blockLength - blockLength % step;
-
-            for (; idx < length; idx += step)
-            {
-                ecbEnc8Blocks(plaintexts + idx, ciphertext + idx);
-            }
-
-            for (; idx < blockLength; ++idx)
-            {
-                ciphertext[idx] = ecbEncBlock(plaintexts[idx]);
-            }
-        }
-
-        template<AESTypes type>
-        void AES<type>::ecbEncTwoBlocks(const block* plaintexts, block* ciphertext) const
-        {
-            ciphertext[0] = plaintexts[0] ^ mRoundKey[0];
-            ciphertext[1] = plaintexts[1] ^ mRoundKey[0];
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[1]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[1]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[2]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[2]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[3]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[3]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[4]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[4]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[5]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[5]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[6]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[6]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[7]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[7]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[8]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[8]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[9]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[9]);
-
-            ciphertext[0] = finalEnc(ciphertext[0], mRoundKey[10]);
-            ciphertext[1] = finalEnc(ciphertext[1], mRoundKey[10]);
-        }
-
-        template<AESTypes type>
-        void AES<type>::ecbEncFourBlocks(const block* plaintexts, block* ciphertext) const
-        {
-            ciphertext[0] = plaintexts[0] ^ mRoundKey[0];
-            ciphertext[1] = plaintexts[1] ^ mRoundKey[0];
-            ciphertext[2] = plaintexts[2] ^ mRoundKey[0];
-            ciphertext[3] = plaintexts[3] ^ mRoundKey[0];
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[1]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[1]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[1]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[1]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[2]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[2]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[2]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[2]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[3]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[3]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[3]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[3]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[4]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[4]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[4]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[4]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[5]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[5]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[5]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[5]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[6]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[6]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[6]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[6]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[7]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[7]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[7]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[7]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[8]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[8]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[8]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[8]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[9]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[9]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[9]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[9]);
-
-            ciphertext[0] = finalEnc(ciphertext[0], mRoundKey[10]);
-            ciphertext[1] = finalEnc(ciphertext[1], mRoundKey[10]);
-            ciphertext[2] = finalEnc(ciphertext[2], mRoundKey[10]);
-            ciphertext[3] = finalEnc(ciphertext[3], mRoundKey[10]);
-        }
-
-        template<AESTypes type>
-        void AES<type>::ecbEnc16Blocks(const block* plaintexts, block* ciphertext) const
-        {
-            ciphertext[0] = plaintexts[0] ^ mRoundKey[0];
-            ciphertext[1] = plaintexts[1] ^ mRoundKey[0];
-            ciphertext[2] = plaintexts[2] ^ mRoundKey[0];
-            ciphertext[3] = plaintexts[3] ^ mRoundKey[0];
-            ciphertext[4] = plaintexts[4] ^ mRoundKey[0];
-            ciphertext[5] = plaintexts[5] ^ mRoundKey[0];
-            ciphertext[6] = plaintexts[6] ^ mRoundKey[0];
-            ciphertext[7] = plaintexts[7] ^ mRoundKey[0];
-            ciphertext[8] = plaintexts[8] ^ mRoundKey[0];
-            ciphertext[9] = plaintexts[9] ^ mRoundKey[0];
-            ciphertext[10] = plaintexts[10] ^ mRoundKey[0];
-            ciphertext[11] = plaintexts[11] ^ mRoundKey[0];
-            ciphertext[12] = plaintexts[12] ^ mRoundKey[0];
-            ciphertext[13] = plaintexts[13] ^ mRoundKey[0];
-            ciphertext[14] = plaintexts[14] ^ mRoundKey[0];
-            ciphertext[15] = plaintexts[15] ^ mRoundKey[0];
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[1]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[1]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[1]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[1]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[1]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[1]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[1]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[1]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[1]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[1]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[1]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[1]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[1]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[1]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[1]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[1]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[2]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[2]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[2]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[2]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[2]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[2]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[2]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[2]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[2]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[2]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[2]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[2]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[2]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[2]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[2]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[2]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[3]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[3]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[3]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[3]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[3]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[3]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[3]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[3]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[3]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[3]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[3]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[3]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[3]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[3]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[3]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[3]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[4]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[4]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[4]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[4]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[4]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[4]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[4]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[4]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[4]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[4]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[4]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[4]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[4]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[4]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[4]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[4]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[5]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[5]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[5]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[5]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[5]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[5]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[5]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[5]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[5]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[5]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[5]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[5]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[5]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[5]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[5]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[5]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[6]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[6]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[6]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[6]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[6]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[6]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[6]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[6]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[6]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[6]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[6]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[6]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[6]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[6]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[6]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[6]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[7]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[7]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[7]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[7]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[7]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[7]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[7]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[7]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[7]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[7]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[7]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[7]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[7]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[7]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[7]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[7]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[8]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[8]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[8]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[8]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[8]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[8]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[8]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[8]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[8]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[8]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[8]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[8]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[8]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[8]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[8]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[8]);
-
-            ciphertext[0] = roundEnc(ciphertext[0], mRoundKey[9]);
-            ciphertext[1] = roundEnc(ciphertext[1], mRoundKey[9]);
-            ciphertext[2] = roundEnc(ciphertext[2], mRoundKey[9]);
-            ciphertext[3] = roundEnc(ciphertext[3], mRoundKey[9]);
-            ciphertext[4] = roundEnc(ciphertext[4], mRoundKey[9]);
-            ciphertext[5] = roundEnc(ciphertext[5], mRoundKey[9]);
-            ciphertext[6] = roundEnc(ciphertext[6], mRoundKey[9]);
-            ciphertext[7] = roundEnc(ciphertext[7], mRoundKey[9]);
-            ciphertext[8] = roundEnc(ciphertext[8], mRoundKey[9]);
-            ciphertext[9] = roundEnc(ciphertext[9], mRoundKey[9]);
-            ciphertext[10] = roundEnc(ciphertext[10], mRoundKey[9]);
-            ciphertext[11] = roundEnc(ciphertext[11], mRoundKey[9]);
-            ciphertext[12] = roundEnc(ciphertext[12], mRoundKey[9]);
-            ciphertext[13] = roundEnc(ciphertext[13], mRoundKey[9]);
-            ciphertext[14] = roundEnc(ciphertext[14], mRoundKey[9]);
-            ciphertext[15] = roundEnc(ciphertext[15], mRoundKey[9]);
-
-            ciphertext[0] = finalEnc(ciphertext[0], mRoundKey[10]);
-            ciphertext[1] = finalEnc(ciphertext[1], mRoundKey[10]);
-            ciphertext[2] = finalEnc(ciphertext[2], mRoundKey[10]);
-            ciphertext[3] = finalEnc(ciphertext[3], mRoundKey[10]);
-            ciphertext[4] = finalEnc(ciphertext[4], mRoundKey[10]);
-            ciphertext[5] = finalEnc(ciphertext[5], mRoundKey[10]);
-            ciphertext[6] = finalEnc(ciphertext[6], mRoundKey[10]);
-            ciphertext[7] = finalEnc(ciphertext[7], mRoundKey[10]);
-            ciphertext[8] = finalEnc(ciphertext[8], mRoundKey[10]);
-            ciphertext[9] = finalEnc(ciphertext[9], mRoundKey[10]);
-            ciphertext[10] = finalEnc(ciphertext[10], mRoundKey[10]);
-            ciphertext[11] = finalEnc(ciphertext[11], mRoundKey[10]);
-            ciphertext[12] = finalEnc(ciphertext[12], mRoundKey[10]);
-            ciphertext[13] = finalEnc(ciphertext[13], mRoundKey[10]);
-            ciphertext[14] = finalEnc(ciphertext[14], mRoundKey[10]);
-            ciphertext[15] = finalEnc(ciphertext[15], mRoundKey[10]);
-        }
-
-
-        template<AESTypes type>
-        void AES<type>::ecbEncCounterMode(block baseIdx, u64 blockLength, block* ciphertext) const
+        void AES<type>::ecbEncCounterModeImpl(block baseIdx, u64 blockLength, u8* ciphertext) const
         {
             const i32 step = 8;
-            i32 idx = 0;
-            i32 length = i32(blockLength - blockLength % step);
-            const auto b0 = toBlock(0,0);
-            const auto b1 = toBlock(1ull);
-            const auto b2 = toBlock(2ull);
-            const auto b3 = toBlock(3ull);
-            const auto b4 = toBlock(4ull);
-            const auto b5 = toBlock(5ull);
-            const auto b6 = toBlock(6ull);
-            const auto b7 = toBlock(7ull);
+            u64 idx = 0;
 
-            block temp[step];
-            for (; idx < length; idx += step)
+            for (; idx + step <= blockLength; idx += step)
             {
-                temp[0] = (baseIdx + b0) ^ mRoundKey[0];
-                temp[1] = (baseIdx + b1) ^ mRoundKey[0];
-                temp[2] = (baseIdx + b2) ^ mRoundKey[0];
-                temp[3] = (baseIdx + b3) ^ mRoundKey[0];
-                temp[4] = (baseIdx + b4) ^ mRoundKey[0];
-                temp[5] = (baseIdx + b5) ^ mRoundKey[0];
-                temp[6] = (baseIdx + b6) ^ mRoundKey[0];
-                temp[7] = (baseIdx + b7) ^ mRoundKey[0];
+                block superBlock[step];
+                for (i32 i = 0; i < step; ++i)
+                    superBlock[i] = baseIdx + toBlock(i);
                 baseIdx = baseIdx + toBlock(step);
 
-                temp[0] = roundEnc(temp[0], mRoundKey[1]);
-                temp[1] = roundEnc(temp[1], mRoundKey[1]);
-                temp[2] = roundEnc(temp[2], mRoundKey[1]);
-                temp[3] = roundEnc(temp[3], mRoundKey[1]);
-                temp[4] = roundEnc(temp[4], mRoundKey[1]);
-                temp[5] = roundEnc(temp[5], mRoundKey[1]);
-                temp[6] = roundEnc(temp[6], mRoundKey[1]);
-                temp[7] = roundEnc(temp[7], mRoundKey[1]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[2]);
-                temp[1] = roundEnc(temp[1], mRoundKey[2]);
-                temp[2] = roundEnc(temp[2], mRoundKey[2]);
-                temp[3] = roundEnc(temp[3], mRoundKey[2]);
-                temp[4] = roundEnc(temp[4], mRoundKey[2]);
-                temp[5] = roundEnc(temp[5], mRoundKey[2]);
-                temp[6] = roundEnc(temp[6], mRoundKey[2]);
-                temp[7] = roundEnc(temp[7], mRoundKey[2]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[3]);
-                temp[1] = roundEnc(temp[1], mRoundKey[3]);
-                temp[2] = roundEnc(temp[2], mRoundKey[3]);
-                temp[3] = roundEnc(temp[3], mRoundKey[3]);
-                temp[4] = roundEnc(temp[4], mRoundKey[3]);
-                temp[5] = roundEnc(temp[5], mRoundKey[3]);
-                temp[6] = roundEnc(temp[6], mRoundKey[3]);
-                temp[7] = roundEnc(temp[7], mRoundKey[3]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[4]);
-                temp[1] = roundEnc(temp[1], mRoundKey[4]);
-                temp[2] = roundEnc(temp[2], mRoundKey[4]);
-                temp[3] = roundEnc(temp[3], mRoundKey[4]);
-                temp[4] = roundEnc(temp[4], mRoundKey[4]);
-                temp[5] = roundEnc(temp[5], mRoundKey[4]);
-                temp[6] = roundEnc(temp[6], mRoundKey[4]);
-                temp[7] = roundEnc(temp[7], mRoundKey[4]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[5]);
-                temp[1] = roundEnc(temp[1], mRoundKey[5]);
-                temp[2] = roundEnc(temp[2], mRoundKey[5]);
-                temp[3] = roundEnc(temp[3], mRoundKey[5]);
-                temp[4] = roundEnc(temp[4], mRoundKey[5]);
-                temp[5] = roundEnc(temp[5], mRoundKey[5]);
-                temp[6] = roundEnc(temp[6], mRoundKey[5]);
-                temp[7] = roundEnc(temp[7], mRoundKey[5]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[6]);
-                temp[1] = roundEnc(temp[1], mRoundKey[6]);
-                temp[2] = roundEnc(temp[2], mRoundKey[6]);
-                temp[3] = roundEnc(temp[3], mRoundKey[6]);
-                temp[4] = roundEnc(temp[4], mRoundKey[6]);
-                temp[5] = roundEnc(temp[5], mRoundKey[6]);
-                temp[6] = roundEnc(temp[6], mRoundKey[6]);
-                temp[7] = roundEnc(temp[7], mRoundKey[6]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[7]);
-                temp[1] = roundEnc(temp[1], mRoundKey[7]);
-                temp[2] = roundEnc(temp[2], mRoundKey[7]);
-                temp[3] = roundEnc(temp[3], mRoundKey[7]);
-                temp[4] = roundEnc(temp[4], mRoundKey[7]);
-                temp[5] = roundEnc(temp[5], mRoundKey[7]);
-                temp[6] = roundEnc(temp[6], mRoundKey[7]);
-                temp[7] = roundEnc(temp[7], mRoundKey[7]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[8]);
-                temp[1] = roundEnc(temp[1], mRoundKey[8]);
-                temp[2] = roundEnc(temp[2], mRoundKey[8]);
-                temp[3] = roundEnc(temp[3], mRoundKey[8]);
-                temp[4] = roundEnc(temp[4], mRoundKey[8]);
-                temp[5] = roundEnc(temp[5], mRoundKey[8]);
-                temp[6] = roundEnc(temp[6], mRoundKey[8]);
-                temp[7] = roundEnc(temp[7], mRoundKey[8]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[9]);
-                temp[1] = roundEnc(temp[1], mRoundKey[9]);
-                temp[2] = roundEnc(temp[2], mRoundKey[9]);
-                temp[3] = roundEnc(temp[3], mRoundKey[9]);
-                temp[4] = roundEnc(temp[4], mRoundKey[9]);
-                temp[5] = roundEnc(temp[5], mRoundKey[9]);
-                temp[6] = roundEnc(temp[6], mRoundKey[9]);
-                temp[7] = roundEnc(temp[7], mRoundKey[9]);
-
-                temp[0] = finalEnc(temp[0], mRoundKey[10]);
-                temp[1] = finalEnc(temp[1], mRoundKey[10]);
-                temp[2] = finalEnc(temp[2], mRoundKey[10]);
-                temp[3] = finalEnc(temp[3], mRoundKey[10]);
-                temp[4] = finalEnc(temp[4], mRoundKey[10]);
-                temp[5] = finalEnc(temp[5], mRoundKey[10]);
-                temp[6] = finalEnc(temp[6], mRoundKey[10]);
-                temp[7] = finalEnc(temp[7], mRoundKey[10]);
-
-                memcpy((u8*)(ciphertext + idx), temp, sizeof(temp));
+                ecbEncBlocks<8>(superBlock, superBlock);
+                for (u64 i = 0; i < step; ++i, ciphertext += sizeof(block))
+                    memcpy(ciphertext, superBlock + i, sizeof(block));
             }
 
-            for (; idx < static_cast<i32>(blockLength); ++idx)
-            {
-                auto temp = baseIdx ^ mRoundKey[0];
-                baseIdx = baseIdx + toBlock(1);
-                temp = roundEnc(temp, mRoundKey[1]);
-                temp = roundEnc(temp, mRoundKey[2]);
-                temp = roundEnc(temp, mRoundKey[3]);
-                temp = roundEnc(temp, mRoundKey[4]);
-                temp = roundEnc(temp, mRoundKey[5]);
-                temp = roundEnc(temp, mRoundKey[6]);
-                temp = roundEnc(temp, mRoundKey[7]);
-                temp = roundEnc(temp, mRoundKey[8]);
-                temp = roundEnc(temp, mRoundKey[9]);
-                temp = finalEnc(temp, mRoundKey[10]);
-
-                memcpy((u8*)(ciphertext + idx), &temp, sizeof(temp));
-            }
-
+            block superBlock[step];
+            ctrModeEnd<type, step>(*this, baseIdx, blockLength % step, superBlock, ciphertext);
         }
 
 
@@ -796,6 +364,87 @@ namespace osuCrypto {
 
         }
 
+#if (defined(__GNUC__) || defined(__clang__)) && defined(__OPTIMIZE__)
+        #define AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(n) \
+        __attribute__((sysv_abi)) void ecbEncBlocksCustomCallingConv##n() \
+        { \
+            register u64 \
+                rax __asm__("rax"), rcx __asm__("rcx"), rdx __asm__("rdx"), rsi __asm__("rsi"), \
+                r8  __asm__("r8" ), r9  __asm__("r9" ), r11 __asm__("r11"); \
+            register const AES<NI>* rdi __asm__("rdi"); \
+            register __m128i \
+                xmm0  __asm__("xmm0" ), xmm1  __asm__("xmm1" ), xmm2  __asm__("xmm2" ), xmm3  __asm__("xmm3" ), \
+                xmm4  __asm__("xmm4" ), xmm5  __asm__("xmm5" ), xmm6  __asm__("xmm6" ), xmm7  __asm__("xmm7" ), \
+                xmm8  __asm__("xmm8" ), xmm9  __asm__("xmm9" ), xmm10 __asm__("xmm10"), xmm11 __asm__("xmm11"), \
+                xmm12 __asm__("xmm12"), xmm13 __asm__("xmm13"); \
+            __asm__ volatile ("" : \
+                "=r" (rax), "=r" (rcx), "=r" (rdx), "=r" (rsi), "=r" (rdi), \
+                "=r" (r8 ), "=r" (r9 ), "=r" (r11), \
+                "=x" (xmm0 ), "=x" (xmm1 ), "=x" (xmm2 ), "=x" (xmm3 ), \
+                "=x" (xmm4 ), "=x" (xmm5 ), "=x" (xmm6 ), "=x" (xmm7 ), \
+                "=x" (xmm8 ), "=x" (xmm9 ), "=x" (xmm10), "=x" (xmm11), \
+                "=x" (xmm12), "=x" (xmm13) :: "memory"); \
+            \
+            block data[n]; \
+            if (n > 0)  data[0]  = __m128i(xmm0 ); \
+            if (n > 1)  data[1]  = __m128i(xmm1 ); \
+            if (n > 2)  data[2]  = __m128i(xmm2 ); \
+            if (n > 3)  data[3]  = __m128i(xmm3 ); \
+            if (n > 4)  data[4]  = __m128i(xmm4 ); \
+            if (n > 5)  data[5]  = __m128i(xmm5 ); \
+            if (n > 6)  data[6]  = __m128i(xmm6 ); \
+            if (n > 7)  data[7]  = __m128i(xmm7 ); \
+            if (n > 8)  data[8]  = __m128i(xmm8 ); \
+            if (n > 9)  data[9]  = __m128i(xmm9 ); \
+            if (n > 10) data[10] = __m128i(xmm10); \
+            if (n > 11) data[11] = __m128i(xmm11); \
+            if (n > 12) data[12] = __m128i(xmm12); \
+            if (n > 13) data[13] = __m128i(xmm13); \
+            for (u64 i = 1; i < AES<NI>::rounds; ++i) \
+                AES<NI>::roundEncBlocks<n>(data, data, rdi->mRoundKey[i]); \
+            AES<NI>::finalEncBlocks<n>(data, data, rdi->mRoundKey[AES<NI>::rounds]); \
+            if (n > 0)  xmm0  = data[0] ; \
+            if (n > 1)  xmm1  = data[1] ; \
+            if (n > 2)  xmm2  = data[2] ; \
+            if (n > 3)  xmm3  = data[3] ; \
+            if (n > 4)  xmm4  = data[4] ; \
+            if (n > 5)  xmm5  = data[5] ; \
+            if (n > 6)  xmm6  = data[6] ; \
+            if (n > 7)  xmm7  = data[7] ; \
+            if (n > 8)  xmm8  = data[8] ; \
+            if (n > 9)  xmm9  = data[9] ; \
+            if (n > 10) xmm10 = data[10]; \
+            if (n > 11) xmm11 = data[11]; \
+            if (n > 12) xmm12 = data[12]; \
+            if (n > 13) xmm13 = data[13]; \
+            \
+            __asm__ volatile ("" :: \
+                "r" (rax), "r" (rcx), "r" (rdx), "r" (rsi), "r" (rdi), \
+                "r" (r8 ), "r" (r9 ), "r" (r11), \
+                "x" (xmm0 ), "x" (xmm1 ), "x" (xmm2 ), "x" (xmm3 ), \
+                "x" (xmm4 ), "x" (xmm5 ), "x" (xmm6 ), "x" (xmm7 ), \
+                "x" (xmm8 ), "x" (xmm9 ), "x" (xmm10), "x" (xmm11), \
+                "x" (xmm12), "x" (xmm13) : \
+                "memory"); \
+        }
+
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(1)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(2)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(3)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(4)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(5)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(6)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(7)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(8)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(9)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(10)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(11)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(12)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(13)
+        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(14)
+
+        #undef AES_ENC_BLOCKS_CUSTOM_CALLING_CONV
+#endif
 #endif
 
 #if defined(OC_ENABLE_PORTABLE_AES)
@@ -828,7 +477,7 @@ namespace osuCrypto {
         // state matrix with values in an S-box.
         static void InvSubBytes(block& state_)
         {
-            u8* state = (u8*)&state_;
+            u8* state = state_.data();
             for (auto i = 0; i < 16; ++i)
                 state[i] = getSBoxInvert(state[i]);
         }
@@ -838,14 +487,14 @@ namespace osuCrypto {
             uint8_t temp;
             auto& state = stateView(state_);
 
-            // Rotate first row 1 columns to right  
+            // Rotate first row 1 columns to right
             temp = state[3][1];
             state[3][1] = state[2][1];
             state[2][1] = state[1][1];
             state[1][1] = state[0][1];
             state[0][1] = temp;
 
-            // Rotate second row 2 columns to right 
+            // Rotate second row 2 columns to right
             temp = state[0][2];
             state[0][2] = state[2][2];
             state[2][2] = temp;
@@ -954,21 +603,6 @@ namespace osuCrypto {
             //std::cout << "dec[11] " << plaintext << std::endl;
 
         }
-
-        template<AESTypes type>
-        block AESDec<type>::ecbDecBlock(const block& plaintext)
-        {
-            block ret;
-            ecbDecBlock(plaintext, ret);
-            return ret;
-        }
-
-        template<AESTypes type>
-        AESDec<type>::AESDec(const block& key)
-        {
-            setKey(key);
-        }
-
     }
 
 #ifdef OC_ENABLE_PORTABLE_AES

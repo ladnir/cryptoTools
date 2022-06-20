@@ -1,5 +1,5 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use. 
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/BitIterator.h>
 #include <cryptoTools/Crypto/PRNG.h>
@@ -31,7 +31,7 @@ namespace osuCrypto {
         BitVector(const BitVector& K) { assign(K); }
 
         // Move an existing BitVector. Moved from is set to size zero.
-        BitVector(BitVector&& rref);
+        BitVector(BitVector&& rref) { *this = rref; }
 
         ~BitVector() { delete[] mData; }
 
@@ -67,33 +67,41 @@ namespace osuCrypto {
         void copy(const BitVector& src, u64 idx, u64 length);
 
         // Returns the number of bits this BitVector can contain using the current allocation.
-        u64 capacity() const { return mAllocBytes * 8; }
+        u64 capacity() const { return mAllocBlocks * 8 * sizeof(block); }
 
         // Returns the number of bits this BitVector current has.
         u64 size() const { return mNumBits; }
 
         // Return the number of bytes the BitVector currently utilize.
-        u64 sizeBytes() const { return (mNumBits + 7) / 8; }
+        u64 sizeBytes() const { return divCeil(mNumBits, 8); }
+
+        // Return the number of blocks the BitVector currently utilizes.
+        u64 sizeBlocks() const { return divCeil(mNumBits, 8 * sizeof(block)); }
 
         // Returns a byte pointer to the underlying storage.
-        u8* data() const { return mData; }
+        u8* data() const { return (u8*)mData; }
+
+        // Underlying storage, as blocks.
+        block* blocks() const { return mData; }
 
         // Copy and existing BitVector.
         BitVector& operator=(const BitVector& K);
 
+        BitVector& operator=(BitVector&& rref);
+
         // Get a reference to a specific bit.
         BitReference operator[](const u64 idx) const;
 
-        // Xor two BitVectors together and return the result. Must have the same size. 
+        // Xor two BitVectors together and return the result. Must have the same size.
         BitVector operator^(const BitVector& B)const;
 
-        // AND two BitVectors together and return the result. Must have the same size. 
+        // AND two BitVectors together and return the result. Must have the same size.
         BitVector operator&(const BitVector& B)const;
 
-        // OR two BitVectors together and return the result. Must have the same size. 
+        // OR two BitVectors together and return the result. Must have the same size.
         BitVector operator|(const BitVector& B)const;
 
-        // Invert the bits of the BitVector and return the result. 
+        // Invert the bits of the BitVector and return the result.
         BitVector operator~()const;
 
         // Xor the rhs into this BitVector
@@ -153,20 +161,83 @@ namespace osuCrypto {
         span<T> getSpan() const;
 
     private:
-        u8* mData = nullptr;
-        u64 mNumBits = 0, mAllocBytes = 0;
+        block* mData = nullptr;
+        u64 mNumBits = 0, mAllocBlocks = 0;
     };
+
+    inline BitVector& BitVector::operator=(const BitVector& K)
+    {
+        if (this != &K) { assign(K); }
+        return *this;
+    }
+
+    inline BitVector& BitVector::operator=(BitVector&& rref)
+    {
+        if (this != &rref)
+        {
+            mData = rref.mData;
+            mNumBits = rref.mNumBits;
+            mAllocBlocks = rref.mAllocBlocks;
+            rref.mData = nullptr;
+            rref.mAllocBlocks = 0;
+            rref.mNumBits = 0;
+        }
+        return *this;
+    }
+
+    inline BitReference BitVector::operator[](const u64 idx) const
+    {
+        if (idx >= mNumBits) throw std::runtime_error("rt error at " LOCATION);
+        return BitReference(data() + (idx / 8), static_cast<u8>(idx % 8));
+    }
+
+    inline BitVector BitVector::operator^(const BitVector& B)const
+    {
+        BitVector ret(*this);
+
+        ret ^= B;
+
+        return ret;
+    }
+
+    inline BitVector BitVector::operator&(const BitVector & B) const
+    {
+        BitVector ret(*this);
+
+        ret &= B;
+
+        return ret;
+    }
+
+    inline BitVector BitVector::operator|(const BitVector & B) const
+    {
+        BitVector ret(*this);
+
+        ret |= B;
+
+        return ret;
+    }
+
+    inline BitIterator BitVector::begin() const
+    {
+        return BitIterator(data(), 0);
+    }
+
+    inline BitIterator BitVector::end() const
+    {
+        return BitIterator(data() + (mNumBits >> 3), mNumBits & 7);
+    }
 
     template<class T>
     inline span<T> BitVector::getArrayView() const
     {
-        return span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
+        return span<T>((T*)data(), (T*)data() + (sizeBytes() / sizeof(T)));
     }
 
     template<class T>
     inline span<T> BitVector::getSpan() const
     {
-        return span<T>((T*)mData, (T*)mData + (sizeBytes() / sizeof(T)));
+        return span<T>((T*)data(), (T*)data() + (sizeBytes() / sizeof(T)));
     }
 
     std::ostream& operator<<(std::ostream& in, const BitVector& val);

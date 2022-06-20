@@ -77,7 +77,7 @@ namespace osuCrypto {
         template<size_t blocks>
         void encBlocksFixed(const Block (&plaintext)[blocks], Block (&ciphertext)[blocks]) const
         {
-            encBlocksFixed(*plaintext[0], &ciphertext[0]);
+            encBlocksFixed(&plaintext[0], &ciphertext[0]);
         }
 
         void encBlocks(const Block* plaintexts, size_t blocks, Block* ciphertext) const;

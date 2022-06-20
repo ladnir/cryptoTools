@@ -19,8 +19,8 @@ namespace tests_cryptoTools
     block byteReverse(block b)
     {
         block r;
-        auto bb = (u8*)&b;
-        auto rr = (u8*)&r;
+        auto bb = b.data();
+        auto rr = r.data();
         for (u64 i = 0; i < 16; ++i)
             rr[i] = bb[15 - i];
         return r;

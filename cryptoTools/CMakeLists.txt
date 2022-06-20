@@ -9,19 +9,24 @@ file(GLOB_RECURSE SRCS *.cpp *.c)
 add_library(cryptoTools STATIC ${SRCS})
 
 # make projects that include cryptoTools use this as an include folder
-target_include_directories(cryptoTools PUBLIC 
+target_include_directories(cryptoTools PUBLIC
                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
-                    $<INSTALL_INTERFACE:include>) 
-target_include_directories(cryptoTools PUBLIC 
+                    $<INSTALL_INTERFACE:include>)
+target_include_directories(cryptoTools PUBLIC
                     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
-                    $<INSTALL_INTERFACE:include>) 
+                    $<INSTALL_INTERFACE:include>)
 
 if(NOT MSVC)
     target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
+    # softspokenot
+    #target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -pthread)
     target_link_options(cryptoTools PUBLIC -pthread)
 
     if(ENABLE_SSE)
         target_compile_options(cryptoTools PUBLIC -maes -msse2 -msse3 -mssse3 -msse4.1 -mpclmul)
+    endif()
+    if(ENABLE_AVX)
+        target_compile_options(cryptoTools PUBLIC -mavx2)
     endif()
 endif()
 
@@ -58,7 +63,7 @@ endif (ENABLE_SODIUM)
 ###########################################################################
 
 if(ENABLE_WOLFSSL)
-  target_include_directories(cryptoTools PUBLIC 
+  target_include_directories(cryptoTools PUBLIC
                     $<BUILD_INTERFACE:${WOLFSSL_LIB_INCLUDE_DIRS}>
                     $<INSTALL_INTERFACE:>)
   target_link_libraries(cryptoTools ${WOLFSSL_LIB})
@@ -69,7 +74,7 @@ endif(ENABLE_WOLFSSL)
 
 
 if(ENABLE_BOOST)
-    target_include_directories(cryptoTools PUBLIC 
+    target_include_directories(cryptoTools PUBLIC
                     $<BUILD_INTERFACE:${Boost_INCLUDE_DIR}>
                     $<INSTALL_INTERFACE:>)
     target_link_libraries(cryptoTools ${Boost_LIBRARIES})

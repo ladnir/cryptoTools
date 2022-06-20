@@ -10,28 +10,17 @@ namespace osuCrypto {
         :
         mData(nullptr),
         mNumBits(0),
-        mAllocBytes(0)
+        mAllocBlocks(0)
     {
         fromString(data);
 
-    }
-
-    BitVector::BitVector(BitVector&& rref)
-        :
-        mData(rref.mData),
-        mNumBits(rref.mNumBits),
-        mAllocBytes(rref.mAllocBytes)
-    {
-        rref.mData = nullptr;
-        rref.mAllocBytes = 0;
-        rref.mNumBits = 0;
     }
 
     BitVector::BitVector(u8 * data, u64 length)
         :
         mData(nullptr),
         mNumBits(0),
-        mAllocBytes(0)
+        mAllocBlocks(0)
     {
         append(data, length, 0);
     }
@@ -39,16 +28,16 @@ namespace osuCrypto {
     void BitVector::assign(const block& b)
     {
         reset(128);
-        memcpy(mData, (u8*)&(b), sizeBytes());
+        mData[0] = b;
     }
 
     void BitVector::assign(const BitVector& K)
     {
         reset(K.mNumBits);
-        memcpy(mData, K.mData, sizeBytes());
+        std::copy_n(K.mData, sizeBlocks(), mData);
     }
 
-    void BitVector::append(u8* data, u64 length, u64 offset)
+    void BitVector::append(u8* dataIn, u64 length, u64 offset)
     {
 
         auto bitIdx = mNumBits;
@@ -69,13 +58,13 @@ namespace osuCrypto {
             //TODO("make this more efficient");
             for (u64 i = 0; i < length; ++i, ++bitIdx, ++offset)
             {
-                u8 bit = data[offset / 8] & masks[offset % 8];
+                u8 bit = dataIn[offset / 8] & masks[offset % 8];
                 (*this)[bitIdx] = bit;
             }
         }
         else
         {
-            memcpy(mData + destIdx, data + srcIdx, byteLength);
+            memcpy(data() + destIdx, dataIn + srcIdx, byteLength);
         }
     }
 
@@ -97,17 +86,16 @@ namespace osuCrypto {
 
     void BitVector::resize(u64 newSize)
     {
-        u64 new_nbytes = (newSize + 7) / 8;
+        u64 new_nblocks = divCeil(newSize, 8 * sizeof(block));
 
-        if (mAllocBytes < new_nbytes)
+        if (mAllocBlocks < new_nblocks)
         {
-            u8* tmp = new u8[new_nbytes]();
-            mAllocBytes = new_nbytes;
+            block* tmp = new block[new_nblocks]();
+            mAllocBlocks = new_nblocks;
 
-            memcpy(tmp, mData, sizeBytes());
+            std::copy_n(mData, sizeBlocks(), tmp);
 
-            if (mData)
-                delete[] mData;
+            delete[] mData;
 
             mData = tmp;
         }
@@ -116,7 +104,7 @@ namespace osuCrypto {
 
     void BitVector::resize(u64 newSize, u8 val)
     {
-        
+
         val = bool(val) * ~0;
 
         auto oldSize = size();
@@ -128,30 +116,29 @@ namespace osuCrypto {
         if (offset)
         {
             u8 mask = (~0) << offset;
-            mData[idx] = (mData[idx] & ~mask) | (val & mask);
+            data()[idx] = (data()[idx] & ~mask) | (val & mask);
             ++idx;
         }
 
         u64 rem = sizeBytes() - idx;
         if(rem)
-            memset(mData + idx, val, rem);
+            memset(data() + idx, val, rem);
     }
 
     void BitVector::reset(size_t new_nbits)
     {
-        u64 newSize = (new_nbits + 7) / 8;
+        u64 newSize = divCeil(new_nbits, 8 * sizeof(block));
 
-        if (newSize > mAllocBytes)
+        if (newSize > mAllocBlocks)
         {
-            if (mData)
-                delete[] mData;
+            delete[] mData;
 
-            mData = new u8[newSize]();
-            mAllocBytes = newSize;
+            mData = new block[newSize]();
+            mAllocBlocks = newSize;
         }
         else
         {
-            memset(mData, 0, newSize);
+            std::fill_n(mData, newSize, toBlock(0ULL));
         }
 
         mNumBits = new_nbits;
@@ -160,62 +147,15 @@ namespace osuCrypto {
     void BitVector::copy(const BitVector& src, u64 idx, u64 length)
     {
         resize(0);
-        append(src.mData, length, idx);
+        append(src.data(), length, idx);
     }
 
-
-    BitVector& BitVector::operator=(const BitVector& K)
-    {
-        if (this != &K) { assign(K); }
-        return *this;
-    }
-
-
-    BitReference BitVector::operator[](const u64 idx) const
-    {
-        if (idx >= mNumBits) throw std::runtime_error("rt error at " LOCATION);
-        return BitReference(mData + (idx / 8), static_cast<u8>(idx % 8));
-    }
-
-    std::ostream& operator<<(std::ostream& out, const BitReference& bit)
-    {
-        out << (u32)bit;
-        return out;
-    }
-
-
-    BitVector BitVector::operator^(const BitVector& B)const
-    {
-        BitVector ret(*this);
-
-        ret ^= B;
-
-        return ret;
-    }
-
-    BitVector BitVector::operator&(const BitVector & B) const
-    {
-        BitVector ret(*this);
-
-        ret &= B;
-
-        return ret;
-    }
-
-    BitVector BitVector::operator|(const BitVector & B) const
-    {
-        BitVector ret(*this);
-
-        ret |= B;
-
-        return ret;
-    }
 
     BitVector BitVector::operator~() const
     {
         BitVector ret(*this);
 
-        for (u64 i = 0; i < sizeBytes(); i++)
+        for (u64 i = 0; i < sizeBlocks(); i++)
             ret.mData[i] = ~mData[i];
 
         return ret;
@@ -224,7 +164,8 @@ namespace osuCrypto {
 
     void BitVector::operator&=(const BitVector & A)
     {
-        for (u64 i = 0; i < sizeBytes(); i++)
+        if (mNumBits != A.mNumBits) throw std::runtime_error("rt error at " LOCATION);
+        for (u64 i = 0; i < sizeBlocks(); i++)
         {
             mData[i] &= A.mData[i];
         }
@@ -232,7 +173,8 @@ namespace osuCrypto {
 
     void BitVector::operator|=(const BitVector & A)
     {
-        for (u64 i = 0; i < sizeBytes(); i++)
+        if (mNumBits != A.mNumBits) throw std::runtime_error("rt error at " LOCATION);
+        for (u64 i = 0; i < sizeBlocks(); i++)
         {
             mData[i] |= A.mData[i];
         }
@@ -241,7 +183,7 @@ namespace osuCrypto {
     void BitVector::operator^=(const BitVector& A)
     {
         if (mNumBits != A.mNumBits) throw std::runtime_error("rt error at " LOCATION);
-        for (u64 i = 0; i < sizeBytes(); i++)
+        for (u64 i = 0; i < sizeBlocks(); i++)
         {
             mData[i] ^= A.mData[i];
         }
@@ -269,10 +211,7 @@ namespace osuCrypto {
             return false;
 
         u64 lastByte = sizeBytes() - 1;
-        for (u64 i = 0; i < lastByte; i++)
-        {
-            if (mData[i] != rhs.mData[i]) { return false; }
-        }
+        if (memcmp(data(), rhs.data(), lastByte)) return false;
 
         // numBits = 4
         // 00001010
@@ -281,20 +220,10 @@ namespace osuCrypto {
 
         u64 rem = mNumBits & 7;
         u8 mask = ((u8)-1) >> (8 - rem);
-        if ((mData[lastByte] & mask) != (rhs.mData[lastByte] & mask))
+        if ((data()[lastByte] & mask) != (rhs.data()[lastByte] & mask))
             return false;
 
         return true;
-    }
-
-    BitIterator BitVector::begin() const
-    {
-        return BitIterator(mData, 0);
-    }
-
-    BitIterator BitVector::end() const
-    {
-        return BitIterator(mData + (mNumBits >> 3), mNumBits & 7);
     }
 
     void BitVector::nChoosek(u64 n, u64 k, PRNG & prng)
@@ -346,20 +275,20 @@ namespace osuCrypto {
         for (u64 i = 0; i < lastByte; i++)
         {
 
-            bit ^= (mData[i] & 1); // bit 0
-            bit ^= ((mData[i] >> 1) & 1); // bit 1
-            bit ^= ((mData[i] >> 2) & 1); // bit 2
-            bit ^= ((mData[i] >> 3) & 1); // bit 3
-            bit ^= ((mData[i] >> 4) & 1); // bit 4
-            bit ^= ((mData[i] >> 5) & 1); // bit 5
-            bit ^= ((mData[i] >> 6) & 1); // bit 6
-            bit ^= ((mData[i] >> 7) & 1); // bit 7
+            bit ^= (data()[i] & 1); // bit 0
+            bit ^= ((data()[i] >> 1) & 1); // bit 1
+            bit ^= ((data()[i] >> 2) & 1); // bit 2
+            bit ^= ((data()[i] >> 3) & 1); // bit 3
+            bit ^= ((data()[i] >> 4) & 1); // bit 4
+            bit ^= ((data()[i] >> 5) & 1); // bit 5
+            bit ^= ((data()[i] >> 6) & 1); // bit 6
+            bit ^= ((data()[i] >> 7) & 1); // bit 7
         }
 
         u64 lastBits = mNumBits - lastByte * 8;
         for (u64 i = 0; i < lastBits; i++)
         {
-            bit ^= (mData[lastByte] >> i) & 1;
+            bit ^= (data()[lastByte] >> i) & 1;
         }
 
         return bit;
@@ -377,7 +306,7 @@ namespace osuCrypto {
     }
     void BitVector::randomize(PRNG& G)
     {
-        G.get(mData, sizeBytes());
+        G.get(mData, sizeBlocks());
     }
 
     std::string BitVector::hex() const
@@ -387,7 +316,7 @@ namespace osuCrypto {
         s << std::hex;
         for (unsigned int i = 0; i < sizeBytes(); i++)
         {
-            s << std::setw(2) << std::setfill('0') << int(mData[i]);
+            s << std::setw(2) << std::setfill('0') << int(data()[i]);
         }
 
         return s.str();

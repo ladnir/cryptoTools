@@ -10,7 +10,7 @@ namespace osuCrypto {
         mBytesIdx(0),
         mBlockIdx(0)
     {
-		SetSeed(seed, bufferSize);
+        SetSeed(seed, bufferSize);
     }
 
     PRNG::PRNG(PRNG && s) :
@@ -26,7 +26,7 @@ namespace osuCrypto {
         s.mBufferByteCapacity = 0;
     }
 
-    void PRNG::operator=(PRNG&&s) 
+    void PRNG::operator=(PRNG&&s)
     {
         mBuffer = (std::move(s.mBuffer));
         mAes = (std::move(s.mAes));
@@ -74,7 +74,7 @@ namespace osuCrypto {
                 {
                     span<block> b((block*)destu8, lengthu8 / sizeof(block));
                     mAes.ecbEncCounterMode(mBlockIdx, b.size(), b.data());
-                    mBlockIdx += b.size(); 
+                    mBlockIdx += b.size();
 
                     step = b.size() * sizeof(block);
 
@@ -91,19 +91,19 @@ namespace osuCrypto {
 
     const block PRNG::getSeed() const
     {
-		if(mBuffer.size())
-	        return mAes.mRoundKey[0];
+        if(mBuffer.size())
+            return mAes.mRoundKey[0];
 
-		throw std::runtime_error("PRNG has not been keyed " LOCATION);
+        throw std::runtime_error("PRNG has not been keyed " LOCATION);
     }
 
     void PRNG::refillBuffer()
     {
-		if (mBuffer.size() == 0)
-			throw std::runtime_error("PRNG has not been keyed " LOCATION);
+        if (mBuffer.size() == 0)
+            throw std::runtime_error("PRNG has not been keyed " LOCATION);
 
-		mAes.ecbEncCounterMode(mBlockIdx, mBuffer.size(), mBuffer.data());
-		mBlockIdx += mBuffer.size();
+        mAes.ecbEncCounterMode(mBlockIdx, mBuffer.size(), mBuffer.data());
+        mBlockIdx += mBuffer.size();
         mBytesIdx = 0;
     }
 }
