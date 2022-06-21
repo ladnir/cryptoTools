@@ -92,7 +92,7 @@ namespace osuCrypto
                 }
 
 #ifdef _MSC_VER
-                void* p = ::_aligned_malloc(m, sizeof(T) * size);
+                void* p = ::_aligned_malloc(sizeof(T) * size, m);
 #else
                 void* p = ::aligned_alloc(m, sizeof(T) * size);
 #endif

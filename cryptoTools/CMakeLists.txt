@@ -16,11 +16,16 @@ target_include_directories(cryptoTools PUBLIC
                     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
                     $<INSTALL_INTERFACE:include>)
 
-if(NOT MSVC)
+if(MSVC)
+    if(ENABLE_ASAN)
+        target_compile_options(cryptoTools PUBLIC "/fsanitize=address")
+    endif()
+else()
     target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
     # softspokenot
     #target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -pthread)
     target_link_options(cryptoTools PUBLIC -pthread)
+
 
     if(ENABLE_SSE)
         target_compile_options(cryptoTools PUBLIC -maes -msse2 -msse3 -mssse3 -msse4.1 -mpclmul)
