@@ -15,10 +15,6 @@
 #include <wmmintrin.h>
 #endif
 
-#ifdef OC_ENABLE_AVX2
-#include <boost/align/aligned_allocator.hpp>
-#endif
-
 namespace osuCrypto
 {
     struct alignas(16) block
@@ -658,68 +654,6 @@ namespace osuCrypto
         }
 #endif
     };
-
-    // Block arrays of static and dynamic sizes aligned to the maximal useful alignment, meaning 32
-    // bytes for avx or 16 bytes for SSE. Also includes an allocator for aligning std::vector.
-#ifdef ENABLE_AVX
-    template<size_t N, typename T = block>
-    struct alignas(32) AlignedBlockArray : public std::array<T, N>
-    {
-    private:
-        using Base = std::array<T, N>;
-
-        // Use std::array's constructors, etc.
-    public:
-        AlignedBlockArray() = default;
-        using Base::Base;
-        using Base::operator=;
-    };
-
-    namespace detail
-    {
-        template<typename T = block>
-        struct AlignedBlockDeleter
-        {
-            void operator()(T* ptr) const
-            {
-                auto alignment = std::align_val_t(std::max((size_t) 32, alignof(T)));
-                operator delete[](ptr, alignment);
-            }
-        };
-    }
-
-    template<typename T = block>
-    using AlignedBlockPtrT = std::unique_ptr<T[], detail::AlignedBlockDeleter<T>>;
-
-    template<typename T = block>
-    inline AlignedBlockPtrT<T> allocAlignedBlockArray(size_t n)
-    {
-        auto alignment = std::align_val_t(std::max((size_t) 32, alignof(T)));
-        return AlignedBlockPtrT<T>(new(alignment) T[n]);
-    }
-
-    template<typename T = block>
-    using AlignedBlockAllocatorT = boost::alignment::aligned_allocator<T, 32>;
-
-#else
-    template<size_t N, typename T = block>
-    using AlignedBlockArray = std::array<T, N>
-    template<typename T = block>
-    using AlignedBlockPtrT = std::unique_ptr<T[]>;
-
-    template<typename T = block>
-    inline AlignedBlockPtrT<T> allocAlignedBlockArray(size_t n)
-    {
-        return AlignedBlockPtrT<T>(new T[n]);
-    }
-
-    template<typename T = block>
-    using AlignedBlockAllocatorT = std::allocator<T>;
-
-#endif
-    using AlignedBlockPtr = AlignedBlockPtrT<>;
-    using AlignedBlockAllocator = AlignedBlockAllocatorT<>;
-    using AlignedBlockAllocator2 = AlignedBlockAllocatorT<std::array<block, 2>>;
 
 #ifdef OC_ENABLE_SSE2
     template<>

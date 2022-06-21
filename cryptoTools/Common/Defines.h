@@ -13,8 +13,7 @@
 #include <span>
 #endif
 
-// Use boost in case C++20 isn't available.
-#include <boost/core/bit.hpp>
+#include "Bit.h"
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
@@ -31,17 +30,16 @@
 #else
     #define TODO(x)
 #endif
-
-// OC_FORCEINELINE ---------------------------------------------//
+// OC_FORCEINLINE ---------------------------------------------//
 // Macro to use in place of 'inline' to force a function to be inline
-#if !defined(OC_FORCEINELINE)
+#if !defined(OC_FORCEINLINE)
 #  if defined(_MSC_VER)
-#    define OC_FORCEINELINE __forceinline
+#    define OC_FORCEINLINE __forceinline
 #  elif defined(__GNUC__) && __GNUC__ > 3
      // Clang also defines __GNUC__ (as 4)
-#    define OC_FORCEINELINE inline __attribute__ ((__always_inline__))
+#    define OC_FORCEINLINE inline __attribute__ ((__always_inline__))
 #  else
-#    define OC_FORCEINELINE inline
+#    define OC_FORCEINLINE inline
 #  endif
 #endif
 
@@ -77,15 +75,11 @@ namespace osuCrypto {
 
     inline u64 log2ceil(u64 x)
     {
-        return boost::core::bit_width(x - 1);
+        return bit_width(x - 1);
     }
     inline u64 log2floor(u64 x)
     {
-        return boost::core::bit_width(x) - 1;
-    }
-    inline int popcount(u64 x)
-    {
-        return boost::core::popcount(x);
+        return bit_width(x) - 1;
     }
 
     block sysRandomSeed();

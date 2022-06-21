@@ -8,7 +8,7 @@ namespace osuCrypto {
 	// Specializations of Hashable should inherit from std::true_type and contain:
 	//
 	// template<typename Hasher>
-	// static void hash(const T& t, Hasher& hasher);
+	// static void hash(const T& t, Hasher& mHasher);
 	//
 	// Hasher will contain an Update method that can be applied to byte arrays and to Hashable
 	// types.

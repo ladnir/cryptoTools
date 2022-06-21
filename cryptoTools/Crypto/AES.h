@@ -32,7 +32,7 @@ namespace osuCrypto {
 
             // Use this function (or other *Inline functions) if you want to force inlining.
             template<u64 blocks>
-            OC_FORCEINELINE typename std::enable_if<(blocks <= 16)>::type
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
             ecbEncBlocksInline(const block* plaintext, block* ciphertext) const
             {
                 for (u64 j = 0; j < blocks; ++j)
@@ -43,7 +43,7 @@ namespace osuCrypto {
             }
 
             template<u64 blocks>
-            OC_FORCEINELINE void
+            OC_FORCEINLINE void
             ecbEncBlocksInline(const block (&plaintext)[blocks], block (&ciphertext)[blocks]) const
             {
                 ecbEncBlocksInline<blocks>(&plaintext[0], &ciphertext[0]);
@@ -51,7 +51,7 @@ namespace osuCrypto {
 
             // Fall back to encryption loop rather than doing way too many blocks at once.
             template<u64 blocks>
-            OC_FORCEINELINE typename std::enable_if<(blocks > 16)>::type
+            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
             ecbEncBlocksInline(const block* plaintext, block* ciphertext) const
             {
                 ecbEncBlocks(plaintext, blocks, ciphertext);
@@ -147,7 +147,7 @@ namespace osuCrypto {
 
             // Correlation robust hash function.
             template<u64 blocks>
-            OC_FORCEINELINE typename std::enable_if<(blocks <= 16)>::type
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
             hashBlocks(const block* plaintext, block* ciphertext) const
             {
                 block buff[blocks];
@@ -157,7 +157,7 @@ namespace osuCrypto {
 
             // Fall back to encryption loop rather than unrolling way too many blocks.
             template<u64 blocks>
-            OC_FORCEINELINE typename std::enable_if<(blocks > 16)>::type
+            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
             hashBlocks(const block* plaintext, block* ciphertext) const
             {
                 hashBlocks(plaintext, blocks, ciphertext);
@@ -166,7 +166,7 @@ namespace osuCrypto {
         private:
             // Use template for loop unrolling.
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<(blocks > 0)>::type
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
             hashBlocksFinalXor(const block* plaintext, block* buff, block* ciphertext)
             {
                 buff[blocks - 1] ^= plaintext[blocks - 1];
@@ -177,15 +177,10 @@ namespace osuCrypto {
                 ciphertext[blocks - 1] = buff[blocks - 1];
             }
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<(blocks == 0)>::type
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
             hashBlocksFinalXor(const block* plaintext, const block* buff, block* ciphertext) {}
 
         public:
-            template<u64 blocks>
-            inline void hashBlocks(const block (&plaintext)[blocks], block (&ciphertext)[blocks]) const
-            {
-                hashBlocks<blocks>(&plaintext[0], &ciphertext[0]);
-            }
 
             inline block hashBlock(const block& plaintext) const
             {
@@ -277,7 +272,7 @@ namespace osuCrypto {
             static block finalEnc(block state, const block& roundKey);
 
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<(blocks > 0)>::type
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
             roundEncBlocks(const block* stateIn, block* stateOut, const block& roundKey)
             {
                 // Force unrolling using template recursion.
@@ -286,7 +281,7 @@ namespace osuCrypto {
             }
 
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<(blocks > 0)>::type
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
             finalEncBlocks(const block* stateIn, block* stateOut, const block& roundKey)
             {
                 finalEncBlocks<blocks - 1>(stateIn, stateOut, roundKey);
@@ -295,11 +290,11 @@ namespace osuCrypto {
 
             // Base case
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<blocks == 0>::type
+            static OC_FORCEINLINE typename std::enable_if<blocks == 0>::type
             roundEncBlocks(const block* stateIn, block* stateOut, const block& roundKey) {}
 
             template<u64 blocks>
-            static OC_FORCEINELINE typename std::enable_if<blocks == 0>::type
+            static OC_FORCEINLINE typename std::enable_if<blocks == 0>::type
             finalEncBlocks(const block* stateIn, block* stateOut, const block& roundKey) {}
 
             // The expanded key.
@@ -345,7 +340,7 @@ namespace osuCrypto {
         #define AES_SPECIALIZE_ENC_BLOCKS(n) \
         __attribute__((sysv_abi)) void ecbEncBlocksCustomCallingConv##n(); \
         \
-        template<> template<> OC_FORCEINELINE \
+        template<> template<> OC_FORCEINLINE \
         void AES<NI>::ecbEncBlocks<n>(const block* plaintext, block* ciphertext) const \
         { \
             register __m128i AES_ENC_BLOCKS_VARS_##n; \
@@ -363,7 +358,7 @@ namespace osuCrypto {
 
 #ifndef __clang__
         // ".intel_syntax noprefix" is a workaround for the warning:
-        // "Assembler messages: Warning: indirect call without `*'"
+        // "Assembler mMessages: Warning: indirect call without `*'"
         // If the * were added then when its a direct call it would produce different machine code.
         // AT&T call instructions need different syntax for labels vs registers, while for Intel
         // they are the same, which fixes the problem.

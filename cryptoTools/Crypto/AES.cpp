@@ -276,7 +276,7 @@ namespace osuCrypto {
 
         // Use templates for loop unrolling.
         template<AESTypes type, u64 step, u64 i = 0>
-        static OC_FORCEINELINE typename std::enable_if<(i < step)>::type
+        static OC_FORCEINLINE typename std::enable_if<(i < step)>::type
         ctrModeEnd(const AES<type>& aes, block baseIdx, u64 misalignment,
                    block superBlock[step], u8* ciphertext)
         {
@@ -293,7 +293,7 @@ namespace osuCrypto {
 
         // Base case
         template<AESTypes type, u64 step, u64 i = 0>
-        static OC_FORCEINELINE typename std::enable_if<(i == step)>::type
+        static OC_FORCEINLINE typename std::enable_if<(i == step)>::type
         ctrModeEnd(const AES<type>& aes, block baseIdx, u64 misalignment,
                    block superBlock[step], u8* ciphertext) {}
 

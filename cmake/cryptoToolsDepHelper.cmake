@@ -208,7 +208,7 @@ macro(FIND_BOOST)
     endif()
     #set(Boost_DEBUG ON)  #<---------- Real life saver
  
-    find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS})
+    find_package(Boost 1.77.0 COMPONENTS system thread ${ARGS})
 endmacro()
 
 if(FETCH_BOOST_IMPL)
