@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <boost/config.hpp>
 #include "cryptoTools/Common/config.h"
 #include "block.h"
 
