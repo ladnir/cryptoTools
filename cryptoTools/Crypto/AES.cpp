@@ -364,87 +364,6 @@ namespace osuCrypto {
 
         }
 
-//#if (defined(__GNUC__) || defined(__clang__)) && defined(__OPTIMIZE__)
-//        #define AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(n) \
-//        __attribute__((sysv_abi)) void ecbEncBlocksCustomCallingConv##n() \
-//        { \
-//            register u64 \
-//                rax __asm__("rax"), rcx __asm__("rcx"), rdx __asm__("rdx"), rsi __asm__("rsi"), \
-//                r8  __asm__("r8" ), r9  __asm__("r9" ), r11 __asm__("r11"); \
-//            register const AES<NI>* rdi __asm__("rdi"); \
-//            register __m128i \
-//                xmm0  __asm__("xmm0" ), xmm1  __asm__("xmm1" ), xmm2  __asm__("xmm2" ), xmm3  __asm__("xmm3" ), \
-//                xmm4  __asm__("xmm4" ), xmm5  __asm__("xmm5" ), xmm6  __asm__("xmm6" ), xmm7  __asm__("xmm7" ), \
-//                xmm8  __asm__("xmm8" ), xmm9  __asm__("xmm9" ), xmm10 __asm__("xmm10"), xmm11 __asm__("xmm11"), \
-//                xmm12 __asm__("xmm12"), xmm13 __asm__("xmm13"); \
-//            __asm__ volatile ("" : \
-//                "=r" (rax), "=r" (rcx), "=r" (rdx), "=r" (rsi), "=r" (rdi), \
-//                "=r" (r8 ), "=r" (r9 ), "=r" (r11), \
-//                "=x" (xmm0 ), "=x" (xmm1 ), "=x" (xmm2 ), "=x" (xmm3 ), \
-//                "=x" (xmm4 ), "=x" (xmm5 ), "=x" (xmm6 ), "=x" (xmm7 ), \
-//                "=x" (xmm8 ), "=x" (xmm9 ), "=x" (xmm10), "=x" (xmm11), \
-//                "=x" (xmm12), "=x" (xmm13) :: "memory"); \
-//            \
-//            block data[n]; \
-//            if (n > 0)  data[0]  = __m128i(xmm0 ); \
-//            if (n > 1)  data[1]  = __m128i(xmm1 ); \
-//            if (n > 2)  data[2]  = __m128i(xmm2 ); \
-//            if (n > 3)  data[3]  = __m128i(xmm3 ); \
-//            if (n > 4)  data[4]  = __m128i(xmm4 ); \
-//            if (n > 5)  data[5]  = __m128i(xmm5 ); \
-//            if (n > 6)  data[6]  = __m128i(xmm6 ); \
-//            if (n > 7)  data[7]  = __m128i(xmm7 ); \
-//            if (n > 8)  data[8]  = __m128i(xmm8 ); \
-//            if (n > 9)  data[9]  = __m128i(xmm9 ); \
-//            if (n > 10) data[10] = __m128i(xmm10); \
-//            if (n > 11) data[11] = __m128i(xmm11); \
-//            if (n > 12) data[12] = __m128i(xmm12); \
-//            if (n > 13) data[13] = __m128i(xmm13); \
-//            for (u64 i = 1; i < AES<NI>::rounds; ++i) \
-//                AES<NI>::roundEncBlocks<n>(data, data, rdi->mRoundKey[i]); \
-//            AES<NI>::finalEncBlocks<n>(data, data, rdi->mRoundKey[AES<NI>::rounds]); \
-//            if (n > 0)  xmm0  = data[0] ; \
-//            if (n > 1)  xmm1  = data[1] ; \
-//            if (n > 2)  xmm2  = data[2] ; \
-//            if (n > 3)  xmm3  = data[3] ; \
-//            if (n > 4)  xmm4  = data[4] ; \
-//            if (n > 5)  xmm5  = data[5] ; \
-//            if (n > 6)  xmm6  = data[6] ; \
-//            if (n > 7)  xmm7  = data[7] ; \
-//            if (n > 8)  xmm8  = data[8] ; \
-//            if (n > 9)  xmm9  = data[9] ; \
-//            if (n > 10) xmm10 = data[10]; \
-//            if (n > 11) xmm11 = data[11]; \
-//            if (n > 12) xmm12 = data[12]; \
-//            if (n > 13) xmm13 = data[13]; \
-//            \
-//            __asm__ volatile ("" :: \
-//                "r" (rax), "r" (rcx), "r" (rdx), "r" (rsi), "r" (rdi), \
-//                "r" (r8 ), "r" (r9 ), "r" (r11), \
-//                "x" (xmm0 ), "x" (xmm1 ), "x" (xmm2 ), "x" (xmm3 ), \
-//                "x" (xmm4 ), "x" (xmm5 ), "x" (xmm6 ), "x" (xmm7 ), \
-//                "x" (xmm8 ), "x" (xmm9 ), "x" (xmm10), "x" (xmm11), \
-//                "x" (xmm12), "x" (xmm13) : \
-//                "memory"); \
-//        }
-//
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(1)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(2)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(3)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(4)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(5)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(6)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(7)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(8)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(9)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(10)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(11)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(12)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(13)
-//        AES_ENC_BLOCKS_CUSTOM_CALLING_CONV(14)
-//
-//        #undef AES_ENC_BLOCKS_CUSTOM_CALLING_CONV
-//#endif
 #endif
 
 #if defined(OC_ENABLE_PORTABLE_AES)
@@ -614,4 +533,12 @@ namespace osuCrypto {
     template class details::AES<details::NI>;
     template class details::AESDec<details::NI>;
 #endif
+
+
+    void AESStream::setSeed(block seed)
+    {
+        index = 0;
+        prng.setKey(seed);
+        refillBuffer();
+    }
 }

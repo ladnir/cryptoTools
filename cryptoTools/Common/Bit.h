@@ -491,7 +491,7 @@ namespace osuCrypto
         template<class T>
         constexpr T bit_ceil(T x) noexcept
         {
-            static_assert(sizeof(T) <= sizeof(std::uint64_t));
+            static_assert(sizeof(T) <= sizeof(std::uint64_t),"");
 
             if (sizeof(T) <= sizeof(std::uint32_t))
             {

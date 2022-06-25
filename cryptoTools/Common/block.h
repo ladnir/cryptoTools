@@ -402,7 +402,7 @@ namespace osuCrypto
 
         inline bool operator>(const block& rhs) const
         {
-            return rhs > *this;
+            return rhs < *this;
         }
 
         inline bool operator<=(const block& rhs) const
