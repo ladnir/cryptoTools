@@ -53,7 +53,7 @@ namespace tests_cryptoTools
         if (neq(ptxt2, ptxt))
             throw UnitTestFail();
 
-        u64 length = 1 << 10;
+        u64 length = 1 << 4;
 
         std::vector<block> data(length);
         std::vector<block> cyphertext1(length);
@@ -84,6 +84,52 @@ namespace tests_cryptoTools
         {
             if (neq(cyphertext1[i], cyphertext2[i]))
                 throw UnitTestFail();
+        }
+
+
+        u64 step = 3;
+        std::vector<block> data2(length * step);
+        for (u64 i = 0; i < length; ++i)
+        {
+            for (u64 j = 0; j < step; ++j)
+            {
+                data2[i * step + j] = block(45233453 * i, 234235543 * j);
+            }
+
+            data[i] = data2[i * step + (i % step)];
+        }
+
+        encKey.TmmoHashBlocks(data, cyphertext1, [t = 0]() mutable {return block(t++); });
+        encKey.TmmoHashBlocks(data, cyphertext2, [t = 0]() mutable {return block(t++); });
+
+        for (u64 i = 0; i < length; ++i)
+        {
+
+            if (cyphertext1[i] != cyphertext2[i])
+            {
+                throw RTE_LOC;
+            }
+
+            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            if (cyphertext1[i] != (encKey.ecbEncBlock(encKey.ecbEncBlock(data[i]) ^ block(i)) ^ encKey.ecbEncBlock(data[i])))
+                throw RTE_LOC;
+
+            if (cyphertext1[i] != encKey.TmmoHashBlock(data[i], block(i)))
+                throw RTE_LOC;
+
+
+        }
+
+        cyphertext2.resize(data2.size());
+        encKey.TmmoHashBlocks(data2, cyphertext2, [t = 0, step]() mutable {return block(t++ / step); });
+
+        for (u64 i = 0; i < length; ++i)
+        {
+
+            if (cyphertext1[i] != cyphertext2[i * step + (i % step)])
+            {
+                throw RTE_LOC;
+            }
         }
     }
 

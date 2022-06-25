@@ -30,6 +30,10 @@ namespace osuCrypto {
             // Set the key to be used for encryption.
             void setKey(const block& userKey);
 
+
+            ///////////////////////////////////////////////
+            // ECB ENCRYPTION
+
             // Use this function (or other *Inline functions) if you want to force inlining.
             template<u64 blocks>
             OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
@@ -64,12 +68,6 @@ namespace osuCrypto {
                 ecbEncBlocksInline<blocks>(plaintext, ciphertext);
             }
 
-            //template<u64 blocks>
-            //inline void ecbEncBlocks(const block (&plaintext)[blocks], block (&ciphertext)[blocks]) const
-            //{
-            //    ecbEncBlocks<blocks>(&plaintext[0], &ciphertext[0]);
-            //}
-
             // Encrypts the plaintext block and stores the result in ciphertext
             inline void ecbEncBlock(const block& plaintext, block& ciphertext) const
             {
@@ -82,30 +80,6 @@ namespace osuCrypto {
                 block ciphertext;
                 ecbEncBlock(plaintext, ciphertext);
                 return ciphertext;
-            }
-
-            // Encrypts 2 blocks pointed to by plaintext and writes the result to ciphertext
-            inline void ecbEncTwoBlocks(const block* plaintext, block* ciphertext) const
-            {
-                return ecbEncBlocks<2>(plaintext, ciphertext);
-            }
-
-            // Encrypts 4 blocks pointed to by plaintext and writes the result to ciphertext
-            inline void ecbEncFourBlocks(const block* plaintext, block* ciphertext) const
-            {
-                return ecbEncBlocks<4>(plaintext, ciphertext);
-            }
-
-            // Encrypts 8 blocks pointed to by plaintext and writes the result to ciphertext
-            inline void ecbEnc8Blocks(const block* plaintext, block* ciphertext) const
-            {
-                ecbEncBlocks<8>(plaintext, ciphertext);
-            }
-
-            // Encrypts 16 blocks pointed to by plaintext and writes the result to ciphertext
-            void ecbEnc16Blocks(const block* plaintext, block* ciphertext) const
-            {
-                ecbEncBlocks<16>(plaintext, ciphertext);
             }
 
             // Encrypts blockLength starting at the plaintext pointer and writes the result
@@ -145,89 +119,8 @@ namespace osuCrypto {
             }
 
 
-            // Correlation robust hash function.
-            template<u64 blocks>
-            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
-            hashBlocks(const block* plaintext, block* ciphertext) const
-            {
-                block buff[blocks];
-                ecbEncBlocks<blocks>(plaintext, buff);
-                hashBlocksFinalXor<blocks>(plaintext, buff, ciphertext);
-            }
-
-            // Fall back to encryption loop rather than unrolling way too many blocks.
-            template<u64 blocks>
-            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
-            hashBlocks(const block* plaintext, block* ciphertext) const
-            {
-                hashBlocks(plaintext, blocks, ciphertext);
-            }
-
-        private:
-            // Use template for loop unrolling.
-            template<u64 blocks>
-            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
-            hashBlocksFinalXor(const block* plaintext, block* buff, block* ciphertext)
-            {
-                buff[blocks - 1] ^= plaintext[blocks - 1];
-                hashBlocksFinalXor<blocks - 1>(plaintext, buff, ciphertext);
-
-                // Only write to ciphertext after computing the entire output, so the compiler won't
-                // have to worry about ciphertext aliasing plaintext.
-                ciphertext[blocks - 1] = buff[blocks - 1];
-            }
-            template<u64 blocks>
-            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
-            hashBlocksFinalXor(const block* plaintext, const block* buff, block* ciphertext) {}
-
-        public:
-
-            inline block hashBlock(const block& plaintext) const
-            {
-                block ciphertext;
-                hashBlocks<1>(&plaintext, &ciphertext);
-                return ciphertext;
-            }
-
-            inline void hash8Blocks(const block* plaintext, block* ciphertext) const
-            {
-                hashBlocks<8>(plaintext, ciphertext);
-            }
-
-            inline void hashBlocks(const block* plaintext, u64 blockLength, block* ciphertext) const
-            {
-                const u64 step = 8;
-                u64 idx = 0;
-
-                for (; idx + step <= blockLength; idx += step)
-                {
-                    hashBlocks<step>(plaintext + idx, ciphertext + idx);
-                }
-
-                i32 misalignment = blockLength % step;
-                switch (misalignment) {
-                    #define SWITCH_CASE(n) \
-                    case n: \
-                        hashBlocks<n>(plaintext + idx, ciphertext + idx); \
-                        break;
-                    SWITCH_CASE(1)
-                    SWITCH_CASE(2)
-                    SWITCH_CASE(3)
-                    SWITCH_CASE(4)
-                    SWITCH_CASE(5)
-                    SWITCH_CASE(6)
-                    SWITCH_CASE(7)
-                    #undef SWITCH_CASE
-                }
-            }
-
-            inline void hashBlocks(span<const block> plaintext, span<block> ciphertext) const
-            {
-                if (plaintext.size() != ciphertext.size())
-                    throw RTE_LOC;
-                hashBlocks(plaintext.data(), plaintext.size(), ciphertext.data());
-            }
-
+            ///////////////////////////////////////////////
+            // Counter mode stream
 
             // Encrypts the vector of blocks {baseIdx, baseIdx + 1, ..., baseIdx + blockLength - 1}
             // and writes the result to ciphertext.
@@ -260,16 +153,179 @@ namespace osuCrypto {
                 ecbEncCounterMode(toBlock(baseIdx), blockLength, ciphertext);
             }
 
-        private:
-            // For simplicity, all CTR modes are defined in terms of the unaligned version.
-            void ecbEncCounterModeImpl(block baseIdx, u64 blockLength, u8* ciphertext) const;
 
-        public:
-            // Returns the current key.
-            const block& getKey() const { return mRoundKey[0]; }
+            ///////////////////////////////////////////////
+            // Tweakable correlation robust hash function.
+	        // https://eprint.iacr.org/2019/074.pdf section 7.4
+
+
+            // Tweakable correlation robust hash function.
+	        // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<u64 blocks, typename TweakFn>
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
+                TmmoHashBlocks(const block* plaintext, block* ciphertext, TweakFn&& tweakFn) const
+            {
+                block buff[blocks];
+                block pix[blocks];
+
+                // pi = AES(x)
+                ecbEncBlocks<blocks>(plaintext, pix);
+
+                // { tweaks_0, ..., baseTweak_{blocks - 1} } 
+                generateTweaks<blocks>(std::forward<TweakFn>(tweakFn), buff);
+
+                // AES(x) ^ tweaks
+                xorBlocks<blocks>(pix, buff);
+
+                // buff = AES( AES(x) ^ tweaks)
+                ecbEncBlocks<blocks>(buff, buff);
+
+                // ciphertext = AES(AES(x) ^ tweaks) ^ AES(x)
+                xorBlocks<blocks>(buff, pix, ciphertext);
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // TMMO(x, i) = AES(AES(x) + i) + AES(x).
+            block TmmoHashBlock(block plaintext, block baseTweak) const
+            {
+                block r;
+                TmmoHashBlocks<1>(&plaintext, &r, [baseTweak]() { return baseTweak; });
+                return r;
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<typename TweakFn>
+            inline void TmmoHashBlocks(span<const block> plaintext, span<block> ciphertext, TweakFn&& tweak) const
+            {
+                if (plaintext.size() != ciphertext.size())
+                    throw RTE_LOC;
+
+                TmmoHashBlocks(plaintext.data(), plaintext.size(), ciphertext.data(), tweak);
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<typename TweakFn>
+            inline void TmmoHashBlocks(const block* plaintext, u64 blockLength, block* ciphertext, TweakFn&& tweak) const
+            {
+                const u64 step = 8;
+                u64 idx = 0;
+
+                for (; idx + step <= blockLength; idx += step)
+                {
+                    TmmoHashBlocks<step>(plaintext + idx, ciphertext + idx, tweak);
+                }
+
+                i32 misalignment = blockLength % step;
+                switch (misalignment) {
+#define SWITCH_CASE(n) \
+                    case n: \
+                        TmmoHashBlocks<n>(plaintext + idx, ciphertext + idx, tweak); \
+                        break;
+                    SWITCH_CASE(1)
+                    SWITCH_CASE(2)
+                    SWITCH_CASE(3)
+                    SWITCH_CASE(4)
+                    SWITCH_CASE(5)
+                    SWITCH_CASE(6)
+                    SWITCH_CASE(7)
+#undef SWITCH_CASE
+                }
+            }
+
+
+
+
+            ///////////////////////////////////////////////
+            // Correlation robust hash function.
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
+                hashBlocks(const block* plaintext, block* ciphertext) const
+            {
+                block buff[blocks];
+                ecbEncBlocks<blocks>(plaintext, buff);
+                xorBlocks<blocks>(plaintext, buff, ciphertext);
+            }
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            // Fall back to encryption loop rather than unrolling way too many blocks.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
+                hashBlocks(const block* plaintext, block* ciphertext) const
+            {
+                hashBlocks(plaintext, blocks, ciphertext);
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline void hashBlocks(span<const block> plaintext, span<block> ciphertext) const
+            {
+                if (plaintext.size() != ciphertext.size())
+                    throw RTE_LOC;
+                hashBlocks(plaintext.data(), plaintext.size(), ciphertext.data());
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline block hashBlock(const block& plaintext) const
+            {
+                block ciphertext;
+                hashBlocks<1>(&plaintext, &ciphertext);
+                return ciphertext;
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline void hashBlocks(const block* plaintext, u64 blockLength, block* ciphertext) const
+            {
+                const u64 step = 8;
+                u64 idx = 0;
+
+                for (; idx + step <= blockLength; idx += step)
+                {
+                    hashBlocks<step>(plaintext + idx, ciphertext + idx);
+                }
+
+                i32 misalignment = blockLength % step;
+                switch (misalignment) {
+                    #define SWITCH_CASE(n) \
+                    case n: \
+                        hashBlocks<n>(plaintext + idx, ciphertext + idx); \
+                        break;
+                    SWITCH_CASE(1)
+                    SWITCH_CASE(2)
+                    SWITCH_CASE(3)
+                    SWITCH_CASE(4)
+                    SWITCH_CASE(5)
+                    SWITCH_CASE(6)
+                    SWITCH_CASE(7)
+                    #undef SWITCH_CASE
+                }
+            }
+
+
+            // The expanded key.
+            std::array<block, rounds + 1> mRoundKey;
+
+            ////////////////////////////////////////
+            // Low level
 
             static block roundEnc(block state, const block& roundKey);
             static block finalEnc(block state, const block& roundKey);
+
+        private:
 
             template<u64 blocks>
             static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
@@ -297,8 +353,57 @@ namespace osuCrypto {
             static OC_FORCEINLINE typename std::enable_if<blocks == 0>::type
             finalEncBlocks(const block* stateIn, block* stateOut, const block& roundKey) {}
 
-            // The expanded key.
-            std::array<block,rounds + 1> mRoundKey;
+
+
+
+            // For simplicity, all CTR modes are defined in terms of the unaligned version.
+            void ecbEncCounterModeImpl(block baseIdx, u64 blockLength, u8* ciphertext) const;
+
+            // Use template for loop unrolling.
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                xorBlocks(const block* plaintext, block* buff, block* ciphertext)
+            {
+                buff[blocks - 1] ^= plaintext[blocks - 1];
+                xorBlocks<blocks - 1>(plaintext, buff, ciphertext);
+
+                // Only write to ciphertext after computing the entire output, so the compiler won't
+                // have to worry about ciphertext aliasing plaintext.
+                ciphertext[blocks - 1] = buff[blocks - 1];
+            }
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                xorBlocks(const block* plaintext, const block* buff, block* ciphertext) {}
+
+
+            template<u64 blocks, typename TweakFn>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                generateTweaks(TweakFn&& tweakFn, block* tweaks)
+            {
+                generateTweaks<blocks - 1>(std::forward<TweakFn>(tweakFn), tweaks);
+                tweaks[blocks - 1] = tweakFn();
+            }
+
+
+            template<u64 blocks, typename TweakFn>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                generateTweaks(TweakFn&& baseTweak, block* tweaks) {}
+
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                xorBlocks(const block* x, block* y)
+            {
+                auto t = x[blocks - 1] ^ y[blocks - 1];
+                xorBlocks<blocks - 1>(x, y);
+                y[blocks - 1] = t;
+            }
+
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                xorBlocks(const block* baseTweak, block* tweaks) {}
         };
 
 #ifdef OC_ENABLE_AESNI
@@ -317,186 +422,7 @@ namespace osuCrypto {
             return _mm_aesenc_si128(state, roundKey);
         }
 
-#if (defined(__GNUC__) || defined(__clang__)) && defined(__OPTIMIZE__) && defined(OC_UNSTABLE_OPTIMIZATIONS)
-        // Use asm hacks to define a custom calling convention, so that the plaintext and ciphertext
-        // get passed in registers. This is possible without asm hacking for the inputs, but there's
-        // no way to get GCC's calling convention to put more than one output in a SSE register.
-        //
-        // The blocks go in registers xmm0..., and the outputs are returned in place. However, the
-        // first key XOR takes place in ecbEncBlocks instead of in ecbEncBlocksCustomCallingConv.
-        // A pointer to the AES<NI> class is passed in rdi. The only clobbered registers are r10,
-        // xmm14, and xmm15. (With the exception of maybe the legacy mmx and x87 registers, as I
-        // don't know what to do with them, but they don't matter.) The inline assembly only works
-        // up to 14 blocks, due to a GCC limitation:
-        // https://gcc.gnu.org/legacy-ml/gcc-help/2008-03/msg00109.html
-        //
-        // Compiling without optimization causes problems for this because the compiler will emit
-        // some boilerplate code that gets in the way, so the #if above also checks to make sure
-        // that optimization is turned on.
-        //
-        // 128 is subtracted from & added to rsp to avoid clobbering the red zone. See
-        // https://stackoverflow.com/a/47402504/4071916
 
-        #define AES_SPECIALIZE_ENC_BLOCKS(n) \
-        __attribute__((sysv_abi)) void ecbEncBlocksCustomCallingConv##n(); \
-        \
-        template<> template<> OC_FORCEINLINE \
-        void AES<NI>::ecbEncBlocks<n>(const block* plaintext, block* ciphertext) const \
-        { \
-            register __m128i AES_ENC_BLOCKS_VARS_##n; \
-            __asm__ ( \
-                  "addq $-128, %%rsp\n\t" \
-                  AES_ENC_BLOCKS_CALL_INSN \
-                  "subq $-128, %%rsp\n\t" \
-                : AES_ENC_BLOCKS_OUTS_##n \
-                : [func] AES_ENC_BLOCKS_CALL_CONSTRAINT (ecbEncBlocksCustomCallingConv##n), "D" (this) \
-                : "cc", "r10", "xmm14", "xmm15" \
-                , "mm0","mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm6" \
-                , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"); \
-            AES_ENC_BLOCKS_ASSIGN_CT_##n \
-        }
-
-#ifndef __clang__
-        // ".intel_syntax noprefix" is a workaround for the warning:
-        // "Assembler mMessages: Warning: indirect call without `*'"
-        // If the * were added then when its a direct call it would produce different machine code.
-        // AT&T call instructions need different syntax for labels vs registers, while for Intel
-        // they are the same, which fixes the problem.
-        #define AES_ENC_BLOCKS_CALL_INSN \
-            ".intel_syntax noprefix\n\t" \
-            "call %P[func]\n\t" \
-            ".att_syntax\n\t"
-        #define AES_ENC_BLOCKS_CALL_CONSTRAINT "ir"
-#else
-        // Calling a label seems to just fail on clang, so always use indirect calls.
-        #define AES_ENC_BLOCKS_CALL_INSN \
-            "call *%[func]\n\t"
-        #define AES_ENC_BLOCKS_CALL_CONSTRAINT "r"
-#endif
-
-        #define AES_ENC_BLOCKS_ASSIGN_CT_1                              ciphertext[0]  = __m128i(ct0 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_2  AES_ENC_BLOCKS_ASSIGN_CT_1  ciphertext[1]  = __m128i(ct1 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_3  AES_ENC_BLOCKS_ASSIGN_CT_2  ciphertext[2]  = __m128i(ct2 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_4  AES_ENC_BLOCKS_ASSIGN_CT_3  ciphertext[3]  = __m128i(ct3 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_5  AES_ENC_BLOCKS_ASSIGN_CT_4  ciphertext[4]  = __m128i(ct4 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_6  AES_ENC_BLOCKS_ASSIGN_CT_5  ciphertext[5]  = __m128i(ct5 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_7  AES_ENC_BLOCKS_ASSIGN_CT_6  ciphertext[6]  = __m128i(ct6 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_8  AES_ENC_BLOCKS_ASSIGN_CT_7  ciphertext[7]  = __m128i(ct7 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_9  AES_ENC_BLOCKS_ASSIGN_CT_8  ciphertext[8]  = __m128i(ct8 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_10 AES_ENC_BLOCKS_ASSIGN_CT_9  ciphertext[9]  = __m128i(ct9 );
-        #define AES_ENC_BLOCKS_ASSIGN_CT_11 AES_ENC_BLOCKS_ASSIGN_CT_10 ciphertext[10] = __m128i(ct10);
-        #define AES_ENC_BLOCKS_ASSIGN_CT_12 AES_ENC_BLOCKS_ASSIGN_CT_11 ciphertext[11] = __m128i(ct11);
-        #define AES_ENC_BLOCKS_ASSIGN_CT_13 AES_ENC_BLOCKS_ASSIGN_CT_12 ciphertext[12] = __m128i(ct12);
-        #define AES_ENC_BLOCKS_ASSIGN_CT_14 AES_ENC_BLOCKS_ASSIGN_CT_13 ciphertext[13] = __m128i(ct13);
-
-        #define AES_ENC_BLOCKS_VARS_1                          ct0  __asm__("xmm0")  = plaintext[0]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_2  AES_ENC_BLOCKS_VARS_1,  ct1  __asm__("xmm1")  = plaintext[1]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_3  AES_ENC_BLOCKS_VARS_2,  ct2  __asm__("xmm2")  = plaintext[2]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_4  AES_ENC_BLOCKS_VARS_3,  ct3  __asm__("xmm3")  = plaintext[3]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_5  AES_ENC_BLOCKS_VARS_4,  ct4  __asm__("xmm4")  = plaintext[4]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_6  AES_ENC_BLOCKS_VARS_5,  ct5  __asm__("xmm5")  = plaintext[5]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_7  AES_ENC_BLOCKS_VARS_6,  ct6  __asm__("xmm6")  = plaintext[6]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_8  AES_ENC_BLOCKS_VARS_7,  ct7  __asm__("xmm7")  = plaintext[7]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_9  AES_ENC_BLOCKS_VARS_8,  ct8  __asm__("xmm8")  = plaintext[8]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_10 AES_ENC_BLOCKS_VARS_9,  ct9  __asm__("xmm9")  = plaintext[9]  ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_11 AES_ENC_BLOCKS_VARS_10, ct10 __asm__("xmm10") = plaintext[10] ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_12 AES_ENC_BLOCKS_VARS_11, ct11 __asm__("xmm11") = plaintext[11] ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_13 AES_ENC_BLOCKS_VARS_12, ct12 __asm__("xmm12") = plaintext[12] ^ mRoundKey[0]
-        #define AES_ENC_BLOCKS_VARS_14 AES_ENC_BLOCKS_VARS_13, ct13 __asm__("xmm13") = plaintext[13] ^ mRoundKey[0]
-
-        #define AES_ENC_BLOCKS_OUTS_1                          "+x" (ct0)
-        #define AES_ENC_BLOCKS_OUTS_2  AES_ENC_BLOCKS_OUTS_1,  "+x" (ct1)
-        #define AES_ENC_BLOCKS_OUTS_3  AES_ENC_BLOCKS_OUTS_2,  "+x" (ct2)
-        #define AES_ENC_BLOCKS_OUTS_4  AES_ENC_BLOCKS_OUTS_3,  "+x" (ct3)
-        #define AES_ENC_BLOCKS_OUTS_5  AES_ENC_BLOCKS_OUTS_4,  "+x" (ct4)
-        #define AES_ENC_BLOCKS_OUTS_6  AES_ENC_BLOCKS_OUTS_5,  "+x" (ct5)
-        #define AES_ENC_BLOCKS_OUTS_7  AES_ENC_BLOCKS_OUTS_6,  "+x" (ct6)
-        #define AES_ENC_BLOCKS_OUTS_8  AES_ENC_BLOCKS_OUTS_7,  "+x" (ct7)
-        #define AES_ENC_BLOCKS_OUTS_9  AES_ENC_BLOCKS_OUTS_8,  "+x" (ct8)
-        #define AES_ENC_BLOCKS_OUTS_10 AES_ENC_BLOCKS_OUTS_9,  "+x" (ct9)
-        #define AES_ENC_BLOCKS_OUTS_11 AES_ENC_BLOCKS_OUTS_10, "+x" (ct10)
-        #define AES_ENC_BLOCKS_OUTS_12 AES_ENC_BLOCKS_OUTS_11, "+x" (ct11)
-        #define AES_ENC_BLOCKS_OUTS_13 AES_ENC_BLOCKS_OUTS_12, "+x" (ct12)
-        #define AES_ENC_BLOCKS_OUTS_14 AES_ENC_BLOCKS_OUTS_13, "+x" (ct13)
-
-        AES_SPECIALIZE_ENC_BLOCKS(1)
-        AES_SPECIALIZE_ENC_BLOCKS(2)
-        AES_SPECIALIZE_ENC_BLOCKS(3)
-        AES_SPECIALIZE_ENC_BLOCKS(4)
-        AES_SPECIALIZE_ENC_BLOCKS(5)
-        AES_SPECIALIZE_ENC_BLOCKS(6)
-        AES_SPECIALIZE_ENC_BLOCKS(7)
-        AES_SPECIALIZE_ENC_BLOCKS(8)
-        AES_SPECIALIZE_ENC_BLOCKS(9)
-        AES_SPECIALIZE_ENC_BLOCKS(10)
-        AES_SPECIALIZE_ENC_BLOCKS(11)
-        AES_SPECIALIZE_ENC_BLOCKS(12)
-        AES_SPECIALIZE_ENC_BLOCKS(13)
-        AES_SPECIALIZE_ENC_BLOCKS(14)
-
-        // Done. Undefine everything again.
-        #undef AES_SPECIALIZE_ENC_BLOCKS
-
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_1
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_2
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_3
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_4
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_5
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_6
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_7
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_8
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_9
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_10
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_11
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_12
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_13
-        #undef AES_ENC_BLOCKS_ASSIGN_CT_14
-
-        #undef AES_ENC_BLOCKS_VARS_1
-        #undef AES_ENC_BLOCKS_VARS_2
-        #undef AES_ENC_BLOCKS_VARS_3
-        #undef AES_ENC_BLOCKS_VARS_4
-        #undef AES_ENC_BLOCKS_VARS_5
-        #undef AES_ENC_BLOCKS_VARS_6
-        #undef AES_ENC_BLOCKS_VARS_7
-        #undef AES_ENC_BLOCKS_VARS_8
-        #undef AES_ENC_BLOCKS_VARS_9
-        #undef AES_ENC_BLOCKS_VARS_10
-        #undef AES_ENC_BLOCKS_VARS_11
-        #undef AES_ENC_BLOCKS_VARS_12
-        #undef AES_ENC_BLOCKS_VARS_13
-        #undef AES_ENC_BLOCKS_VARS_14
-
-        #undef AES_ENC_BLOCKS_OUTS_1
-        #undef AES_ENC_BLOCKS_OUTS_2
-        #undef AES_ENC_BLOCKS_OUTS_3
-        #undef AES_ENC_BLOCKS_OUTS_4
-        #undef AES_ENC_BLOCKS_OUTS_5
-        #undef AES_ENC_BLOCKS_OUTS_6
-        #undef AES_ENC_BLOCKS_OUTS_7
-        #undef AES_ENC_BLOCKS_OUTS_8
-        #undef AES_ENC_BLOCKS_OUTS_9
-        #undef AES_ENC_BLOCKS_OUTS_10
-        #undef AES_ENC_BLOCKS_OUTS_11
-        #undef AES_ENC_BLOCKS_OUTS_12
-        #undef AES_ENC_BLOCKS_OUTS_13
-        #undef AES_ENC_BLOCKS_OUTS_14
-
-        #undef AES_ENC_BLOCKS_INS_1
-        #undef AES_ENC_BLOCKS_INS_2
-        #undef AES_ENC_BLOCKS_INS_3
-        #undef AES_ENC_BLOCKS_INS_4
-        #undef AES_ENC_BLOCKS_INS_5
-        #undef AES_ENC_BLOCKS_INS_6
-        #undef AES_ENC_BLOCKS_INS_7
-        #undef AES_ENC_BLOCKS_INS_8
-        #undef AES_ENC_BLOCKS_INS_9
-        #undef AES_ENC_BLOCKS_INS_10
-        #undef AES_ENC_BLOCKS_INS_11
-        #undef AES_ENC_BLOCKS_INS_12
-        #undef AES_ENC_BLOCKS_INS_13
-        #undef AES_ENC_BLOCKS_INS_14
-#endif
 #endif
 
         // A class to perform AES decryption.
