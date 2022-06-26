@@ -288,7 +288,11 @@ void tests_cryptoTools::block_operation_test()
 		z0 = x.cc_srai_epi32<32>();
 		z1 = x.mm_srai_epi32<32>();
 		if (z0 != z1)
+		{
+			std::cout << "act " << z0 << std::endl;
+			std::cout << "exp " << z1 << std::endl;
 			throw RTE_LOC;
+		}
 		z0 = x.cc_srai_epi32<40>();
 		z1 = x.mm_srai_epi32<40>();
 		if (z0 != z1)
