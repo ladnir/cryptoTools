@@ -633,6 +633,14 @@ namespace osuCrypto {
         }
 
 
+        void ecbEncCounterMode(u64 index, block* dst)
+        {
+            block buff[N];
+            for (int i = 0; i < N; ++i)
+                buff[i] = block(index);
+            ecbEncNBlocks(buff, dst);
+        }
+
         // Computes the hash of N blocks pointed to by plaintext
         // and stores the result at ciphertext.
         void hashNBlocks(const block* plaintext, block* hashes) const
