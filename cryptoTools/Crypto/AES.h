@@ -30,6 +30,10 @@ namespace osuCrypto {
             // Set the key to be used for encryption.
             void setKey(const block& userKey);
 
+            block getKey() const {
+                return mRoundKey[0];
+            }
+
 
             ///////////////////////////////////////////////
             // ECB ENCRYPTION
