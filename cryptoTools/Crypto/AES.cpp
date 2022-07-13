@@ -302,7 +302,7 @@ namespace osuCrypto {
         {
             const i32 step = 8;
             u64 idx = 0;
-            block superBlock[step];
+            block superBlock[step], temp[step];
 
             for (; idx + step <= blockLength; idx += step)
             {
@@ -310,9 +310,8 @@ namespace osuCrypto {
                     superBlock[i] = baseIdx + toBlock(i);
                 baseIdx = baseIdx + toBlock(step);
 
-                ecbEncBlocks<8>(superBlock, (block*)ciphertext);
-                //for (u64 i = 0; i < step; ++i, ciphertext += sizeof(block))
-                //memcpy(ciphertext, superBlock, sizeof(block) * step);
+                ecbEncBlocks<8>(superBlock, temp);
+                memcpy(ciphertext, temp, sizeof(block) * step);
                 ciphertext += sizeof(block) * step;
             }
 

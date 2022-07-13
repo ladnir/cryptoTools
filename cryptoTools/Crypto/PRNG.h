@@ -4,6 +4,7 @@
 #include <cryptoTools/Crypto/AES.h>
 #include <vector>
 #include <cstring>
+#include <cryptoTools/Common/Aligned.h>
 
 namespace osuCrypto
 {
@@ -143,7 +144,7 @@ namespace osuCrypto
         }
 
         // internal buffer to store future random values.
-        std::vector<block> mBuffer;
+        AlignedUnVector<block> mBuffer;
 
         // AES that generates the randomness by computing AES_seed({0,1,2,...})
         AES mAes;

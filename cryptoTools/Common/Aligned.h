@@ -24,18 +24,18 @@ namespace osuCrypto
         using Base::operator=;
     };
 
-    namespace detail
-    {
-        template<typename T, size_t Alignment = gDefaultAlignment>
-        struct AlignedDeleter
-        {
-            void operator()(T* ptr) const
-            {
-                auto alignment = std::align_val_t(std::max(Alignment, alignof(T)));
-                operator delete[](ptr, alignment);
-            }
-        };
-    }
+    //namespace detail
+    //{
+    //    template<typename T, size_t Alignment = gDefaultAlignment>
+    //    struct AlignedDeleter
+    //    {
+    //        void operator()(T* ptr) const
+    //        {
+    //            auto alignment = std::align_val_t(std::max(Alignment, alignof(T)));
+    //            operator delete[](ptr, alignment);
+    //        }
+    //    };
+    //}
 
     //template<typename T, size_t Alignment = gDefaultAlignment>
     //using UniqueAlignedPtr = std::unique_ptr<T[], detail::AlignedDeleter<T, Alignment>>;

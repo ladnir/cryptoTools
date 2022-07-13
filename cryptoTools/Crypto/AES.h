@@ -2,6 +2,7 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
+#include <cassert>
 
 namespace osuCrypto {
 
@@ -43,6 +44,9 @@ namespace osuCrypto {
             OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
             ecbEncBlocksInline(const block* plaintext, block* ciphertext) const
             {
+                assert((u64)plaintext % 16 == 0 && "plaintext must be aligned.");
+                assert((u64)ciphertext % 16 == 0 && "ciphertext must be aligned.");
+
                 for (u64 j = 0; j < blocks; ++j)
                     ciphertext[j] = plaintext[j] ^ mRoundKey[0];
                 for (u64 i = 1; i < rounds; ++i)
