@@ -78,7 +78,7 @@ namespace tests_cryptoTools
         {
             if (mode)
             {
-                auto xx = x.as<u64>()[0] & (mMod4 - 1);
+                auto xx = x.get<u64>()[0] & (mMod4 - 1);
                 while (xx >= mMod)
                     xx -= mMod;
 
@@ -91,7 +91,7 @@ namespace tests_cryptoTools
                 u64 i = 0;
                 for (auto m : mMasks)
                 {
-                    auto xx = *(u64*)(x.as<u8>().data() + i * 2);
+                    auto xx = *(u64*)(x.get<u8>().data() + i * 2);
                     auto yy = m & xx;
                     v += yy;
                     ++i;
