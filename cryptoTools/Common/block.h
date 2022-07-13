@@ -6,6 +6,7 @@
 #include <memory>
 #include <new>
 #include <string.h>
+#include <cassert>
 
 #ifdef OC_ENABLE_SSE2
 #include <emmintrin.h>
@@ -100,18 +101,20 @@ namespace osuCrypto
 			return (const unsigned char*)&mData;
 		}
 
-		//template<typename T>
-		//typename std::enable_if<
-		//    std::is_standard_layout<T>::value&&
-		//    std::is_trivial<T>::value &&
-		//    (sizeof(T) <= 16) &&
-		//    (16 % sizeof(T) == 0)
-		//    ,
-		//    std::array<T, 16 / sizeof(T)>&
-		//>::type as()
-		//{
-		//    return *(std::array<T, 16 / sizeof(T)>*)this;
-		//}
+#ifdef OC_ENABLE_DEPRECATED_BLOCK_AS
+		template<typename T>
+		typename std::enable_if<
+		    std::is_standard_layout<T>::value&&
+		    std::is_trivial<T>::value &&
+		    (sizeof(T) <= 16) &&
+		    (16 % sizeof(T) == 0)
+		    ,
+		    std::array<T, 16 / sizeof(T)>&
+		>::type as()
+		{
+		    return *(std::array<T, 16 / sizeof(T)>*)this;
+		}
+#endif
 
 		template<typename T>
 		typename std::enable_if<
@@ -121,27 +124,40 @@ namespace osuCrypto
 			(16 % sizeof(T) == 0)
 			,
 			std::array<T, 16 / sizeof(T)>
-		>::type as() const
+		>::type get() const
 		{
-			return *(const std::array<T, 16 / sizeof(T)>*)this;
+			std::array<T, 16 / sizeof(T)> output;
+			memcpy(output.data(), data(), 16);
+			return output;
 		}
 
 
-		// Lance's copy version.
-		//template<typename T>
-		//typename std::enable_if<
-		//    std::is_standard_layout<T>::value&&
-		//    std::is_trivial<T>::value &&
-		//    (sizeof(T) <= 16) &&
-		//    (16 % sizeof(T) == 0)
-		//    ,
-		//    std::array<T, 16 / sizeof(T)>
-		//>::type as() const
-		//{
-		//    std::array<T, 16 / sizeof(T)> output;
-		//    memcpy(output.data(), data(), 16);
-		//    return output;
-		//}
+		template<typename T>
+		typename std::enable_if<
+			std::is_standard_layout<T>::value&&
+			std::is_trivial<T>::value &&
+			(sizeof(T) <= 16) &&
+			(16 % sizeof(T) == 0)
+			,
+			T
+		>::type get(size_t index) const
+		{
+			assert(index < 16 / sizeof(T));
+			T output;
+			memcpy(&output, data() + sizeof(T) * index, sizeof(T));
+			return output;
+		}
+
+		template<typename T>
+		typename std::enable_if<
+			std::is_standard_layout<T>::value&&
+			std::is_trivial<T>::value &&
+			(sizeof(T) <= 16) &&
+			(16 % sizeof(T) == 0)
+		>::type set(size_t index, T v)
+		{
+			memcpy(data() + sizeof(T) * index, &v, sizeof(T));
+		}
 
 		// For integer types, this will be specialized with SSE futher down.
 		template<typename T>
@@ -173,8 +189,8 @@ namespace osuCrypto
 #endif
 		inline osuCrypto::block cc_xor_si128(const osuCrypto::block& rhs) const
 		{
-			auto ret = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			ret[0] ^= rhsa[0];
 			ret[1] ^= rhsa[1];
 			return ret;
@@ -215,8 +231,8 @@ namespace osuCrypto
 #endif
 		inline osuCrypto::block cc_and_si128(const osuCrypto::block& rhs)const
 		{
-			auto ret = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			ret[0] &= rhsa[0];
 			ret[1] &= rhsa[1];
 			return ret;
@@ -239,8 +255,8 @@ namespace osuCrypto
 #endif
 		inline osuCrypto::block cc_or_si128(const osuCrypto::block& rhs)const
 		{
-			auto ret = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			ret[0] |= rhsa[0];
 			ret[1] |= rhsa[1];
 			return ret;
@@ -276,7 +292,7 @@ namespace osuCrypto
 #endif
 		inline osuCrypto::block cc_slli_epi64(const std::uint8_t& rhs)const
 		{
-			auto ret = as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
 			ret[0] <<= rhs;
 			ret[1] <<= rhs;
 			return ret;
@@ -305,7 +321,7 @@ namespace osuCrypto
 #endif
 		inline block cc_srli_epi64(const std::uint8_t& rhs) const
 		{
-			auto ret = as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
 			ret[0] >>= rhs;
 			ret[1] >>= rhs;
 			return ret;;
@@ -336,8 +352,8 @@ namespace osuCrypto
 #endif
 		inline block cc_add_epi64(const osuCrypto::block& rhs) const
 		{
-			auto ret = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			ret[0] += rhsa[0];
 			ret[1] += rhsa[1];
 			return ret;
@@ -368,8 +384,8 @@ namespace osuCrypto
 #endif
 		inline block cc_sub_epi64(const osuCrypto::block& rhs) const
 		{
-			auto ret = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto ret = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			ret[0] -= rhsa[0];
 			ret[1] -= rhsa[1];
 			return ret;
@@ -386,7 +402,7 @@ namespace osuCrypto
 			auto neq = _mm_xor_si128(*this, rhs);
 			return _mm_test_all_zeros(neq, neq) != 0;
 #else
-			return as<std::uint64_t>() == rhs.as<std::uint64_t>();
+			return get<std::uint64_t>() == rhs.get<std::uint64_t>();
 #endif
 		}
 
@@ -398,8 +414,8 @@ namespace osuCrypto
 
 		inline bool operator<(const osuCrypto::block& rhs)const
 		{
-			auto lhsa = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto lhsa = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			return lhsa[1] < rhsa[1] || (lhsa[1] == rhsa[1] && lhsa[0] < rhsa[0]);
 		}
 
@@ -437,7 +453,7 @@ namespace osuCrypto
 #endif
 		inline block cc_srai_epi16(char imm8) const
 		{
-			auto v = as<std::int16_t>();
+			auto v = get<std::int16_t>();
 			std::array<std::int16_t, 8> r;
 			if (imm8 <= 15)
 			{
@@ -486,7 +502,7 @@ namespace osuCrypto
 		inline int cc_movemask_epi8() const
 		{
 			int ret{ 0 };
-			auto v = as<unsigned char>();
+			auto v = get<unsigned char>();
 			int j = 0;
 			for (int i = 7; i >= 0; --i)
 				ret |= std::uint16_t(v[j++] & 128) >> i;
@@ -508,8 +524,8 @@ namespace osuCrypto
 
 		inline int cc_testc_si128(const block& rhs) const
 		{
-			auto lhsa = as<std::uint64_t>();
-			auto rhsa = rhs.as<std::uint64_t>();
+			auto lhsa = get<std::uint64_t>();
+			auto rhsa = rhs.get<std::uint64_t>();
 			auto v0 = ~lhsa[0] & rhsa[0];
 			auto v1 = ~lhsa[1] & rhsa[1];
 			return (v0 || v1) ? 0 : 1;
@@ -589,8 +605,8 @@ namespace osuCrypto
 		inline void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
 		{
 			static const constexpr std::uint64_t mod = 0b10000111;
-			auto shifted = as<uint64_t>();
-			auto ya = y.as<uint64_t>();
+			auto shifted = get<uint64_t>();
+			auto ya = y.get<uint64_t>();
 			std::array<uint64_t, 2> result0, result1;
 
 			result0[0] = 0;
@@ -671,14 +687,13 @@ namespace osuCrypto
 
 			std::array<uint64_t,2> shifted, result0;
 
-			auto x = as<uint64_t>()[imm8 & 1];
-			auto y = b.as<uint64_t>()[(imm8 >> 4) & 1];
+			auto x = get<uint64_t>()[imm8 & 1];
+			auto y = b.get<uint64_t>()[(imm8 >> 4) & 1];
 			result0[0] = x * (y & 1);
 			result0[1] = 0;
 
 			for (int64_t j = 1; j < 64; ++j) {
 				auto bit = (y >> j) & 1ull;
-				auto xx = x * bit;
 
 				shifted[0] = x << j;
 				shifted[1] = x >> (64 - j);
@@ -705,7 +720,7 @@ namespace osuCrypto
 
 		inline block cc_unpacklo_epi64(block b) const
 		{
-			return std::array<uint64_t, 2>{as<uint64_t>()[0], b.as<uint64_t>()[0]};
+			return std::array<uint64_t, 2>{get<uint64_t>()[0], b.get<uint64_t>()[0]};
 		}
 
 #ifdef OC_ENABLE_SSE2
@@ -799,7 +814,7 @@ namespace osuCrypto
 		template<int imm8>
 		inline block cc_shuffle_epi32() const
 		{
-			auto xx = as<uint32_t>();
+			auto xx = get<uint32_t>();
 			std::array<uint32_t,4> rr;
 			rr[0] = xx[(imm8 >> 0) & 3];
 			rr[1] = xx[(imm8 >> 2) & 3];
@@ -833,7 +848,7 @@ namespace osuCrypto
 		template<int imm8>
 		inline block cc_srai_epi32() const
 		{
-			auto r = as<int32_t>();
+			auto r = get<int32_t>();
 			if (imm8 > 31)
 			{
 				r[0] = r[0] >> 31;
@@ -878,7 +893,7 @@ namespace osuCrypto
 		template<int imm8>
 		inline block cc_slli_epi32() const
 		{
-			auto r = as<int32_t>();
+			auto r = get<int32_t>();
 			if (imm8 > 31)
 			{
 				r[0] = 0;
