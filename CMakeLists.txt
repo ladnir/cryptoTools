@@ -68,7 +68,7 @@ option(ENABLE_SSE       "compile with SSE instructions" ON)
 option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
 option(ENABLE_BOOST     "compile with BOOST networking integration" ON)
 
-if(not ENABLE_SSE)
+if(NOT ENABLE_SSE)
 	message("AVX requires SSE to be enabled.")
 	set(ENABLE_AVX OFF)
 endif()
