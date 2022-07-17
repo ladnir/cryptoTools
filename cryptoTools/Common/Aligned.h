@@ -83,6 +83,27 @@ namespace osuCrypto
             aligned_allocator(const aligned_allocator<U, Alignment>&)
                 noexcept { }
 
+
+            static void* aligned_malloc(size_t required_bytes, size_t alignment)
+            {
+                void* p1; // original block
+                void** p2; // aligned block
+                int offset = alignment - 1 + sizeof(void*);
+                if ((p1 = (void*)malloc(required_bytes + offset)) == NULL)
+                {
+                    return NULL;
+                }
+                p2 = (void**)(((size_t)(p1)+offset) & ~(alignment - 1));
+                p2[-1] = p1;
+                return p2;
+            }
+
+            static void aligned_free(void* p)
+            {
+                free(((void**)p)[-1]);
+            }
+
+
             static pointer allocate(size_type size, const_void_pointer = 0) {
                 enum {
                     m = Alignment > alignof(T) ? Alignment : alignof(T)
@@ -91,11 +112,11 @@ namespace osuCrypto
                     return 0;
                 }
 
-#ifdef _MSC_VER
-                void* p = ::_aligned_malloc(sizeof(T) * size, m);
-#else
-                void* p = ::aligned_alloc(m, sizeof(T) * size);
-#endif
+//#ifdef _MSC_VER
+//                void* p = ::_aligned_malloc(sizeof(T) * size, m);
+//#else
+                void* p = aligned_malloc(sizeof(T) * size, m);
+//#endif
 
                 if (!p) {
                     throw std::bad_alloc();
@@ -104,11 +125,7 @@ namespace osuCrypto
             }
 
             static void deallocate(pointer ptr, size_type) {
-#ifdef _MSC_VER
-                ::_aligned_free(ptr);
-#else
-                ::free(ptr);
-#endif
+                aligned_free(ptr);
             }
 
             constexpr size_type max_size() const noexcept {
