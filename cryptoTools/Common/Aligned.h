@@ -170,7 +170,32 @@ namespace osuCrypto
     using AlignedAllocator = detail::aligned_allocator<T, Alignment>;
 
     template<typename T, size_t Alignment = gDefaultAlignment>
-    using AlignedVector = std::vector<T, AlignedAllocator<T, Alignment>>;
+    struct AlignedVector : public std::vector<T, AlignedAllocator<T, Alignment>>
+    {
+        using std::vector<T, AlignedAllocator<T, Alignment>>::vector;
+
+        span<T> subspan(u64 offset, u64 size_ = ~0ull)
+        {
+            if (size_ == ~0ull)
+                size_ = size() - offset;
+            if (offset == size())
+                return {};
+            if (offset + size_ <= size())
+                return { &*(begin() + offset), size_ };
+            throw RTE_LOC;
+        }
+
+        span<const T> subspan(u64 offset, u64 size_ = ~0ull) const
+        {
+            if (size_ == ~0ull)
+                size_ = size() - offset;
+            if (offset == size())
+                return {};
+            if (offset + size_ <= size())
+                return { &*(begin() + offset), size_ };
+            throw RTE_LOC;
+        }
+    };
 
 
 
