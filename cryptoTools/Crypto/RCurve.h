@@ -270,7 +270,7 @@ namespace osuCrypto
 
 
 
-        REllipticCurve();
+        REllipticCurve(u64 curveID = 0);
 
 
         Point getGenerator() const;

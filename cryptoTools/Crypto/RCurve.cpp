@@ -545,16 +545,30 @@ namespace osuCrypto
         return r;
     }
 
-    REllipticCurve::REllipticCurve()
+    REllipticCurve::REllipticCurve(u64 curveID)
     {
         if (core_get() == nullptr)
         {
             core_init();
             if (GSL_UNLIKELY(err_get_code()))
                 throw std::runtime_error("Relic core init error " LOCATION);
-            ep_param_set_any();
-            if (GSL_UNLIKELY(err_get_code()))
-                throw std::runtime_error("Relic set any error " LOCATION);
+
+            if (!curveID)
+            {
+                ep_param_set_any();
+                if (GSL_UNLIKELY(err_get_code()))
+                    throw std::runtime_error("Relic set any error " LOCATION);
+            }
+        }
+
+        if (curveID)
+        {
+            if (curveID != ep_param_get())
+            {
+                ep_param_set(SECG_K256);
+                if (GSL_UNLIKELY(err_get_code()))
+                    throw std::runtime_error("Relic set any error " LOCATION);
+            }
         }
     }
 
