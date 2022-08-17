@@ -66,6 +66,9 @@ option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
 option(ENABLE_SSE       "compile with SSE instrctions" ON)
 option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
 
+if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
+	set(CRYPTO_TOOLS_STD_VER  14)
+endif()
 
 option(FETCH_AUTO      "automaticly download and build dependancies" OFF)
 

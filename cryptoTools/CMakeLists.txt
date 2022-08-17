@@ -17,7 +17,8 @@ target_include_directories(cryptoTools PUBLIC
                     $<INSTALL_INTERFACE:include>) 
 
 if(NOT MSVC)
-    target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
+    target_compile_options(cryptoTools PRIVATE -pthread)
+    target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${CRYPTO_TOOLS_STD_VER}>)
     target_link_options(cryptoTools PUBLIC -pthread)
 
     if(ENABLE_SSE)
