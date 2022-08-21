@@ -32,9 +32,9 @@ namespace osuCrypto
 			T mVal;
 			Inc mInc;
 
-			template<typename I>
-			Iterator(T&& v,I&&i)
-				: mVal(std::forward<T>(v))
+			template<typename V, typename I>
+			Iterator(V&& v,I&&i)
+				: mVal(std::forward<V>(v))
 				, mInc(std::forward<I>(i))
 			{}
 
@@ -68,31 +68,32 @@ namespace osuCrypto
 		auto begin() const { return mBegin; }
 		auto end() const { return mEnd; }
 
-		Range(T&& begin, T&& end, Inc&& step)
-			: mBegin(std::forward<T>(begin), step)
-			, mEnd(std::forward<T>(end), std::move(step))
+		template<typename B, typename E>
+		Range(B&& begin, E&& end, Inc&& step)
+			: mBegin(std::forward<B>(begin), step)
+			, mEnd(std::forward<E>(end), std::move(step))
 		{}
 	};
 
 
 
-	template<typename T, typename V, typename Inc>
-	Range<T, Inc> rng(V&& begin, V&& end, Inc&& inc)
+	template<typename T, typename B,typename E, typename Inc>
+	Range<T, Inc> rng(B&& begin, E&& end, Inc&& inc)
 	{
-		return Range<T, Inc>(std::forward<V>(begin), std::forward<V>(end), std::forward<Inc>(inc));
+		return Range<T, Inc>(std::forward<B>(begin), std::forward<E>(end), std::forward<Inc>(inc));
 	}
 
-	template<typename T = u64, typename V>
-	Range<T> rng(V&& begin, V&& end)
+	template<typename T = u64, typename B, typename E>
+	Range<T> rng(B&& begin, E&& end)
 	{
 		using Inc = Increment<T, 1>;
-		return rng<T,V, Inc>(std::forward<T>(begin), std::forward<T>(end), Inc{});
+		return rng<T,B,E, Inc>(std::forward<B>(begin), std::forward<E>(end), Inc{});
 	}
 
 	template<typename T = u64, typename V>
 	Range<T> rng(V&& end)
 	{
-		return rng<T,V>(0, std::forward<V>(end));
+		return rng<T>(0, std::forward<V>(end));
 	}
 
 

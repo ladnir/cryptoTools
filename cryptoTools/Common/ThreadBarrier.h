@@ -1,3 +1,4 @@
+#pragma once
 #include "cryptoTools/Common/Defines.h"
 #include <future>
 #include <atomic>
