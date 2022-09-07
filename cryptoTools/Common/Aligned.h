@@ -177,22 +177,22 @@ namespace osuCrypto
         span<T> subspan(u64 offset, u64 size_ = ~0ull)
         {
             if (size_ == ~0ull)
-                size_ = size() - offset;
-            if (offset == size())
+                size_ = this->size() - offset;
+            if (offset == this->size())
                 return {};
-            if (offset + size_ <= size())
-                return { &*(begin() + offset), size_ };
+            if (offset + size_ <= this->size())
+                return { &*(this->begin() + offset), size_ };
             throw RTE_LOC;
         }
 
         span<const T> subspan(u64 offset, u64 size_ = ~0ull) const
         {
             if (size_ == ~0ull)
-                size_ = size() - offset;
-            if (offset == size())
+                size_ = this->size() - offset;
+            if (offset == this->size())
                 return {};
-            if (offset + size_ <= size())
-                return { &*(begin() + offset), size_ };
+            if (offset + size_ <= this->size())
+                return { &*(this->begin() + offset), size_ };
             throw RTE_LOC;
         }
     };
@@ -267,7 +267,7 @@ namespace osuCrypto
 
         auto capacity() const { return mCapacity; }
         auto size() const { return mSpan.size(); }
-        auto empty() const { return size() == 0; }
+        auto empty() const { return this->size() == 0; }
 
         auto begin() { return mSpan.begin(); }
         auto begin() const { return mSpan.begin(); }
@@ -286,7 +286,7 @@ namespace osuCrypto
         {
             if (capacity() >= n)
             {
-                mSpan = span<T>(data(), n);
+                mSpan = span<T>(this->data(), n);
                 return;
             }
 
@@ -307,7 +307,7 @@ namespace osuCrypto
 
         void reserve(size_t n)
         {
-            u64 s = size();
+            u64 s = this->size();
 
             if (n > capacity())
             {
