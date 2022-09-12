@@ -680,7 +680,7 @@ namespace osuCrypto {
 
 		AES prng;
 		MultiKeyAES<chunkSize> aesRoundKeys;
-		size_t index;
+		u64 index = ~0ull;
 
 		// Uninitialized.
 		AESStream() = default;
@@ -694,6 +694,7 @@ namespace osuCrypto {
 
 		const AES& get() const
 		{
+            assert(index != ~0ull);
 			return aesRoundKeys.mAESs[index % chunkSize];
 		}
 
