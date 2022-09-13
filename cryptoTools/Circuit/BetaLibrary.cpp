@@ -918,7 +918,7 @@ namespace osuCrypto
 		signExtendResize(a1, sSize, zero, it);
 		signExtendResize(a2, sSize, zero, it);
 
-		if (sum[0] != -1)
+		if (sum[0] != (BetaWire)-1)
 			P[0] = sum[0];
 
 		auto initGate0 = at == AdderType::Addition ? GateType::Xor : GateType::Nxor;
@@ -939,7 +939,7 @@ namespace osuCrypto
 		// Sklansky algorithm
 		auto d = log2ceil(sSize);
 
-		struct Idx { u64 lvl = -1, pos = -1; };
+		struct Idx { u64 lvl = (u64)-1, pos = (u64)-1; };
 		struct Node
 		{
 			bool first, used = false, enqued = false;
@@ -980,9 +980,9 @@ namespace osuCrypto
 		std::vector<Idx> stack;
 		auto add = [&](Idx idx)
 		{
-			assert(idx.pos != -1);
+			assert(idx.pos != (u64)-1);
 
-			if (idx.lvl != -1)
+			if (idx.lvl != (u64)-1)
 			{
 				auto& c0 = graph(idx.lvl, idx.pos);
 				if (c0.enqued == false)
@@ -997,7 +997,7 @@ namespace osuCrypto
 
 		for (u64 i = 1; i < sSize; ++i)
 		{
-			if (sum[i] != -1)
+			if (sum[i] != (BetaWire)-1)
 			{
 				add({ lvls[i-1],i-1 });
 				//std::cout << "added* " << lvls[i] << ", " << i << std::endl;
@@ -1059,7 +1059,7 @@ namespace osuCrypto
 		cd.addGate(a1.mWires[0], a2.mWires[0], GateType::Xor, P[0]);
 		for (u64 i = 1; i < sSize; ++i)
 		{
-			if (sum[i] != -1)
+			if (sum[i] != (BetaWire)-1)
 			{
 				// s[i] = P[i] ^ G[i-1]
 				if (a1[i] == zero && a2[i] == zero)
@@ -1223,7 +1223,7 @@ namespace osuCrypto
 			else
 				cd.addGate(xi, yi, GateType::Xor, t0);
 
-			if (out[i] != -1)
+			if (out[i] != (BetaWire)-1)
 				cd.addGate(t0, zi, GateType::Xor, out[i]);
 
 			if (i != out.size() - 1)

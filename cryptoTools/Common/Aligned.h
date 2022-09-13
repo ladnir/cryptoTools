@@ -286,7 +286,7 @@ namespace osuCrypto
         {
             if (capacity() >= n)
             {
-                mSpan = span<T>(this->data(), n);
+                mSpan = span<T>(data(), n);
                 return;
             }
 
