@@ -35,6 +35,9 @@
 // enable the use of intel SSE instructions.
 #cmakedefine ENABLE_SSE @ENABLE_SSE@
 
+// enable the use of intel AVX instructions.
+#cmakedefine ENABLE_AVX @ENABLE_AVX@
+
 // enable the use of the portable AES implementation.
 // #cmakedefine ENABLE_PORTABLE_AES @ENABLE_PORTABLE_AES@
 
@@ -51,4 +54,8 @@
 #define OC_ENABLE_AESNI ON
 #else
 #define OC_ENABLE_PORTABLE_AES ON
+#endif
+
+#if (defined(_MSC_VER) || defined(__AVX2__)) && defined(ENABLE_AVX)
+#define OC_ENABLE_AVX2 ON
 #endif

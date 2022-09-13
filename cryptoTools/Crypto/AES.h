@@ -1,6 +1,8 @@
 #pragma once
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
+#include <type_traits>
+#include <cassert>
 
 namespace osuCrypto {
 
@@ -12,10 +14,11 @@ namespace osuCrypto {
             Portable
         };
 
-        template<AESTypes types>
+        template<AESTypes type>
         class AES
         {
         public:
+            static const u64 rounds = 10;
 
             // Default constructor leave the class in an invalid state
             // until setKey(...) is called.
@@ -28,181 +31,110 @@ namespace osuCrypto {
             // Set the key to be used for encryption.
             void setKey(const block& userKey);
 
+            block getKey() const {
+                return mRoundKey[0];
+            }
+
+
+            ///////////////////////////////////////////////
+            // ECB ENCRYPTION
+
+            // Use this function (or other *Inline functions) if you want to force inlining.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
+            ecbEncBlocksInline(const block* plaintext, block* ciphertext) const
+            {
+                assert((u64)plaintext % 16 == 0 && "plaintext must be aligned.");
+                assert((u64)ciphertext % 16 == 0 && "ciphertext must be aligned.");
+
+                for (u64 j = 0; j < blocks; ++j)
+                    ciphertext[j] = plaintext[j] ^ mRoundKey[0];
+                for (u64 i = 1; i < rounds; ++i)
+                    roundEncBlocks<blocks>(ciphertext, ciphertext, mRoundKey[i]);
+                finalEncBlocks<blocks>(ciphertext, ciphertext, mRoundKey[rounds]);
+            }
+
+            template<u64 blocks>
+            OC_FORCEINLINE void
+            ecbEncBlocksInline(const block (&plaintext)[blocks], block (&ciphertext)[blocks]) const
+            {
+                ecbEncBlocksInline<blocks>(&plaintext[0], &ciphertext[0]);
+            }
+
+            // Fall back to encryption loop rather than doing way too many blocks at once.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
+            ecbEncBlocksInline(const block* plaintext, block* ciphertext) const
+            {
+                ecbEncBlocks(plaintext, blocks, ciphertext);
+            }
+
+            // Not necessarily inlined version. See specialization below class for more information.
+            template<u64 blocks>
+            inline void ecbEncBlocks(const block* plaintext, block* ciphertext) const
+            {
+                ecbEncBlocksInline<blocks>(plaintext, ciphertext);
+            }
+
             // Encrypts the plaintext block and stores the result in ciphertext
-            void ecbEncBlock(const block& plaintext, block& ciphertext) const;
+            inline void ecbEncBlock(const block& plaintext, block& ciphertext) const
+            {
+                ecbEncBlocks<1>(&plaintext, &ciphertext);
+            }
 
-            // Encrypts the plaintext block and returns the result 
-            block ecbEncBlock(const block& plaintext) const;
+            // Encrypts the plaintext block and returns the result
+            inline block ecbEncBlock(const block& plaintext) const
+            {
+                block ciphertext;
+                ecbEncBlock(plaintext, ciphertext);
+                return ciphertext;
+            }
 
-            // Encrypts blockLength starting at the plaintexts pointer and writes the result
+            // Encrypts blockLength starting at the plaintext pointer and writes the result
             // to the ciphertext pointer
-            void ecbEncBlocks(const block* plaintexts, u64 blockLength, block* ciphertext) const;
-
-            void ecbEncBlocks(span<const block> plaintexts, span<block> ciphertext) const
+            inline void ecbEncBlocks(const block* plaintext, u64 blockLength, block* ciphertext) const
             {
-                if (plaintexts.size() != ciphertext.size())
+                const u64 step = 8;
+                u64 idx = 0;
+
+                for (; idx + step <= blockLength; idx += step)
+                {
+                    ecbEncBlocks<step>(plaintext + idx, ciphertext + idx);
+                }
+
+                i32 misalignment = blockLength % step;
+                switch (misalignment) {
+                    #define SWITCH_CASE(n) \
+                    case n: \
+                        ecbEncBlocks<n>(plaintext + idx, ciphertext + idx); \
+                        break;
+                    SWITCH_CASE(1)
+                    SWITCH_CASE(2)
+                    SWITCH_CASE(3)
+                    SWITCH_CASE(4)
+                    SWITCH_CASE(5)
+                    SWITCH_CASE(6)
+                    SWITCH_CASE(7)
+                    #undef SWITCH_CASE
+                }
+            }
+
+            inline void ecbEncBlocks(span<const block> plaintext, span<block> ciphertext) const
+            {
+                if (plaintext.size() != ciphertext.size())
                     throw RTE_LOC;
-                ecbEncBlocks(plaintexts.data(), plaintexts.size(), ciphertext.data());
+                ecbEncBlocks(plaintext.data(), plaintext.size(), ciphertext.data());
             }
 
 
-            // Encrypts 2 blocks pointer to by plaintexts and writes the result to ciphertext
-            void ecbEncTwoBlocks(const block* plaintexts, block* ciphertext) const;
+            ///////////////////////////////////////////////
+            // Counter mode stream
 
-            // Encrypts 4 blocks pointer to by plaintexts and writes the result to ciphertext
-            void ecbEncFourBlocks(const block* plaintexts, block* ciphertext) const;
-
-            // Encrypts 8 blocks pointer to by plaintexts and writes the result to ciphertext
-            inline void ecbEnc8Blocks(const block* plaintexts, block* ciphertext) const
-            {
-
-                block temp[8];
-
-                temp[0] = plaintexts[0] ^ mRoundKey[0];
-                temp[1] = plaintexts[1] ^ mRoundKey[0];
-                temp[2] = plaintexts[2] ^ mRoundKey[0];
-                temp[3] = plaintexts[3] ^ mRoundKey[0];
-                temp[4] = plaintexts[4] ^ mRoundKey[0];
-                temp[5] = plaintexts[5] ^ mRoundKey[0];
-                temp[6] = plaintexts[6] ^ mRoundKey[0];
-                temp[7] = plaintexts[7] ^ mRoundKey[0];
-
-                temp[0] = roundEnc(temp[0], mRoundKey[1]);
-                temp[1] = roundEnc(temp[1], mRoundKey[1]);
-                temp[2] = roundEnc(temp[2], mRoundKey[1]);
-                temp[3] = roundEnc(temp[3], mRoundKey[1]);
-                temp[4] = roundEnc(temp[4], mRoundKey[1]);
-                temp[5] = roundEnc(temp[5], mRoundKey[1]);
-                temp[6] = roundEnc(temp[6], mRoundKey[1]);
-                temp[7] = roundEnc(temp[7], mRoundKey[1]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[2]);
-                temp[1] = roundEnc(temp[1], mRoundKey[2]);
-                temp[2] = roundEnc(temp[2], mRoundKey[2]);
-                temp[3] = roundEnc(temp[3], mRoundKey[2]);
-                temp[4] = roundEnc(temp[4], mRoundKey[2]);
-                temp[5] = roundEnc(temp[5], mRoundKey[2]);
-                temp[6] = roundEnc(temp[6], mRoundKey[2]);
-                temp[7] = roundEnc(temp[7], mRoundKey[2]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[3]);
-                temp[1] = roundEnc(temp[1], mRoundKey[3]);
-                temp[2] = roundEnc(temp[2], mRoundKey[3]);
-                temp[3] = roundEnc(temp[3], mRoundKey[3]);
-                temp[4] = roundEnc(temp[4], mRoundKey[3]);
-                temp[5] = roundEnc(temp[5], mRoundKey[3]);
-                temp[6] = roundEnc(temp[6], mRoundKey[3]);
-                temp[7] = roundEnc(temp[7], mRoundKey[3]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[4]);
-                temp[1] = roundEnc(temp[1], mRoundKey[4]);
-                temp[2] = roundEnc(temp[2], mRoundKey[4]);
-                temp[3] = roundEnc(temp[3], mRoundKey[4]);
-                temp[4] = roundEnc(temp[4], mRoundKey[4]);
-                temp[5] = roundEnc(temp[5], mRoundKey[4]);
-                temp[6] = roundEnc(temp[6], mRoundKey[4]);
-                temp[7] = roundEnc(temp[7], mRoundKey[4]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[5]);
-                temp[1] = roundEnc(temp[1], mRoundKey[5]);
-                temp[2] = roundEnc(temp[2], mRoundKey[5]);
-                temp[3] = roundEnc(temp[3], mRoundKey[5]);
-                temp[4] = roundEnc(temp[4], mRoundKey[5]);
-                temp[5] = roundEnc(temp[5], mRoundKey[5]);
-                temp[6] = roundEnc(temp[6], mRoundKey[5]);
-                temp[7] = roundEnc(temp[7], mRoundKey[5]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[6]);
-                temp[1] = roundEnc(temp[1], mRoundKey[6]);
-                temp[2] = roundEnc(temp[2], mRoundKey[6]);
-                temp[3] = roundEnc(temp[3], mRoundKey[6]);
-                temp[4] = roundEnc(temp[4], mRoundKey[6]);
-                temp[5] = roundEnc(temp[5], mRoundKey[6]);
-                temp[6] = roundEnc(temp[6], mRoundKey[6]);
-                temp[7] = roundEnc(temp[7], mRoundKey[6]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[7]);
-                temp[1] = roundEnc(temp[1], mRoundKey[7]);
-                temp[2] = roundEnc(temp[2], mRoundKey[7]);
-                temp[3] = roundEnc(temp[3], mRoundKey[7]);
-                temp[4] = roundEnc(temp[4], mRoundKey[7]);
-                temp[5] = roundEnc(temp[5], mRoundKey[7]);
-                temp[6] = roundEnc(temp[6], mRoundKey[7]);
-                temp[7] = roundEnc(temp[7], mRoundKey[7]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[8]);
-                temp[1] = roundEnc(temp[1], mRoundKey[8]);
-                temp[2] = roundEnc(temp[2], mRoundKey[8]);
-                temp[3] = roundEnc(temp[3], mRoundKey[8]);
-                temp[4] = roundEnc(temp[4], mRoundKey[8]);
-                temp[5] = roundEnc(temp[5], mRoundKey[8]);
-                temp[6] = roundEnc(temp[6], mRoundKey[8]);
-                temp[7] = roundEnc(temp[7], mRoundKey[8]);
-
-                temp[0] = roundEnc(temp[0], mRoundKey[9]);
-                temp[1] = roundEnc(temp[1], mRoundKey[9]);
-                temp[2] = roundEnc(temp[2], mRoundKey[9]);
-                temp[3] = roundEnc(temp[3], mRoundKey[9]);
-                temp[4] = roundEnc(temp[4], mRoundKey[9]);
-                temp[5] = roundEnc(temp[5], mRoundKey[9]);
-                temp[6] = roundEnc(temp[6], mRoundKey[9]);
-                temp[7] = roundEnc(temp[7], mRoundKey[9]);
-
-                ciphertext[0] = finalEnc(temp[0], mRoundKey[10]);
-                ciphertext[1] = finalEnc(temp[1], mRoundKey[10]);
-                ciphertext[2] = finalEnc(temp[2], mRoundKey[10]);
-                ciphertext[3] = finalEnc(temp[3], mRoundKey[10]);
-                ciphertext[4] = finalEnc(temp[4], mRoundKey[10]);
-                ciphertext[5] = finalEnc(temp[5], mRoundKey[10]);
-                ciphertext[6] = finalEnc(temp[6], mRoundKey[10]);
-                ciphertext[7] = finalEnc(temp[7], mRoundKey[10]);
-            }
-
-            inline block hashBlock(const block& plaintexts) const
-            {
-                return ecbEncBlock(plaintexts) ^ plaintexts;
-            }
-
-            inline void hash8Blocks(const block* plaintexts, block* ciphertext) const
-            {
-                std::array<block, 8> buff;
-                ecbEnc8Blocks(plaintexts, buff.data());
-                ciphertext[0] = plaintexts[0] ^ buff[0];
-                ciphertext[1] = plaintexts[1] ^ buff[1];
-                ciphertext[2] = plaintexts[2] ^ buff[2];
-                ciphertext[3] = plaintexts[3] ^ buff[3];
-                ciphertext[4] = plaintexts[4] ^ buff[4];
-                ciphertext[5] = plaintexts[5] ^ buff[5];
-                ciphertext[6] = plaintexts[6] ^ buff[6];
-                ciphertext[7] = plaintexts[7] ^ buff[7];
-            }
-
-            inline void hashBlocks(span<const block> plaintexts, span<block> ciphertext) const
-            {
-                //assert(plaintexts.size() == ciphertext.size());
-                auto main = u64(plaintexts.size() / 8) * 8;
-                u64 i = 0;
-                auto o = ciphertext.data();
-                auto p = plaintexts.data();
-                for (; i < main; i += 8)
-                {
-                    hash8Blocks(p + i, o + i);
-                }
-
-                for (; i < u64(ciphertext.size()); ++i)
-                {
-                    o[i] = hashBlock(p[i]);
-                }
-            }
-
-            // Encrypts 16 blocks pointer to by plaintexts and writes the result to ciphertext
-            void ecbEnc16Blocks(const block* plaintexts, block* ciphertext) const;
-
-            // Encrypts the vector of blocks {baseIdx, baseIdx + 1, ..., baseIdx + length - 1} 
+            // Encrypts the vector of blocks {baseIdx, baseIdx + 1, ..., baseIdx + blockLength - 1}
             // and writes the result to ciphertext.
-            void ecbEncCounterMode(u64 baseIdx, u64 length, block* ciphertext) const
+            void ecbEncCounterMode(u64 baseIdx, u64 blockLength, block* ciphertext) const
             {
-                ecbEncCounterMode(toBlock(baseIdx), length, ciphertext);
+                ecbEncCounterMode(toBlock(baseIdx), blockLength, ciphertext);
             }
             void ecbEncCounterMode(u64 baseIdx, span<block> ciphertext) const
             {
@@ -212,21 +144,280 @@ namespace osuCrypto {
             {
                 ecbEncCounterMode(baseIdx, ciphertext.size(), ciphertext.data());
             }
-            void ecbEncCounterMode(block baseIdx, u64 length, block* ciphertext) const;
+            void ecbEncCounterMode(block baseIdx, u64 blockLength, block* ciphertext) const
+            {
+                ecbEncCounterModeImpl(baseIdx, blockLength, ciphertext[0].data());
+            }
+
+            // Use this version (which writes to a u8* pointer) for unaligned output.
+            void ecbEncCounterMode(block baseIdx, u64 byteLength, u8* ciphertext) const
+            {
+                if (byteLength % sizeof(block))
+                    throw RTE_LOC;
+                ecbEncCounterModeImpl(baseIdx, byteLength / sizeof(block), ciphertext);
+            }
+            void ecbEncCounterMode(u64 baseIdx, u64 blockLength, u8* ciphertext) const
+            {
+                ecbEncCounterMode(toBlock(baseIdx), blockLength, ciphertext);
+            }
+
+
+            ///////////////////////////////////////////////
+            // Tweakable correlation robust hash function.
+	        // https://eprint.iacr.org/2019/074.pdf section 7.4
+
+
+            // Tweakable correlation robust hash function.
+	        // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<u64 blocks, typename TweakFn>
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
+                TmmoHashBlocks(const block* plaintext, block* ciphertext, TweakFn&& tweakFn) const
+            {
+                block buff[blocks];
+                block pix[blocks];
+
+                // pi = AES(x)
+                ecbEncBlocks<blocks>(plaintext, pix);
+
+                // { tweaks_0, ..., baseTweak_{blocks - 1} } 
+                generateTweaks<blocks>(std::forward<TweakFn>(tweakFn), buff);
+
+                // AES(x) ^ tweaks
+                xorBlocks<blocks>(pix, buff);
+
+                // buff = AES( AES(x) ^ tweaks)
+                ecbEncBlocks<blocks>(buff, buff);
+
+                // ciphertext = AES(AES(x) ^ tweaks) ^ AES(x)
+                xorBlocks<blocks>(buff, pix, ciphertext);
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // TMMO(x, i) = AES(AES(x) + i) + AES(x).
+            block TmmoHashBlock(block plaintext, block baseTweak) const
+            {
+                block r;
+                TmmoHashBlocks<1>(&plaintext, &r, [baseTweak]() { return baseTweak; });
+                return r;
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<typename TweakFn>
+            inline void TmmoHashBlocks(span<const block> plaintext, span<block> ciphertext, TweakFn&& tweak) const
+            {
+                if (plaintext.size() != ciphertext.size())
+                    throw RTE_LOC;
+
+                TmmoHashBlocks(plaintext.data(), plaintext.size(), ciphertext.data(), tweak);
+            }
+
+
+            // Tweakable correlation robust hash function.
+            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+            template<typename TweakFn>
+            inline void TmmoHashBlocks(const block* plaintext, u64 blockLength, block* ciphertext, TweakFn&& tweak) const
+            {
+                const u64 step = 8;
+                u64 idx = 0;
+
+                for (; idx + step <= blockLength; idx += step)
+                {
+                    TmmoHashBlocks<step>(plaintext + idx, ciphertext + idx, tweak);
+                }
+
+                i32 misalignment = blockLength % step;
+                switch (misalignment) {
+#define SWITCH_CASE(n) \
+                    case n: \
+                        TmmoHashBlocks<n>(plaintext + idx, ciphertext + idx, tweak); \
+                        break;
+                    SWITCH_CASE(1)
+                    SWITCH_CASE(2)
+                    SWITCH_CASE(3)
+                    SWITCH_CASE(4)
+                    SWITCH_CASE(5)
+                    SWITCH_CASE(6)
+                    SWITCH_CASE(7)
+#undef SWITCH_CASE
+                }
+            }
 
 
 
-            // Returns the current key.
-            const block& getKey() const { return mRoundKey[0]; }
+
+            ///////////////////////////////////////////////
+            // Correlation robust hash function.
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks <= 16)>::type
+                hashBlocks(const block* plaintext, block* ciphertext) const
+            {
+                block buff[blocks];
+                ecbEncBlocks<blocks>(plaintext, buff);
+                xorBlocks<blocks>(plaintext, buff, ciphertext);
+            }
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            // Fall back to encryption loop rather than unrolling way too many blocks.
+            template<u64 blocks>
+            OC_FORCEINLINE typename std::enable_if<(blocks > 16)>::type
+                hashBlocks(const block* plaintext, block* ciphertext) const
+            {
+                hashBlocks(plaintext, blocks, ciphertext);
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline void hashBlocks(span<const block> plaintext, span<block> ciphertext) const
+            {
+                if (plaintext.size() != ciphertext.size())
+                    throw RTE_LOC;
+                hashBlocks(plaintext.data(), plaintext.size(), ciphertext.data());
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline block hashBlock(const block& plaintext) const
+            {
+                block ciphertext;
+                hashBlocks<1>(&plaintext, &ciphertext);
+                return ciphertext;
+            }
+
+
+            // Correlation robust hash function.
+            // H(x) = AES(x) + x.
+            inline void hashBlocks(const block* plaintext, u64 blockLength, block* ciphertext) const
+            {
+                const u64 step = 8;
+                u64 idx = 0;
+
+                for (; idx + step <= blockLength; idx += step)
+                {
+                    hashBlocks<step>(plaintext + idx, ciphertext + idx);
+                }
+
+                i32 misalignment = blockLength % step;
+                switch (misalignment) {
+                    #define SWITCH_CASE(n) \
+                    case n: \
+                        hashBlocks<n>(plaintext + idx, ciphertext + idx); \
+                        break;
+                    SWITCH_CASE(1)
+                    SWITCH_CASE(2)
+                    SWITCH_CASE(3)
+                    SWITCH_CASE(4)
+                    SWITCH_CASE(5)
+                    SWITCH_CASE(6)
+                    SWITCH_CASE(7)
+                    #undef SWITCH_CASE
+                }
+            }
+
+
+            // The expanded key.
+            std::array<block, rounds + 1> mRoundKey;
+
+            ////////////////////////////////////////
+            // Low level
 
             static block roundEnc(block state, const block& roundKey);
             static block finalEnc(block state, const block& roundKey);
 
-            // The expanded key.
-            std::array<block,11> mRoundKey;
+        private:
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+            roundEncBlocks(const block* stateIn, block* stateOut, const block& roundKey)
+            {
+                // Force unrolling using template recursion.
+                roundEncBlocks<blocks - 1>(stateIn, stateOut, roundKey);
+                stateOut[blocks - 1] = roundEnc(stateIn[blocks - 1], roundKey);
+            }
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+            finalEncBlocks(const block* stateIn, block* stateOut, const block& roundKey)
+            {
+                finalEncBlocks<blocks - 1>(stateIn, stateOut, roundKey);
+                stateOut[blocks - 1] = finalEnc(stateIn[blocks - 1], roundKey);
+            }
+
+            // Base case
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<blocks == 0>::type
+            roundEncBlocks(const block* stateIn, block* stateOut, const block& roundKey) {}
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<blocks == 0>::type
+            finalEncBlocks(const block* stateIn, block* stateOut, const block& roundKey) {}
+
+
+
+
+            // For simplicity, all CTR modes are defined in terms of the unaligned version.
+            void ecbEncCounterModeImpl(block baseIdx, u64 blockLength, u8* ciphertext) const;
+
+            // Use template for loop unrolling.
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                xorBlocks(const block* plaintext, block* buff, block* ciphertext)
+            {
+                buff[blocks - 1] ^= plaintext[blocks - 1];
+                xorBlocks<blocks - 1>(plaintext, buff, ciphertext);
+
+                // Only write to ciphertext after computing the entire output, so the compiler won't
+                // have to worry about ciphertext aliasing plaintext.
+                ciphertext[blocks - 1] = buff[blocks - 1];
+            }
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                xorBlocks(const block* plaintext, const block* buff, block* ciphertext) {}
+
+
+            template<u64 blocks, typename TweakFn>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                generateTweaks(TweakFn&& tweakFn, block* tweaks)
+            {
+                generateTweaks<blocks - 1>(std::forward<TweakFn>(tweakFn), tweaks);
+                tweaks[blocks - 1] = tweakFn();
+            }
+
+
+            template<u64 blocks, typename TweakFn>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                generateTweaks(TweakFn&& baseTweak, block* tweaks) {}
+
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks > 0)>::type
+                xorBlocks(const block* x, block* y)
+            {
+                auto t = x[blocks - 1] ^ y[blocks - 1];
+                xorBlocks<blocks - 1>(x, y);
+                y[blocks - 1] = t;
+            }
+
+
+            template<u64 blocks>
+            static OC_FORCEINLINE typename std::enable_if<(blocks == 0)>::type
+                xorBlocks(const block* baseTweak, block* tweaks) {}
         };
 
 #ifdef OC_ENABLE_AESNI
+        template<>
+        void AES<NI>::setKey(const block& userKey);
+
         template<>
         inline block AES<NI>::finalEnc(block state, const block& roundKey)
         {
@@ -238,6 +429,8 @@ namespace osuCrypto {
         {
             return _mm_aesenc_si128(state, roundKey);
         }
+
+
 #endif
 
         // A class to perform AES decryption.
@@ -245,15 +438,27 @@ namespace osuCrypto {
         class AESDec
         {
         public:
+            static const u64 rounds = AES<type>::rounds;
+
             AESDec() = default;
             AESDec(const AESDec&) = default;
-            AESDec(const block& userKey);
+
+            AESDec(const block& key)
+            {
+                setKey(key);
+            }
 
             void setKey(const block& userKey);
             void ecbDecBlock(const block& ciphertext, block& plaintext);
-            block ecbDecBlock(const block& ciphertext);
 
-            std::array<block,11> mRoundKey;
+            block ecbDecBlock(const block& ciphertext)
+            {
+                block ret;
+                ecbDecBlock(ciphertext, ret);
+                return ret;
+            }
+
+            std::array<block,rounds + 1> mRoundKey;
 
 
             static block roundDec(block state, const block& roundKey);
@@ -290,6 +495,7 @@ namespace osuCrypto {
 
 #ifdef OC_ENABLE_AESNI
 
+        // TODO: use technique from "Fast Garbling of Circuits Under Standard Assumptions".
         template<int SS>
         void keyGenHelper8(std::array<block,8>& key)
         {
@@ -409,7 +615,7 @@ namespace osuCrypto {
             }
 #else
             u64 main = 0;
-#endif  
+#endif
 
             for (u64 i = main; i < N; ++i)
             {
@@ -417,7 +623,7 @@ namespace osuCrypto {
             }
         }
 
-        // Computes the encrpytion of N blocks pointed to by plaintext 
+        // Computes the encrpytion of N blocks pointed to by plaintext
         // and stores the result at ciphertext.
         void ecbEncNBlocks(const block* plaintext, block* ciphertext) const
         {
@@ -435,7 +641,15 @@ namespace osuCrypto {
         }
 
 
-        // Computes the hash of N blocks pointed to by plaintext 
+        void ecbEncCounterMode(u64 index, block* dst)
+        {
+            block buff[N];
+            for (int i = 0; i < N; ++i)
+                buff[i] = block(index);
+            ecbEncNBlocks(buff, dst);
+        }
+
+        // Computes the hash of N blocks pointed to by plaintext
         // and stores the result at ciphertext.
         void hashNBlocks(const block* plaintext, block* hashes) const
         {
@@ -459,22 +673,44 @@ namespace osuCrypto {
         }
     };
 
+	// Pseudorandomly generate a stream of AES round keys.
+	struct AESStream
+	{
+		static constexpr size_t chunkSize = 8;
 
-    //// A class to perform AES decryption.
-    //class AESDec2
-    //{
-    //public:
-    //    AESDec2() = default;
-    //    AESDec2(const AESDec2&) = default;
-    //    AESDec2(const block& userKey);
-    //
-    //    void setKey(const block& userKey);
-    //    void ecbDecBlock(const block& ciphertext, block& plaintext);
-    //    block ecbDecBlock(const block& ciphertext);
-    //
-    //    block mRoundKey[11];
-    //
-    //};
+		AES prng;
+		MultiKeyAES<chunkSize> aesRoundKeys;
+		u64 index = ~0ull;
+
+		// Uninitialized.
+		AESStream() = default;
+
+		AESStream(block seed)
+		{
+			setSeed(seed);
+		}
+
+        void setSeed(block seed);
+
+		const AES& get() const
+		{
+            assert(index != ~0ull);
+			return aesRoundKeys.mAESs[index % chunkSize];
+		}
+
+		void next()
+		{
+			if (++index % chunkSize == 0)
+				refillBuffer();
+		}
+
+		void refillBuffer()
+		{
+			std::array<block, chunkSize> keys;
+			prng.ecbEncCounterMode(index, keys);
+			aesRoundKeys.setKeys(keys);
+		}
+	};
 
 
     // An AES instance with a fixed and public key.

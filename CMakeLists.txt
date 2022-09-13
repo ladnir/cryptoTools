@@ -14,7 +14,7 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	#          If top level cmake              #
 	############################################
 
-	if(${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+	if(${CMAKE_VERSION} VERSION_LESS "3.12.0")
 		message("Please consider updating CMake to 3.12+")
 	endif()
 
@@ -28,7 +28,7 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	if(MSVC)
 		# optionally add the following to CMAKE_PREFIX_PATH
 		if(NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED NO_OC_DEFAULT_PREFIX)
-			set(CMAKE_PREFIX_PATH 
+			set(CMAKE_PREFIX_PATH
 				"c:/libs"
 				"${CMAKE_CURRENT_SOURCE_DIR}/.."
 				)
@@ -36,13 +36,14 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	else()
 		# Select flags.
 		set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")	
-		SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG") 
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
+		SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 		SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO " -O2 -g -ggdb")
 		SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -ggdb")
 	endif()
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
-endif() 
+endif()
 
 
 macro(EVAL var)
@@ -62,15 +63,20 @@ option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
-option(ENABLE_WOLFSSL   "conpiler with WolfSSL enabled" OFF)
-option(ENABLE_SSE       "compile with SSE instrctions" ON)
-option(ENABLE_BOOST     "compile with BOOST networing integration" ON)
+option(ENABLE_WOLFSSL   "compiler with WolfSSL enabled" OFF)
+option(ENABLE_SSE       "compile with SSE instructions" ON)
+option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
+option(ENABLE_BOOST     "compile with BOOST networking integration" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
 	set(CRYPTO_TOOLS_STD_VER  14)
 endif()
+if(NOT ENABLE_SSE)
+	message("AVX requires SSE to be enabled.")
+	set(ENABLE_AVX OFF)
+endif()
 
-option(FETCH_AUTO      "automaticly download and build dependancies" OFF)
+option(FETCH_AUTO      "automatically download and build dependencies" OFF)
 
 #option(FETCH_SPAN_LITE		"download and build span" OFF))
 EVAL(FETCH_SPAN_LITE_IMPL 
@@ -111,7 +117,10 @@ message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
 message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
-message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}\n\n")
+
+message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
+message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}")
+message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n\n")
 
 
 

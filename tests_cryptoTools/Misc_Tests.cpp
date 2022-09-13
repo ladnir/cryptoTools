@@ -32,11 +32,11 @@ namespace tests_cryptoTools
     void BitVector_Parity_Test_Impl()
     {
         PRNG prng(ZeroBlock);
-        for (u64 i = 0; i < 1000; ++i)
+        for (u64 i = 0; i < 100; ++i)
         {
             u8 size = prng.get<u8>();
             u8 parity = 0;
-
+            u64 sum = 0;
             BitVector bv(size);
 
             bv.randomize(prng);
@@ -44,7 +44,11 @@ namespace tests_cryptoTools
             for (u64 j = 0; j < size; ++j)
             {
                 parity ^= bv[j];
+                sum += bv[j];
             }
+
+            if (sum != bv.hammingWeight())
+                throw UnitTestFail();
 
             if (parity != bv.parity())
                 throw UnitTestFail();

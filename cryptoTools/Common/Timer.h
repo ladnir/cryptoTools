@@ -1,11 +1,11 @@
 #pragma once
-// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.  
+// This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <list>
 #include <chrono>
 #include <string>
 #include <mutex>
 namespace osuCrypto
-{ 
+{
 
     class Timer
     {
@@ -31,7 +31,7 @@ namespace osuCrypto
         void reset();
     };
 
-	extern Timer gTimer;
+    extern Timer gTimer;
     class TimerAdapter
     {
     public:

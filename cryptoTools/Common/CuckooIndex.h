@@ -4,6 +4,7 @@
 #include "cryptoTools/Common/BitVector.h"
 #include "cryptoTools/Common/Matrix.h"
 #include <atomic>
+#include <string.h>
 
 namespace osuCrypto
 {
@@ -255,7 +256,7 @@ namespace osuCrypto
 
         inline static u64 getHash(const block& hash, const u8& hashIdx, const u64& num_bins)
         {
-            u8* ptr = (u8*)&hash;
+            const u8* ptr = hash.data();
             ptr += 2 * hashIdx;
             //if (ptr > &hash.as<u8>()[8])
             //    throw RTE_LOC;
@@ -264,7 +265,8 @@ namespace osuCrypto
                 "To assume that we can have at most 4 has function, i.e. we need  2*hashIdx + sizeof(u64) < sizeof(block)");
 
 
-            u64 h = *(u64*)ptr;
+            u64 h;
+            memcpy(&h, ptr, sizeof(h));
             return h % num_bins;
 
             //auto& bytes = hash.as<const u8>();
