@@ -67,6 +67,7 @@ option(ENABLE_WOLFSSL   "compiler with WolfSSL enabled" OFF)
 option(ENABLE_SSE       "compile with SSE instructions" ON)
 option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
 option(ENABLE_BOOST     "compile with BOOST networking integration" ON)
+option(OC_PIC           "compile with -fPIC " OFF)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
 	set(CRYPTO_TOOLS_STD_VER  14)

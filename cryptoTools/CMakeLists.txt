@@ -35,6 +35,10 @@ else()
     if(ENABLE_AVX)
         target_compile_options(cryptoTools PUBLIC -mavx2)
     endif()
+
+    if(OC_PIC)
+        target_compile_options(cryptoTools PUBLIC -fPIC)
+    endif()
 endif()
 
 

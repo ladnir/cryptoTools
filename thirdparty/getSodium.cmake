@@ -46,9 +46,15 @@ if(NOT SODIUM_FOUND)
             run(NAME "dos2unix" CMD ${DOS2UNIX_CMD} WD ${CLONE_DIR})
         endif()
 
+        if(OC_PIC)
+            set(WITH_PIC "--with-pic=yes")
+        else()
+            set(WITH_PIC "--with-pic=no")
+        endif()
+
     
         set(AUTOGEN_CMD "./autogen.sh" "-s")
-        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}")
+        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}" ${WITH_PIC})
         set(BUILD_CMD     "make" "-j" "${PARALLEL_FETCH}")
         set(INSTALL_CMD   ${SUDO} "make" "install")
 
