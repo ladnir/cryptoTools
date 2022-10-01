@@ -489,6 +489,7 @@ namespace osuCrypto {
         // Default constructor leave the class in an invalid state
         // until setKey(...) is called.
         MultiKeyAES() = default;
+        MultiKeyAES(const MultiKeyAES&) = default;
 
         // Constructor to initialize the class with the given key
         MultiKeyAES(span<block> keys) { setKeys(keys); }
@@ -678,12 +679,26 @@ namespace osuCrypto {
 	{
 		static constexpr size_t chunkSize = 8;
 
-		AES prng;
-		MultiKeyAES<chunkSize> aesRoundKeys;
-		u64 index = ~0ull;
+		AES mPrng;
+		MultiKeyAES<chunkSize> mAesRoundKeys;
+		u64 mIndex = ~0ull;
 
 		// Uninitialized.
 		AESStream() = default;
+        AESStream(AESStream && o)
+            : mPrng(std::move(o.mPrng))
+            , mAesRoundKeys(std::move(o.mAesRoundKeys))
+            , mIndex(std::exchange(o.mIndex, ~0ull))
+        {}
+
+        AESStream&operator=(AESStream&& o)
+        {
+            mPrng = (std::move(o.mPrng));
+            mAesRoundKeys = (std::move(o.mAesRoundKeys));
+            mIndex = (std::exchange(o.mIndex, ~0ull));
+            return *this;
+        }
+
 
 		AESStream(block seed)
 		{
@@ -694,21 +709,21 @@ namespace osuCrypto {
 
 		const AES& get() const
 		{
-            assert(index != ~0ull);
-			return aesRoundKeys.mAESs[index % chunkSize];
+            assert(mIndex != ~0ull);
+			return mAesRoundKeys.mAESs[mIndex % chunkSize];
 		}
 
 		void next()
 		{
-			if (++index % chunkSize == 0)
+			if (++mIndex % chunkSize == 0)
 				refillBuffer();
 		}
 
 		void refillBuffer()
 		{
 			std::array<block, chunkSize> keys;
-			prng.ecbEncCounterMode(index, keys);
-			aesRoundKeys.setKeys(keys);
+			mPrng.ecbEncCounterMode(mIndex, keys);
+			mAesRoundKeys.setKeys(keys);
 		}
 	};
 

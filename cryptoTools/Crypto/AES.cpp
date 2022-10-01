@@ -536,8 +536,8 @@ namespace osuCrypto {
 
     void AESStream::setSeed(block seed)
     {
-        index = 0;
-        prng.setKey(seed);
+        mIndex = 0;
+        mPrng.setKey(seed);
         refillBuffer();
     }
 }
