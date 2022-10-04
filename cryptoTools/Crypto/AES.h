@@ -685,13 +685,13 @@ namespace osuCrypto {
 
 		// Uninitialized.
 		AESStream() = default;
-        AESStream(AESStream && o)
+        AESStream(AESStream && o) noexcept
             : mPrng(std::move(o.mPrng))
             , mAesRoundKeys(std::move(o.mAesRoundKeys))
             , mIndex(std::exchange(o.mIndex, ~0ull))
         {}
 
-        AESStream&operator=(AESStream&& o)
+        AESStream&operator=(AESStream&& o) noexcept
         {
             mPrng = (std::move(o.mPrng));
             mAesRoundKeys = (std::move(o.mAesRoundKeys));
@@ -725,6 +725,13 @@ namespace osuCrypto {
 			mPrng.ecbEncCounterMode(mIndex, keys);
 			mAesRoundKeys.setKeys(keys);
 		}
+
+        // returns a new AES stream that is derived from this one.
+        // Both can be used independently.
+        AESStream split()
+        {
+            return mPrng.ecbEncBlock(block(23142341234234ull, mIndex++));
+        }
 	};
 
 
