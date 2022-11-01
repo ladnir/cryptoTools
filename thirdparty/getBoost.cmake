@@ -2,8 +2,8 @@
 
 set(BOOST_VERSION "77")
 set(BOOST_NAME    "boost_1_${BOOST_VERSION}_0")
-set(CLONE_DIR     "${CMAKE_CURRENT_LIST_DIR}/${BOOST_NAME}")
-set(ARCH_PATH     "${CMAKE_CURRENT_LIST_DIR}/${BOOST_NAME}.tar.bz2")
+set(CLONE_DIR     "${OC_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}")
+set(ARCH_PATH     "${OC_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}.tar.bz2")
 
 set(URL           "https://boostorg.jfrog.io/artifactory/main/release/1.${BOOST_VERSION}.0/source/boost_1_${BOOST_VERSION}_0.tar.bz2")
 set(LOG_FILE      "${CMAKE_CURRENT_LIST_DIR}/log-boost.txt")
@@ -32,7 +32,7 @@ SET(B2_ARGS
 if(MSVC)
 
     set(FINDVS_PATH "${CMAKE_CURRENT_LIST_DIR}/findvs.ps1")
-    set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/buildBoost_deleteMe.ps1")
+    set(TEMP_PATH "${OC_THIRDPARTY_CLONE_DIR}/buildBoost_deleteMe.ps1")
     list(APPEND B2_ARGS 
             toolset=msvc-14.2
             architecture=x86 
@@ -77,7 +77,7 @@ if(NOT EXISTS ${CLONE_DIR} OR NOT Boost_FOUND)
         endif()
 
         message("extracting")
-        file(ARCHIVE_EXTRACT INPUT ${ARCH_PATH} DESTINATION ${CMAKE_CURRENT_LIST_DIR})
+        file(ARCHIVE_EXTRACT INPUT ${ARCH_PATH} DESTINATION ${OC_THIRDPARTY_CLONE_DIR})
         
         file(REMOVE ${ARCH_PATH})
     endif()
@@ -115,18 +115,23 @@ endif()
 if(MSVC)
     list(JOIN B2_ARGS " " B2_ARGS)
     install(CODE "
-        include(${CMAKE_CURRENT_LIST_DIR}/fetch.cmake)
-        vsrun(NAME install-boost CMD             
-            \"${B2} ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}\n\"
-            WD ${CLONE_DIR})
+        if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${OC_THIRDPARTY_INSTALL_PREFIX}\")
+
+            include(${CMAKE_CURRENT_LIST_DIR}/fetch.cmake)
+            vsrun(NAME install-boost CMD             
+                \"${B2} ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}\n\"
+                WD ${CLONE_DIR})
+        endif()
     ")
 else()
     install(CODE "
-        execute_process(
-            COMMAND ${SUDO} \"${B2}\" ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}
-            WORKING_DIRECTORY ${CLONE_DIR}
-            RESULT_VARIABLE RESULT
-            COMMAND_ECHO STDOUT
-        )
+        if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${OC_THIRDPARTY_INSTALL_PREFIX}\")
+            execute_process(
+                COMMAND ${SUDO} \"${B2}\" ${B2_ARGS} install --prefix=\${CMAKE_INSTALL_PREFIX}
+                WORKING_DIRECTORY ${CLONE_DIR}
+                RESULT_VARIABLE RESULT
+                COMMAND_ECHO STDOUT
+            )
+        endif()
     ")
 endif()

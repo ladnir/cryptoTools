@@ -16,6 +16,10 @@ else()
     endif()
 endif()
 
+if(NOT OC_THIRDPARTY_CLONE_DIR)
+    set(OC_THIRDPARTY_CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/../out/build/")
+endif()
+
 if(NOT EXISTS "${CRYPTOTOOLS_BUILD_DIR}")
     message(FATAL_ERROR "failed to find the cryptoTools build directory. Looked at CRYPTOTOOLS_BUILD_DIR: ${CRYPTOTOOLS_BUILD_DIR}")
 endif()

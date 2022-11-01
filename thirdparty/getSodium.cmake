@@ -3,7 +3,7 @@
 set(GIT_REPOSITORY      https://github.com/osu-crypto/libsodium.git)
 set(GIT_TAG             "4e825a68baebdf058543f29762c73c17b1816ec0" )
 
-set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/libsodium")
+set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/libsodium")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-libsodium.txt")
 
@@ -18,7 +18,7 @@ if(NOT SODIUM_FOUND)
     message("============= Building Sodium =============")
 
     if(NOT EXISTS ${CLONE_DIR})
-        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${OC_THIRDPARTY_CLONE_DIR})
     endif()
     run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
 
@@ -86,7 +86,8 @@ if(MSVC)
         DESTINATION "lib")
 else()
     install(CODE "
-
+    
+        if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${OC_THIRDPARTY_INSTALL_PREFIX}\")
             execute_process(
                 COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/lib/
                 COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/include
@@ -98,5 +99,6 @@ else()
                 RESULT_VARIABLE RESULT
                 COMMAND_ECHO STDOUT
             )
+        endif()
     ")
 endif()

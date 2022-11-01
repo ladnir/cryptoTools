@@ -29,7 +29,8 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../out/install/${OC_CONFIG}")
         
         if(NOT DEFINED OC_THIRDPARTY_INSTALL_PREFIX)
-            set(OC_THIRDPARTY_INSTALL_PREFIX ${OC_THIRDPARTY_HINT})
+        
+		get_filename_component(OC_THIRDPARTY_INSTALL_PREFIX ${OC_THIRDPARTY_HINT} ABSOLUTE)
         endif()
     else()
         # we currenty are in install tree, <install-prefix>/lib/cmake/cryptoTools

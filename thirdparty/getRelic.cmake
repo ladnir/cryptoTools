@@ -2,7 +2,7 @@
 set(GIT_REPOSITORY      https://github.com/relic-toolkit/relic.git )
 set(GIT_TAG             "0.6.0" )
 
-set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/relic")
+set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/relic")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
 set(CONFIG    --config Release)
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-relic.txt")
@@ -28,7 +28,7 @@ if(NOT EXISTS ${BUILD_DIR} OR NOT RELIC_FOUND)
 
     message("============= Building Relic =============")
     if(NOT EXISTS ${CLONE_DIR})
-        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${OC_THIRDPARTY_CLONE_DIR})
     endif()
 
     run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
@@ -42,10 +42,13 @@ else()
 endif()
 
 install(CODE "
-    execute_process(
-        COMMAND ${SUDO} \${CMAKE_COMMAND} --install \"${BUILD_DIR}\" ${CONFIG} --prefix \${CMAKE_INSTALL_PREFIX}
-        WORKING_DIRECTORY ${CLONE_DIR}
-        RESULT_VARIABLE RESULT
-        COMMAND_ECHO STDOUT
-    )
+
+    if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${OC_THIRDPARTY_INSTALL_PREFIX}\")
+        execute_process(
+            COMMAND ${SUDO} \${CMAKE_COMMAND} --install \"${BUILD_DIR}\" ${CONFIG} --prefix \${CMAKE_INSTALL_PREFIX}
+            WORKING_DIRECTORY ${CLONE_DIR}
+            RESULT_VARIABLE RESULT
+            COMMAND_ECHO STDOUT
+        )
+    endif()
 ")
