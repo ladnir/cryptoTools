@@ -33,8 +33,6 @@ namespace osuCrypto {
         // Move an existing BitVector. Moved from is set to size zero.
         BitVector(BitVector&& rref) { *this = rref; }
 
-        ~BitVector() { delete[] mData; }
-
         // Reset the BitVector to have value b.
         void assign(const block& b);
 
@@ -79,10 +77,10 @@ namespace osuCrypto {
         u64 sizeBlocks() const { return divCeil(mNumBits, 8 * sizeof(block)); }
 
         // Returns a byte pointer to the underlying storage.
-        u8* data() const { return (u8*)mData; }
+        u8* data() const { return (u8*)mData.get(); }
 
         // Underlying storage, as blocks.
-        block* blocks() const { return mData; }
+        block* blocks() const { return mData.get(); }
 
         // Copy and existing BitVector.
         BitVector& operator=(const BitVector& K);
@@ -161,7 +159,7 @@ namespace osuCrypto {
         span<T> getSpan() const;
 
     private:
-        block* mData = nullptr;
+        std::unique_ptr<block[]> mData;
         u64 mNumBits = 0, mAllocBlocks = 0;
     };
 
@@ -175,12 +173,9 @@ namespace osuCrypto {
     {
         if (this != &rref)
         {
-            mData = rref.mData;
-            mNumBits = rref.mNumBits;
-            mAllocBlocks = rref.mAllocBlocks;
-            rref.mData = nullptr;
-            rref.mAllocBlocks = 0;
-            rref.mNumBits = 0;
+            mData = std::move(rref.mData);
+            mNumBits = std::exchange(rref.mNumBits, 0);
+            mAllocBlocks = std::exchange(rref.mAllocBlocks, 0);
         }
         return *this;
     }

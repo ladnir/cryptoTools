@@ -2,25 +2,21 @@
 #include <sstream>
 #include <cstring>
 #include <iomanip>
+//#include <atomic>
 
 namespace osuCrypto {
 
+	//namespace detail
+	//{
+	//	std::atomic<int> aligned_allocator_count(0);
+	//}
 
 	BitVector::BitVector(std::string data)
-		:
-		mData(nullptr),
-		mNumBits(0),
-		mAllocBlocks(0)
 	{
 		fromString(data);
-
 	}
 
 	BitVector::BitVector(u8* data, u64 length)
-		:
-		mData(nullptr),
-		mNumBits(0),
-		mAllocBlocks(0)
 	{
 		append(data, length, 0);
 	}
@@ -34,7 +30,7 @@ namespace osuCrypto {
 	void BitVector::assign(const BitVector& K)
 	{
 		reset(K.mNumBits);
-		std::copy_n(K.mData, sizeBlocks(), mData);
+		std::copy_n(K.mData.get(), sizeBlocks(), mData.get());
 	}
 
 	void BitVector::append(u8* dataIn, u64 length, u64 offset)
@@ -90,14 +86,11 @@ namespace osuCrypto {
 
 		if (mAllocBlocks < new_nblocks)
 		{
-			block* tmp = new block[new_nblocks]();
+			std::unique_ptr<block[]> tmp(new block[new_nblocks]());
 			mAllocBlocks = new_nblocks;
 
-			std::copy_n(mData, sizeBlocks(), tmp);
-
-			delete[] mData;
-
-			mData = tmp;
+			std::copy_n(mData.get(), sizeBlocks(), tmp.get());
+			mData = std::move(tmp);
 		}
 		mNumBits = newSize;
 	}
@@ -131,14 +124,13 @@ namespace osuCrypto {
 
 		if (newSize > mAllocBlocks)
 		{
-			delete[] mData;
 
-			mData = new block[newSize]();
+			mData.reset(new block[newSize]());
 			mAllocBlocks = newSize;
 		}
 		else
 		{
-			std::fill_n(mData, newSize, block(0, 0));
+			std::fill_n(mData.get(), newSize, block(0, 0));
 		}
 
 		mNumBits = new_nbits;
@@ -292,7 +284,7 @@ namespace osuCrypto {
 	}
 	void BitVector::randomize(PRNG& G)
 	{
-		G.get(mData, sizeBlocks());
+		G.get(mData.get(), sizeBlocks());
 	}
 
 	std::string BitVector::hex() const

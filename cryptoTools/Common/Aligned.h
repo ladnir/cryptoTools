@@ -5,6 +5,7 @@
 #include <memory>
 #include <new>
 
+
 namespace osuCrypto
 {
     constexpr const size_t gDefaultAlignment = 32;
@@ -24,33 +25,8 @@ namespace osuCrypto
         using Base::operator=;
     };
 
-    //namespace detail
-    //{
-    //    template<typename T, size_t Alignment = gDefaultAlignment>
-    //    struct AlignedDeleter
-    //    {
-    //        void operator()(T* ptr) const
-    //        {
-    //            auto alignment = std::align_val_t(std::max(Alignment, alignof(T)));
-    //            operator delete[](ptr, alignment);
-    //        }
-    //    };
-    //}
-
-    //template<typename T, size_t Alignment = gDefaultAlignment>
-    //using UniqueAlignedPtr = std::unique_ptr<T[], detail::AlignedDeleter<T, Alignment>>;
-
-    //template<typename T, size_t Alignment = gDefaultAlignment>
-    //inline UniqueAlignedPtr<T, Alignment> allocAlignedArray(size_t n)
-    //{
-    //    auto alignment = std::align_val_t(std::max(Alignment, alignof(T)));
-    //    return UniqueAlignedPtr<T>(new(alignment) T[n]);
-    //}
-
-
     namespace detail
     {
-
         template<class T>
         struct max_objects
             : std::integral_constant<std::size_t,
@@ -100,7 +76,8 @@ namespace osuCrypto
 
             static void aligned_free(void* p)
             {
-                free(((void**)p)[-1]);
+                auto p1 = ((void**)p)[-1];
+                free(p1);
             }
 
 
@@ -260,6 +237,7 @@ namespace osuCrypto
         }
         AlignedUnVector& operator=(AlignedUnVector&& o)
         {
+            clear();
             mCapacity = std::exchange(o.mCapacity, 0);
             mSpan = std::exchange(o.mSpan, span<T>{});
             return *this;

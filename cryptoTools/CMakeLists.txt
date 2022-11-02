@@ -39,6 +39,12 @@ else()
     if(OC_PIC)
         target_compile_options(cryptoTools PUBLIC -fPIC)
     endif()
+
+    
+    if(ENABLE_ASAN)
+        target_compile_options(cryptoTools PUBLIC "-fsanitize=address")
+        target_link_options(cryptoTools PUBLIC "-fsanitize=address")
+    endif()
 endif()
 
 
