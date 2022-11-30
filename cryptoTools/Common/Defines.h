@@ -7,6 +7,9 @@
 #include "block.h"
 
 #ifdef ENABLE_SPAN_LITE
+#ifndef span_CONFIG_SELECT_SPAN
+    #define span_CONFIG_SELECT_SPAN 1
+#endif
 #include <nonstd/span.hpp>
 #else
 #include <span>
@@ -29,19 +32,6 @@
 #else
     #define TODO(x)
 #endif
-// OC_FORCEINLINE ---------------------------------------------//
-// Macro to use in place of 'inline' to force a function to be inline
-#if !defined(OC_FORCEINLINE)
-#  if defined(_MSC_VER)
-#    define OC_FORCEINLINE __forceinline
-#  elif defined(__GNUC__) && __GNUC__ > 3
-     // Clang also defines __GNUC__ (as 4)
-#    define OC_FORCEINLINE inline __attribute__ ((__always_inline__))
-#  else
-#    define OC_FORCEINLINE inline
-#  endif
-#endif
-
 
 // add instrinsics names that intel knows but clang doesn't…
 #ifdef __clang__

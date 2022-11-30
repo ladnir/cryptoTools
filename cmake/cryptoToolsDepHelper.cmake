@@ -47,24 +47,6 @@ set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
 set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 
 
-## Span
-###########################################################################
-
-macro(FIND_SPAN)
-    set(ARGS ${ARGN})
-    if(FETCH_SPAN_LITE)
-        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
-    endif()
-    find_package(span-lite ${ARGS})
-endmacro()
-    
-if (FETCH_SPAN_LITE_IMPL)
-    FIND_SPAN(QUIET)
-    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
-endif()
-
-FIND_SPAN(REQUIRED)
-
 
 ## Relic
 ###########################################################################
@@ -172,68 +154,118 @@ if (ENABLE_SODIUM)
     endif()
 endif (ENABLE_SODIUM)
 
-
-
-## WolfSSL
+## coproto
 ###########################################################################
 
-if(ENABLE_WOLFSSL)
 
-  if(NOT DEFINED WolfSSL_DIR)
-    set(WolfSSL_DIR "/usr/local/")
-  endif()
-
-
-  find_library(WOLFSSL_LIB NAMES wolfssl  HINTS "${WolfSSL_DIR}")
-  set(WOLFSSL_LIB_INCLUDE_DIRS "${WolfSSL_DIR}include/")
-
-  # if we cant find it, throw an error
-  if(NOT WOLFSSL_LIB)
-      message(FATAL_ERROR "Failed to find WolfSSL at " ${WolfSSL_DIR})
-  endif()
-
-  message(STATUS "WOLFSSL_LIB:  ${WOLFSSL_LIB}")
-  message(STATUS "WOLFSSL_INC:  ${WOLFSSL_LIB_INCLUDE_DIRS}\n")
-
-endif(ENABLE_WOLFSSL)
-
-
-## Boost
-###########################################################################
-
-macro(FIND_BOOST)
-    set(ARGS ${ARGN})
-    if(FETCH_BOOST_IMPL)
-        list(APPEND ARGS NO_DEFAULT_PATH  PATHS ${OC_THIRDPARTY_HINT} )
+macro(FIND_COPROTO)
+    if(FETCH_COPROTO)
+        set(COPROTO_DP NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
+    else()
+        unset(COPROTO_DP)
     endif()
-    option(Boost_USE_MULTITHREADED "mt boost" ON)
-    option(Boost_USE_STATIC_LIBS "static boost" ON)
-
-    if(MSVC)
-        option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
+    
+    if(ENABLE_BOOST)
+        set(COPROTO_COMPONENTS boost)
     endif()
-    #set(Boost_DEBUG ON)  #<---------- Real life saver
- 
-    find_package(Boost 1.77.0 COMPONENTS system thread ${ARGS})
+
+    if(ENABLE_OPENSSL)
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} openssl)
+    endif()
+
+    find_package(coproto ${COPROTO_DP} ${ARGN} COMPONENTS ${COPROTO_COMPONENTS})
+    
 endmacro()
 
-if(FETCH_BOOST_IMPL)
-    FIND_BOOST(QUIET)
-    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
+if(FETCH_COPROTO_IMPL)
+    FIND_COPROTO(QUIET)
+    include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getCoproto.cmake)
 endif()
 
 
-if(ENABLE_BOOST)
+FIND_COPROTO(REQUIRED)
 
-    FIND_BOOST()
-    if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Failed to find boost 1.77. Add -DFETCH_BOOST=ON or -DFETCH_ALL=ON to auto download.")
+
+
+## Span
+###########################################################################
+
+macro(FIND_SPAN)
+    set(ARGS ${ARGN})
+    if(FETCH_SPAN_LITE)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
     endif()
-
-    message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
-    message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
-
+    find_package(span-lite ${ARGS})
+endmacro()
+    
+if (FETCH_SPAN_LITE_IMPL)
+    FIND_SPAN(QUIET)
+    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
 endif()
+
+FIND_SPAN(REQUIRED)
+
+
+### WolfSSL
+#############################################################################
+#
+#if(ENABLE_WOLFSSL)
+#
+#  if(NOT DEFINED WolfSSL_DIR)
+#    set(WolfSSL_DIR "/usr/local/")
+#  endif()
+#
+#
+#  find_library(WOLFSSL_LIB NAMES wolfssl  HINTS "${WolfSSL_DIR}")
+#  set(WOLFSSL_LIB_INCLUDE_DIRS "${WolfSSL_DIR}include/")
+#
+#  # if we cant find it, throw an error
+#  if(NOT WOLFSSL_LIB)
+#      message(FATAL_ERROR "Failed to find WolfSSL at " ${WolfSSL_DIR})
+#  endif()
+#
+#  message(STATUS "WOLFSSL_LIB:  ${WOLFSSL_LIB}")
+#  message(STATUS "WOLFSSL_INC:  ${WOLFSSL_LIB_INCLUDE_DIRS}\n")
+#
+#endif(ENABLE_WOLFSSL)
+#
+#
+### Boost
+#############################################################################
+#
+#macro(FIND_BOOST)
+#    set(ARGS ${ARGN})
+#    if(FETCH_BOOST_IMPL)
+#        list(APPEND ARGS NO_DEFAULT_PATH  PATHS ${OC_THIRDPARTY_HINT} )
+#    endif()
+#    option(Boost_USE_MULTITHREADED "mt boost" ON)
+#    option(Boost_USE_STATIC_LIBS "static boost" ON)
+#
+#    if(MSVC)
+#        option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
+#    endif()
+#    #set(Boost_DEBUG ON)  #<---------- Real life saver
+# 
+#    find_package(Boost 1.77.0 COMPONENTS system thread ${ARGS})
+#endmacro()
+#
+#if(FETCH_BOOST_IMPL)
+#    FIND_BOOST(QUIET)
+#    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
+#endif()
+#
+#
+#if(ENABLE_BOOST)
+#
+#    FIND_BOOST()
+#    if(NOT Boost_FOUND)
+#        message(FATAL_ERROR "Failed to find boost 1.77. Add -#DFETCH_BOOST=ON or -DFETCH_ALL=ON to auto download.")
+#    endif()
+#
+#    message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
+#    message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
+#
+#endif()
 
 
 # resort the previous prefix path

@@ -95,35 +95,43 @@ EVAL(FETCH_RELIC_IMPL
 EVAL(FETCH_SODIUM_IMPL 
 	(DEFINED FETCH_SODIUM AND FETCH_SODIUM) OR
 	((NOT DEFINED FETCH_SODIUM) AND (FETCH_AUTO AND ENABLE_SODIUM)))
-
-#option(FETCH_SODIUM	"download and build Boost" OFF))
+	
+#option(FETCH_BOOST	"download and build Boost" OFF))
 EVAL(FETCH_BOOST_IMPL 
 	(DEFINED FETCH_BOOST AND FETCH_BOOST) OR
 	((NOT DEFINED FETCH_BOOST) AND (FETCH_AUTO AND ENABLE_BOOST)))
+
+#option(FETCH_BOOST	"download and build Boost" OFF))
+EVAL(FETCH_COPROTO_IMPL 
+	(DEFINED FETCH_COPROTO AND FETCH_COPROTO) OR
+	((NOT DEFINED FETCH_COPROTO) AND (FETCH_AUTO AND ENABLE_COPROTO)))
+
+if(ENABLE_BOOST)
+	set(ENABLE_COPROTO true)
+endif()
+
 
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
 message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
 
-message(STATUS "Option: FETCH_SPAN_LITE   = ${FETCH_SPAN_LITE}")
 message(STATUS "Option: FETCH_RELIC       = ${FETCH_RELIC}")
 message(STATUS "Option: FETCH_SODIUM      = ${FETCH_SODIUM}")
-message(STATUS "Option: FETCH_BOOST       = ${FETCH_BOOST}\n")
+message(STATUS "Option: FETCH_BOOST       = ${FETCH_BOOST}")
+message(STATUS "Option: FETCH_COPROTO     = ${FETCH_COPROTO}\n")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE  = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_SPAN_LITE  = ${ENABLE_SPAN_LITE}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
-message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n")
-
+message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}")
+message(STATUS "Option: ENABLE_OPENSSL    = ${ENABLE_OPENSSL}")
+message(STATUS "Option: ENABLE_COPROTO    = ${ENABLE_COPROTO}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
-message(STATUS "Option: ENABLE_NET_LOG    = ${ENABLE_NET_LOG}")
-message(STATUS "Option: ENABLE_WOLFSSL    = ${ENABLE_WOLFSSL}")
 
 message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
-message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}")
-message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}\n\n")
+message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}\n\n")
 
 
 
