@@ -176,7 +176,7 @@ macro(FIND_COPROTO)
     find_package(coproto ${COPROTO_DP} ${ARGN} COMPONENTS ${COPROTO_COMPONENTS})
     
 endmacro()
-
+message("FETCH_COPROTO_IMPL=${FETCH_COPROTO_IMPL}")
 if(FETCH_COPROTO_IMPL)
     FIND_COPROTO(QUIET)
     include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getCoproto.cmake)
