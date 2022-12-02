@@ -278,9 +278,9 @@ namespace tests_cryptoTools
 
         u64 trials = 1;
         Session s1, c1;
+        std::string msg("3421341234");
         Channel chs1, chs2, chc1, chc2;
 
-        std::string msg("3421341234");
         for (u64 t = 0; t < trials; ++t)
         {
             std::future<void> f1, f2;

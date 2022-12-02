@@ -19,6 +19,7 @@ target_include_directories(cryptoTools PUBLIC
 
 if(MSVC)
     if(ENABLE_ASAN)
+        message("Warning: ASAN is enabled for cryptoTools")
         target_compile_options(cryptoTools PUBLIC "/fsanitize=address")
     endif()
 else()
@@ -42,6 +43,7 @@ else()
 
     
     if(ENABLE_ASAN)
+        message("Warning: ASAN is enabled for cryptoTools")
         target_compile_options(cryptoTools PUBLIC "-fsanitize=address")
         target_link_options(cryptoTools PUBLIC "-fsanitize=address")
     endif()
@@ -76,26 +78,36 @@ if (ENABLE_SODIUM)
   target_link_libraries(cryptoTools sodium)
 endif (ENABLE_SODIUM)
 
-## WolfSSL
+
+# coproto
 ###########################################################################
 
-if(ENABLE_WOLFSSL)
-  target_include_directories(cryptoTools PUBLIC
-                    $<BUILD_INTERFACE:${WOLFSSL_LIB_INCLUDE_DIRS}>
-                    $<INSTALL_INTERFACE:>)
-  target_link_libraries(cryptoTools ${WOLFSSL_LIB})
-endif(ENABLE_WOLFSSL)
-
-## Boost
-###########################################################################
+if (ENABLE_COPROTO)
+  target_link_libraries(cryptoTools coproto::coproto)
+endif (ENABLE_COPROTO)
 
 
-if(ENABLE_BOOST)
-    target_include_directories(cryptoTools PUBLIC
-                    $<BUILD_INTERFACE:${Boost_INCLUDE_DIR}>
-                    $<INSTALL_INTERFACE:>)
-    target_link_libraries(cryptoTools ${Boost_LIBRARIES})
-endif()
+
+### WolfSSL
+############################################################################
+#
+#if(ENABLE_WOLFSSL)
+#  target_include_directories(cryptoTools PUBLIC
+#                    $<BUILD_INTERFACE:${WOLFSSL_LIB_INCLUDE_DIRS}>
+#                    $<INSTALL_INTERFACE:>)
+#  target_link_libraries(cryptoTools ${WOLFSSL_LIB})
+#endif(ENABLE_WOLFSSL)
+#
+### Boost
+############################################################################
+#
+#
+#if(ENABLE_BOOST)
+#    target_include_directories(cryptoTools PUBLIC
+#                    $<BUILD_INTERFACE:${Boost_INCLUDE_DIR}>
+#                    $<INSTALL_INTERFACE:>)
+#    target_link_libraries(cryptoTools ${Boost_LIBRARIES})
+#endif()
 
 
 

@@ -2,14 +2,13 @@
 set(USER_NAME           )      
 set(TOKEN               )      
 set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_TAG             "6f5452d7898a754b9e5aee8a826282bf629d6079" )
+set(GIT_TAG             "06b7fa51ea2d5dcb09b267a94130246050784755" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-coproto.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
-message("\n\nOC_CPP_VER=${OC_CPP_VER}\n\n")
 if(NOT DEFINED FETCH_BOOST)
     set(COPROTO_FETCH_BOOST ${ENABLE_BOOST})
 else()
@@ -33,6 +32,7 @@ if(NOT coproto_FOUND)
                        -DCOPROTO_ENABLE_OPENSSL=${ENABLE_OPENSSL}
                        -DCOPROTO_CPP_VER=${CRYPTO_TOOLS_STD_VER}
                        -DCOPROTO_PIC=${OC_PIC}
+                       -DCOPROTO_ASAN=${ENABLE_ASAN}
                        -DCOPROTO_THIRDPARTY_CLONE_DIR=${OC_THIRDPARTY_CLONE_DIR}
                        )
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE})
