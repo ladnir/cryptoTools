@@ -19,6 +19,7 @@ target_include_directories(cryptoTools PUBLIC
 
 if(MSVC)
     if(ENABLE_ASAN)
+        message("Warning: ASAN is enabled for cryptoTools")
         target_compile_options(cryptoTools PUBLIC "/fsanitize=address")
     endif()
 else()
@@ -42,6 +43,7 @@ else()
 
     
     if(ENABLE_ASAN)
+        message("Warning: ASAN is enabled for cryptoTools")
         target_compile_options(cryptoTools PUBLIC "-fsanitize=address")
         target_link_options(cryptoTools PUBLIC "-fsanitize=address")
     endif()
