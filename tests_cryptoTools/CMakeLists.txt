@@ -13,7 +13,13 @@ target_include_directories(tests_cryptoTools PUBLIC
                     $<INSTALL_INTERFACE:include>) 
 target_link_libraries(tests_cryptoTools cryptoTools)
 
-if(NOT MSVC)
+
+
+
+if(MSVC)
+    target_compile_options(tests_cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/std:c++${CRYPTO_TOOLS_STD_VER}>)
+    
+else()
     target_compile_options(tests_cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${CRYPTO_TOOLS_STD_VER}>)
 endif()
 

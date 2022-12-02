@@ -22,10 +22,11 @@ if(MSVC)
         message("Warning: ASAN is enabled for cryptoTools")
         target_compile_options(cryptoTools PUBLIC "/fsanitize=address")
     endif()
+
+    target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/std:c++${CRYPTO_TOOLS_STD_VER}>)
+    
 else()
-    target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> -pthread)
-    # softspokenot
-    #target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -pthread)
+    target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${CRYPTO_TOOLS_STD_VER}> -pthread)
 
     target_link_options(cryptoTools PUBLIC -pthread)
 
