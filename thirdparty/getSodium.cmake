@@ -31,6 +31,7 @@ if(NOT SODIUM_FOUND)
             "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
             "cp ./src/libsodium/include/* ${OC_THIRDPARTY_INSTALL_PREFIX}/include/ -Recurse -Force\n"
             "cp ./Build/Release/x64/libsodium.lib ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/ -Force\n"
+            "mkdir ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/cmake/libsodium/ -Force\n"
             WD ${CLONE_DIR}
             )
 
@@ -46,7 +47,7 @@ if(NOT SODIUM_FOUND)
             run(NAME "dos2unix" CMD ${DOS2UNIX_CMD} WD ${CLONE_DIR})
         endif()
 
-        if(OC_PIC)
+        if(ENABLE_PIC)
             set(WITH_PIC "--with-pic=yes")
         else()
             set(WITH_PIC "--with-pic=no")
@@ -66,9 +67,10 @@ if(NOT SODIUM_FOUND)
         run(NAME "Configure"       CMD ${CONFIGURE_CMD} WD ${CLONE_DIR})
         run(NAME "Build"           CMD ${BUILD_CMD}     WD ${CLONE_DIR})
         run(NAME "Install"         CMD ${INSTALL_CMD}   WD ${CLONE_DIR})
-
+        run(NAME "Install2"        CMD "mkdir" "-p"  "${OC_THIRDPARTY_INSTALL_PREFIX}/lib/cmake/libsodium" WD ${CLONE_DIR})
     endif()
-
+    
+    file(WRITE ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/cmake/libsodium/libsodiumConfig.cmake "set(libsodium_pic ${ENABLE_PIC})")
     message("log ${LOG_FILE}\n==========================================")
 
 else()
@@ -89,10 +91,10 @@ else()
     
         if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${OC_THIRDPARTY_INSTALL_PREFIX}\")
             execute_process(
-                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/lib/
-                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/include
+                COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/lib/cmake/libsodium
                 COMMAND ${SUDO} mkdir -p \${CMAKE_INSTALL_PREFIX}/include/sodium
                 COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/libsodium.a \${CMAKE_INSTALL_PREFIX}/lib/
+                COMMAND ${SUDO} cp -r ${OC_THIRDPARTY_INSTALL_PREFIX}/lib/cmake/libsodium/libsodiumConfig.cmake \${CMAKE_INSTALL_PREFIX}/lib/cmake/libsodium/
                 COMMAND ${SUDO} cp ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium.h \${CMAKE_INSTALL_PREFIX}/include/
                 COMMAND ${SUDO} cp -r ${OC_THIRDPARTY_INSTALL_PREFIX}/include/sodium \${CMAKE_INSTALL_PREFIX}/include/
                 WORKING_DIRECTORY \"${CLONE_DIR}\"

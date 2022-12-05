@@ -54,6 +54,12 @@ macro(EVAL var)
      endif()
 endmacro()
 
+if(DEFINED OC_PIC)
+	message("warning, setting ENABLE_PIC as OC_PIC = ${OC_PIC}")
+	set(ENABLE_PIC ${OC_PIC})
+	unset(OC_PIC CACHE)
+endif()
+
 
 #############################################
 #                  CONFIGURE                #
@@ -68,7 +74,7 @@ option(ENABLE_SSE       "compile with SSE instructions" ON)
 option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
 option(ENABLE_BOOST     "compile with BOOST networking integration" ON)
 option(ENABLE_ASAN      "build with asan" OFF)
-option(OC_PIC           "compile with -fPIC " OFF)
+option(ENABLE_PIC       "compile with -fPIC " OFF)
 option(VERBOSE_FETCH    "" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
@@ -131,7 +137,9 @@ message(STATUS "Option: ENABLE_COPROTO    = ${ENABLE_COPROTO}")
 message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
 
 message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
-message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}\n\n")
+message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}")
+message(STATUS "Option: ENABLE_PIC        = ${ENABLE_PIC}")
+message(STATUS "Option: ENABLE_ASAN       = ${ENABLE_ASAN}\n\n")
 
 
 

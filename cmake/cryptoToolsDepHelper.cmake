@@ -114,10 +114,22 @@ macro(FIND_SODIUM)
     
     find_library(SODIUM_LIBRARIES NAMES ${SODIUM_LIB_NAME} PATH_SUFFIXES "/lib/" ${ARGS})
     if(EXISTS ${SODIUM_INCLUDE_DIRS} AND EXISTS ${SODIUM_LIBRARIES})
-        set(SODIUM_FOUND  ON)
+        get_filename_component(SODIUM_LIBRARIES_DIR ${SODIUM_LIBRARIES} DIRECTORY)
+        if(EXISTS ${SODIUM_LIBRARIES_DIR}/cmake/libsodium/libsodiumConfig.cmake)
+            include(${SODIUM_LIBRARIES_DIR}/cmake/libsodium/libsodiumConfig.cmake)
+            if((libsodium_pic AND ENABLE_PIC) OR ((NOT libsodium_pic) AND (NOT ENABLE_PIC)))
+                set(SODIUM_FOUND  ON)
+            else()
+                message("Found incompatible libsodium at ${SODIUM_LIBRARIES_DIR}. ENABLE_PIC=${ENABLE_PIC}, libsodium_pic=${libsodium_pic}")
+                set(SODIUM_FOUND  OFF) 
+            endif()
+        else()
+            set(SODIUM_FOUND  ON)
+        endif()
     else() 
         set(SODIUM_FOUND  OFF) 
     endif()
+
 endmacro()
 
 if(FETCH_SODIUM_IMPL)
@@ -167,16 +179,36 @@ macro(FIND_COPROTO)
     
     if(ENABLE_BOOST)
         set(COPROTO_COMPONENTS boost)
+    else()
+        set(COPROTO_COMPONENTS no_boost)
     endif()
-
     if(ENABLE_OPENSSL)
         set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} openssl)
+    else()
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} no_openssl)
+    endif()
+    if(ENABLE_ASAN)
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} asan)
+    else()
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} no_asan)
+    endif()
+    if(ENABLE_PIC)
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} pic)
+    else()
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} no_pic)
+    endif()
+
+    set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} cpp${CRYPTO_TOOLS_STD_VER})
+
+    if(    "${CMAKE_BUILD_TYPE}" STREQUAL "Release"
+        OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"
+        OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" )
+        set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} ${CMAKE_BUILD_TYPE} )
     endif()
 
     find_package(coproto ${COPROTO_DP} ${ARGN} COMPONENTS ${COPROTO_COMPONENTS})
-    
 endmacro()
-message("FETCH_COPROTO_IMPL=${FETCH_COPROTO_IMPL}")
+
 if(FETCH_COPROTO_IMPL)
     FIND_COPROTO(QUIET)
     include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getCoproto.cmake)

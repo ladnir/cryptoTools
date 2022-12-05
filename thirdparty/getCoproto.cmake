@@ -2,11 +2,12 @@
 set(USER_NAME           )      
 set(TOKEN               )      
 set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_TAG             "b8f38f3213537dc1dbf03b816d28a37020d19209" )
+set(GIT_TAG             "7c59b4704ec0e1ad7023f614857b99bb5b9f1128" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-coproto.txt")
+
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 if(NOT DEFINED FETCH_BOOST)
@@ -16,14 +17,13 @@ else()
 endif()
 if(NOT coproto_FOUND)
     string (REPLACE ";" "%" CMAKE_PREFIX_PATH_STR "${CMAKE_PREFIX_PATH}")
-    message("\n\nCMAKE_PREFIX_PATH_STR=${CMAKE_PREFIX_PATH_STR}\n\n")
     find_program(GIT git REQUIRED)
     set(DOWNLOAD_CMD  ${GIT} clone ${GIT_REPOSITORY})
     set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
     set(CONFIGURE_CMD ${CMAKE_COMMAND} -S ${CLONE_DIR} -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                        "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_STR}"
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
-                       -DVERBOSE_FETCH=${VERBOSE_FETCH}
+                       -DVERBOSE_FETCH=true
                        -DCOPROTO_FETCH_SPAN=ON
                        -DCOPROTO_FETCH_FUNCTION2=ON
                        -DCOPROTO_FETCH_MACORO=ON
@@ -31,9 +31,10 @@ if(NOT coproto_FOUND)
                        -DCOPROTO_ENABLE_BOOST=${ENABLE_BOOST}
                        -DCOPROTO_ENABLE_OPENSSL=${ENABLE_OPENSSL}
                        -DCOPROTO_CPP_VER=${CRYPTO_TOOLS_STD_VER}
-                       -DCOPROTO_PIC=${OC_PIC}
+                       -DCOPROTO_PIC=${ENABLE_PIC}
                        -DCOPROTO_ASAN=${ENABLE_ASAN}
                        -DCOPROTO_THIRDPARTY_CLONE_DIR=${OC_THIRDPARTY_CLONE_DIR}
+                       -DCOPROTO_STAGE=${OC_THIRDPARTY_INSTALL_PREFIX}
                        )
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE})
     set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix ${OC_THIRDPARTY_INSTALL_PREFIX})

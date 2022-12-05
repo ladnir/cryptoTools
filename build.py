@@ -46,7 +46,8 @@ def Build(projectName, argv, install, par, sudo, noConfig):
     else:
         buildDir = "out/build/linux"
 
-    argv.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
+    if not any("DCMAKE_BUILD_TYPE" in s for s in argv):
+        argv.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
 
     argStr = ""
     for a in argv:
