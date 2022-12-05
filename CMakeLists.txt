@@ -119,6 +119,8 @@ endif()
 
 message(STATUS "cryptoTools options\n=======================================================")
 
+message(STATUS "Option: CRYPTO_TOOLS_STD_VER  = ${CRYPTO_TOOLS_STD_VER}\n")
+
 message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
 message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
 
@@ -140,7 +142,6 @@ message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
 message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}")
 message(STATUS "Option: ENABLE_PIC        = ${ENABLE_PIC}")
 message(STATUS "Option: ENABLE_ASAN       = ${ENABLE_ASAN}\n\n")
-
 
 
 #############################################
