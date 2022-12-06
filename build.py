@@ -161,6 +161,7 @@ def main(projectName, argv):
     argv = replace(argv, "--relic", "-DENABLE_RELIC=ON -DFETCH_RELIC=ON")
     argv = replace(argv, "--boost", "-DENABLE_BOOST=ON -DFETCH_BOOST=ON")
     argv = replace(argv, "--sodium", "-DENABLE_SODIUM=ON -DFETCH_SODIUM=ON")
+    argv = replace(argv, "--openssl", "-DENABLE_OPENSSL=ON")
     argv = replace(argv, "--sudo", "-DSUDO_FETCH=ON")
         
     argv, install = parseInstallArgs(argv)
