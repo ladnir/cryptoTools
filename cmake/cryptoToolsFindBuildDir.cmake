@@ -16,7 +16,3 @@ else()
     endif()
 endif()
 
-
-if(NOT EXISTS "${CRYPTOTOOLS_BUILD_DIR}")
-    message(FATAL_ERROR "failed to find the cryptoTools build directory. Looked at CRYPTOTOOLS_BUILD_DIR: ${CRYPTOTOOLS_BUILD_DIR}")
-endif()
