@@ -21,7 +21,7 @@ endif()
 
 
 if(NOT MSVC AND ENABLE_PIC)
-    set(MP_ARG "-DCMAKE_C_FLAGS=-fPIC")
+    set(MP_ARG "${MP_ARG} -DCMAKE_C_FLAGS=-fPIC")
 endif()
 
 
