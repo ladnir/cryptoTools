@@ -1,6 +1,12 @@
 
-set(GIT_REPOSITORY      https://github.com/relic-toolkit/relic.git )
-set(GIT_TAG             "0.6.0" )
+if(NOT DEFINED RELIC_GIT_REPOSITORY)
+    set(RELIC_GIT_REPOSITORY      https://github.com/relic-toolkit/relic.git )
+endif()
+if(NOT DEFINED RELIC_GIT_TAG)
+    set(RELIC_GIT_TAG             "0.6.0" )
+endif()
+set(GIT_REPOSITORY      ${RELIC_GIT_REPOSITORY})
+set(GIT_TAG             ${RELIC_GIT_TAG})
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/relic")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
