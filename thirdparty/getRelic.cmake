@@ -13,6 +13,12 @@ else()
     set(MP_ARG "-DMULTI:STRING=PTHREAD")
 endif()
 
+
+if(NOT MSVC AND ENABLE_PIC)
+    set(MP_ARG "-DAFLAGS=-fPIC")
+endif()
+
+
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
 if(NOT EXISTS ${BUILD_DIR} OR NOT RELIC_FOUND)
