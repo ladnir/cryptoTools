@@ -108,20 +108,22 @@ EVAL(FETCH_BOOST_IMPL
 	(DEFINED FETCH_BOOST AND FETCH_BOOST) OR
 	((NOT DEFINED FETCH_BOOST) AND (FETCH_AUTO AND ENABLE_BOOST)))
 
+if(ENABLE_BOOST)
+	set(ENABLE_COPROTO true)
+endif()
+
 #option(FETCH_BOOST	"download and build Boost" OFF))
 EVAL(FETCH_COPROTO_IMPL 
 	(DEFINED FETCH_COPROTO AND FETCH_COPROTO) OR
 	((NOT DEFINED FETCH_COPROTO) AND (FETCH_AUTO AND ENABLE_COPROTO)))
 
-if(ENABLE_BOOST)
-	set(ENABLE_COPROTO true)
-endif()
 
 
 message(STATUS "cryptoTools options\n=======================================================")
 
 message(STATUS "Option: CRYPTO_TOOLS_STD_VER  = ${CRYPTO_TOOLS_STD_VER}\n")
 
+message(STATUS "Option: NO_SYSTEM_PATH    = ${NO_SYSTEM_PATH}")
 message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
 message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
 
