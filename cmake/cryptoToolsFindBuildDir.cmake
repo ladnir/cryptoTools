@@ -1,6 +1,13 @@
 
+
+if(NOT DEFINED CMAKE_BUILD_TYPE)
+    set(OC_BUILD_TYPE "Release")
+else()
+    set(OC_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+endif()
+
 if(MSVC)
-    set(OC_CONFIG "x64-${CMAKE_BUILD_TYPE}")
+    set(OC_CONFIG "x64-${OC_BUILD_TYPE}")
 elseif(APPLE)
     set(OC_CONFIG "osx")
 else()
