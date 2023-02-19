@@ -49,6 +49,7 @@ set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 set(Boost_DEBUG true)
 message(STATUS "DEBUG ${CMAKE_CURRENT_LIST_FILE}, \nBoost_DEBUG=${Boost_DEBUG}\nOC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}")
 
+
 ## Relic
 ###########################################################################
 
@@ -211,7 +212,8 @@ macro(FIND_COPROTO)
         OR "${CRYPTO_TOOLS_STD_VER}" STREQUAL "Debug"
         OR "${CRYPTO_TOOLS_STD_VER}" STREQUAL "RelWithDebInfo" )
         set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} ${CRYPTO_TOOLS_STD_VER} )
- 
+    endif()
+    
     find_package(coproto ${COPROTO_DP} ${ARGN} COMPONENTS ${COPROTO_COMPONENTS})
 endmacro()
 
