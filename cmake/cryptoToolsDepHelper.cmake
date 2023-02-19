@@ -40,7 +40,7 @@ endif()
 
 
 if(NOT OC_THIRDPARTY_CLONE_DIR)
-    set(OC_THIRDPARTY_CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/../out/")
+    set(OC_THIRDPARTY_CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/../out")
 endif()
 
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
@@ -213,7 +213,7 @@ macro(FIND_COPROTO)
         OR "${CRYPTO_TOOLS_STD_VER}" STREQUAL "RelWithDebInfo" )
         set(COPROTO_COMPONENTS ${COPROTO_COMPONENTS} ${CRYPTO_TOOLS_STD_VER} )
     endif()
-    
+
     find_package(coproto ${COPROTO_DP} ${ARGN} COMPONENTS ${COPROTO_COMPONENTS})
 endmacro()
 
@@ -223,7 +223,6 @@ if(ENABLE_COPROTO)
         FIND_COPROTO(QUIET)
         include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getCoproto.cmake)
     endif()
-
 
     FIND_COPROTO(REQUIRED)
 endif()

@@ -11,9 +11,9 @@ set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-coproto.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 if(NOT DEFINED FETCH_BOOST)
-    set(COPROTO_FETCH_BOOST ${ENABLE_BOOST})
+    set(LOCAL_COPROTO_FETCH_BOOST ${ENABLE_BOOST})
 else()
-    set(COPROTO_FETCH_BOOST ${FETCH_BOOST})
+    set(LOCAL_COPROTO_FETCH_BOOST ${FETCH_BOOST})
 endif()
 if(NOT coproto_FOUND)
     string (REPLACE ";" "%" CMAKE_PREFIX_PATH_STR "${CMAKE_PREFIX_PATH}")
@@ -28,7 +28,7 @@ if(NOT coproto_FOUND)
                        -DCOPROTO_FETCH_SPAN=ON
                        -DCOPROTO_FETCH_FUNCTION2=ON
                        -DCOPROTO_FETCH_MACORO=ON
-                       -DCOPROTO_FETCH_BOOST=${COPROTO_FETCH_BOOST}
+                       -DCOPROTO_FETCH_BOOST=${LOCAL_COPROTO_FETCH_BOOST}
                        -DCOPROTO_ENABLE_BOOST=${ENABLE_BOOST}
                        -DCOPROTO_ENABLE_OPENSSL=${ENABLE_OPENSSL}
                        -DCOPROTO_CPP_VER=${CRYPTO_TOOLS_STD_VER}
