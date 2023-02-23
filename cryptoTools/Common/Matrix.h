@@ -6,12 +6,6 @@
 #include <type_traits>
 namespace osuCrypto
 {
-    enum class AllocType
-    {
-        Uninitialized,
-        Zeroed
-    };
-
     template<typename T>
     class Matrix : public MatrixView<T>
     {

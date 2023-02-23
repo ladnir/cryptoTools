@@ -260,26 +260,31 @@ namespace osuCrypto
         auto data() { return mSpan.data(); }
         auto data() const { return mSpan.data(); }
 
-        void resize(size_t n)
+        void resize(size_t n, AllocType type = AllocType::Uninitialized)
         {
+            auto oldCap = mCapacity;
+            auto oldSpan = mSpan;
             if (capacity() >= n)
             {
                 mSpan = span<T>(data(), n);
-                return;
+            }
+            else
+            {
+                mSpan = span<T>(Allocator::allocate(n), n);
+                mCapacity = n;
+
+                if (oldCap)
+                {
+                    auto m = std::min<size_t>(oldSpan.size(), n);
+                    std::copy(oldSpan.begin(), oldSpan.begin() + m, mSpan.begin());
+
+                    Allocator::deallocate(oldSpan.data(), mCapacity);
+                }
             }
 
-            auto oldCap = mCapacity;
-            auto oldSpan = mSpan;
-
-            mSpan = span<T>(Allocator::allocate(n), n);
-            mCapacity = n;
-
-            if (oldCap)
+            if (type == AllocType::Zeroed && oldSpan.size() < n)
             {
-                auto m = std::min<size_t>(oldSpan.size(), n);
-                std::copy(oldSpan.begin(), oldSpan.begin() + m, mSpan.begin());
-
-                Allocator::deallocate(oldSpan.data(), mCapacity);
+                memset(data() + oldSpan.size(), 0, (n - oldSpan.size()) * sizeof(T));
             }
         }
 

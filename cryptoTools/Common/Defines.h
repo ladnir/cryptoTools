@@ -93,6 +93,11 @@ namespace osuCrypto {
 #endif
     }
 
+    enum class AllocType
+    {
+        Uninitialized,
+        Zeroed
+    };
 }
 
 namespace oc = osuCrypto;
