@@ -7,6 +7,9 @@ using namespace osuCrypto;
 #include <fstream>
 #include "cuckooTests.h"
 #include <iomanip>
+#include <thread>
+#include <cmath>
+
 //#include "CuckooIndex2.h"
 
 //#include "encrypto/cuckoo_hashing/cuckoo_hashing.h"
