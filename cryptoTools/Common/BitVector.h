@@ -31,7 +31,7 @@ namespace osuCrypto {
         BitVector(const BitVector& K) { assign(K); }
 
         // Move an existing BitVector. Moved from is set to size zero.
-        BitVector(BitVector&& rref) { *this = rref; }
+        BitVector(BitVector&& rref) { *this = std::move(rref); }
 
         // Reset the BitVector to have value b.
         void assign(const block& b);
