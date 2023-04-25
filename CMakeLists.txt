@@ -117,6 +117,14 @@ EVAL(FETCH_COPROTO_IMPL
 	(DEFINED FETCH_COPROTO AND FETCH_COPROTO) OR
 	((NOT DEFINED FETCH_COPROTO) AND (FETCH_AUTO AND ENABLE_COPROTO)))
 
+	
+EVAL(FETCH_LIBDIVIDE_IMPL 
+	(DEFINED FETCH_LIBDIVIDE AND FETCH_LIBDIVIDE) OR
+	((NOT DEFINED FETCH_LIBDIVIDE) AND (FETCH_AUTO)))
+
+
+option(VERBOSE_FETCH        "Print build info for fetched libraries" ON)
+
 
 
 message(STATUS "cryptoTools options\n=======================================================")
@@ -130,7 +138,8 @@ message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
 message(STATUS "Option: FETCH_RELIC       = ${FETCH_RELIC}")
 message(STATUS "Option: FETCH_SODIUM      = ${FETCH_SODIUM}")
 message(STATUS "Option: FETCH_BOOST       = ${FETCH_BOOST}")
-message(STATUS "Option: FETCH_COPROTO     = ${FETCH_COPROTO}\n")
+message(STATUS "Option: FETCH_COPROTO     = ${FETCH_COPROTO}")
+message(STATUS "Option: FETCH_LIBDIVIDE   = ${FETCH_LIBDIVIDE_IMPL}\n")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE  = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_SPAN_LITE  = ${ENABLE_SPAN_LITE}")

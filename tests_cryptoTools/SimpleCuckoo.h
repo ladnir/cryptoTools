@@ -97,7 +97,7 @@
 //
 //        u64 stashUtilization();
 //
-//        std::vector<u64> mHashes;
+//        std::vector<u64> mLocations;
 //        MatrixView<u64> mHashesView;
 //
 //        std::vector<Bin> mBins;
