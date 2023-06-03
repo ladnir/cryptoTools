@@ -99,7 +99,7 @@ void runOne(
             prng.mAes.ecbEncCounterMode(prng.mBlockIdx, setSize, (block*)hashs.data());
             prng.mBlockIdx += setSize;
 
-            u64 stashSize;
+            u64 stashSize = 0;
 
             if (simple)
             {
