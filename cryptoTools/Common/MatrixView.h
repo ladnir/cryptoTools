@@ -134,6 +134,11 @@ namespace osuCrypto
             return { data(), rows(), cols() };
         }
 
+        operator span<T>()
+        {
+            return mView;
+        }
+
 
         template<typename TT = T>
         typename std::enable_if<
