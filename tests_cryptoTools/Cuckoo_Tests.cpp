@@ -144,8 +144,8 @@ namespace tests_cryptoTools
 
 
         //return;
-        u64 base = 200;
-        u64 stepSize = 18;
+        u64 base = 20;
+        u64 stepSize = 41;
         u64 setSize = stepSize * base;
 
         //u64 h = 2;
@@ -195,15 +195,17 @@ namespace tests_cryptoTools
                 hashMap0.insert(tt[j], mm[j]);
             }
 
-            hashMap1.insert(tt, mm);
+            //std::cout << hashMap0 << std::endl;
+
+            hashMap1.insert(mm, i * stepSize);
 
 
             for (u64 j = 0; j < (i + 1) * stepSize; ++j)
             {
-
-                if (hashMap0.find(hashes[j]).mInputIdx != j)
+                auto f0 = hashMap0.find(hashes[j]);
+                if (f0.mInputIdx != j)
                 {
-                    std::cout << i << std::endl;
+                    std::cout << i << " " << j << std::endl;
                     throw UnitTestFail();
                 }
 
@@ -239,7 +241,7 @@ namespace tests_cryptoTools
             u64 setSize = u64(1) << p;
             std::vector<block> hashes(setSize);
             std::vector<u64> idxs(setSize);
-            PRNG prng(ZeroBlock);
+            PRNG prng(OneBlock);
 
             for (u64 i = 0; i < hashes.size(); ++i)
             {
@@ -249,7 +251,7 @@ namespace tests_cryptoTools
 
             CuckooIndex<NotThreadSafe> hashMap0;
             hashMap0.init(setSize, 40, 0, 3);
-            hashMap0.insert(idxs, hashes);
+            hashMap0.insert(hashes);
             //hashMap0.find(hashes, idxs);
 
             for (u64 i = 0; i < setSize; ++i)

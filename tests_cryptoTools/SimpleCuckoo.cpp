@@ -17,7 +17,7 @@
 //    SimpleCuckoo::~SimpleCuckoo()
 //    {
 //
-//        mHashes = std::vector<u64>();
+//        mLocations = std::vector<u64>();
 //        mHashesView   = MatrixView<u64>();
 //
 //        mBins = std::vector<Bin>();
@@ -102,10 +102,10 @@
 //    void SimpleCuckoo::init()
 //    {
 //
-//        mHashes.resize(mParams.mN * mParams.mNumHashes, 0);
+//        mLocations.resize(mParams.mN * mParams.mNumHashes, 0);
 //
 //
-//        mHashesView = MatrixView<u64>(mHashes.begin(), mHashes.end(), mParams.mNumHashes);
+//        mHashesView = MatrixView<u64>(mLocations.begin(), mLocations.end(), mParams.mNumHashes);
 //
 //        u64 binCount = u64(mParams.mBinScaler * mParams.mN);
 //
