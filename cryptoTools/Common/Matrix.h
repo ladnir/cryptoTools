@@ -65,7 +65,7 @@ namespace osuCrypto
             }
         }
 
-        Matrix(Matrix<T>&& copy)
+        Matrix(Matrix<T>&& copy) noexcept
             : MatrixView<T>(copy.data(), copy.bounds()[0], copy.stride())
             , mCapacity(copy.mCapacity)
         {
