@@ -222,6 +222,28 @@ namespace osuCrypto
 		}
 
 
+
+#ifdef OC_ENABLE_SSE2
+		OC_FORCEINLINE block mm_andnot_si128(const block& rhs) const
+		{
+			return ::_mm_andnot_si128(*this, rhs);
+		}
+#endif
+
+		OC_FORCEINLINE block cc_andnot_si128(const block& rhs) const
+		{
+			return ~*this & rhs;
+		}
+
+		OC_FORCEINLINE block andnot_si128(const block& rhs) const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_andnot_si128(rhs);
+#else
+			return cc_andnot_si128(rhs);
+#endif
+		}
+
 		OC_FORCEINLINE  osuCrypto::block operator&(const osuCrypto::block& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
