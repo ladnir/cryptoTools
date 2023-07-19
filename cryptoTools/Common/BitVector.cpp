@@ -211,7 +211,7 @@ namespace osuCrypto {
 		//     ^^^^ compare these
 
 		u64 rem = mNumBits & 7;
-		u8 mask = ((u8)-1) >> (8 - rem);
+		u8 mask = rem ? ((u8)-1) >> (8 - rem) : ~0;
 		if ((data()[lastByte] & mask) != (rhs.data()[lastByte] & mask))
 			return false;
 
