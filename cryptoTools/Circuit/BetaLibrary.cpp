@@ -1578,18 +1578,41 @@ namespace osuCrypto
 		BetaBundle& out)
 	{
 		auto bits = a1.mWires.size();
-		BetaBundle temp(1);
-		cd.addTempWireBundle(temp);
-		cd.addGate(a1.mWires[0], a2.mWires[0],
-			GateType::Nxor, out.mWires[0]);
+		BetaBundle temp(bits);
 
-		for (u64 i = 1; i < bits; ++i)
+		if (bits == 1)
+			temp[0] = out[0];
+		else
+			cd.addTempWireBundle(temp);
+
+		for (u64 i = 0; i < bits; ++i)
 		{
 			cd.addGate(a1.mWires[i], a2.mWires[i],
 				GateType::Nxor, temp.mWires[0]);
+		}
 
-			cd.addGate(temp.mWires[0], out.mWires[0],
-				GateType::And, out.mWires[0]);
+		auto levels = log2ceil(bits);
+		for (u64 i = 0; i < levels; ++i)
+		{
+			auto step = 1ull << i;
+			auto size = bits / 2 / step;
+			BetaBundle temp2(size);
+			if (size == 1)
+				temp2[0] = out[0];
+			else
+				cd.addTempWireBundle(temp2);
+
+			for (u64 j = 0; j < size; ++j)
+			{
+				cd.addGate(
+					temp[2 * j + 0],
+					temp[2 * j + 1],
+					oc::GateType::And,
+					temp2[j]
+				);
+			}
+
+			temp = std::move(temp2);
 		}
 	}
 
