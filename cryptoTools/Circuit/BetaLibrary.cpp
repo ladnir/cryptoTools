@@ -1134,15 +1134,16 @@ namespace osuCrypto
 		// sum is computed as a1[i] ^ a2[i] ^ carry[i-1]
 		// carry[i] is computed as
 		//
-		//  carry[i-1] -*--*--------------------*
+		//  carry[i-1] ----*
+		//              *--|--------------------*
 		//              |  |                    |
 		//              |  >= xor ---*          >= xor --- carry[i]
 		//              |  |         |          |
-		//  a2[i] ------|--*         >== and ---*
+		//  x [i] ------*--*         >== and ---* 
 		//              |            |
-		//              >==== xor ---*
-		//              |
-		//  a1[i] ------*
+		//              >==== xor ---* 
+		//              |  
+		//  y [i] ------*
 
 		// we are computing a1 - a2 = diff
 		// diff is computed as a1[i] ^ a2[i] ^ borrow[i-1]
