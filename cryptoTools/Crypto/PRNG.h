@@ -156,6 +156,12 @@ namespace osuCrypto
 
         // refills the internal buffer with fresh randomness
         void refillBuffer();
+
+
+        PRNG fork()
+        {
+            return PRNG(get<block>());
+        }
     };
 
     // specialization to make bool work correctly.
