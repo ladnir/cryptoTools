@@ -3,6 +3,7 @@
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
 #include <cassert>
+#include <utility>
 
 namespace osuCrypto {
 
