@@ -88,6 +88,9 @@ if (ENABLE_COPROTO)
 endif (ENABLE_COPROTO)
 
 
+if(ENABLE_GMP)
+    target_link_libraries(cryptoTools GMP::libgmp GMP::libgmpxx)
+endif()
 
 ### WolfSSL
 ############################################################################

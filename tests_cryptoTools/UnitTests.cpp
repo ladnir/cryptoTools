@@ -10,7 +10,7 @@
 #include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
 #include "tests_cryptoTools/block_Tests.h"
-
+#include "tests_cryptoTools/MxCircuit_Tests.h"
 #include "tests_cryptoTools/WolfSSL_Tests.h"
 
 #include <cryptoTools/Common/config.h>
@@ -101,6 +101,9 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_aes_sbox_test               ", BetaCircuit_aes_sbox_test);
         //th.add("BetaCircuit_aes_shiftRows_test          ", BetaCircuit_aes_shiftRows_test);
         //th.add("BetaCircuit_aes_mixColumns_test         ", BetaCircuit_aes_mixColumns_test);
+
+
+        th.add("MxCircuit_Bit_Ops_Test                  ", MxCircuit_Bit_Ops_Test);
     });
 
 
