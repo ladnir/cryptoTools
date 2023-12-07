@@ -1,6 +1,8 @@
 #pragma once
 #include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/BitVector.h"
+#include <functional>
+#include <sstream>
 
 namespace osuCrypto
 {
@@ -50,7 +52,7 @@ namespace osuCrypto
 
 		struct Bit
 		{
-			using base_type = Bit;
+			using representation_type = Bit;
 
 			Circuit* mCir = nullptr;
 			Bit() = default;
@@ -96,7 +98,11 @@ namespace osuCrypto
 				};
 			}
 
-			std::array<Bit*, 1> serialize() 
+			std::array<const Bit*, 1> serialize() const
+			{
+				return std::array<const Bit*, 1>{ { this } };
+			}
+			std::array<Bit*, 1> deserialize()
 			{
 				return std::array<Bit*, 1>{ { this } };
 			}

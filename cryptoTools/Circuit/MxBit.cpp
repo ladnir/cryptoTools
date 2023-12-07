@@ -27,7 +27,7 @@ namespace osuCrypto
 
 		bool Bit::constValue() const
 		{
-			if (circuit())
+			if (isConst() == false)
 				throw RTE_LOC;
 			else
 				return ((u64)mCir) & 1;
@@ -54,14 +54,15 @@ namespace osuCrypto
 			if (o.isConst() == false)
 			{
 				o.circuit()->move(std::move(o), *this);
-				o = {};
 			}
-			else if (isConst() == false)
+			else 
 			{
-				circuit()->remove(*this);
+				if (isConst() == false)
+					circuit()->remove(*this);
 				mCir = o.mCir;
 			}
 
+			o.mCir = nullptr;
 			return *this;
 		}
 
@@ -129,7 +130,7 @@ namespace osuCrypto
 					switch (t)
 					{
 					case osuCrypto::Mx::OpType::Xor:
-						return cir->negate(w);
+						return c ? cir->negate(w) : w;
 					case osuCrypto::Mx::OpType::And:
 						return c ? w : 0;
 					case osuCrypto::Mx::OpType::Or:

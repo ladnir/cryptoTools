@@ -1589,7 +1589,7 @@ namespace osuCrypto
 		for (u64 i = 0; i < bits; ++i)
 		{
 			cd.addGate(a1.mWires[i], a2.mWires[i],
-				GateType::Nxor, temp.mWires[0]);
+				GateType::Nxor, temp.mWires[i]);
 		}
 
 		auto levels = log2ceil(bits);

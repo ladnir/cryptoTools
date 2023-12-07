@@ -104,7 +104,13 @@ namespace tests_cryptoTools
 
 
         th.add("MxCircuit_Bit_Ops_Test                  ", MxCircuit_Bit_Ops_Test);
-    });
+        th.add("MxCircuit_BInt_Ops_Test                 ", MxCircuit_BInt_Ops_Test);
+        th.add("MxCircuit_BUInt_Ops_Test                ", MxCircuit_BUInt_Ops_Test);
+        th.add("MxCircuit_BDynInt_Ops_Test              ", MxCircuit_BDynInt_Ops_Test);
+        th.add("MxCircuit_BDynUInt_Ops_Test             ", MxCircuit_BDynUInt_Ops_Test);
+        th.add("MxCircuit_Cast_Test                     ", MxCircuit_Cast_Test);
+        
+        });
 
 
 

@@ -1,25 +1,47 @@
 #include "MxCircuitLibrary.h"
 #include "MxTypes.h"
-
+#include "MxCircuit.h"
 namespace osuCrypto
 {
 	namespace Mx
 	{
 
+		Circuit* findCircuit(span<const Bit> v)
+		{
+			for (auto& vv : v)
+				if (vv.isConst() == false)
+					return vv.mCir;
+			return nullptr;
+		}
+
 		void parallelPrefix(span<const Bit> a1_, span<const Bit> a2_, span<Bit> sum, IntType it, AdderType at)
 		{
 			u64 sSize = sum.size();
+			bool verbose = false;
+			Circuit* cir;
+			if (verbose)
+			{
+				cir = findCircuit(a1_);
+				cir = cir ? cir : findCircuit(a2_);
+				if (!cir)
+					throw RTE_LOC;
 
-			//if (!areDistint(a2, sum) || !areDistint(a1, sum))
-			//	throw std::runtime_error("must be distinct" LOCATION);
+				*cir << "\na ";
+				for (auto& aa : a1_)
+					*cir << aa;
+				*cir << "\nb ";
+				for (auto& aa : a2_)
+					*cir << aa;
+				*cir << "\n";
 
+			}
 
 			// This is a Parallel Prefix Adder where we use generate & propagate
 			// The main idea is that for each bit position, we first compute two
 			// bits, propagate P[i] and generate G[i]. P[i] denote that at bit
 			// position i, if there is a "carry-in", then this position will propagate
 			// the carry to position i+1. G[i] denotes that position i will always
-			// result in a carry.  The sum is then S[i] = P[i:i] ^ G[i-1]. Importantly,
+			// result in a carry.  The sum is then S[i] = P[i] ^ G[i-1]. Importantly,
 			// the P[i], G[i] bits can be computed in a tree structure. First observe
 			// that a region of bits [i,i-1,...,j+1,j] = [i:j] themselves can generate
 			// a pair P[*], G[*]. This will denote whether that region as a block will
@@ -45,21 +67,19 @@ namespace osuCrypto
 			// Also see: Harris, D. A taxonomy of parallel prefix networks. In IEEE ASILOMAR (2003).
 
 
-			BVector P(sSize), G(sSize);
+			BVector P(sSize), G(sSize-1);
 			Bit tempWire;
 			auto a1 = signExtendResize(a1_, sSize, it);
 			auto a2 = signExtendResize(a2_, sSize, it);;
 
-			P[0] = sum[0];
-
-			//auto initGate0 = at == AdderType::Addition ? MxGate::Xor : MxGate::Nxor;
-			//auto initGate1 = at == AdderType::Addition ? MxGate::And : MxGate::na_And;
-
+			if (verbose)
+				*cir << "P ";
 			for (u64 i = 0; i < sSize; ++i)
 			{
-				if (a1[i] == 0 && a2[i] == 0)
-					P[i] = 0;
-				else
+
+				//if (a1[i] == 0 && a2[i] == 0)
+				//	P[i] = 0;
+				//else
 				{
 					if (at == AdderType::Addition)
 					{
@@ -70,7 +90,9 @@ namespace osuCrypto
 						P[i] = !(a1[i] ^ a2[i]);
 					}
 
-					//cd.addGate(a1.mWires[i], a2.mWires[i], initGate0, P[i]);
+
+					if (verbose)
+						*cir <<  P[i];
 				}
 
 				if (i < sSize - 1)
@@ -78,11 +100,17 @@ namespace osuCrypto
 					if (at == AdderType::Addition)
 						G[i] = a1[i] & a2[i];
 					else
-						G[i] = !a1[i] & a2[i];
-						//cd.addGate(a1.mWires[i], a2.mWires[i], initGate1, G[i]);
+						G[i] = (!a1[i]) & a2[i];
 				}
 			}
 
+			if (verbose)
+			{
+				*cir << "\nG ";
+				for (u64 i = 0; i < sSize-1; ++i)
+					*cir << G[i];
+				*cir << "\n";
+			}
 
 			// Sklansky algorithm
 			auto d = log2ceil(sSize);
@@ -114,16 +142,10 @@ namespace osuCrypto
 						graph(level, curWire).lowWire = { lvls[lowWire], lowWire };
 						graph(level, curWire).first = first;
 						lvls[curWire] = level;
-
-						//std::cout << "G " << curWire << " " << lowWire << " " <<int(first) << std::endl;
-
 					}
 					first = false;
 				}
 			}
-
-			//std::cout << "----------------------\n";
-			//cd << "**----------------------\n";
 
 			std::vector<Idx> stack;
 			auto add = [&](Idx idx)
@@ -137,7 +159,6 @@ namespace osuCrypto
 						{
 							assert(c0.used == false);
 							c0.enqued = true;
-							//std::cout << "added  " << idx.lvl << ", " << idx.pos << std::endl;
 							stack.push_back(idx);
 						}
 					}
@@ -145,11 +166,7 @@ namespace osuCrypto
 
 			for (u64 i = 1; i < sSize; ++i)
 			{
-				//if (sum[i] != (BetaWire)-1)
-				{
-					add({ lvls[i - 1],i - 1 });
-					//std::cout << "added* " << lvls[i] << ", " << i << std::endl;
-				}
+				add({ lvls[i - 1],i - 1 });
 			}
 			for (u64 i = 0; i < stack.size(); ++i)
 			{
@@ -173,15 +190,15 @@ namespace osuCrypto
 					if (g.used)
 					{
 
-						auto P0 = P[g.lowWire.pos];
-						auto G0 = G[g.lowWire.pos];
-						auto P1 = P[g.curWire.pos];
+						auto& P0 = P[g.lowWire.pos];
+						auto& G0 = G[g.lowWire.pos];
+						auto& P1 = P[g.curWire.pos];
 
 						//std::cout << "G " << g.curWire.pos << " " << g.lowWire.pos << " " << int(g.first) << std::endl;
 
 						if (g.curWire.pos < sSize - 1)
 						{
-							auto G1 = G[g.curWire.pos];
+							auto& G1 = G[g.curWire.pos];
 
 
 							// G1 = G1 ^ P1 & G0
@@ -208,6 +225,7 @@ namespace osuCrypto
 			}
 
 			P[0] = a1[0] ^ a2[0];
+			sum[0] = P[0];
 			//cd.addGate(a1.mWires[0], a2.mWires[0], GateType::Xor, P[0]);
 			for (u64 i = 1; i < sSize; ++i)
 			{
@@ -228,9 +246,31 @@ namespace osuCrypto
 
 			//std::cout << "~~~~~~~~~~~\n";	
 			//cd << "**~~~~~~~~~~~\n";
-
 		}
 
+
+		Bit parallelEquality(span<const Bit> a1, span<const Bit> a2)
+		{
+			auto bits = a1.size();
+			if (a2.size() != bits)
+				throw RTE_LOC;
+
+			BVector t(bits);
+			for (u64 i = 0; i < bits; ++i)
+				t[i] = ~(a1[i] ^ a2[i]);
+
+			auto levels = log2ceil(bits);
+			for (u64 i = 0; i < levels; ++i)
+			{
+				auto step = 1ull << i;
+				auto size = bits / 2 / step;
+				for (u64 j = 0; j < size; ++j)
+				{
+					t[j] =  t[2 * j + 0] & t[2 * j + 1];
+				}
+			}
+			return t[0];
+		}
 
 	}
 }
