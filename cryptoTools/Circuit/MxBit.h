@@ -29,24 +29,43 @@ namespace osuCrypto
 			na_Or = 13, //1101
 			Or = 14,    //1110
 			One = 15,   //1111
+			Other
+			//Add = 16,
+			//Mult = 17,
+			//Sub = 18,
 
-			Add = 16,
-			Mult = 17,
-			Sub = 18,
+			//BinToArth = 20,
+			//ArthToBin = 21,
 
-			BinToArth = 20,
-			ArthToBin = 21,
+			//Print = 22
 
-			Print = 22
+		};
 
+
+		inline bool isLinear(OpType type)
+		{
+			return
+				type == OpType::Xor ||
+				type == OpType::Nxor ||
+				type == OpType::a ||
+				type == OpType::Zero ||
+				type == OpType::nb ||
+				type == OpType::na ||
+				type == OpType::b ||
+				type == OpType::One;
+		}
+
+
+		struct OpData
+		{
+			virtual ~OpData() {}
 		};
 
 		struct Gate
 		{
-
-			std::array<u64, 2> mInput;
-			u64 mOutput;
+			std::vector<u64> mInput, mOutput;
 			OpType mType;
+			std::unique_ptr<OpData> mData;
 		};
 
 
@@ -121,5 +140,6 @@ namespace osuCrypto
 
 		};
 	}
+
 
 }

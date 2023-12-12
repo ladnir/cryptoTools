@@ -4,6 +4,7 @@
 #include "cryptoTools/Crypto/PRNG.h"
 #include "cryptoTools/Common/BitVector.h"
 #include "cryptoTools/Circuit/MxTypes.h"
+#include "cryptoTools/Circuit/Mx2.h"
 
 using namespace oc;
 i64 signExtend(i64 v, u64 b, bool print = false);
@@ -84,7 +85,7 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 {
 	bool verbose = cmd.isSet("verbose");
 	Mx::Circuit cir;
-	
+
 	V cVal = 34212314;
 	{
 		auto a = cir.input<T>(args...);
@@ -344,9 +345,159 @@ void MxCircuit_Cast_Test(const oc::CLP& cmd)
 			if (out[1][j] != in[0][j])
 				throw RTE_LOC;
 		for (u64 j = 0; j < out[1].size(); ++j)
-			if (out[2][j] != in[1][std::min<u64>(j, in[1].size()-1)])
+			if (out[2][j] != in[1][std::min<u64>(j, in[1].size() - 1)])
 				throw RTE_LOC;
-			
+
 	}
 
 }
+
+void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
+{
+
+	bool verbose = cmd.isSet("verbose");
+	Mx::Circuit cir;
+	using V = i32;
+	V cVal = 34212314;
+	{
+		//auto c = Mx::BInt<32>(cVal);
+		auto a = cir.input<Mx::Bit>();
+		auto b = cir.input<Mx::Bit>();
+		auto A = cir.input<Mx::BInt<32>>();
+		auto B = cir.input<Mx::BInt<32>>();
+
+		if (verbose)
+			cir << "A " << A << "\nB " << B << "\n";
+
+		auto x = a ^ b;
+		cir.output(x);
+		auto vPlus = A + B;
+		auto vSub = A - B;
+		if (verbose)
+		{
+			cir << "+ " << vPlus << "\n";
+			cir << "- " << vSub << "\n";
+		}
+
+		cir.output(vPlus);
+		cir.output(vSub);
+	}
+
+	auto bc = cir.asBetaCircuit();
+
+	std::vector<BitVector> in(4), out(3);
+	in[0].resize(1);
+	in[1].resize(1);
+	in[2].resize(32);
+	in[3].resize(32);
+	//in[4].resize(32);
+	//in[5].resize(32);
+	out[0].resize(1);
+	out[1].resize(32);
+	out[2].resize(32);
+	PRNG prng(ZeroBlock);
+	for (u64 i = 0; i < 4; ++i)
+	{
+		auto a = i % 2;
+		auto b = i / 2;
+		auto A = prng.get<i32>();
+		auto B = prng.get<i32>();
+		in[0][0] = a;
+		in[1][0] = b;
+		in[2].getSpan<i32>()[0] = A;
+		in[3].getSpan<i32>()[0] = B;
+
+
+		bc.evaluate(in, out);
+		if (out[0][0] != (a ^ b))
+			throw RTE_LOC;
+		if (out[1].getSpan<i32>()[0] != (A + B))
+			throw RTE_LOC;
+		if (out[2].getSpan<i32>()[0] != (A - B))
+			throw RTE_LOC;
+	}
+
+}
+
+//struct PBit : Mx2::Bit<PBit>
+//{
+//	using value_type = bool;
+//};
+//
+//struct PVBit : Mx2::Bit<PVBit>
+//{
+//	using value_type = std::vector<u8>;
+//};
+//
+//void MxCircuit_plain_Bit_Test(const oc::CLP& cmd)
+//{
+//
+//	bool verbose = cmd.isSet("verbose");
+//	Mx::Circuit cir;
+//
+//	{
+//		auto a = PVBit{};
+//		auto b = PVBit{};
+//		auto c = PVBit{};
+//
+//		auto vAnd = a & b;
+//		auto vOr = a | b;
+//		auto vXor = a ^ b;
+//		auto vNot = !a;
+//		auto zAnd = a & c;
+//		auto zOr = a | c;
+//		auto zXor = a ^ c;
+//
+//		//if (verbose)
+//		//{
+//		//	cir << "and: " << vAnd << "\n";
+//		//	cir << "or:  " << vOr << "\n";
+//		//	cir << "xor: " << vXor << "\n";
+//		//	cir << "not: " << vNot << "\n";
+//		//}
+//
+//		auto vAndOut = vAnd.output();
+//		auto vOrOut = vOr.output();
+//		auto vXorOut = vXor.output();
+//		auto vNotOut = vNot.output();
+//
+//		auto zAndOut = zAnd.output();
+//		auto zOrOut = zOr.output();
+//		auto zXorOut = zXor.output();
+//	}
+//
+//	if (cir.mInputs.size() != 2)
+//		throw RTE_LOC;
+//
+//
+//	std::vector<BitVector> in(2), out;
+//	in[0].resize(1);
+//	in[1].resize(1);
+//
+//	for (u64 a = 0; a < 2; ++a)
+//	{
+//		for (u64 b = 0; b < 2; ++b)
+//		{
+//			in[0][0] = a;
+//			in[1][0] = b;
+//			cir.evaluate(in, out);
+//
+//			if (out[0][0] != (a & b))
+//				throw RTE_LOC;
+//			if (out[1][0] != (a | b))
+//				throw RTE_LOC;
+//			if (out[2][0] != (a ^ b))
+//				throw RTE_LOC;
+//			if (out[3][0] != (!a))
+//				throw RTE_LOC;
+//
+//
+//			if (out[4][0] != (a & 1))
+//				throw RTE_LOC;
+//			if (out[5][0] != (a | 1))
+//				throw RTE_LOC;
+//			if (out[6][0] != (a ^ 1))
+//				throw RTE_LOC;
+//		}
+//	}
+//}

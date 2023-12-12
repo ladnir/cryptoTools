@@ -5,14 +5,91 @@
 #include <unordered_map>
 #include "macoro/optional.h"
 #include "macoro/variant.h"
+#include "cryptoTools/Circuit/BetaCircuit.h"
 
 namespace osuCrypto
 {
 	namespace Mx
 	{
-		class LeveledCircuit
-		{
 
+		template <typename... Fs>
+		struct match : Fs... {
+			using Fs::operator()...;
+			// constexpr match(Fs &&... fs) : Fs{fs}... {}
+		};
+		template<class... Ts> match(Ts...) -> match<Ts...>;
+
+		template <typename Var, typename... Fs>
+		constexpr decltype(auto) operator| (Var&& v, match<Fs...> const& match) {
+			return std::visit(match, v);
+		}
+
+
+
+		class GraphCircuit
+		{
+		public:
+			struct InputNode
+			{
+				u64 mIndex = 0;
+			};
+
+			struct OpNode
+			{
+				OpType mType;
+			};
+
+			struct PrintNode
+			{
+				std::function<std::string(const BitVector& b)> mFn;
+				//std::vector<macoro::optional<bool>> mConsts;
+			};
+
+			struct OutputNode
+			{
+				u64 mIndex = 0;
+			};
+
+			struct Node
+			{
+				//u64 level = 0;
+				std::vector<u64> mInputs, mOutputs, mDeps, mChildren;
+				macoro::variant<InputNode, OpNode, PrintNode, OutputNode> mData;
+
+				bool isLinear()
+				{
+					return mData | match{
+						[](InputNode&) {return true; },
+						[](OpNode& o) { return Mx::isLinear(o.mType); },
+						[&](PrintNode&) {return mInputs.size() == 0; },
+						[](OutputNode&) {return true; }
+					};
+				}
+
+				void addDep(u64 d)
+				{
+					if (std::find(mDeps.begin(), mDeps.end(), d) == mDeps.end())
+						mDeps.push_back(d);
+				}
+
+				void addChild(u64 d)
+				{
+					if (std::find(mChildren.begin(), mChildren.end(), d) == mChildren.end())
+						mChildren.push_back(d);
+				}
+
+				void removeDep(u64 d)
+				{
+					auto iter = std::find(mDeps.begin(), mDeps.end(), d);
+					if (iter == mDeps.end())
+						throw RTE_LOC;
+					std::swap(*iter, mDeps.back());
+					mDeps.pop_back();
+				}
+			};
+
+			std::vector<Node> mNodes;
+			std::vector<u64>mInputs, mOutputs;
 		};
 
 		class Circuit
@@ -24,7 +101,6 @@ namespace osuCrypto
 				Binary,
 				Z2k
 			};
-
 			// wire address or value.
 			struct Wire : macoro::variant<u64, bool>
 			{
@@ -51,11 +127,22 @@ namespace osuCrypto
 				std::vector<Wire> mWires;
 			};
 
-			struct Print
+			struct Print : OpData
 			{
+				Print() = default;
+				Print(const Print&) = default;
+				Print(Print&&) = default;
+				Print& operator=(const Print&) = default;
+				Print& operator=(Print&&) = default;
+
+				Print(
+					std::function<std::string(const BitVector& b)>&& f)
+					: mFn(std::move(f))
+				{}
+
 				std::function<std::string(const BitVector& b)> mFn;
-				std::vector<Wire> mWires;
 			};
+
 
 			std::vector<IO> mInputs, mOutputs;
 			std::unordered_map<const Bit*, u64> mBitMap;
@@ -91,27 +178,52 @@ namespace osuCrypto
 			}
 
 			std::vector<Gate> mGates;
-			std::vector<Print> mPrints;
+			//std::vector<Print> mPrints;
 
-			void addPrint(Print&& p)
+			void addPrint(span<const Bit*> elems,
+				std::function<std::string(const BitVector& b)>&& p)
 			{
 				Gate g;
-				g.mInput[0] = mPrints.size();
-				g.mType = OpType::Print;
-				mGates.push_back(g);
+				g.mType = OpType::Other;
 
-				mPrints.push_back(std::move(p));
+				g.mInput.reserve(elems.size());
+				std::vector<macoro::optional<bool>> consts(elems.size());
+				for (u64 i = 0; i < elems.size(); ++i)
+				{
+
+					if (elems[i]->isConst() == false)
+						g.mInput.push_back(getBitMap(*elems[i]));
+					else
+						consts[i] = elems[i]->constValue();
+				}
+
+				
+				g.mData = std::make_unique<Print>(
+					[consts =std::move(consts), f = std::move(p)](const BitVector& bv) -> std::string
+					{
+						BitVector v; v.reserve(consts.size());
+
+						for (u64 i = 0, j = 0; i < consts.size(); ++i)
+							if (consts[i].has_value() == false)
+								v.pushBack(bv[j++]);
+							else
+								v.pushBack(*consts[i]);
+
+						return f(v);
+					});
+				mGates.push_back(std::move(g));
+
 			}
 
 			Bit addGate(OpType t, const Bit& a, const Bit& b)
 			{
 				Bit ret;
 				Gate g;
-				g.mInput[0] = getBitMap(a);
-				g.mInput[1] = getBitMap(b);
-				g.mOutput = addBitMap(ret);
+				g.mInput.push_back(getBitMap(a));
+				g.mInput.push_back(getBitMap(b));
+				g.mOutput.push_back(addBitMap(ret));
 				g.mType = t;
-				mGates.push_back(g);
+				mGates.push_back(std::move(g));
 				return ret;
 			}
 
@@ -120,10 +232,10 @@ namespace osuCrypto
 				if (mBitMap.find(&d) == mBitMap.end())
 					addBitMap(d);
 				Gate g;
-				g.mInput[0] = getBitMap(a);
-				g.mOutput = getBitMap(d);
+				g.mInput.push_back(getBitMap(a));
+				g.mOutput.push_back(getBitMap(d));
 				g.mType = OpType::a;
-				mGates.push_back(g);
+				mGates.push_back(std::move(g));
 			}
 
 			void move(Bit&& a, Bit& d)
@@ -154,10 +266,10 @@ namespace osuCrypto
 				Bit d;
 				addBitMap(d);
 				Gate g;
-				g.mInput[0] = getBitMap(a);
-				g.mOutput = getBitMap(d);
+				g.mInput.push_back(getBitMap(a));
+				g.mOutput.push_back(getBitMap(d));
 				g.mType = OpType::na;
-				mGates.push_back(g);
+				mGates.push_back(std::move(g));
 				return d;
 			}
 
@@ -183,40 +295,40 @@ namespace osuCrypto
 
 				for (u64 i = 0; i < mGates.size(); ++i)
 				{
-					auto gate = mGates[i];
+					auto& gate = mGates[i];
 					switch (gate.mType)
 					{
 					case OpType::a:
-						vals[gate.mOutput] = vals[gate.mInput[0]];
+						vals[gate.mOutput[0]] = vals[gate.mInput[0]];
 						break;
 					case OpType::na:
-						vals[gate.mOutput] = !vals[gate.mInput[0]];
+						vals[gate.mOutput[0]] = !vals[gate.mInput[0]];
 						break;
 					case OpType::And:
-						vals[gate.mOutput] = vals[gate.mInput[0]] & vals[gate.mInput[1]];
+						vals[gate.mOutput[0]] = vals[gate.mInput[0]] & vals[gate.mInput[1]];
 						break;
 					case OpType::Or:
-						vals[gate.mOutput] = vals[gate.mInput[0]] | vals[gate.mInput[1]];
+						vals[gate.mOutput[0]] = vals[gate.mInput[0]] | vals[gate.mInput[1]];
 						break;
 					case OpType::Xor:
-						vals[gate.mOutput] = vals[gate.mInput[0]] ^ vals[gate.mInput[1]];
+						vals[gate.mOutput[0]] = vals[gate.mInput[0]] ^ vals[gate.mInput[1]];
 						break;
-					case OpType::Print:
-					{
-						auto& p = mPrints[gate.mInput[0]];
-						BitVector v(p.mWires.size());
-						for (u64 j = 0; j < v.size(); ++j)
-						{
-							if (p.mWires[j].isAddress())
-								v[j] = vals[p.mWires[j].address()];
-							else
-								v[j] = p.mWires[j].value();
-						}
-						std::cout << p.mFn(v);
-						break;
-					}
 					default:
-						throw std::runtime_error("MxCircuit::evaluate(...), gate type not implemented. " LOCATION);
+
+						Print* p = dynamic_cast<Print*>(gate.mData.get());
+						if (p)
+						{
+							BitVector v(gate.mInput.size());
+							for (u64 j = 0; j < v.size(); ++j)
+							{
+								v[j] = vals[gate.mInput[j]];
+							}
+							std::cout << p->mFn(v);
+						}
+						else
+						{
+							throw std::runtime_error("MxCircuit::evaluate(...), gate type not implemented. " LOCATION);
+						}
 						break;
 					}
 				}
@@ -238,6 +350,8 @@ namespace osuCrypto
 				}
 			}
 
+			BetaCircuit asBetaCircuit() const;
+			GraphCircuit asGraph() const;
 		};
 
 
@@ -247,10 +361,10 @@ namespace osuCrypto
 
 		template <typename T>
 		struct has_bit_representation_type <T, std::void_t<
-			// must have value_type
+			// must have representation_type
 			typename std::remove_reference_t<T>::representation_type,
 
-			// must be trivial
+			// must be Bit
 			std::enable_if_t<
 			std::is_same<
 			typename std::remove_reference_t<T>::representation_type,
@@ -266,18 +380,8 @@ namespace osuCrypto
 			has_bit_representation_type<T>::value == true
 			, Circuit&>::type operator<<(Circuit& o, T&& t)
 		{
-			Circuit::Print p;
 			auto elems = t.serialize();
-			p.mWires.reserve(elems.size());
-			for (auto e : elems)
-			{
-				if (e->isConst())
-					p.mWires.push_back(Circuit::Wire{ e->constValue() });
-				else
-					p.mWires.push_back(Circuit::Wire{ o.getBitMap(*e) });
-			}
-			p.mFn = t.toString();
-			o.addPrint(std::move(p));
+			o.addPrint(elems, t.toString());
 			return o;
 		}
 
@@ -287,14 +391,9 @@ namespace osuCrypto
 			has_bit_representation_type<T>::value == false
 			, Circuit&>::type operator<<(Circuit& o, T&& t)
 		{
-			Circuit::Print p;
-			p.mFn = [t = std::forward<T>(t)](const BitVector&)
-				{
-					std::stringstream ss;
-					ss << t;
-					return ss.str();
-				};
-			o.addPrint(std::move(p));
+			std::stringstream ss;
+			ss << t;
+			o.addPrint({}, [str = ss.str()](const BitVector&) ->std::string { return str; });
 			return o;
 		}
 
