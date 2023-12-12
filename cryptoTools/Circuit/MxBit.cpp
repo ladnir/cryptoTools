@@ -1,4 +1,6 @@
 #include "MxBit.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "MxCircuit.h"
 
 namespace osuCrypto
@@ -7,30 +9,10 @@ namespace osuCrypto
     namespace Mx
     {
 
-
 		Bit::~Bit()
 		{
 			if (isConst() == false)
 				circuit()->remove(*this);
-		}
-
-		Circuit* Bit::circuit() const
-		{
-			if (isConst())
-				throw RTE_LOC;
-			return mCir;
-		}
-		bool Bit::isConst() const
-		{
-			return ((u64)mCir <= 1);
-		}
-
-		bool Bit::constValue() const
-		{
-			if (isConst() == false)
-				throw RTE_LOC;
-			else
-				return ((u64)mCir) & 1;
 		}
 
 		Bit& Bit::operator=(const Bit& o)
@@ -146,3 +128,4 @@ namespace osuCrypto
     }
 
 }
+#endif

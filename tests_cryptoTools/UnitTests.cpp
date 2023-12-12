@@ -110,6 +110,7 @@ namespace tests_cryptoTools
         th.add("MxCircuit_BDynUInt_Ops_Test             ", MxCircuit_BDynUInt_Ops_Test);
         th.add("MxCircuit_Cast_Test                     ", MxCircuit_Cast_Test);
         th.add("MxCircuit_asBetaCircuit_Test            ", MxCircuit_asBetaCircuit_Test);
+        th.add("MxCircuit_parallelPrefix_Test           ", MxCircuit_parallelPrefix_Test);
         
         
         });

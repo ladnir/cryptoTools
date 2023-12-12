@@ -260,15 +260,15 @@ macro(FIND_GMP)
     find_package(gmpxx ${ARGS})
 endmacro()
     
+if(ENABLE_GMP)
+    #message(STATUS "FETCH_GMP_IMPL=${FETCH_GMP_IMPL}")
+    if (FETCH_GMP_IMPL)
+        FIND_GMP(QUIET)
+        include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getGMP.cmake")
+    endif()
 
-message(STATUS "FETCH_GMP_IMPL=${FETCH_GMP_IMPL}")
-if (FETCH_GMP_IMPL)
-    FIND_GMP(QUIET)
-    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getGMP.cmake")
-endif()
-
-FIND_GMP(REQUIRED)
-
+    FIND_GMP(REQUIRED)
+    endif()
 
 
 #######################################

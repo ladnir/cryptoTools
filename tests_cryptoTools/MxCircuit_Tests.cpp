@@ -1,16 +1,20 @@
 #include "MxCircuit_Tests.h"
+#include "Circuit_Tests.h"
+
 #include "cryptoTools/Circuit/MxCircuit.h"
 #include "cryptoTools/Circuit/MxCircuitLibrary.h"
 #include "cryptoTools/Crypto/PRNG.h"
 #include "cryptoTools/Common/BitVector.h"
 #include "cryptoTools/Circuit/MxTypes.h"
-#include "cryptoTools/Circuit/Mx2.h"
+#include "cryptoTools/Common/TestCollection.h"
+
 
 using namespace oc;
-i64 signExtend(i64 v, u64 b, bool print = false);
 
 void MxCircuit_Bit_Ops_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
+
 	bool verbose = cmd.isSet("verbose");
 	Mx::Circuit cir;
 
@@ -79,10 +83,15 @@ void MxCircuit_Bit_Ops_Test(const oc::CLP& cmd)
 				throw RTE_LOC;
 		}
 	}
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 template<typename T, typename V, typename ...Args>
 void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 {
+#ifdef ENABLE_CIRCUITS
+
 	bool verbose = cmd.isSet("verbose");
 	Mx::Circuit cir;
 
@@ -269,9 +278,9 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 			if (zXor != (a ^ cVal))
 				throw RTE_LOC;
 
-			if (vPlus != (a + b))
+			if (zPlus != (a + cVal))
 				throw RTE_LOC;
-			if (vSub != (a - b))
+			if (zSub != (a - cVal))
 				throw RTE_LOC;
 
 			if (zEq != (a == cVal))
@@ -288,30 +297,52 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 				throw RTE_LOC;
 		}
 	}
+
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_BInt_Ops_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
 	MxCircuit_int_Ops_Test<Mx::BInt<32>, i32>(cmd);
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_BUInt_Ops_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
 	MxCircuit_int_Ops_Test<Mx::BUInt<32>, u32>(cmd);
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_BDynInt_Ops_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
 	MxCircuit_int_Ops_Test<Mx::BDynInt, i32>(cmd, 32);
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_BDynUInt_Ops_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
 	MxCircuit_int_Ops_Test<Mx::BDynUInt, u32>(cmd, 32);
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_Cast_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
+
 	Mx::Circuit cir;
 
 	auto a = cir.input<Mx::BInt<32>>();
@@ -350,17 +381,18 @@ void MxCircuit_Cast_Test(const oc::CLP& cmd)
 
 	}
 
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
 
 void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 {
+#ifdef ENABLE_CIRCUITS
 
 	bool verbose = cmd.isSet("verbose");
 	Mx::Circuit cir;
-	using V = i32;
-	V cVal = 34212314;
 	{
-		//auto c = Mx::BInt<32>(cVal);
 		auto a = cir.input<Mx::Bit>();
 		auto b = cir.input<Mx::Bit>();
 		auto A = cir.input<Mx::BInt<32>>();
@@ -417,7 +449,96 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 			throw RTE_LOC;
 	}
 
+#else
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+#endif
 }
+
+template<typename T>
+T signEx(T v, u64 s)
+{
+	if (s == sizeof(T) * 8)
+		return v;
+
+	i64 sign = *BitIterator((u8*)&v, s-1);
+
+	if (sign && std::is_signed_v<T>)
+	{
+		T mask = T(std::make_unsigned_t<T>(-1) << s);
+		return v | mask;
+	}
+	else
+	{
+		T mask = (T(1) << s) - 1;
+		auto ret = v & mask;
+		return ret;
+	}
+}
+
+template<typename T>
+void MxCircuit_parallelPrefix_impl(u64 trials, Mx::AdderType at, PRNG& prng)
+{
+	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
+	for (u64 i = 0; i < trials; ++i)
+	{
+		auto s0 = 8; (prng.get<u32>() % 64) + 1;
+		auto s1 = s0; (prng.get<u32>() % 64) + 1;
+		auto s2 = s0; (prng.get<u32>() % 64) + 1;
+
+
+		Mx::Circuit cir;
+		auto A = cir.input<Mx::BVector>(s0);
+		auto B = cir.input<Mx::BVector>(s1);
+		Mx::BVector C(s2);
+		Mx::parallelPrefix(A, B, C, type, at);
+		cir.output(C);
+
+
+		std::vector<BitVector> in(2), out(1);
+		in[0].resize(s0);
+		in[1].resize(s1);
+		out[0].resize(s2);
+		for (u64 j = 0; j < 1; ++j)
+		{
+			T a = signEx(prng.get<T>(), s0);
+			T b = signEx(prng.get<T>(), s1);
+			T c = at == Mx::AdderType::Addition ?
+				a + b :
+				a - b;
+
+			c = signEx(c, s2);
+
+			memcpy(in[0].data(), &a, in[0].sizeBytes());
+			memcpy(in[1].data(), &b, in[1].sizeBytes());
+
+			cir.evaluate(in, out);
+
+			T cAct = 0;
+			memcpy(&cAct, out[0].data(), out[0].sizeBytes());
+			cAct = signEx(cAct, s2);
+
+			if (c != cAct)
+			{
+				std::cout << " exp " << c  << "\t" << BitVector((u8*)&c, s2) << "\n";
+				std::cout << " act " << cAct << "\t"<< BitVector((u8*)&cAct, s2) << "\n";
+				throw RTE_LOC;
+			}
+		}
+	}
+
+}
+
+void MxCircuit_parallelPrefix_Test(const oc::CLP& cmd)
+{
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr<u64>("trials", 100);
+
+	MxCircuit_parallelPrefix_impl<u64>(trials, Mx::AdderType::Addition, prng);
+	MxCircuit_parallelPrefix_impl<u64>(trials, Mx::AdderType::Subtraction, prng);
+	MxCircuit_parallelPrefix_impl<i64>(trials, Mx::AdderType::Addition, prng);
+	MxCircuit_parallelPrefix_impl<i64>(trials, Mx::AdderType::Subtraction, prng);
+}
+
 
 //struct PBit : Mx2::Bit<PBit>
 //{

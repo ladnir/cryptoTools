@@ -1,5 +1,7 @@
 #pragma once
 #include "cryptoTools/Common/Defines.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "cryptoTools/Common/BitVector.h"
 #include <functional>
 #include <sstream>
@@ -30,15 +32,6 @@ namespace osuCrypto
 			Or = 14,    //1110
 			One = 15,   //1111
 			Other
-			//Add = 16,
-			//Mult = 17,
-			//Sub = 18,
-
-			//BinToArth = 20,
-			//ArthToBin = 21,
-
-			//Print = 22
-
 		};
 
 
@@ -61,9 +54,100 @@ namespace osuCrypto
 			virtual ~OpData() {}
 		};
 
+		template<typename T, int S>
+		struct SmallVector
+		{
+			std::array<T, S> mBuff;
+			std::vector<T> mPtr;
+			u64 mSize = 0;
+
+			SmallVector() = default;
+			SmallVector(SmallVector&& m)
+			{
+				mBuff = m.mBuff;
+				mSize = m.mSize;
+				mPtr = std::move(m.mPtr);
+			}
+
+			T& operator[](u64 i)
+			{
+				if (i >= mSize)
+					throw RTE_LOC;
+				if (isSmall())
+					return mBuff[i];
+				else
+					return mPtr[i];
+			}
+
+			const T& operator[](u64 i)const
+			{
+				if (i >= mSize)
+					throw RTE_LOC;
+				if (isSmall())
+					return mBuff[i];
+				else
+					return mPtr[i];
+			}
+
+			u64 capacity()
+			{
+				return isSmall() ? S : mPtr.capacity();
+			}
+
+			void reserve(u64 n)
+			{
+				if (n > capacity())
+				{
+					auto b = data();
+					auto e = b + mSize;
+					std::vector<T> vv;
+					vv.reserve(n);
+					vv.insert(vv.end(), b, e);
+					mPtr = std::move(vv);
+				}
+			}
+
+			template<typename T2>
+			void push_back(T2&& v)
+			{
+				if (isSmall() && mSize < S)
+				{
+					mBuff[mSize] = v;
+					++mSize;
+				}
+				else
+				{
+					if(mSize == capacity())
+						reserve(mSize ? mSize * 2 : 10);
+					if (mPtr.size() != size())
+						throw RTE_LOC;
+					mPtr.push_back(v);
+					++mSize;
+
+				}
+			}
+
+			bool isSmall() const {
+				return mPtr.capacity() == 0;
+			}
+
+			T* data()
+			{
+				if (isSmall())
+					return mBuff.data();
+				else
+					return mPtr.data();
+			}
+
+			u64 size() const {
+				return mSize;
+			}
+		};
+
 		struct Gate
 		{
-			std::vector<u64> mInput, mOutput;
+			SmallVector<u64, 2> mInput;
+			SmallVector<u64, 1> mOutput;
 			OpType mType;
 			std::unique_ptr<OpData> mData;
 		};
@@ -74,6 +158,8 @@ namespace osuCrypto
 			using representation_type = Bit;
 
 			Circuit* mCir = nullptr;
+			u64 mAddress = -1;
+
 			Bit() = default;
 			Bit(const Bit& o)
 			{
@@ -89,9 +175,22 @@ namespace osuCrypto
 			}
 
 			~Bit();
-			Circuit* circuit() const;
-			bool isConst() const;
-			bool constValue() const;
+			Circuit* circuit() const
+			{
+				assert(!isConst());
+				return mCir;
+			}
+			bool isConst() const
+			{
+				return ((u64)mCir <= 1);
+			}
+			bool constValue() const
+			{
+				if (isConst() == false)
+					throw RTE_LOC;
+				else
+					return ((u64)mCir) & 1;
+			}
 			Bit& operator=(const Bit& o);
 			Bit& operator=(Bit&& o);
 			Bit& operator=(bool b);
@@ -103,10 +202,10 @@ namespace osuCrypto
 
 			Bit addGate(OpType t, const Bit& b) const;
 
-			bool operator==(bool b) const
-			{
-				return isConst() && constValue() == b;
-			}
+			//bool operator==(bool b) const
+			//{
+			//	return isConst() && constValue() == b;
+			//}
 
 			static std::function<std::string(const BitVector& b)> toString()
 			{
@@ -143,3 +242,4 @@ namespace osuCrypto
 
 
 }
+#endif

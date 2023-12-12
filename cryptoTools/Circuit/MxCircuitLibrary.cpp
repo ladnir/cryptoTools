@@ -1,4 +1,6 @@
 #include "MxCircuitLibrary.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "MxTypes.h"
 #include "MxCircuit.h"
 namespace osuCrypto
@@ -12,6 +14,18 @@ namespace osuCrypto
 				if (vv.isConst() == false)
 					return vv.mCir;
 			return nullptr;
+		}
+
+		// if twos complement, we have to sign extend. 
+		// Otherwise we just return 0 if past the end.
+		auto signExtend(span<const Bit> b, u64 i, IntType it) -> const Bit& {
+			static const Bit zero = 0;
+			if (it == IntType::TwosComplement)
+				return b[std::min<u64>(i, b.size() - 1)];
+			else if (i < b.size())
+				return b[i];
+			else
+				return zero;
 		}
 
 		void parallelPrefix(span<const Bit> a1_, span<const Bit> a2_, span<Bit> sum, IntType it, AdderType at)
@@ -67,10 +81,10 @@ namespace osuCrypto
 			// Also see: Harris, D. A taxonomy of parallel prefix networks. In IEEE ASILOMAR (2003).
 
 
-			BVector P(sSize), G(sSize-1);
+			BVector P(sSize), G(sSize - 1);
 			Bit tempWire;
-			auto a1 = signExtendResize(a1_, sSize, it);
-			auto a2 = signExtendResize(a2_, sSize, it);;
+			//auto a1 = signExtendResize(a1_, sSize, it);
+			//auto a2 = signExtendResize(a2_, sSize, it);;
 
 			if (verbose)
 				*cir << "P ";
@@ -83,31 +97,43 @@ namespace osuCrypto
 				{
 					if (at == AdderType::Addition)
 					{
-						P[i] = a1[i] ^ a2[i];
+						P[i] =
+							signExtend(a1_, i, it) ^
+							signExtend(a2_, i, it);
 					}
 					else
 					{
-						P[i] = !(a1[i] ^ a2[i]);
+						P[i] = !(
+							signExtend(a1_, i, it) ^
+							signExtend(a2_, i, it));
 					}
 
 
 					if (verbose)
-						*cir <<  P[i];
+						*cir << P[i];
 				}
 
 				if (i < sSize - 1)
 				{
 					if (at == AdderType::Addition)
-						G[i] = a1[i] & a2[i];
+					{
+						G[i] =
+							signExtend(a1_, i, it) &
+							signExtend(a2_, i, it);
+					}
 					else
-						G[i] = (!a1[i]) & a2[i];
+					{
+						G[i] = 
+							!signExtend(a1_, i, it) & 
+							signExtend(a2_, i, it);
+					}
 				}
 			}
 
 			if (verbose)
 			{
 				*cir << "\nG ";
-				for (u64 i = 0; i < sSize-1; ++i)
+				for (u64 i = 0; i < sSize - 1; ++i)
 					*cir << G[i];
 				*cir << "\n";
 			}
@@ -189,63 +215,37 @@ namespace osuCrypto
 					auto& g = graph(level, i);
 					if (g.used)
 					{
-
 						auto& P0 = P[g.lowWire.pos];
 						auto& G0 = G[g.lowWire.pos];
 						auto& P1 = P[g.curWire.pos];
 
-						//std::cout << "G " << g.curWire.pos << " " << g.lowWire.pos << " " << int(g.first) << std::endl;
-
 						if (g.curWire.pos < sSize - 1)
 						{
 							auto& G1 = G[g.curWire.pos];
-
-
-							// G1 = G1 ^ P1 & G0
 							G1 = G1 ^ (P1 & G0);
-
-							//cd.addGate(P1, G0, GateType::And, tempWire);
-							//cd.addGate(tempWire, G1, GateType::Xor, G1);
-							//cd << "G " << g.curWire.pos << " " << g.lowWire.pos << " " << int(g.first) << " ~  " << G1 << "\n";
-
 						}
 
 						// propagate in is pointless since there is no global carry in.
-						if (!g.first) {
-							// P1 = P1 & P0
+						if (!g.first) 
 							P1 = P1 & P0;
-							//cd.addGate(P0, P1, GateType::And, P1);
-							//cd << "P " << g.curWire.pos << " " << g.lowWire.pos << " " << int(g.first) << " ~  " << P1 << "\n";
-
-						}
-
-
 					}
 				}
 			}
 
-			P[0] = a1[0] ^ a2[0];
+			P[0] = a1_[0] ^ a2_[0];
 			sum[0] = P[0];
-			//cd.addGate(a1.mWires[0], a2.mWires[0], GateType::Xor, P[0]);
 			for (u64 i = 1; i < sSize; ++i)
 			{
-				//if (sum[i] != (BetaWire)-1)
-				{
-					// s[i] = P[i] ^ G[i-1]
-					if (a1[i] == 0 && a2[i] == 0)
+					auto& a1i = signExtend(a1_, i, it);
+					auto& a2i = signExtend(a2_, i, it);
+
+					if (a1i.isConst() && a1i.constValue() == 0 && a2i.isConst() && a2i.constValue() == 0)
 						P[i] = 0;
-					//cd.addConst(P[i], 0);
 					else
-						P[i] = a1[i] ^ a2[i];
-					//cd.addGate(a1.mWires[i], a2.mWires[i], GateType::Xor, P[i]);
+						P[i] = a1i ^ a2i;
 
-					//cd.addGate(P[i], G[i - 1], GateType::Xor, sum.mWires[i]);
 					sum[i] = P[i] ^ G[i - 1];
-				}
 			}
-
-			//std::cout << "~~~~~~~~~~~\n";	
-			//cd << "**~~~~~~~~~~~\n";
 		}
 
 
@@ -266,11 +266,262 @@ namespace osuCrypto
 				auto size = bits / 2 / step;
 				for (u64 j = 0; j < size; ++j)
 				{
-					t[j] =  t[2 * j + 0] & t[2 * j + 1];
+					t[j] = t[2 * j + 0] & t[2 * j + 1];
 				}
 			}
 			return t[0];
 		}
 
+		// ripple carry adder with parameters
+		// a1, a2 and carry in cIn. The output is
+		// 
+		//    sum = a1[i] ^ a2[i] ^ cIn
+		// and the carry out bit
+		// 
+		//    cOut
+		// 
+		// computed as
+		//
+		//  cIn ----*
+		//              *--|----------------------*
+		//              |  |                      |
+		//              |  >= xor t1 -*           >= xor --- cOut
+		//              |  |          |           |
+		//  a1[i] ------*--*          >== and t3 -* 
+		//              |             |
+		//              >==== xor t2 -* 
+		//              |  
+		//  a2[i] ------*
+		// 
+		//   c  a1  a2 | t1 t2 t3 | c'
+		//   0  0   0  | 0  0  0  | 0
+		//   0  0   1  | 0  1  0  | 0
+		//   0  1   0  | 1  1  1  | 0
+		//   1  0   0  | 1  0  0  | 0
+		//   0  1   1  | 1  0  0  | 1
+		//   1  0   1  | 1  1  1  | 1
+		//   1  1   0  | 0  1  0  | 1
+		//   1  1   1  | 0  0  0  | 1
+		//
+		// The same algorithm can handle subtraction, i.e. a1-a2.
+		// we have parameter a1,a2 and borrow in bIn.
+		// 
+		// sum is then a1 ^ a2 ^ bIn
+		// borrow out bOut is computed as
+		//
+		//     bIn --------*
+		//              *--|----------------------*
+		//              |  |                      |
+		//              |  >= xor t1 -*           >= xor --- bOut
+		//              |  |          |           |
+		//     a1 ------*--*          >== or t3 -* 
+		//              |             |
+		//              >==== xor t2 -* 
+		//              |  
+		//     a2 ------*
+		// 
+		//   b  a1  a2 | t1 t2 t3 | b'
+		//   0  0   0  | 0  0  0  | 0
+		//   0  0   1  | 0  1  1  | 1
+		//   0  1   0  | 1  1  1  | 0
+		//   1  0   0  | 1  0  1  | 1
+		//   0  1   1  | 1  0  1  | 0
+		//   1  0   1  | 1  1  1  | 1
+		//   1  1   0  | 0  1  1  | 0
+		//   1  1   1  | 0  0  0  | 1
+		//
+		// We unify these two as:
+		// 
+		//   cIn ----------*
+		//              *--|----------------------*
+		//              |  |                      |
+		//              |  >= xor t1 -*           >= xor --- cOut
+		//              |  |          |           |
+		//  a1    ------*--*          >== G t3 -* 
+		//              |             |
+		//              >==== xor t2 -* 
+		//              |  
+		//  a2    ------*
+		//
+		//  a1 xor a2 xor cIn ---------------------- sum
+		//
+		// where G = addition ? and : or;
+		void rippleAdder(
+			const Bit& a1,
+			const Bit& a2,
+			const Bit& cIn,
+			Bit& sum,
+			Bit& cOut,
+			AdderType at)
+		{
+			auto t1 = cIn ^ a1;
+			auto t2 = a1 ^ a2;
+			auto t3 = at == AdderType::Addition ?
+				t1 & t2 :
+				t1 | t2;
+			cOut = a1 ^ t3;
+			sum = t2 ^ cIn;
+		}
+
+		// a full ripple carry adder circuit. Has linear AND depth.
+		// chains together single ripple adder units. works for addition
+		// and subtraction.
+		void rippleAdder(
+			span<const Bit> a1,
+			span<const Bit> a2,
+			span<Bit> sum,
+			IntType it,
+			AdderType at)
+		{
+			Bit carry = 0;
+
+			for (u64 i = 0; i < sum.size(); ++i)
+			{
+				if (i + 1 < sum.size())
+				{
+					// sum is assigned the sum. 
+					// carry is pdated as the new carry bit.
+					rippleAdder(
+						signExtend(a1, i, it),
+						signExtend(a2, i, it),
+						carry, sum[i], carry, at);
+				}
+				else
+				{
+					// for the last one we dont need the carry out.
+					sum[i] =
+						signExtend(a1, i, it) ^
+						signExtend(a2, i, it) ^
+						carry;
+				}
+			}
+		}
+
+		// compute sum = x[0] + ... + x[n-1].
+		// This is acheived in depth 
+		//    log(n) + log(bitCount)         if op=depth
+		// and 							     
+		//    log(n) + bitCount              otherwise
+		// 
+		// the size will be 
+		//    bitCount * (n + log(bitCount)  if op=depth
+		// and
+		//    bitCount * n                   otherwise
+		//
+		// the main idea is that given interger a,b,c
+		// we can generate new intergers x,y  such that
+		//
+		//  a + b + c = x + y
+		//
+		// in a single round of interaction. This is done by
+		// feeding a,b,c into parrallel ripple adders and letting
+		// x be the summarion bits and y be the carry out bits.
+		//
+		// we can then build a tree of these until we have just 
+		// two arguments left. We will then perform a normal addition.
+		void parallelSummation(
+			span<span<const Bit>> x,
+			span<Bit> sum,
+			Optimized op,
+			IntType it
+		)
+		{
+			std::vector<BVector> temps;
+			for (auto i = 0ull; i < x.size(); ++i)
+				temps.emplace_back(x[i].begin(), x[i].end());
+
+			while (temps.size() > 2)
+			{
+				std::vector<BVector> t2;
+				for (u64 i = 0; i < temps.size(); i += 3)
+				{
+					if (i + 3 < temps.size())
+					{
+						t2.emplace_back();
+						t2.emplace_back();
+						auto& a = temps[i + 0];
+						auto& b = temps[i + 1];
+						auto& c = temps[i + 2];
+						auto& x = *(t2.end() - 2);
+						auto& y = *(t2.end() - 1);
+						auto size = std::max<u64>({ a.size(), b.size(), c.size() });
+						x.resize(size);
+						y.resize(size);
+
+						for (u64 j = 0; j < size; ++j)
+							rippleAdder(
+								signExtend(a, j, it),
+								signExtend(b, j, it),
+								signExtend(c, j, it),
+								x[j], y[j], AdderType::Addition);
+					}
+					else
+					{
+						while (i < temps.size())
+							t2.emplace_back(temps[i++]);
+					}
+				}
+
+				temps = std::move(t2);
+			}
+
+			if (temps.size() == 2)
+			{
+				if (op == Optimized::Depth)
+					parallelPrefix(temps[0], temps[1], sum, it, AdderType::Addition);
+				else
+					rippleAdder(temps[0], temps[1], sum, it, AdderType::Addition);
+			}
+			else
+			{
+				assert(temps.size() == 1);
+				for (u64 i = 0; i < sum.size(); ++i)
+					sum[i] = signExtend(temps[0], i, it);
+			}
+		}
+
+		void multiply(
+			span<const Bit> a,
+			span<const Bit> b,
+			span<Bit> c,
+			Optimized op,
+			IntType it)
+		{
+			// for twos complement, we need to sign extend b. Otherwise its just the min.
+			u64 numRows = it == IntType::TwosComplement ? c.size() : std::min(b.size(), c.size());
+
+			// rows will hold
+			// {  (b[0] * a)  << 0,
+			//    (b[1] * a)  << 1 ,
+			//    (...     ) << ...,
+			//    (b[n] * a) << n    }
+			// where row i contains min(c.mWires.size() - i, a.mWires.size())
+			std::vector<BDynInt> rows(numRows);
+			std::vector<span<const Bit>> rowSpans(numRows);
+
+			// first, we compute the AND between the two inputs.
+			for (u64 i = 0; i < rows.size(); ++i)
+			{
+				// this will hold the b[i] * a
+				rows[i].resize(std::min<u64>(c.size() - i, a.size()));
+
+				// sign extend b if twos complement.
+				const auto& bi = signExtend(b, i, it);
+
+				// we will trim the most significant bits of  row[i] to the minimum.
+				// This will be minimum of the size of c or (a * 2^i).
+				rows[i].resize(std::min<u64>(c.size(), a.size() + i));
+
+				// we will implicitly left shift using indicies.
+				for (u64 j = i, k = 0; j < rows[i].size() && k < a.size(); ++j, ++k)
+					rows[i][j] = bi & a[k];
+
+				rowSpans[i] = rows[i].asBits();
+			}
+
+			// add up all the rows.
+			parallelSummation(rowSpans, c, op, it);
+		}
 	}
 }
+#endif

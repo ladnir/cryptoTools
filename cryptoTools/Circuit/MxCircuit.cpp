@@ -1,4 +1,6 @@
 #include "MxCircuit.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "MxTypes.h"
 #include "MxCircuitLibrary.h"
 #include <unordered_set>
@@ -29,7 +31,7 @@ namespace osuCrypto
 
 			bool hasMapping(u64 key)
 			{
-				return mMap.size() > key && mMap[key] != -1;
+				return mMap.size() > key && mMap[key] != ~0ull;
 			}
 		};
 
@@ -357,3 +359,4 @@ namespace osuCrypto
 
 	}
 }
+#endif

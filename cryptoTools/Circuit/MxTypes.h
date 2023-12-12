@@ -1,5 +1,7 @@
 #pragma once
 #include "cryptoTools/Common/Defines.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "MxCircuit.h"
 #include <vector>
 #include <array>
@@ -153,6 +155,14 @@ namespace osuCrypto
 			BVector(BVector&&) = default;
 			BVector& operator=(const BVector&) = default;
 			BVector& operator=(BVector&&) = default;
+
+			template<typename Iter>
+			BVector(Iter&& b, Iter&& e)
+			{
+				resize(std::distance(b,e));
+				for (u64 i = 0; i < size(); ++i)
+					(*this)[i] = *b++;
+			}
 
 			BVector(u64 n)
 			{
@@ -321,13 +331,13 @@ namespace osuCrypto
 			operator BInt<n2, S>() const&
 			{
 				BInt<n2, S> r;
-				for (u64 i = 0; i < std::min<u64>(n2, size()); ++i)
+				for (u64 i = 0; i < std::min<u64>(n2, this->size()); ++i)
 				{
 					r[i] = (*this)[i];
 				}
 				if (Signed == IntType::TwosComplement && S == IntType::TwosComplement)
 				{
-					for (u64 i = size(); i < n2; ++i)
+					for (u64 i = this->size(); i < n2; ++i)
 						r[i] = r[i - 1];
 				}
 				return r;
@@ -337,13 +347,13 @@ namespace osuCrypto
 			operator BInt<n2, S>()&&
 			{
 				BInt<n2, S> r;
-				for (u64 i = 0; i < std::min<u64>(n2, size()); ++i)
+				for (u64 i = 0; i < std::min<u64>(n2, this->size()); ++i)
 				{
 					r[i] = std::move((*this)[i]);
 				}
 				if (Signed == IntType::TwosComplement && S == IntType::TwosComplement)
 				{
-					for (u64 i = size(); i < n2; ++i)
+					for (u64 i = this->size(); i < n2; ++i)
 						r[i] = r[i - 1];
 				}
 				return r;
@@ -364,6 +374,7 @@ namespace osuCrypto
 			using representation_type = Bit;
 			using typename IntegerTraits<BDynXInt, Signed>::value_type;
 			using IntegerTraits<BDynXInt, Signed>::toString;
+			using VectorTrait<BDynXInt<Signed>>::size;
 
 			BDynXInt() = default;
 			BDynXInt(const BDynXInt&) = default;
@@ -397,7 +408,6 @@ namespace osuCrypto
 			{
 				mBits.resize(size);
 			}
-
 			auto& asBits() { return mBits; }
 			auto& asBits() const { return mBits; }
 			static BDynXInt makeFromSize(u64 s)
@@ -446,3 +456,4 @@ namespace osuCrypto
 
 	}
 }
+#endif

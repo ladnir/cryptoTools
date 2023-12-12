@@ -9,8 +9,8 @@ void MxCircuit_BDynInt_Ops_Test(const oc::CLP& cmd);
 void MxCircuit_BDynUInt_Ops_Test(const oc::CLP& cmd);
 void MxCircuit_Cast_Test(const oc::CLP& cmd);
 void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd);
+void MxCircuit_parallelPrefix_Test(const oc::CLP& cmd);
 
-void MxCircuit_Adder_const_Test();
 void MxCircuit_Subtractor_Test();
 void MxCircuit_Subtractor_const_Test();
 void MxCircuit_Multiply_Test();

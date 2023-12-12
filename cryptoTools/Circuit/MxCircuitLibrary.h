@@ -1,4 +1,7 @@
 #pragma once
+#include "cryptoTools/Common/Defines.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "cryptoTools/Common/Matrix.h"
 #include "MxBit.h"
 
@@ -57,6 +60,47 @@ namespace osuCrypto
 		// compare a1 and a2 for equality. Must be the same size.
 		Bit parallelEquality(span<const Bit> a1, span<const Bit> a2);
 
+		// ripple carry adder with parameters
+		// a1, a2 and carry in cIn. The output 
+		// is sum = a1[i] ^ a2[i] ^ cIn
+		// and the carry out bit cOut. Works 
+		// for addition and subtraction.
+		void rippleAdder(
+			const Bit& a1,
+			const Bit& a2,
+			const Bit& cIn,
+			Bit& sum,
+			Bit& cOut,
+			AdderType at);
+
+		// ripple carry adder with parameters
+		// a1, a2. The output 
+		// is sum = a1+a2. Works 
+		// for addition and subtraction.
+		void rippleAdder(
+			span<const Bit> a1,
+			span<const Bit> a2,
+			span<Bit> sum,
+			IntType it,
+			AdderType at);
+
+
+		// compute the summation x[0] + x[1] + ...
+		void parallelSummation(
+			span<span<const Bit>> x,
+			span<Bit> sum,
+			Optimized op,
+			IntType it
+		);
+
+		// computes dst = a1 * a2;
+		void multiply(
+			span<const Bit> a1, 
+			span<const Bit> a2, 
+			span<Bit> dst,
+			Optimized op,
+			IntType it);
 	}
 
 }
+#endif

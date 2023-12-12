@@ -1,6 +1,7 @@
-
 #pragma once
 #include "cryptoTools/Common/Defines.h"
+#ifdef ENABLE_CIRCUITS
+
 #include "MxBit.h"
 #include <unordered_map>
 #include "macoro/optional.h"
@@ -52,6 +53,10 @@ namespace osuCrypto
 
 			struct Node
 			{
+				Node()
+					: mData(InputNode{})
+				{}
+
 				//u64 level = 0;
 				std::vector<u64> mInputs, mOutputs, mDeps, mChildren;
 				macoro::variant<InputNode, OpNode, PrintNode, OutputNode> mData;
@@ -96,6 +101,10 @@ namespace osuCrypto
 		{
 		public:
 
+			Circuit() = default;
+			Circuit(Circuit&&) = delete;
+			Circuit(const Circuit&) = delete;
+
 			enum ValueType
 			{
 				Binary,
@@ -124,7 +133,7 @@ namespace osuCrypto
 
 			struct IO
 			{
-				std::vector<Wire> mWires;
+				SmallVector<Wire, 128> mWires;
 			};
 
 			struct Print : OpData
@@ -145,7 +154,7 @@ namespace osuCrypto
 
 
 			std::vector<IO> mInputs, mOutputs;
-			std::unordered_map<const Bit*, u64> mBitMap;
+			//std::unordered_map<const Bit*, u64> mBitMap;
 
 			template <typename T, typename ... Args>
 			T input(Args...);
@@ -155,26 +164,28 @@ namespace osuCrypto
 
 			u64 mNextBitIdx = 0;
 			u64 addBitMap(Bit& b) {
-				auto iter = mBitMap.find(&b);
-				if (iter == mBitMap.end())
+				//auto iter = mBitMap.find(&b);
+				if (b.mAddress == ~0ull)
 				{
 					auto idx = mNextBitIdx++;
-					mBitMap.insert({ &b, idx });
+					//mBitMap.insert({ &b, idx });
 					b.mCir = this;
+					b.mAddress = idx;
 					return idx;
 				}
 				else
 					throw std::runtime_error("internal error: bit has already been mapped. " LOCATION);
 			}
 
-			u64 getBitMap(const Bit& b) {
-				auto iter = mBitMap.find(&b);
-				if (iter == mBitMap.end())
-				{
+			u64 getBitMap(const Bit& b) 
+			{
+				if (b.mAddress == ~0ull)
 					throw std::runtime_error("error: reading an uninitilized value. " LOCATION);
-				}
-				else
-					return iter->second;
+
+				if(b.mAddress >= mNextBitIdx)
+					throw std::runtime_error("error: bad address. " LOCATION);
+
+				return b.mAddress;
 			}
 
 			std::vector<Gate> mGates;
@@ -211,6 +222,7 @@ namespace osuCrypto
 
 						return f(v);
 					});
+
 				mGates.push_back(std::move(g));
 
 			}
@@ -229,8 +241,9 @@ namespace osuCrypto
 
 			void copy(const Bit& a, Bit& d)
 			{
-				if (mBitMap.find(&d) == mBitMap.end())
+				if (d.mAddress == ~0ull)
 					addBitMap(d);
+
 				Gate g;
 				g.mInput.push_back(getBitMap(a));
 				g.mOutput.push_back(getBitMap(d));
@@ -240,25 +253,29 @@ namespace osuCrypto
 
 			void move(Bit&& a, Bit& d)
 			{
-				auto iter = mBitMap.find(&a);
-				if (iter == mBitMap.end())
+				//auto iter = mBitMap.find(&a);
+				if (a.mAddress==~0ull)
 					throw std::runtime_error("uninitialized bit was moved. " LOCATION);
-				auto idx = iter->second;
 
-				if (mBitMap.find(&d) != mBitMap.end())
+				if (d.mAddress!= ~0ull)
 					remove(d);
 
-				mBitMap[&d] = idx;
+				//mBitMap[&d] = idx;
+				//auto idx = a.mAddress;
+				
 				d.mCir = this;
-				mBitMap.erase(iter);
+				d.mAddress = a.mAddress;
+				a.mAddress = ~0ull;
+				//mBitMap.erase(iter);
 			}
 
 			void remove(Bit& a)
 			{
-				auto iter = mBitMap.find(&a);
-				if (iter == mBitMap.end())
+				//auto iter = mBitMap.find(&a);
+				if (a.mAddress ==~0ull)
 					throw std::runtime_error("uninitialized bit was removed. " LOCATION);
-				mBitMap.erase(iter);
+				a.mAddress = ~0ull;
+				//mBitMap.erase(iter);
 			}
 
 			Bit negate(const Bit& a)
@@ -350,7 +367,7 @@ namespace osuCrypto
 				}
 			}
 
-			BetaCircuit asBetaCircuit() const;
+			oc::BetaCircuit asBetaCircuit() const;
 			GraphCircuit asGraph() const;
 		};
 
@@ -400,10 +417,14 @@ namespace osuCrypto
 		template<typename T, typename ...Args>
 		inline T Circuit::input(Args ... args)
 		{
+
+			mGates.reserve(1000);
+
 			//Input in;
 			T input(std::forward<Args>(args)...);
 			auto elems = input.deserialize();
 			IO in;
+			in.mWires.reserve(elems.size());
 			for (auto& e : elems)
 			{
 				//if (e->isConst())
@@ -412,6 +433,7 @@ namespace osuCrypto
 				in.mWires.push_back(Wire{ addBitMap(*e) });
 			}
 
+			mInputs.reserve(10);
 			mInputs.push_back(std::move(in));
 			return input;
 		}
@@ -422,6 +444,7 @@ namespace osuCrypto
 			//Input in;
 			auto elems = o.serialize();
 			IO out;
+			out.mWires.reserve(elems.size());
 			for (auto& e : elems)
 			{
 				if (e->isConst())
@@ -430,9 +453,11 @@ namespace osuCrypto
 					out.mWires.push_back(Wire{ getBitMap(*e) });
 			}
 
+			mOutputs.reserve(10);
 			mOutputs.push_back(std::move(out));
 		}
 
 
 	}
 }
+#endif
