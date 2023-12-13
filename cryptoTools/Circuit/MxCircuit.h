@@ -32,22 +32,44 @@ namespace osuCrypto
 		public:
 			struct InputNode
 			{
+				//InputNode() noexcept = default;
+				//InputNode(InputNode&&) noexcept = default;
+				//InputNode& operator=(InputNode&&) noexcept = default;
+				//InputNode(u64 i) noexcept : mIndex(i) {}
+
 				u64 mIndex = 0;
 			};
 
 			struct OpNode
 			{
+				//OpNode() noexcept = default;
+				//OpNode(OpNode&&) noexcept = default;
+				//OpNode& operator=(OpNode&&) noexcept = default;
+				//OpNode(OpType i) noexcept : mType(i) {}
+
 				OpType mType;
 			};
 
 			struct PrintNode
 			{
-				std::function<std::string(const BitVector& b)> mFn;
-				//std::vector<macoro::optional<bool>> mConsts;
+
+				using Fn = std::function<std::string(const BitVector& b)>;
+				//PrintNode() noexcept = default;
+				//PrintNode(PrintNode&&) noexcept = default;
+				//PrintNode& operator=(PrintNode&&) noexcept = default;
+				//PrintNode(Fn& f) : mFn(f) {}
+
+				Fn* mFn;
 			};
 
 			struct OutputNode
 			{
+
+				//OutputNode() noexcept = default;
+				//OutputNode(OutputNode&&) noexcept = default;
+				//OutputNode& operator=(OutputNode&&) noexcept = default;
+				//OutputNode(u64 i) noexcept : mIndex(i) {}
+
 				u64 mIndex = 0;
 			};
 
@@ -58,7 +80,10 @@ namespace osuCrypto
 				{}
 
 				//u64 level = 0;
-				std::vector<u64> mInputs, mOutputs, mDeps, mChildren;
+				SmallVector<u64, 2> mInputs;
+				SmallSet<u64,2> mDeps;
+				SmallVector<u64, 1> mOutputs;
+				SmallSet<u64, 1> mChildren;
 				macoro::variant<InputNode, OpNode, PrintNode, OutputNode> mData;
 
 				bool isLinear()
@@ -73,23 +98,26 @@ namespace osuCrypto
 
 				void addDep(u64 d)
 				{
-					if (std::find(mDeps.begin(), mDeps.end(), d) == mDeps.end())
-						mDeps.push_back(d);
+					//if (std::find(mDeps.begin(), mDeps.end(), d) == mDeps.end())
+					mDeps.insert(d);
 				}
 
 				void addChild(u64 d)
 				{
-					if (std::find(mChildren.begin(), mChildren.end(), d) == mChildren.end())
-						mChildren.push_back(d);
+					mChildren.insert(d);
+					//if (std::find(mChildren.begin(), mChildren.end(), d) == mChildren.end())
 				}
 
 				void removeDep(u64 d)
 				{
-					auto iter = std::find(mDeps.begin(), mDeps.end(), d);
-					if (iter == mDeps.end())
-						throw RTE_LOC;
-					std::swap(*iter, mDeps.back());
-					mDeps.pop_back();
+					mDeps.erase(d);
+					//auto iter = mDeps.find(d);
+
+					//auto iter = std::find(mDeps.begin(), mDeps.end(), d);
+					//if (iter == mDeps.end())
+					//	throw RTE_LOC;
+					//std::swap(*iter, mDeps.back());
+					//mDeps.pop_back();
 				}
 			};
 
@@ -111,22 +139,35 @@ namespace osuCrypto
 				Z2k
 			};
 			// wire address or value.
-			struct Wire : macoro::variant<u64, bool>
+			struct Wire //: macoro::variant<u64, bool>
 			{
-				bool isAddress() const { return index() == 0; }
+			private:
+				u64 mAddress = -1;
+			public:
+				Wire() = default;
+				Wire(u64 a) : mAddress(a)
+				{}
+				Wire(bool v) : mAddress(i64(-1) - v)
+				{}
+
+				bool isAddress() const { return i64(mAddress) >= 0; }
 				bool isConst() const { return !isAddress(); }
 
 				bool value() const {
 					if (isAddress())
 						throw RTE_LOC;
-					return std::get<1>(*this);
+					auto v = -i64(mAddress + 1);
+					assert(v < 2);
+					return v;
 				}
+
+
 
 				u64 address() const {
 
 					if (isConst())
 						throw RTE_LOC;
-					return std::get<0>(*this);
+					return mAddress;
 				}
 
 			};
@@ -177,12 +218,12 @@ namespace osuCrypto
 					throw std::runtime_error("internal error: bit has already been mapped. " LOCATION);
 			}
 
-			u64 getBitMap(const Bit& b) 
+			u64 getBitMap(const Bit& b)
 			{
 				if (b.mAddress == ~0ull)
 					throw std::runtime_error("error: reading an uninitilized value. " LOCATION);
 
-				if(b.mAddress >= mNextBitIdx)
+				if (b.mAddress >= mNextBitIdx)
 					throw std::runtime_error("error: bad address. " LOCATION);
 
 				return b.mAddress;
@@ -208,9 +249,9 @@ namespace osuCrypto
 						consts[i] = elems[i]->constValue();
 				}
 
-				
+
 				g.mData = std::make_unique<Print>(
-					[consts =std::move(consts), f = std::move(p)](const BitVector& bv) -> std::string
+					[consts = std::move(consts), f = std::move(p)](const BitVector& bv) -> std::string
 					{
 						BitVector v; v.reserve(consts.size());
 
@@ -254,15 +295,15 @@ namespace osuCrypto
 			void move(Bit&& a, Bit& d)
 			{
 				//auto iter = mBitMap.find(&a);
-				if (a.mAddress==~0ull)
+				if (a.mAddress == ~0ull)
 					throw std::runtime_error("uninitialized bit was moved. " LOCATION);
 
-				if (d.mAddress!= ~0ull)
+				if (d.mAddress != ~0ull)
 					remove(d);
 
 				//mBitMap[&d] = idx;
 				//auto idx = a.mAddress;
-				
+
 				d.mCir = this;
 				d.mAddress = a.mAddress;
 				a.mAddress = ~0ull;
@@ -272,7 +313,7 @@ namespace osuCrypto
 			void remove(Bit& a)
 			{
 				//auto iter = mBitMap.find(&a);
-				if (a.mAddress ==~0ull)
+				if (a.mAddress == ~0ull)
 					throw std::runtime_error("uninitialized bit was removed. " LOCATION);
 				a.mAddress = ~0ull;
 				//mBitMap.erase(iter);
@@ -305,7 +346,7 @@ namespace osuCrypto
 
 					for (u64 j = 0; j < in[i].size(); ++j)
 					{
-						u64 address = std::get<0>(mInputs[i].mWires[j]);
+						u64 address = mInputs[i].mWires[j].address();
 						vals[address] = in[i][j];
 					}
 				}

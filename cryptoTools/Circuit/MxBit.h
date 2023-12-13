@@ -5,6 +5,7 @@
 #include "cryptoTools/Common/BitVector.h"
 #include <functional>
 #include <sstream>
+#include <unordered_set>
 
 namespace osuCrypto
 {
@@ -54,15 +55,25 @@ namespace osuCrypto
 			virtual ~OpData() {}
 		};
 
+
 		template<typename T, int S>
 		struct SmallVector
 		{
-			std::array<T, S> mBuff;
-			std::vector<T> mPtr;
-			u64 mSize = 0;
+			//static_assert(std::is_trivial_v<T>, "impl assumes this");
 
-			SmallVector() = default;
-			SmallVector(SmallVector&& m)
+
+			std::array<T, S> mBuff;
+			std::unique_ptr<T[]> mPtr;
+			u64 mSize = 0;
+			static_assert(sizeof(mBuff) >= sizeof(u64), "buffer must be at least this big");
+
+			SmallVector()
+				: mBuff{}
+				, mPtr{}
+				, mSize{ 0 }
+			{}
+
+			SmallVector(SmallVector&& m) noexcept
 			{
 				mBuff = m.mBuff;
 				mSize = m.mSize;
@@ -76,7 +87,7 @@ namespace osuCrypto
 				if (isSmall())
 					return mBuff[i];
 				else
-					return mPtr[i];
+					return mPtr.get()[i];
 			}
 
 			const T& operator[](u64 i)const
@@ -86,12 +97,21 @@ namespace osuCrypto
 				if (isSmall())
 					return mBuff[i];
 				else
-					return mPtr[i];
+					return mPtr.get()[i];
 			}
 
-			u64 capacity()
+			void setCap(u64 c)
 			{
-				return isSmall() ? S : mPtr.capacity();
+				memcpy(&mBuff, &c, sizeof(u64));
+			}
+
+			u64 capacity() const
+			{
+				if (isSmall())
+					return S;
+				u64 c;
+				memcpy(&c, &mBuff, sizeof(u64));
+				return c;
 			}
 
 			void reserve(u64 n)
@@ -100,12 +120,17 @@ namespace osuCrypto
 				{
 					auto b = data();
 					auto e = b + mSize;
-					std::vector<T> vv;
-					vv.reserve(n);
-					vv.insert(vv.end(), b, e);
+					std::unique_ptr<T[]> vv(new T[n]);
+					std::copy(b, e, vv.get());
+					setCap(n);
 					mPtr = std::move(vv);
 				}
 			}
+
+			T& front() { return (*this)[0]; }
+			T& back() { return (*this)[mSize - 1]; }
+			const T& front() const { return (*this)[0]; }
+			const T& back() const { return (*this)[mSize - 1]; }
 
 			template<typename T2>
 			void push_back(T2&& v)
@@ -117,18 +142,21 @@ namespace osuCrypto
 				}
 				else
 				{
-					if(mSize == capacity())
-						reserve(mSize ? mSize * 2 : 10);
-					if (mPtr.size() != size())
-						throw RTE_LOC;
-					mPtr.push_back(v);
-					++mSize;
+					if (mSize == capacity())
+						reserve(std::max<u64>(mSize * 2, 32));
 
+					mPtr.get()[mSize] = v;
+					++mSize;
 				}
 			}
 
+			void pop_back()
+			{
+				--mSize;
+			}
+
 			bool isSmall() const {
-				return mPtr.capacity() == 0;
+				return mPtr.get() == nullptr;
 			}
 
 			T* data()
@@ -136,13 +164,111 @@ namespace osuCrypto
 				if (isSmall())
 					return mBuff.data();
 				else
-					return mPtr.data();
+					return mPtr.get();
 			}
 
 			u64 size() const {
 				return mSize;
 			}
+
+			T* begin() { return data(); }
+			T* end() { return data() + size(); }
+			const T* begin() const { return data(); }
+			const T* end() const { return data() + size(); }
 		};
+
+
+		template<typename T, int S>
+		struct SmallSet
+		{
+			//static const u64 MidCap = 32;
+			SmallVector<T, S> mBuff;
+			//std::unordered_set<T> mSet;
+			//u64 mSize = 0;
+
+			//bool isLarge() const { return mBuff.size() == MidCap + 1; }
+
+			void insert(T& v)
+			{
+
+				if (std::find(mBuff.begin(), mBuff.end(), v) == mBuff.end())
+					mBuff.push_back(v);
+				//if (isLarge())
+				//	mSet.insert(v);
+				//else
+				//{
+				//	if (mBuff.size() == MidCap)
+				//	{
+				//		for (auto& x : mBuff)
+				//			mSet.insert(x);
+
+				//		mSet.insert(v);
+				//	}
+				//	else
+				//	{
+				//		if(std::find(mBuff.begin(), mBuff.end(), v) == mBuff.end())
+				//			mBuff.push_back(v);
+				//	}
+				//}
+			}
+
+			void erase(T& v)
+			{
+				auto iter = std::find(mBuff.begin(), mBuff.end(), v);
+				if (iter == mBuff.end())
+					throw RTE_LOC;
+				std::swap(mBuff.back(), *iter);
+				mBuff.pop_back();
+
+				//if (isLarge())
+				//{
+				//	auto i = mSet.find(v);
+				//	if (i == mSet.end())
+				//		throw RTE_LOC;
+				//	mSet.erase(i);
+				//}
+				//else
+				//{
+				//	auto iter = std::find(mBuff.begin(), mBuff.end(), v);
+				//	if (iter == mBuff.end())
+				//		throw RTE_LOC;
+				//	std::swap(mBuff.back(), *iter);
+				//	mBuff.pop_back();
+				//}
+			}
+
+			template<typename F>
+			void forEach(F&& f)
+			{
+				for (u64 i = 0; i < mBuff.size(); ++i)
+				{
+					f(mBuff[i]);
+				}
+				//if (isLarge())
+				//{
+				//	for (auto b = mSet.begin(); b != mSet.end(); ++b)
+				//	{
+				//		f(*b);
+				//	}
+				//}
+				//else
+				//{
+				//	for (u64 i = 0; i < mBuff.size(); ++i)
+				//	{
+				//		f(mBuff[i]);
+				//	}
+				//}
+			}
+
+			u64 size() const
+			{
+				//if (isLarge())
+				//	return mSet.size();
+				//else
+				return mBuff.size();
+			}
+		};
+
 
 		struct Gate
 		{
@@ -213,7 +339,7 @@ namespace osuCrypto
 					std::stringstream ss;
 					ss << b;
 					return ss.str();
-				};
+					};
 			}
 
 			std::array<const Bit*, 1> serialize() const

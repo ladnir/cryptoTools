@@ -391,64 +391,69 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 #ifdef ENABLE_CIRCUITS
 
 	bool verbose = cmd.isSet("verbose");
-	Mx::Circuit cir;
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr("trials", 1);
+	for (u64 t = 0; t < trials; ++t)
 	{
-		auto a = cir.input<Mx::Bit>();
-		auto b = cir.input<Mx::Bit>();
-		auto A = cir.input<Mx::BInt<32>>();
-		auto B = cir.input<Mx::BInt<32>>();
 
-		if (verbose)
-			cir << "A " << A << "\nB " << B << "\n";
-
-		auto x = a ^ b;
-		cir.output(x);
-		auto vPlus = A + B;
-		auto vSub = A - B;
-		if (verbose)
+		Mx::Circuit cir;
 		{
-			cir << "+ " << vPlus << "\n";
-			cir << "- " << vSub << "\n";
+			auto a = cir.input<Mx::Bit>();
+			auto b = cir.input<Mx::Bit>();
+			auto A = cir.input<Mx::BInt<64>>();
+			auto B = cir.input<Mx::BInt<64>>();
+
+			if (verbose)
+				cir << "A " << A << "\nB " << B << "\n";
+
+			auto x = a ^ b;
+			cir.output(x);
+			auto vPlus = A + B;
+			auto vSub = A - B;
+
+			if (verbose)
+			{
+				cir << "+ " << vPlus << "\n";
+				cir << "- " << vSub << "\n";
+			}
+
+			cir.output(vPlus);
+			cir.output(vSub);
 		}
 
-		cir.output(vPlus);
-		cir.output(vSub);
+		auto bc = cir.asBetaCircuit();
+
+		std::vector<BitVector> in(4), out(3);
+		in[0].resize(1);
+		in[1].resize(1);
+		in[2].resize(64);
+		in[3].resize(64);
+		//in[4].resize(64);
+		//in[5].resize(64);
+		out[0].resize(1);
+		out[1].resize(64);
+		out[2].resize(64);
+		for (u64 i = 0; i < 4; ++i)
+		{
+			auto a = i % 2;
+			auto b = i / 2;
+			auto A = prng.get<i64>();
+			auto B = prng.get<i64>();
+			in[0][0] = a;
+			in[1][0] = b;
+			in[2].getSpan<i64>()[0] = A;
+			in[3].getSpan<i64>()[0] = B;
+
+
+			bc.evaluate(in, out);
+			if (out[0][0] != (a ^ b))
+				throw RTE_LOC;
+			if (out[1].getSpan<i64>()[0] != (A + B))
+				throw RTE_LOC;
+			if (out[2].getSpan<i64>()[0] != (A - B))
+				throw RTE_LOC;
+		}
 	}
-
-	auto bc = cir.asBetaCircuit();
-
-	std::vector<BitVector> in(4), out(3);
-	in[0].resize(1);
-	in[1].resize(1);
-	in[2].resize(32);
-	in[3].resize(32);
-	//in[4].resize(32);
-	//in[5].resize(32);
-	out[0].resize(1);
-	out[1].resize(32);
-	out[2].resize(32);
-	PRNG prng(ZeroBlock);
-	for (u64 i = 0; i < 4; ++i)
-	{
-		auto a = i % 2;
-		auto b = i / 2;
-		auto A = prng.get<i32>();
-		auto B = prng.get<i32>();
-		in[0][0] = a;
-		in[1][0] = b;
-		in[2].getSpan<i32>()[0] = A;
-		in[3].getSpan<i32>()[0] = B;
-
-
-		bc.evaluate(in, out);
-		if (out[0][0] != (a ^ b))
-			throw RTE_LOC;
-		if (out[1].getSpan<i32>()[0] != (A + B))
-			throw RTE_LOC;
-		if (out[2].getSpan<i32>()[0] != (A - B))
-			throw RTE_LOC;
-	}
-
 #else
 	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
 #endif

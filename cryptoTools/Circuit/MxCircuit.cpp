@@ -15,10 +15,8 @@ namespace osuCrypto
 			std::vector<u64> mMap;
 
 			void map(u64 key, u64 val) {
-				if (mMap.capacity() <= key)
-					mMap.reserve(mMap.capacity() * 2);
 				if (mMap.size() <= key)
-					mMap.resize(key + 1, -1);
+					mMap.resize(std::max<u64>(key + 1, mMap.size() * 2), -1);
 				mMap[key] = val;
 			};
 
@@ -32,6 +30,34 @@ namespace osuCrypto
 			bool hasMapping(u64 key)
 			{
 				return mMap.size() > key && mMap[key] != ~0ull;
+			}
+		};
+
+		struct DirtyFlag
+		{
+			std::vector<u8> dirty;
+
+			auto end() { return dirty.end(); }
+			auto find(u64 i)
+			{
+				if (i >= dirty.size() || dirty[i] == 0)
+					return end();
+				return dirty.begin() + i;
+			}
+
+			void insert(u64 i)
+			{
+				if (dirty.size() <= i)
+				{
+					auto ns = std::max<u64>({ dirty.size() * 2, i + 1, 16 });
+					dirty.resize(ns);
+				}
+				dirty[i] = 1;
+			}
+
+			void clear()
+			{
+				memset(dirty.data(), 0, dirty.size());
 			}
 		};
 
@@ -74,8 +100,8 @@ namespace osuCrypto
 
 			std::vector<u64>
 				linearQueue{ 0 },
-				NonlinearQueue;
-			std::unordered_set<u64> dirty;
+				NonlinearQueue, non;
+			DirtyFlag dirty;
 
 
 			auto evalNode = [&](u64 idx) {
@@ -147,7 +173,7 @@ namespace osuCrypto
 						BetaBundle b(node.mInputs.size());
 						for (u64 i = 0; i < b.size(); ++i)
 							b[i] = addressMap[node.mInputs[i]];
-						cir.addPrint(b, p.mFn);
+						cir.addPrint(b, *p.mFn);
 					},
 					[&](GraphCircuit::OutputNode& o) {
 
@@ -162,9 +188,11 @@ namespace osuCrypto
 								throw RTE_LOC;
 					}
 				};
+;
 
-				for (auto c : node.mChildren)
-				{
+				
+				node.mChildren.forEach([&](u64 c) {
+
 					g.mNodes[c].removeDep(idx);
 
 					if (g.mNodes[c].mDeps.size() == 0)
@@ -174,8 +202,8 @@ namespace osuCrypto
 						else
 							NonlinearQueue.push_back(c);
 					}
-				}
-				};
+				});
+			};
 
 			while (linearQueue.size() || NonlinearQueue.size())
 			{
@@ -189,12 +217,13 @@ namespace osuCrypto
 					linearQueue.pop_back();
 					evalNode(idx);
 				}
-				auto n = std::move(NonlinearQueue);
+				std::swap(non, NonlinearQueue);
+				//auto n = std::move(NonlinearQueue);
 
-				while (n.size())
+				while (non.size())
 				{
-					auto idx = n.back();
-					n.pop_back();
+					auto idx = non.back();
+					non.pop_back();
 					evalNode(idx);
 				}
 			}
@@ -223,6 +252,7 @@ namespace osuCrypto
 			u64 nextAddress = 0;
 			Mapper addressMap, owner;
 
+			ret.mNodes.reserve(mGates.size() + mInputs.size() + mOutputs.size() + 1);
 			ret.mNodes.emplace_back();
 			
 			u64 prePrint = 0;
@@ -258,7 +288,7 @@ namespace osuCrypto
 					auto p = dynamic_cast<Print*>(mGates[i].mData.get());
 					if (p)
 					{
-						n.mData = PrintNode{ p->mFn };
+						n.mData = PrintNode{ &p->mFn };
 						for (u64 j = 0; j < mGates[i].mInput.size(); ++j)
 						{
 							auto address = addressMap[mGates[i].mInput[j]];
@@ -293,6 +323,8 @@ namespace osuCrypto
 						n.addDep(owner[address]);
 						auto& p = ret.mNodes[owner[address]];
 						p.addChild(ret.mNodes.size());
+						if (address == -1)
+							throw RTE_LOC;;
 					}
 					for (u64 j = 0; j < mGates[i].mOutput.size(); ++j)
 					{
