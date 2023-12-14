@@ -159,7 +159,7 @@ namespace osuCrypto
 			template<typename Iter>
 			BVector(Iter&& b, Iter&& e)
 			{
-				resize(std::distance(b,e));
+				resize(std::distance(b, e));
 				for (u64 i = 0; i < size(); ++i)
 					(*this)[i] = *b++;
 			}
@@ -284,9 +284,12 @@ namespace osuCrypto
 					{
 						v |= u64(b[i]) << i;
 					}
-					for (u64 i = b.size(); i < 64; ++i)
+					if (Signed == IntType::TwosComplement)
 					{
-						v |= u64(b[b.size() - 1]) << i;
+						for (u64 i = b.size(); i < 64; ++i)
+						{
+							v |= u64(b[b.size() - 1]) << i;
+						}
 					}
 					return std::to_string(v);
 					};
@@ -302,7 +305,7 @@ namespace osuCrypto
 			IntegerTraits<BInt<n, Signed>, Signed>
 		{
 			BitArray<n> mBits;
-			
+
 			using representation_type = Bit;
 			using typename IntegerTraits<BInt, Signed>::value_type;
 			using IntegerTraits<BInt<n, Signed>, Signed>::toString;
@@ -425,13 +428,13 @@ namespace osuCrypto
 				if (Signed == IntType::TwosComplement && S == IntType::TwosComplement)
 				{
 					for (u64 i = size(); i < n; ++i)
-						r[i] = r[i-1];
+						r[i] = r[i - 1];
 				}
 				return r;
 			}
 
 			template<u64 n, IntType S>
-			operator BInt<n, S>() &&
+			operator BInt<n, S>()&&
 			{
 				BInt<n, S> r;
 				for (u64 i = 0; i < std::min<u64>(n, size()); ++i)
@@ -441,7 +444,7 @@ namespace osuCrypto
 				if (Signed == IntType::TwosComplement && S == IntType::TwosComplement)
 				{
 					for (u64 i = size(); i < n; ++i)
-						r[i] = r[i-1];
+						r[i] = r[i - 1];
 				}
 				return r;
 			}

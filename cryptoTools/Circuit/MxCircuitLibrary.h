@@ -66,9 +66,9 @@ namespace osuCrypto
 		// and the carry out bit cOut. Works 
 		// for addition and subtraction.
 		void rippleAdder(
-			const Bit& a1,
-			const Bit& a2,
-			const Bit& cIn,
+			Bit a1,
+			Bit a2,
+			Bit cIn,
 			Bit& sum,
 			Bit& cOut,
 			AdderType at);

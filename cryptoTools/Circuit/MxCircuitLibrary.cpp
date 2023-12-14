@@ -123,8 +123,8 @@ namespace osuCrypto
 					}
 					else
 					{
-						G[i] = 
-							!signExtend(a1_, i, it) & 
+						G[i] =
+							!signExtend(a1_, i, it) &
 							signExtend(a2_, i, it);
 					}
 				}
@@ -226,7 +226,7 @@ namespace osuCrypto
 						}
 
 						// propagate in is pointless since there is no global carry in.
-						if (!g.first) 
+						if (!g.first)
 							P1 = P1 & P0;
 					}
 				}
@@ -236,15 +236,15 @@ namespace osuCrypto
 			sum[0] = P[0];
 			for (u64 i = 1; i < sSize; ++i)
 			{
-					auto& a1i = signExtend(a1_, i, it);
-					auto& a2i = signExtend(a2_, i, it);
+				auto& a1i = signExtend(a1_, i, it);
+				auto& a2i = signExtend(a2_, i, it);
 
-					if (a1i.isConst() && a1i.constValue() == 0 && a2i.isConst() && a2i.constValue() == 0)
-						P[i] = 0;
-					else
-						P[i] = a1i ^ a2i;
+				if (a1i.isConst() && a1i.constValue() == 0 && a2i.isConst() && a2i.constValue() == 0)
+					P[i] = 0;
+				else
+					P[i] = a1i ^ a2i;
 
-					sum[i] = P[i] ^ G[i - 1];
+				sum[i] = P[i] ^ G[i - 1];
 			}
 		}
 
@@ -347,9 +347,9 @@ namespace osuCrypto
 		//
 		// where G = addition ? and : or;
 		void rippleAdder(
-			const Bit& a1,
-			const Bit& a2,
-			const Bit& cIn,
+			Bit a1,
+			Bit a2,
+			Bit cIn,
 			Bit& sum,
 			Bit& cOut,
 			AdderType at)
@@ -359,8 +359,8 @@ namespace osuCrypto
 			auto t3 = at == AdderType::Addition ?
 				t1 & t2 :
 				t1 | t2;
-			cOut = a1 ^ t3;
 			sum = t2 ^ cIn;
+			cOut = a1 ^ t3;
 		}
 
 		// a full ripple carry adder circuit. Has linear AND depth.
@@ -426,57 +426,116 @@ namespace osuCrypto
 			IntType it
 		)
 		{
-			std::vector<BVector> temps;
-			for (auto i = 0ull; i < x.size(); ++i)
-				temps.emplace_back(x[i].begin(), x[i].end());
+			//auto& cir = *x[0][0].mCir;
 
-			while (temps.size() > 2)
+			if (op == Optimized::Depth)
 			{
-				std::vector<BVector> t2;
-				for (u64 i = 0; i < temps.size(); i += 3)
-				{
-					if (i + 3 < temps.size())
-					{
-						t2.emplace_back();
-						t2.emplace_back();
-						auto& a = temps[i + 0];
-						auto& b = temps[i + 1];
-						auto& c = temps[i + 2];
-						auto& x = *(t2.end() - 2);
-						auto& y = *(t2.end() - 1);
-						auto size = std::max<u64>({ a.size(), b.size(), c.size() });
-						x.resize(size);
-						y.resize(size);
+				std::vector<BVector> temps; temps.reserve(x.size());
+				for (auto i = 0ull; i < x.size(); ++i)
+					temps.emplace_back(x[i].begin(), x[i].end());
 
-						for (u64 j = 0; j < size; ++j)
-							rippleAdder(
-								signExtend(a, j, it),
-								signExtend(b, j, it),
-								signExtend(c, j, it),
-								x[j], y[j], AdderType::Addition);
-					}
-					else
+				while (temps.size() > 2)
+				{
+					std::vector<BVector> t2; t2.reserve(temps.size() / 3 + 2);
+					for (u64 i = 0; i < temps.size(); i += 3)
 					{
-						while (i < temps.size())
-							t2.emplace_back(temps[i++]);
+						if (i + 3 <= temps.size())
+						{
+							t2.emplace_back();
+							t2.emplace_back();
+							auto& a = temps[i + 0];
+							auto& b = temps[i + 1];
+							auto& c = temps[i + 2];
+							auto& x = *(t2.end() - 2);
+							auto& y = *(t2.end() - 1);
+							auto size = it == IntType::TwosComplement ?
+								sum.size() :
+								std::max<u64>({ a.size(), b.size(), c.size() });
+
+							x.resize(size);
+							y.resize(size);
+
+							//BDynInt A; A.mBits.insert(A.end(), a.begin(), a.end());
+							//BDynInt B; B.mBits.insert(B.end(), b.begin(), b.end());
+							//BDynInt C; C.mBits.insert(C.end(), c.begin(), c.end());
+							//cir << "\na " << A<< " " << a << "\n";
+							//cir << "b " << B << " " << b << "\n";
+							//cir << "c " << C << " " << c << "\n";
+
+							for (u64 j = 0; j < size - 1; ++j)
+								rippleAdder(
+									signExtend(a, j, it),
+									signExtend(b, j, it),
+									signExtend(c, j, it),
+									x[j], y[j + 1], AdderType::Addition);
+
+							y[0] = 0;
+							x[size - 1] =
+								signExtend(a, size - 1, it) ^
+								signExtend(b, size - 1, it) ^
+								signExtend(c, size - 1, it);
+
+							//BDynInt X; X.mBits.insert(X.end(), x.begin(), x.end());
+							//BDynInt Y; Y.mBits.insert(Y.end(), y.begin(), y.end());
+
+							//cir << "x " << X << " " << x << "\n";
+							//cir << "y " << Y << " " << y << "\n\n";
+
+							//BVector exp(size), act(size);
+							//rippleAdder(a, b, exp, it, AdderType::Addition);
+							//rippleAdder(c, exp, exp, it, AdderType::Addition);
+							//rippleAdder(x, y, act, it, AdderType::Addition);
+
+							//BDynInt E; E.mBits.insert(E.end(), exp.begin(), exp.end());
+							//cir << "\nexp " << exp << " " << E << "\n";
+							//cir << "act " << act << "\n";
+						}
+						else
+						{
+							while (i < temps.size())
+							{
+								//BDynInt E; E.mBits.insert(E.end(), temps[i].begin(), temps[i].end());
+								//cir << "\nexp " << " " << E << "\n";
+
+								t2.emplace_back(temps[i++]);
+							}
+						}
 					}
+					//cir << "--------------\n";
+
+					temps = std::move(t2);
 				}
 
-				temps = std::move(t2);
-			}
-
-			if (temps.size() == 2)
-			{
-				if (op == Optimized::Depth)
-					parallelPrefix(temps[0], temps[1], sum, it, AdderType::Addition);
+				if (temps.size() == 2)
+				{
+					if (op == Optimized::Depth)
+						parallelPrefix(temps[0], temps[1], sum, it, AdderType::Addition);
+					else
+						rippleAdder(temps[0], temps[1], sum, it, AdderType::Addition);
+				}
 				else
-					rippleAdder(temps[0], temps[1], sum, it, AdderType::Addition);
+				{
+					assert(temps.size() == 1);
+					for (u64 i = 0; i < sum.size(); ++i)
+						sum[i] = signExtend(temps[0], i, it);
+				}
+
 			}
 			else
 			{
-				assert(temps.size() == 1);
-				for (u64 i = 0; i < sum.size(); ++i)
-					sum[i] = signExtend(temps[0], i, it);
+				if (x.size() == 1)
+				{
+					for (u64 i = 0; i < sum.size(); ++i)
+						sum[i] = signExtend(x[0], i, it);
+				}
+				else
+				{
+					rippleAdder(x[0], x[1], sum, it, AdderType::Addition);
+					for (u64 i = 2; i < x.size(); ++i)
+					{
+						rippleAdder(sum, x[i], sum, it, AdderType::Addition);
+					}
+				}
 			}
 		}
 
@@ -496,8 +555,11 @@ namespace osuCrypto
 			//    (...     ) << ...,
 			//    (b[n] * a) << n    }
 			// where row i contains min(c.mWires.size() - i, a.mWires.size())
-			std::vector<BDynInt> rows(numRows);
+			std::vector<BVector> rows(numRows);
 			std::vector<span<const Bit>> rowSpans(numRows);
+
+			//auto& cir = *a[0].circuit();
+			//cir << "\n";
 
 			// first, we compute the AND between the two inputs.
 			for (u64 i = 0; i < rows.size(); ++i)
@@ -517,6 +579,9 @@ namespace osuCrypto
 					rows[i][j] = bi & a[k];
 
 				rowSpans[i] = rows[i].asBits();
+
+				//BDynInt v; v.mBits.insert(v.mBits.end(), rows[i].begin(), rows[i].end());
+				//cir << "row " << i << " " << v << "\t " << rows[i] << "\n";
 			}
 
 			// add up all the rows.

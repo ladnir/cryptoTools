@@ -490,9 +490,9 @@ void MxCircuit_parallelPrefix_impl(u64 trials, Mx::AdderType at, PRNG& prng)
 	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
 	for (u64 i = 0; i < trials; ++i)
 	{
-		auto s0 = 8; (prng.get<u32>() % 64) + 1;
-		auto s1 = s0; (prng.get<u32>() % 64) + 1;
-		auto s2 = s0; (prng.get<u32>() % 64) + 1;
+		auto s0 = (prng.get<u32>() % 64) + 1;
+		auto s1 = (prng.get<u32>() % 64) + 1;
+		auto s2 = (prng.get<u32>() % 64) + 1;
 
 
 		Mx::Circuit cir;
@@ -549,85 +549,206 @@ void MxCircuit_parallelPrefix_Test(const oc::CLP& cmd)
 }
 
 
-//struct PBit : Mx2::Bit<PBit>
-//{
-//	using value_type = bool;
-//};
-//
-//struct PVBit : Mx2::Bit<PVBit>
-//{
-//	using value_type = std::vector<u8>;
-//};
-//
-//void MxCircuit_plain_Bit_Test(const oc::CLP& cmd)
-//{
-//
-//	bool verbose = cmd.isSet("verbose");
-//	Mx::Circuit cir;
-//
-//	{
-//		auto a = PVBit{};
-//		auto b = PVBit{};
-//		auto c = PVBit{};
-//
-//		auto vAnd = a & b;
-//		auto vOr = a | b;
-//		auto vXor = a ^ b;
-//		auto vNot = !a;
-//		auto zAnd = a & c;
-//		auto zOr = a | c;
-//		auto zXor = a ^ c;
-//
-//		//if (verbose)
-//		//{
-//		//	cir << "and: " << vAnd << "\n";
-//		//	cir << "or:  " << vOr << "\n";
-//		//	cir << "xor: " << vXor << "\n";
-//		//	cir << "not: " << vNot << "\n";
-//		//}
-//
-//		auto vAndOut = vAnd.output();
-//		auto vOrOut = vOr.output();
-//		auto vXorOut = vXor.output();
-//		auto vNotOut = vNot.output();
-//
-//		auto zAndOut = zAnd.output();
-//		auto zOrOut = zOr.output();
-//		auto zXorOut = zXor.output();
-//	}
-//
-//	if (cir.mInputs.size() != 2)
-//		throw RTE_LOC;
-//
-//
-//	std::vector<BitVector> in(2), out;
-//	in[0].resize(1);
-//	in[1].resize(1);
-//
-//	for (u64 a = 0; a < 2; ++a)
-//	{
-//		for (u64 b = 0; b < 2; ++b)
-//		{
-//			in[0][0] = a;
-//			in[1][0] = b;
-//			cir.evaluate(in, out);
-//
-//			if (out[0][0] != (a & b))
-//				throw RTE_LOC;
-//			if (out[1][0] != (a | b))
-//				throw RTE_LOC;
-//			if (out[2][0] != (a ^ b))
-//				throw RTE_LOC;
-//			if (out[3][0] != (!a))
-//				throw RTE_LOC;
-//
-//
-//			if (out[4][0] != (a & 1))
-//				throw RTE_LOC;
-//			if (out[5][0] != (a | 1))
-//				throw RTE_LOC;
-//			if (out[6][0] != (a ^ 1))
-//				throw RTE_LOC;
-//		}
-//	}
-//}
+
+template<typename T>
+void MxCircuit_rippleAdder_impl(u64 trials, Mx::AdderType at, PRNG& prng)
+{
+	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
+	for (u64 i = 0; i < trials; ++i)
+	{
+		auto s0 = (prng.get<u32>() % 64) + 1;
+		auto s1 = (prng.get<u32>() % 64) + 1;
+		auto s2 = (prng.get<u32>() % 64) + 1;
+
+
+		Mx::Circuit cir;
+		auto A = cir.input<Mx::BVector>(s0);
+		auto B = cir.input<Mx::BVector>(s1);
+		Mx::BVector C(s2);
+		Mx::rippleAdder(A, B, C, type, at);
+		cir.output(C);
+
+
+		std::vector<BitVector> in(2), out(1);
+		in[0].resize(s0);
+		in[1].resize(s1);
+		out[0].resize(s2);
+		for (u64 j = 0; j < 10; ++j)
+		{
+			T a = signEx(prng.get<T>(), s0);
+			T b = signEx(prng.get<T>(), s1);
+			T c = at == Mx::AdderType::Addition ?
+				a + b :
+				a - b;
+
+			c = signEx(c, s2);
+
+			memcpy(in[0].data(), &a, in[0].sizeBytes());
+			memcpy(in[1].data(), &b, in[1].sizeBytes());
+
+			cir.evaluate(in, out);
+
+			T cAct = 0;
+			memcpy(&cAct, out[0].data(), out[0].sizeBytes());
+			cAct = signEx(cAct, s2);
+
+			if (c != cAct)
+			{
+				std::cout << cir << std::endl;
+
+				std::cout << "\n exp " << c << "\t" << BitVector((u8*)&c, s2) << "\n";
+				std::cout << " act " << cAct << "\t" << BitVector((u8*)&cAct, s2) << "\n";
+				throw RTE_LOC;
+			}
+		}
+	}
+
+}
+
+void MxCircuit_rippleAdder_Test(const oc::CLP& cmd)
+{
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr<u64>("trials", 100);
+
+	MxCircuit_rippleAdder_impl<u64>(trials, Mx::AdderType::Addition, prng);
+	MxCircuit_rippleAdder_impl<u64>(trials, Mx::AdderType::Subtraction, prng);
+	MxCircuit_rippleAdder_impl<i64>(trials, Mx::AdderType::Addition, prng);
+	MxCircuit_rippleAdder_impl<i64>(trials, Mx::AdderType::Subtraction, prng);
+}
+
+
+
+template<typename T>
+void MxCircuit_parallelSummation_impl(u64 trials, Mx::Optimized op, PRNG& prng)
+{
+	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
+	for (u64 i = 0; i < trials; ++i)
+	{
+		u64 numTerms = (prng.get<u32>() % 16 + 1);
+		auto s0 = (prng.get<u32>() % 16) + 1; 
+
+		Mx::Circuit cir;
+		std::vector<Mx::BVector> X(numTerms);
+		std::vector<T>x(numTerms);
+		std::vector<span<const Mx::Bit>> bits(numTerms);
+		std::vector<BitVector> in(numTerms), out(1);
+
+		for (u64 i = 0; i < numTerms; ++i)
+		{
+			auto s = s0;// (prng.get<u32>() % 64) + 1;
+			in[i].resize(s);
+			X[i] = cir.input<Mx::BVector>(s);
+			bits[i] = X[i].asBits();
+		}
+
+		out[0].resize(s0);
+		Mx::BVector C(s0);
+		Mx::parallelSummation(bits, C.asBits(), op, type);
+		cir.output(C);
+
+		for (u64 j = 0; j < 10; ++j)
+		{
+			T c = 0;
+			for (u64 i = 0; i < numTerms; ++i)
+			{
+				x[i] = signEx(prng.get<T>(), X[i].size());
+				memcpy(in[i].data(), &x[i], in[i].sizeBytes());
+				c += x[i];
+			}
+			c = signEx(c, s0);
+
+			cir.evaluate(in, out);
+
+			T cAct = 0;
+			memcpy(&cAct, out[0].data(), out[0].sizeBytes());
+			cAct = signEx(cAct, s0);
+
+			if (c != cAct)
+			{
+				//std::cout << cir << std::endl;
+
+				std::cout << "\n exp " << c << "\t" << BitVector((u8*)&c, s0) << "\n";
+				std::cout << " act " << cAct << "\t" << BitVector((u8*)&cAct, s0) << "\n";
+				throw RTE_LOC;
+			}
+		}
+	}
+}
+
+
+void MxCircuit_parallelSummation_Test(const oc::CLP& cmd)
+{
+
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr<u64>("trials", 10);
+	
+	MxCircuit_parallelSummation_impl<u64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_parallelSummation_impl<u64>(trials, Mx::Optimized::Size, prng);
+	MxCircuit_parallelSummation_impl<i64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_parallelSummation_impl<i64>(trials, Mx::Optimized::Size, prng);
+}
+
+
+
+template<typename T>
+void MxCircuit_multiply_impl(u64 trials, Mx::Optimized op, PRNG& prng)
+{
+	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
+	for (u64 i = 0; i < trials; ++i)
+	{
+		auto s0 = 4; (prng.get<u32>() % 64) + 1;
+		auto s1 = 8; (prng.get<u32>() % 64) + 1;
+		auto s2 = 8; (prng.get<u32>() % 64) + 1;
+
+		Mx::Circuit cir;
+		auto A = cir.input<Mx::BVector>(s0);
+		auto B = cir.input<Mx::BVector>(s1);
+		Mx::BVector C(s2);
+		Mx::multiply(A, B, C, op, type);
+		cir.output(C);
+
+
+		std::vector<BitVector> in(2), out(1);
+		in[0].resize(s0);
+		in[1].resize(s1);
+		out[0].resize(s2);
+		for (u64 j = 0; j < 10; ++j)
+		{
+			T a = signEx(prng.get<T>(), s0);
+			T b = signEx(prng.get<T>(), s1);
+			T c = a * b;
+			//if (i != 1 || j != 4)
+			//	continue;
+			c = signEx(c, s2);
+
+			memcpy(in[0].data(), &a, in[0].sizeBytes());
+			memcpy(in[1].data(), &b, in[1].sizeBytes());
+
+			cir.evaluate(in, out);
+
+			T cAct = 0;
+			memcpy(&cAct, out[0].data(), out[0].sizeBytes());
+			cAct = signEx(cAct, s2);
+
+			if (c != cAct)
+			{
+				std::cout << "\n exp " << c << "\t" << BitVector((u8*)&c, s2) << "\n";
+				std::cout << " act " << cAct << "\t" << BitVector((u8*)&cAct, s2) << "\n";
+				throw RTE_LOC;
+			}
+		}
+	}
+
+}
+
+
+void MxCircuit_multiply_Test(const oc::CLP& cmd)
+{
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr<u64>("trials", 10);
+
+	//MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Depth, prng);
+	//MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Size, prng);
+	MxCircuit_multiply_impl<i64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_multiply_impl<i64>(trials, Mx::Optimized::Size, prng);
+}

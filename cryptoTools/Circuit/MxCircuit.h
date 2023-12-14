@@ -526,6 +526,28 @@ namespace osuCrypto
 			//GraphCircuit asGraph() ;
 		};
 
+		inline std::ostream& operator<<(std::ostream& o, const Circuit& c)
+		{
+			u64 j = 0;
+			for (auto& g : c.mGates)
+			{
+				o << j << ": " << g.mType << " {";
+				for (auto i : g.mInput)
+				{
+					o << " " << i;
+				}
+				o << " } -> { ";
+
+				for (u64 i = 0; i < g.mNumOutputs; ++i)
+				{
+					o << " " << Address(j, i);
+				}
+
+				o << " }\n";
+				++j;
+			}
+			return o;
+		}
 
 		template<typename T, typename = void>
 		struct has_bit_representation_type : std::false_type

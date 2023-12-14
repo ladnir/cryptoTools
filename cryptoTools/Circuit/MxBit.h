@@ -38,6 +38,39 @@ namespace osuCrypto
 			Other
 		};
 
+		inline std::ostream& operator<<(std::ostream& o, const OpType&ot)
+		{
+			o << [&]() {
+				switch (ot)
+				{
+				case OpType::Zero: return "Zero";
+				case OpType::Nor: return "Nor";
+				case OpType::nb_And: return "nb_And";
+				case OpType::nb: return "nb";
+				case OpType::na_And: return "na_And";
+				case OpType::na: return "na";
+				case OpType::Xor: return "Xor";
+				case OpType::Nand: return "Nand";
+				case OpType::And: return "And";
+				case OpType::Nxor: return "Nxor";
+				case OpType::a: return "a";
+				case OpType::nb_Or: return "nb_Or";
+				case OpType::b: return "b";
+				case OpType::na_Or: return "na_Or";
+				case OpType::Or: return "Or";
+				case OpType::One: return "One";
+				case OpType::Input: return "Input";
+				case OpType::Output: return "Output";
+				case OpType::Print: return "Print";
+				case OpType::Other: return "Other";
+				default:
+					throw RTE_LOC;
+					break;
+				}
+			}();
+
+			return o;
+		}
 
 		inline bool isLinear(OpType type)
 		{
@@ -295,6 +328,12 @@ namespace osuCrypto
 		private:
 			u64 mVal = -1;
 		};
+
+		inline std::ostream& operator<<(std::ostream& o, const Address& a)
+		{
+			o << a.gate() << "." << a.offset();
+			return o;
+		}
 
 		struct Bit
 		{
