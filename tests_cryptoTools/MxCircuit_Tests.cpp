@@ -449,7 +449,11 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 			if (out[0][0] != (a ^ b))
 				throw RTE_LOC;
 			if (out[1].getSpan<i64>()[0] != (A + B))
+			{
+				std::cout << "\nact " << out[1].getSpan<i64>()[0] << "\n";
+				std::cout << "exp " << (A + B) << std::endl;;
 				throw RTE_LOC;
+			}
 			if (out[2].getSpan<i64>()[0] != (A - B))
 				throw RTE_LOC;
 		}

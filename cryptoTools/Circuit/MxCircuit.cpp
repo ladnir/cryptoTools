@@ -61,149 +61,167 @@ namespace osuCrypto
 			}
 		};
 
-		BetaCircuit Circuit::asBetaCircuit() const
+		BetaCircuit Circuit::asBetaCircuit()
 		{
-			auto g = asGraph();
-
+			auto childEdges = computeChildEdges();
 
 			BetaCircuit cir;
 			Mapper addressMap;
-			for (u64 i = 0; i < g.mInputs.size(); ++i)
-			{
-				auto& in = g.mNodes[g.mInputs[i]];
-
-				in.mData | match{
-					[](GraphCircuit::InputNode&) {},
-					[](auto&&) {throw RTE_LOC; }
-				};
-				BetaBundle b(in.mOutputs.size());
-				cir.addInputBundle(b);
-				for (u64 j = 0; j < in.mOutputs.size(); ++j)
-				{
-					auto address = b[j];
-					addressMap.map(in.mOutputs[j], address);
-				}
-			}
-
-			for (u64 i = 0; i < g.mOutputs.size(); ++i)
-			{
-				auto& out = g.mNodes[g.mOutputs[i]];
-
-				BetaBundle b(out.mInputs.size());
-				cir.addOutputBundle(b);
-				for (u64 j = 0; j < out.mInputs.size(); ++j)
-				{
-					auto address = b[j];
-					addressMap.map(out.mInputs[j], address);
-				}
-			}
-
+			std::vector<u64> depCount(mGates.size());
 			std::vector<u64>
-				linearQueue{ 0 },
+				linearQueue,
 				NonlinearQueue, non;
+			linearQueue.reserve(1024);
+			NonlinearQueue.reserve(256);
+			non.reserve(256);
+
+			for (u64 i = 0; i < mGates.size(); ++i)
+			{
+				depCount[i] = mGates[i].mInput.size();
+				if (depCount[i] == 0)
+				{
+					linearQueue.push_back(i);
+				}
+			}
+
+			for (u64 i = 0; i < mInputs.size(); ++i)
+			{
+				auto& in = mGates[mInputs[i]];
+
+				BetaBundle b(in.mNumOutputs);
+				cir.addInputBundle(b);
+				addressMap.map(mInputs[i], b[0]);
+			}
+
+			std::vector<BetaBundle> outputs(mOutputs.size());
+			for (u64 i = 0; i < mOutputs.size(); ++i)
+			{
+				auto& out = mGates[mOutputs[i]];
+
+				outputs[i].resize(out.mInput.size());
+				cir.addOutputBundle(outputs[i]);
+				//addressMap.map(mOutputs[i], b[0]);
+			}
+
 			DirtyFlag dirty;
 
-
 			auto evalNode = [&](u64 idx) {
-				auto& node = g.mNodes[idx];
+				auto& node = mGates[idx];
 
-				for (u64 i = 0; i < node.mOutputs.size(); ++i)
+				// if not an output (which has already been mapped).
+				if (addressMap.hasMapping(idx) == false)
 				{
-					auto o = node.mOutputs[i];
-					if (addressMap.hasMapping(o) == false)
+					if (node.mNumOutputs)
 					{
 						BetaWire next;
 						cir.addTempWire(next);
-						addressMap.map(o, next);
+						addressMap.map(idx, next);
+						for (u64 i = 1; i < node.mNumOutputs; ++i)
+							cir.addTempWire(next);
 					}
 				}
 
-				for (auto i : node.mInputs)
-					if (dirty.find(i) != dirty.end())
+				for (auto i : node.mInput)
+					if (dirty.find(i.gate()) != dirty.end())
 						throw RTE_LOC;
+				if (addressMap.hasMapping(idx))
+				{
+					auto outIdx = addressMap[idx];
+					if (outIdx == 131)
+						std::cout << "here" << std::endl;
+				}
+				switch (node.mType)
+				{
+				case OpType::a:
+					cir.addCopy(
+						addressMap[node.mInput[0].gate()] + node.mInput[0].offset(),
+						addressMap[idx]);
 
-				node.mData | match{
-					[&](GraphCircuit::OpNode& o) {
-						switch (o.mType)
-						{
-						case OpType::a:
-							cir.addCopy(
-								addressMap[node.mInputs[0]],
-								addressMap[node.mOutputs[0]]);
+					++cir.mLevelCounts.back();
+					break;
+				case OpType::na:
+					cir.addInvert(
+						addressMap[node.mInput[0].gate()] + node.mInput[0].offset(),
+						addressMap[idx]);
 
-							++cir.mLevelCounts.back();
-							break;
-						case OpType::na:
-							cir.addInvert(
-								addressMap[node.mInputs[0]],
-								addressMap[node.mOutputs[0]]);
+					++cir.mLevelCounts.back();
+					break;
+				case OpType::And:
+				case OpType::Or:
+				case OpType::Xor:
+				case OpType::Nand:
+				case OpType::na_And:
+				case OpType::na_Or:
+				case OpType::nb_And:
+				case OpType::nb_Or:
+				case OpType::Nor:
+				case OpType::Nxor:
+				{
+					auto g0 = node.mInput[0].gate();
+					auto o0 = node.mInput[0].offset();
+					auto g1 = node.mInput[1].gate();
+					auto o1 = node.mInput[1].offset();
 
-							++cir.mLevelCounts.back();
-							break;
-						case OpType::And:
-						case OpType::Or:
-						case OpType::Xor:
-						case OpType::Nand:
-						case OpType::na_And:
-						case OpType::na_Or:
-						case OpType::nb_And:
-						case OpType::nb_Or:
-						case OpType::Nor:
-						case OpType::Nxor:
-							cir.addGate(
-								addressMap[node.mInputs[0]],
-								addressMap[node.mInputs[1]],
-								(oc::GateType)o.mType,
-								addressMap[node.mOutputs[0]]);
+					cir.addGate(
+						addressMap[g0] + o0,
+						addressMap[g1] + o1,
+						(oc::GateType)node.mType,
+						addressMap[idx]);
 
-							++cir.mLevelCounts.back();
-							if (isLinear(o.mType) == false)
-							{
-								++cir.mLevelAndCounts.back();
-								dirty.insert(node.mOutputs[0]);
-							}
-
-							break;
-							default:
-								throw RTE_LOC;
-						break;
-						}
-					},
-					[&](GraphCircuit::PrintNode& p) {
-						BetaBundle b(node.mInputs.size());
-						for (u64 i = 0; i < b.size(); ++i)
-							b[i] = addressMap[node.mInputs[i]];
-						cir.addPrint(b, *p.mFn);
-					},
-					[&](GraphCircuit::OutputNode& o) {
-
-						for (u64 i = 0; i < node.mInputs.size(); ++i)
-							if (addressMap.hasMapping(node.mInputs[i]) == false)
-								throw RTE_LOC;
-					},
-					[&](GraphCircuit::InputNode& o) {
-
-						for (u64 i = 0; i < node.mInputs.size(); ++i)
-							if (addressMap.hasMapping(node.mInputs[i]) == false)
-								throw RTE_LOC;
-					}
-				};
-;
-
-				
-				node.mChildren.forEach([&](u64 c) {
-
-					g.mNodes[c].removeDep(idx);
-
-					if (g.mNodes[c].mDeps.size() == 0)
+					++cir.mLevelCounts.back();
+					if (isLinear(node.mType) == false)
 					{
-						if (g.mNodes[c].isLinear())
+						++cir.mLevelAndCounts.back();
+						dirty.insert(idx);
+					}
+
+					break;
+				}
+				case OpType::Print:
+				{
+
+					auto s = node.mInput.size();
+					if (s && node.mInput.back().offset() == -1)
+						--s;
+
+					BetaBundle b(s);
+					for (u64 i = 0; i < b.size(); ++i)
+						b[i] = addressMap[node.mInput[i].gate()] + node.mInput[i].offset();
+					cir.addPrint(b, static_cast<Print*>(node.mData.get())->mFn);
+
+					break;
+				}
+				case OpType::Input:
+					if (addressMap.hasMapping(idx) == false)
+						throw RTE_LOC;
+					break;
+				case OpType::Output:
+
+					for (u64 i = 0; i < node.mInput.size(); ++i)
+						if (addressMap.hasMapping(node.mInput[i].gate()) == false)
+							throw RTE_LOC;
+					break;
+				default:
+					throw RTE_LOC;
+					break;
+				}
+				auto& children = childEdges.mChildren[idx];
+
+				for (auto b = children.begin(); b != children.end(); ++b) {
+					auto c = b->gate();
+					if (depCount[c] == 0)
+						throw RTE_LOC;
+					--depCount[c];
+
+					if (depCount[c] == 0)
+					{
+						if (mGates[c].isLinear())
 							linearQueue.push_back(c);
 						else
 							NonlinearQueue.push_back(c);
 					}
-				});
-			};
+				}
+				};
 
 			while (linearQueue.size() || NonlinearQueue.size())
 			{
@@ -228,9 +246,26 @@ namespace osuCrypto
 				}
 			}
 
-			for (u64 i = 0; i < g.mNodes.size(); ++i)
+			if (cir.mLevelAndCounts.size() == 0 || cir.mLevelAndCounts.back())
 			{
-				if (g.mNodes[i].mDeps.size())
+				cir.mLevelCounts.emplace_back();
+				cir.mLevelAndCounts.emplace_back();
+			}
+			for (u64 i = 0; i < mOutputs.size(); ++i)
+			{
+				auto& out = mGates[mOutputs[i]];
+				for (u64 j = 0; j < out.mInput.size(); ++j)
+				{
+					auto s = addressMap[out.mInput[j].gate()] + out.mInput[j].offset();
+					auto d = outputs[i][j];
+					cir.addCopy(s, d);
+					++cir.mLevelCounts.back();
+				}
+			}
+
+			for (u64 i = 0; i < depCount.size(); ++i)
+			{
+				if (depCount[i])
 					throw RTE_LOC;
 			}
 
@@ -238,124 +273,170 @@ namespace osuCrypto
 		}
 
 
-		GraphCircuit Circuit::asGraph() const
+		auto Circuit::computeChildEdges() -> ChildEdges
 		{
 
-			GraphCircuit ret;
-			using Node = GraphCircuit::Node;
-			using InputNode = GraphCircuit::InputNode;
-			using OpNode = GraphCircuit::OpNode;
-			using OutputNode = GraphCircuit::OutputNode;
-			using PrintNode = GraphCircuit::PrintNode;
+			ChildEdges r;
+			std::vector<u64> depCount(mGates.size());
+			u64 total = 0;
 
-
-			u64 nextAddress = 0;
-			Mapper addressMap, owner;
-
-			ret.mNodes.reserve(mGates.size() + mInputs.size() + mOutputs.size() + 1);
-			ret.mNodes.emplace_back();
-			
-			u64 prePrint = 0;
-
-			for (u64 i = 0; i < mInputs.size(); ++i)
-			{
-				auto idx = ret.mNodes.size();
-				Node n;
-				n.addDep(0);
-				ret.mNodes.front().addChild(idx);
-
-				n.mData = InputNode{ i };
-				for (u64 j = 0; j < mInputs[i].mWires.size(); ++j)
-				{
-					auto oldAddress = mInputs[i].mWires[j].address();
-					auto address = nextAddress++;
-					owner.map(address, idx);
-					addressMap.map(oldAddress, address);
-					n.mOutputs.push_back(address);
-				}
-				ret.mInputs.push_back(idx);
-				ret.mNodes.push_back(std::move(n));
-			}
-
-
+			// count how many things depend on each gate.
 			for (u64 i = 0; i < mGates.size(); ++i)
 			{
-				Node n;
-				switch (mGates[i].mType)
+				for (auto j : mGates[i].mInput)
 				{
-				case OpType::Other:
-				{
-					auto p = dynamic_cast<Print*>(mGates[i].mData.get());
-					if (p)
-					{
-						n.mData = PrintNode{ &p->mFn };
-						for (u64 j = 0; j < mGates[i].mInput.size(); ++j)
-						{
-							auto address = addressMap[mGates[i].mInput[j]];
-							n.mInputs.push_back(address);
-							n.addDep(owner[address]);
-
-							auto& p = ret.mNodes[owner[address]];
-							p.addChild(ret.mNodes.size());
-						}
-
-						n.addDep(prePrint);
-						auto& p = ret.mNodes[prePrint];
-						p.addChild(ret.mNodes.size());
-						prePrint = ret.mNodes.size();
-					}
-					else
-					{
-						throw RTE_LOC;
-					}
-					break;
+					++depCount[j.gate()];
 				}
-				default:
-					if ((int)mGates[i].mType > (int)OpType::One)
-						throw RTE_LOC;
-
-					n.mData = OpNode{ mGates[i].mType };
-
-					for (u64 j = 0; j < mGates[i].mInput.size(); ++j)
-					{
-						auto address = addressMap[mGates[i].mInput[j]];
-						n.mInputs.push_back(address);
-						n.addDep(owner[address]);
-						auto& p = ret.mNodes[owner[address]];
-						p.addChild(ret.mNodes.size());
-						if (address == -1)
-							throw RTE_LOC;;
-					}
-					for (u64 j = 0; j < mGates[i].mOutput.size(); ++j)
-					{
-						auto address = nextAddress++;
-						owner.map(address, ret.mNodes.size());
-						addressMap.map(mGates[i].mOutput[j], address);
-						n.mOutputs.push_back(address);
-					}
-					break;
-				}
-				ret.mNodes.push_back(std::move(n));
+				total += mGates[i].mInput.size();
 			}
 
-			for (u64 i = 0; i < mOutputs.size(); ++i)
+			r.mChildArena.reserve(total);
+			r.mChildren.resize(mGates.size());
+
+			// allocate buffers for each.
+			for (u64 i = 0; i < mGates.size(); ++i)
 			{
-				Node n;
-				n.mData = OutputNode{ i };
-				for (u64 j = 0; j < mOutputs[i].mWires.size(); ++j)
-				{
-					auto address = addressMap[mOutputs[i].mWires[j].address()];
-					n.mInputs.push_back(address);
-					n.addDep(owner[address]);
-					auto& p = ret.mNodes[owner[address]];
-					p.addChild(ret.mNodes.size());
-				}
-
-				ret.mOutputs.push_back(ret.mNodes.size());
-				ret.mNodes.push_back(std::move(n));
+				r.mChildren[i] = r.mChildArena.allocate(depCount[i]);
+				depCount[i] = 0;
 			}
-			return ret;
+
+			//populate the children pointers
+			for (u64 i = 0; i < mGates.size(); ++i)
+			{
+				for (auto j : mGates[i].mInput)
+				{
+					auto& dc = depCount[j.gate()];
+					r.mChildren[j.gate()][dc] = Address(i, j.offset());
+					++dc;
+				}
+			}
+			return r;
 		}
+
+		//GraphCircuit Circuit::asGraph() 
+		//{
+
+		//	GraphCircuit ret;
+		//	using Node = GraphCircuit::Node;
+		//	using InputNode = GraphCircuit::InputNode;
+		//	using OpNode = GraphCircuit::OpNode;
+		//	using OutputNode = GraphCircuit::OutputNode;
+		//	using PrintNode = GraphCircuit::PrintNode;
+
+
+		//	//u64 nextAddress = 0;
+		//	//Mapper addressMap, owner;
+
+		//	ret.mNodes.reserve(mGates.size() + mInputs.size() + mOutputs.size() + 1);
+		//	ret.mNodes.emplace_back();
+		//	
+		//	u64 prePrint = 0;
+
+		//	//for (u64 i = 0; i < mInputs.size(); ++i)
+		//	//{
+
+		//	//}
+
+
+
+
+		//	{
+		//		Node n;
+		//		switch (mGates[i].mType)
+		//		{
+		//		case OpType::Input:
+		//		{
+		//			auto idx = ret.mNodes.size();
+		//			Node n;
+		//			n.addDep(0);
+		//			ret.mNodes.front().addChild(idx);
+
+		//			n.mData = InputNode{ i };
+		//			for (u64 j = 0; j < mInputs[i].mWires.size(); ++j)
+		//			{
+		//				auto oldAddress = mInputs[i].mWires[j].address();
+		//				auto address = nextAddress++;
+		//				owner.map(address, idx);
+		//				addressMap.map(oldAddress, address);
+		//				n.mOutputs.push_back(address);
+		//			}
+		//			ret.mInputs.push_back(idx);
+		//			ret.mNodes.push_back(std::move(n));
+		//			break;
+		//		}
+		//		case OpType::Print:
+		//		{
+		//			auto p = dynamic_cast<Print*>(mGates[i].mData.get());
+		//			if (p)
+		//			{
+		//				n.mData = PrintNode{ &p->mFn };
+		//				for (u64 j = 0; j < mGates[i].mInput.size(); ++j)
+		//				{
+		//					auto address = addressMap[mGates[i].mInput[j]];
+		//					n.mInputs.push_back(address);
+		//					n.addDep(owner[address]);
+
+		//					auto& p = ret.mNodes[owner[address]];
+		//					p.addChild(ret.mNodes.size());
+		//				}
+
+		//				n.addDep(prePrint);
+		//				auto& p = ret.mNodes[prePrint];
+		//				p.addChild(ret.mNodes.size());
+		//				prePrint = ret.mNodes.size();
+		//			}
+		//			else
+		//			{
+		//				throw RTE_LOC;
+		//			}
+		//			break;
+		//		}
+		//		default:
+		//			if ((int)mGates[i].mType > (int)OpType::One)
+		//				throw RTE_LOC;
+
+		//			n.mData = OpNode{ mGates[i].mType };
+
+		//			for (u64 j = 0; j < mGates[i].mInput.size(); ++j)
+		//			{
+		//				auto address = addressMap[mGates[i].mInput[j]];
+		//				n.mInputs.push_back(address);
+		//				n.addDep(owner[address]);
+		//				auto& p = ret.mNodes[owner[address]];
+		//				p.addChild(ret.mNodes.size());
+		//				if (address == -1)
+		//					throw RTE_LOC;;
+		//			}
+		//			for (u64 j = 0; j < mGates[i].mOutput.size(); ++j)
+		//			{
+		//				auto address = nextAddress++;
+		//				owner.map(address, ret.mNodes.size());
+		//				addressMap.map(mGates[i].mOutput[j], address);
+		//				n.mOutputs.push_back(address);
+		//			}
+		//			break;
+		//		}
+		//		ret.mNodes.push_back(std::move(n));
+		//	}
+
+		//	for (u64 i = 0; i < mOutputs.size(); ++i)
+		//	{
+		//		Node n;
+		//		n.mData = OutputNode{ i };
+		//		for (u64 j = 0; j < mOutputs[i].mWires.size(); ++j)
+		//		{
+		//			auto address = addressMap[mOutputs[i].mWires[j].address()];
+		//			n.mInputs.push_back(address);
+		//			n.addDep(owner[address]);
+		//			auto& p = ret.mNodes[owner[address]];
+		//			p.addChild(ret.mNodes.size());
+		//		}
+
+		//		ret.mOutputs.push_back(ret.mNodes.size());
+		//		ret.mNodes.push_back(std::move(n));
+		//	}
+		//	return ret;
+		//}
 		//struct VBit
 		//{
 

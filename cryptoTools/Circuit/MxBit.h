@@ -32,6 +32,9 @@ namespace osuCrypto
 			na_Or = 13, //1101
 			Or = 14,    //1110
 			One = 15,   //1111
+			Input,
+			Output,
+			Print,
 			Other
 		};
 
@@ -49,11 +52,6 @@ namespace osuCrypto
 				type == OpType::One;
 		}
 
-
-		struct OpData
-		{
-			virtual ~OpData() {}
-		};
 
 
 		template<typename T, int S>
@@ -270,37 +268,51 @@ namespace osuCrypto
 		};
 
 
-		struct Gate
+		struct Address
 		{
-			SmallVector<u64, 2> mInput;
-			SmallVector<u64, 1> mOutput;
-			OpType mType;
-			std::unique_ptr<OpData> mData;
-		};
+			Address() = default;
+			Address(const Address&) = default;
+			Address&operator=(const Address&) = default;
+			Address(u64 g, u64 o)
+				:mVal(g | (o << 40))
+			{}
 
+			// the gate index the produced this output.
+			u64 gate() const
+			{
+				assert(hasValue());
+				return (u64(-1) >> 24) & mVal;
+			}
+
+			// the offset of this output in that gate, typically 0.
+			u64 offset() const
+			{
+				assert(hasValue());
+				return i64(mVal) >> 40;
+			}
+
+			bool hasValue() const  { return mVal != -1; }
+		private:
+			u64 mVal = -1;
+		};
 
 		struct Bit
 		{
 			using representation_type = Bit;
 
 			Circuit* mCir = nullptr;
-			u64 mAddress = -1;
+			Address mAddress;
 
 			Bit() = default;
 			Bit(const Bit& o)
 			{
 				*this = o;
 			}
-			Bit(Bit&& o)
-			{
-				*this = std::move(o);
-			}
 			Bit(bool v)
 			{
 				*this = v;
 			}
 
-			~Bit();
 			Circuit* circuit() const
 			{
 				assert(!isConst());
@@ -317,9 +329,9 @@ namespace osuCrypto
 				else
 					return ((u64)mCir) & 1;
 			}
-			Bit& operator=(const Bit& o);
-			Bit& operator=(Bit&& o);
+			Bit& operator=(const Bit& o) = default;
 			Bit& operator=(bool b);
+
 			Bit operator^(const Bit& b)const;
 			Bit operator&(const Bit& b)const;
 			Bit operator|(const Bit& b)const;
@@ -327,11 +339,6 @@ namespace osuCrypto
 			Bit operator~() const;
 
 			Bit addGate(OpType t, const Bit& b) const;
-
-			//bool operator==(bool b) const
-			//{
-			//	return isConst() && constValue() == b;
-			//}
 
 			static std::function<std::string(const BitVector& b)> toString()
 			{

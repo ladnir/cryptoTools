@@ -9,49 +9,13 @@ namespace osuCrypto
     namespace Mx
     {
 
-		Bit::~Bit()
-		{
-			if (isConst() == false)
-				circuit()->remove(*this);
-		}
 
-		Bit& Bit::operator=(const Bit& o)
-		{
-			if (o.isConst())
-			{
-				if (isConst() == false)
-					circuit()->remove(*this);
-				mCir = o.mCir;
-			}
-			else
-			{
-				o.circuit()->copy(o, *this);
-			}
-
-			return *this;
-		}
-
-		Bit& Bit::operator=(Bit&& o)
-		{
-			if (o.isConst() == false)
-			{
-				o.circuit()->move(std::move(o), *this);
-			}
-			else 
-			{
-				if (isConst() == false)
-					circuit()->remove(*this);
-				mCir = o.mCir;
-			}
-
-			o.mCir = nullptr;
-			return *this;
-		}
 
 
 		Bit& Bit::operator=(bool b)
 		{
 			mCir = (Circuit*)(b ? 1ull : 0ull);
+			mAddress = {};
 			return *this;
 		}
 
