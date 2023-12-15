@@ -30,3 +30,5 @@ void BetaCircuit_xor_and_lvl_test(const oc::CLP& cmd);
 void BetaCircuit_aes_test();
 void BetaCircuit_json_Tests();
 void BetaCircuit_bin_Tests();
+
+oc::i64 signExtend(oc::i64 v, oc::u64 b);

@@ -7,6 +7,7 @@
 #include <cryptoTools/Common/BitVector.h>
 #include <array>
 #include <sstream>
+#include <functional>
 
 
 namespace osuCrypto
@@ -115,6 +116,11 @@ namespace osuCrypto
 			std::string mMsg;
 			bool mInvert;
 
+			std::vector<BetaWire> mWires;
+			std::vector<bool> mInvs;
+			std::function<std::string(const BitVector& b)> mFn;
+
+
 			Print() = default;
 			Print(const Print&) = default;
 			Print(Print&&) = default;
@@ -122,7 +128,7 @@ namespace osuCrypto
 			Print& operator=(Print&&) = default;
 
 			Print(u64 g, BetaWire w, std::string m, bool inv)
-				:mGateIdx(g)
+				: mGateIdx(g)
 				, mWire(w)
 				, mMsg(m)
 				, mInvert(inv)
@@ -141,6 +147,7 @@ namespace osuCrypto
 				return !(*this == p);
 			}
 		};
+
 		std::vector<Print> mPrints;
 		using PrintIter = std::vector<Print>::iterator;
 
@@ -167,6 +174,7 @@ namespace osuCrypto
 		u8 constVal(BetaWire wire);
 
 		void addPrint(BetaBundle in);
+		void addPrint(BetaBundle in, std::function<std::string(const BitVector& b)> formatter);
 		void addPrint(BetaWire wire);
 		void addPrint(std::string);
 

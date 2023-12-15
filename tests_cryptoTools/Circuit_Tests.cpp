@@ -10,7 +10,7 @@ using namespace oc;
 #ifdef ENABLE_CIRCUITS
 
 
-i64 signExtend(i64 v, u64 b, bool print = false)
+i64 signExtend(i64 v, u64 b, bool print)
 {
 
 	if (b != 64)
@@ -53,6 +53,12 @@ i64 signExtend(i64 v, u64 b, bool print = false)
 
 	return v;
 }
+
+i64 signExtend(i64 v, u64 b)
+{
+	return signExtend(v, b, false);
+}
+
 
 u64 mask(u64 v, u64 b)
 {

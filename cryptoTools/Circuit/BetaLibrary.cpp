@@ -1461,18 +1461,18 @@ namespace osuCrypto
 
 	}
 
-	// we are computing a1 / a2 = quot  with optional remainder rem
+	// we are computing dividend / divider = quot  with optional remainder rem
 	void BetaLibrary::div_rem_build(
 		BetaCircuit& cd,
-		const BetaBundle& a1,
-		const BetaBundle& a2,
+		const BetaBundle& dividend,
+		const BetaBundle& divider,
 		const BetaBundle& quotient,
 		const BetaBundle& rem,
 		IntType it,
 		Optimized op)
 	{
 
-		if (quotient.mWires.size() != a1.mWires.size())
+		if (quotient.mWires.size() != dividend.mWires.size())
 			throw std::runtime_error(LOCATION);
 
 		if (it == IntType::TwosComplement)
@@ -1481,35 +1481,35 @@ namespace osuCrypto
 			// add the sign back.
 
 			BetaBundle
-				a1Sign(1),
-				a2Sign(1),
+				dividendSign(1),
+				dividerSign(1),
 				sign(1),
-				temp(4 + 2 * std::max(a1.size(), a2.size())),
-				unsginedA1(a1.mWires.size()),
-				unsignedA2(a2.mWires.size());
+				temp(4 + 2 * std::max(dividend.size(), divider.size())),
+				unsgineddividend(dividend.mWires.size()),
+				unsigneddivider(divider.mWires.size());
 
-			a1Sign.mWires[0] = a1.mWires.back();
-			a2Sign.mWires[0] = a2.mWires.back();
+			dividendSign.mWires[0] = dividend.mWires.back();
+			dividerSign.mWires[0] = divider.mWires.back();
 
 			cd.addTempWireBundle(sign);
 			cd.addTempWireBundle(temp);
-			cd.addTempWireBundle(unsginedA1);
-			cd.addTempWireBundle(unsignedA2);
+			cd.addTempWireBundle(unsgineddividend);
+			cd.addTempWireBundle(unsigneddivider);
 
-			cd.addGate(a1Sign.mWires.back(), a2Sign.mWires.back(), GateType::Xor, sign.mWires[0]);
+			cd.addGate(dividendSign.mWires.back(), dividerSign.mWires.back(), GateType::Xor, sign.mWires[0]);
 
-			removeSign_build(cd, a1, unsginedA1, temp, op);
-			removeSign_build(cd, a2, unsignedA2, temp, op);
+			removeSign_build(cd, dividend, unsgineddividend, temp, op);
+			removeSign_build(cd, divider, unsigneddivider, temp, op);
 			BetaBundle remainder(rem.mWires.size());
 			cd.addTempWireBundle(remainder);
 
-			div_rem_build(cd, unsginedA1, unsignedA2, quotient, remainder, IntType::Unsigned, op);
+			div_rem_build(cd, unsgineddividend, unsigneddivider, quotient, remainder, IntType::Unsigned, op);
 
 			int_addSign_build(cd, quotient, sign, quotient, temp, op);
 
 			if (rem.mWires.size())
 			{
-				int_addSign_build(cd, remainder, a1Sign, rem, temp, op);
+				int_addSign_build(cd, remainder, dividendSign, rem, temp, op);
 			}
 		}
 		else
@@ -1518,7 +1518,7 @@ namespace osuCrypto
 			BetaBundle
 				doSubtract(1),
 				temp(4 + 2 * rem.size()),
-				ssub(a1.mWires.size());
+				ssub(dividend.mWires.size());
 
 			cd.addTempWireBundle(ssub);
 			cd.addTempWireBundle(temp);
@@ -1530,20 +1530,20 @@ namespace osuCrypto
 
 			for (i64 i = shifts; i >= 0; --i)
 			{
-				remainder.mWires.insert(remainder.mWires.begin(), a1.mWires[i]);
+				remainder.mWires.insert(remainder.mWires.begin(), dividend.mWires[i]);
 				remTemp.mWires.push_back(xtra.mWires.back());
 				xtra.mWires.pop_back();
 
 				doSubtract.mWires[0] = quotient.mWires[i];
 
-				greaterThanEq_build(cd, remainder, a2, doSubtract, IntType::Unsigned, op);
+				greaterThanEq_build(cd, remainder, divider, doSubtract, IntType::Unsigned, op);
 
 				BetaBundle sub;
-				sub.mWires.insert(sub.mWires.begin(), ssub.mWires.begin(), ssub.mWires.begin() + std::min(a2.mWires.size(), remainder.mWires.size()));
+				sub.mWires.insert(sub.mWires.begin(), ssub.mWires.begin(), ssub.mWires.begin() + std::min(divider.mWires.size(), remainder.mWires.size()));
 
-				//for (auto& wire : a2.mWires)
+				//for (auto& wire : divider.mWires)
 				for (u64 j = 0; j < sub.mWires.size(); ++j)
-					cd.addGate(a2.mWires[j], doSubtract.mWires[0], GateType::And, sub.mWires[j]);
+					cd.addGate(divider.mWires[j], doSubtract.mWires[0], GateType::And, sub.mWires[j]);
 
 				subtract_build(cd, remainder, sub, remTemp, temp, IntType::Unsigned, op);
 
@@ -1589,7 +1589,7 @@ namespace osuCrypto
 		for (u64 i = 0; i < bits; ++i)
 		{
 			cd.addGate(a1.mWires[i], a2.mWires[i],
-				GateType::Nxor, temp.mWires[0]);
+				GateType::Nxor, temp.mWires[i]);
 		}
 
 		auto levels = log2ceil(bits);

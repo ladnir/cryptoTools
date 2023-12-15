@@ -246,6 +246,29 @@ endif()
 
 FIND_SPAN(REQUIRED)
 
+## GMP
+###########################################################################
+
+macro(FIND_GMP)
+    set(ARGS ${ARGN})
+    if(FETCH_GMP)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
+    elseif(${NO_SYSTEM_PATH})
+        list(APPEND ARGS NO_CMAKE_SYSTEM_PATH)
+    endif()
+    find_package(gmp ${ARGS})
+    find_package(gmpxx ${ARGS})
+endmacro()
+    
+if(ENABLE_GMP)
+    #message(STATUS "FETCH_GMP_IMPL=${FETCH_GMP_IMPL}")
+    if (FETCH_GMP_IMPL)
+        FIND_GMP(QUIET)
+        include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getGMP.cmake")
+    endif()
+
+    FIND_GMP(REQUIRED)
+    endif()
 
 
 #######################################

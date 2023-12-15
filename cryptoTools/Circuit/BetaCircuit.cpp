@@ -306,6 +306,46 @@ namespace osuCrypto
             addPrint(in[j]);
         }
     }
+    void BetaCircuit::addPrint(BetaBundle in, std::function<std::string(const BitVector& b)> formatter)
+    {
+        std::vector<int> consts(in.size());
+        Print p; 
+        p.mInvs.reserve(in.size());;
+        p.mWires.reserve(in.size());;
+        for (u64 i = 0; i < in.size(); ++i)
+        {
+            auto wire = in[i];
+            if (isConst(wire))
+            {
+                consts[i] = constVal(wire);
+            }
+            else
+            {
+                p.mWires.push_back(wire);
+                p.mInvs.push_back(isInvert(wire));
+                consts[i] = -1;
+            }
+        }
+
+
+        p.mFn = [c = std::move(consts), f = std::move(formatter)] (const BitVector& b) -> std::string {
+            BitVector v;
+            for (u64 i = 0, j = 0; i < c.size(); ++i)
+            {
+                if (c[i] == -1)
+                {
+                    v.pushBack(b[j++]);
+                }
+                else
+                {
+                    v.pushBack(c[i]);
+                }
+            }
+            return f(v);
+        };
+
+        mPrints.push_back(std::move(p));
+    }
 
     void osuCrypto::BetaCircuit::addPrint(BetaWire wire)
     {
@@ -363,15 +403,25 @@ namespace osuCrypto
             auto& gate = mGates[i];
             while (print && iter != mPrints.end() && (*iter).mGateIdx == i)
             {
-                auto wireIdx = (*iter).mWire;
-                auto str =    (*iter).mMsg;
-                auto invert = (*iter).mInvert;
+                if (iter->mFn)
+                {
+                    BitVector bits(iter->mWires.size());
+                    for(u64 i =0; i < bits.size(); ++i)
+						bits[i] = mem[iter->mWires[i]] ^ (iter->mInvs[i] ? 1 : 0);
 
-                if (wireIdx != static_cast<u32>(~0))
-                    std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
-                if (str.size())
-                    std::cout << str;
+					std::cout << iter->mFn(bits);
+                }
+                else
+                {
+                    auto wireIdx = (*iter).mWire;
+                    auto str = (*iter).mMsg;
+                    auto invert = (*iter).mInvert;
 
+                    if (wireIdx != static_cast<u32>(~0))
+                        std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
+                    if (str.size())
+                        std::cout << str;
+                }
                 ++iter;
             }
 
@@ -424,15 +474,25 @@ namespace osuCrypto
         }
         while (print && iter != mPrints.end())
         {
-            auto wireIdx = (*iter).mWire;
-            auto str =     (*iter).mMsg;
-            auto invert =  (*iter).mInvert;
+            if (iter->mFn)
+            {
+                BitVector bits(iter->mWires.size());
+                for (u64 i = 0; i < bits.size(); ++i)
+                    bits[i] = mem[iter->mWires[i]] ^ (iter->mInvs[i] ? 1 : 0);
 
-            if (wireIdx != ~u32(0))
-                std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
-            if (str.size())
-                std::cout << str;
+                std::cout << iter->mFn(bits);
+            }
+            else
+            {
+                auto wireIdx = (*iter).mWire;
+                auto str = (*iter).mMsg;
+                auto invert = (*iter).mInvert;
 
+                if (wireIdx != ~u32(0))
+                    std::cout << (u64)(mem[wireIdx] ^ (invert ? 1 : 0));
+                if (str.size())
+                    std::cout << str;
+            }
             ++iter;
         }
 

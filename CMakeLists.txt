@@ -65,6 +65,7 @@ endif()
 #                  CONFIGURE                #
 #############################################
 option(ENABLE_SPAN_LITE "use the span-lite library" ON)
+option(ENABLE_GMP       "use the GMP library" OFF)
 option(ENABLE_RELIC     "use the relic library" OFF)
 option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
@@ -79,9 +80,9 @@ option(ENABLE_PIC       "compile with -fPIC " OFF)
 option(VERBOSE_FETCH    "" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
-	set(CRYPTO_TOOLS_STD_VER  14)
+	set(CRYPTO_TOOLS_STD_VER  17)
 endif()
-if(NOT ENABLE_SSE)
+if(NOT ENABLE_SSE AND ENABLE_AVX)
 	message("AVX requires SSE to be enabled.")
 	set(ENABLE_AVX OFF)
 endif()
@@ -92,6 +93,11 @@ option(FETCH_AUTO      "automatically download and build dependencies" OFF)
 EVAL(FETCH_SPAN_LITE_IMPL 
 	(DEFINED FETCH_SPAN_LITE AND FETCH_SPAN_LITE) OR
 	((NOT DEFINED FETCH_SPAN_LITE) AND (FETCH_AUTO AND ENABLE_SPAN_LITE)))
+
+#option(FETCH_SPAN_LITE		"download and build span" OFF))
+EVAL(FETCH_GMP_IMPL 
+	(DEFINED FETCH_GMP AND FETCH_GMP) OR
+	((NOT DEFINED FETCH_GMP) AND (FETCH_AUTO AND ENABLE_GMP)))
 
 #option(FETCH_RELIC		"download and build Relic" OFF))
 EVAL(FETCH_RELIC_IMPL 
@@ -143,6 +149,7 @@ message(STATUS "Option: FETCH_LIBDIVIDE   = ${FETCH_LIBDIVIDE_IMPL}\n")
 
 message(STATUS "Option: CMAKE_BUILD_TYPE  = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: ENABLE_SPAN_LITE  = ${ENABLE_SPAN_LITE}")
+message(STATUS "Option: ENABLE_GMP        = ${ENABLE_GMP}")
 message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
 message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
 message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}")

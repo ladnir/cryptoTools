@@ -10,7 +10,7 @@
 #include "tests_cryptoTools/Circuit_Tests.h"
 #include "UnitTests.h"
 #include "tests_cryptoTools/block_Tests.h"
-
+#include "tests_cryptoTools/MxCircuit_Tests.h"
 #include "tests_cryptoTools/WolfSSL_Tests.h"
 
 #include <cryptoTools/Common/config.h>
@@ -101,7 +101,24 @@ namespace tests_cryptoTools
         //th.add("BetaCircuit_aes_sbox_test               ", BetaCircuit_aes_sbox_test);
         //th.add("BetaCircuit_aes_shiftRows_test          ", BetaCircuit_aes_shiftRows_test);
         //th.add("BetaCircuit_aes_mixColumns_test         ", BetaCircuit_aes_mixColumns_test);
-    });
+
+
+        th.add("MxCircuit_Bit_Ops_Test                  ", MxCircuit_Bit_Ops_Test);
+        th.add("MxCircuit_BInt_Ops_Test                 ", MxCircuit_BInt_Ops_Test);
+        th.add("MxCircuit_BUInt_Ops_Test                ", MxCircuit_BUInt_Ops_Test);
+        th.add("MxCircuit_BDynInt_Ops_Test              ", MxCircuit_BDynInt_Ops_Test);
+        th.add("MxCircuit_BDynUInt_Ops_Test             ", MxCircuit_BDynUInt_Ops_Test);
+        th.add("MxCircuit_Cast_Test                     ", MxCircuit_Cast_Test);
+        th.add("MxCircuit_asBetaCircuit_Test            ", MxCircuit_asBetaCircuit_Test);
+        th.add("MxCircuit_parallelPrefix_Test           ", MxCircuit_parallelPrefix_Test);
+        th.add("MxCircuit_rippleAdder_Test              ", MxCircuit_rippleAdder_Test);
+        th.add("MxCircuit_parallelSummation_Test        ", MxCircuit_parallelSummation_Test);
+        th.add("MxCircuit_multiply_Test                 ", MxCircuit_multiply_Test);
+        th.add("MxCircuit_divideRemainder_Test         ", MxCircuit_divideRemainder_Test);
+        
+        
+        
+        });
 
 
 
