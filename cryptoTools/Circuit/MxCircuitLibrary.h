@@ -100,6 +100,14 @@ namespace osuCrypto
 			span<Bit> dst,
 			Optimized op,
 			IntType it);
+
+		void divideRemainder(
+			span<const Bit> dividend,
+			span<const Bit> divider,
+			span<Bit> quotient,
+			span<Bit> rem,
+			Optimized op,
+			IntType it);
 	}
 
 }

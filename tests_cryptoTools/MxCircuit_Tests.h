@@ -13,6 +13,7 @@ void MxCircuit_parallelPrefix_Test(const oc::CLP& cmd);
 void MxCircuit_rippleAdder_Test(const oc::CLP& cmd);
 void MxCircuit_parallelSummation_Test(const oc::CLP& cmd);
 void MxCircuit_multiply_Test(const oc::CLP& cmd);
+void MxCircuit_divideRemainder_Test(const oc::CLP& cmd);
 
 void MxCircuit_Subtractor_Test();
 void MxCircuit_Subtractor_const_Test();

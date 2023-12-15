@@ -426,7 +426,9 @@ namespace osuCrypto
 			IntType it
 		)
 		{
-			//auto& cir = *x[0][0].mCir;
+			auto verbose = false;
+			auto& cir = *x[0][0].mCir;
+
 
 			if (op == Optimized::Depth)
 			{
@@ -448,19 +450,31 @@ namespace osuCrypto
 							auto& c = temps[i + 2];
 							auto& x = *(t2.end() - 2);
 							auto& y = *(t2.end() - 1);
-							auto size = it == IntType::TwosComplement ?
+
+							// for twos complement, there's an issue where
+							//the result x,y are positive but wrap. In this
+							// case if they have a small bit count, if we
+							// later extend then, they will no longer wrap.
+							// to fix this we just do all additions with the 
+							// full bit length. unsigned does not have this issue.
+							auto size =
+								it == IntType::TwosComplement ?
 								sum.size() :
-								std::max<u64>({ a.size(), b.size(), c.size() });
+								std::max<u64>({ a.size() + 1, b.size() + 1, c.size() });
 
 							x.resize(size);
 							y.resize(size);
 
-							//BDynInt A; A.mBits.insert(A.end(), a.begin(), a.end());
-							//BDynInt B; B.mBits.insert(B.end(), b.begin(), b.end());
-							//BDynInt C; C.mBits.insert(C.end(), c.begin(), c.end());
-							//cir << "\na " << A<< " " << a << "\n";
-							//cir << "b " << B << " " << b << "\n";
-							//cir << "c " << C << " " << c << "\n";
+							if (verbose)
+							{
+
+								BDynUInt A; A.mBits.insert(A.end(), a.begin(), a.end());
+								BDynUInt B; B.mBits.insert(B.end(), b.begin(), b.end());
+								BDynUInt C; C.mBits.insert(C.end(), c.begin(), c.end());
+								cir << "\na " << A << " " << a << "\n";
+								cir << "b " << B << " " << b << "\n";
+								cir << "c " << C << " " << c << "\n";
+							}
 
 							for (u64 j = 0; j < size - 1; ++j)
 								rippleAdder(
@@ -475,33 +489,41 @@ namespace osuCrypto
 								signExtend(b, size - 1, it) ^
 								signExtend(c, size - 1, it);
 
-							//BDynInt X; X.mBits.insert(X.end(), x.begin(), x.end());
-							//BDynInt Y; Y.mBits.insert(Y.end(), y.begin(), y.end());
+							if (verbose)
+							{
 
-							//cir << "x " << X << " " << x << "\n";
-							//cir << "y " << Y << " " << y << "\n\n";
+								BDynUInt X; X.mBits.insert(X.end(), x.begin(), x.end());
+								BDynUInt Y; Y.mBits.insert(Y.end(), y.begin(), y.end());
 
-							//BVector exp(size), act(size);
-							//rippleAdder(a, b, exp, it, AdderType::Addition);
-							//rippleAdder(c, exp, exp, it, AdderType::Addition);
-							//rippleAdder(x, y, act, it, AdderType::Addition);
+								cir << "x " << X << " " << x << "\n";
+								cir << "y " << Y << " " << y << "\n\n";
 
-							//BDynInt E; E.mBits.insert(E.end(), exp.begin(), exp.end());
-							//cir << "\nexp " << exp << " " << E << "\n";
-							//cir << "act " << act << "\n";
+								BVector exp(size), act(size);
+								rippleAdder(a, b, exp, it, AdderType::Addition);
+								rippleAdder(c, exp, exp, it, AdderType::Addition);
+								rippleAdder(x, y, act, it, AdderType::Addition);
+
+								BDynUInt E; E.mBits.insert(E.end(), exp.begin(), exp.end());
+								cir << "\nexp " << exp << " " << E << "\n";
+								cir << "act " << act << "\n";
+							}
 						}
 						else
 						{
 							while (i < temps.size())
 							{
-								//BDynInt E; E.mBits.insert(E.end(), temps[i].begin(), temps[i].end());
-								//cir << "\nexp " << " " << E << "\n";
+								if (verbose)
+								{
+									BDynUInt E; E.mBits.insert(E.end(), temps[i].begin(), temps[i].end());
+									cir << "\nexp " << " " << E << "\n";
+								}
 
 								t2.emplace_back(temps[i++]);
 							}
 						}
 					}
-					//cir << "--------------\n";
+					if (verbose)
+						cir << "--------------\n";
 
 					temps = std::move(t2);
 				}
@@ -546,6 +568,10 @@ namespace osuCrypto
 			Optimized op,
 			IntType it)
 		{
+			// depth is improved if b is shorter.
+			//if (b.size() > a.size())
+			//	std::swap(b, a);
+
 			// for twos complement, we need to sign extend b. Otherwise its just the min.
 			u64 numRows = it == IntType::TwosComplement ? c.size() : std::min(b.size(), c.size());
 
@@ -554,7 +580,7 @@ namespace osuCrypto
 			//    (b[1] * a)  << 1 ,
 			//    (...     ) << ...,
 			//    (b[n] * a) << n    }
-			// where row i contains min(c.mWires.size() - i, a.mWires.size())
+			// where row i contains min(c.size() - i, a.size())
 			std::vector<BVector> rows(numRows);
 			std::vector<span<const Bit>> rowSpans(numRows);
 
@@ -586,6 +612,253 @@ namespace osuCrypto
 
 			// add up all the rows.
 			parallelSummation(rowSpans, c, op, it);
+		}
+
+
+
+		void multiplex(
+			Bit b,
+			span<const Bit> bOne,
+			span<const Bit> bZero,
+			span<Bit> ret)
+		{
+			if (bZero.size() != ret.size() || bOne.size() != ret.size())
+				throw RTE_LOC;
+
+			for (u64 i = 0; i < ret.size(); ++i)
+				ret[i] = bZero[i] ^ (bZero[i] ^ bOne[i]) & b;
+		}
+
+		void negate(
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op)
+		{
+			if (a1.size() != ret.size())
+				throw RTE_LOC;
+			Bit zero = 0;
+
+			// ret = 0 - a1
+			if (op == Optimized::Size)
+				rippleAdder(span<const Bit>(&zero, 1), a1, ret,
+					IntType::Unsigned, AdderType::Subtraction);
+			else
+				parallelPrefix(span<const Bit>(&zero, 1), a1, ret,
+					IntType::Unsigned, AdderType::Subtraction);
+		}
+
+		void removeSign(
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op)
+		{
+
+			Bit sign = a1.back();
+			BVector t(a1.size());
+			// ret = -a1
+			negate(a1, t, op);
+
+			// if(a1 < 0) ret = -a1
+			// else       ret = a1
+			multiplex(sign, t, a1, ret);
+		}
+
+		void addSign(
+			Bit sign,
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op)
+		{
+			// ret = -a1
+			BVector t(a1.size());
+			negate(a1, t, op);
+
+			// if(sign) ret = -a1
+			// else     ret = a1
+			multiplex(sign, t, a1, ret);
+		}
+
+
+
+		// 
+		void lessThan(
+			span<const Bit> a1,
+			span<const Bit> a2,
+			Bit& ret,
+			IntType it,
+			Optimized op)
+		{
+			BVector temp(std::max<u64>(a1.size(), a2.size()) + 1);
+			if (op == Optimized::Size)
+				rippleAdder(a1, a2, temp, it, AdderType::Subtraction);
+			else
+				parallelPrefix(a1, a2, temp, it, AdderType::Subtraction);
+
+			ret = temp.back();
+		}
+
+		// we are computing dividend / divider = quot  with optional remainder rem
+		void divideRemainder(
+			span<const Bit> dividend,
+			span<const Bit> divider,
+			span<Bit> quotient,
+			span<Bit> rem,
+			Optimized op,
+			IntType it)
+		{
+			bool verbose = false;
+			auto& cir = *dividend[0].mCir;
+			auto asInt = [](auto&& v) {
+				BDynUInt d;
+				d.mBits.insert(d.mBits.begin(), v.begin(), v.end());
+				return d;
+				};
+
+			if (quotient.size() != dividend.size())
+				throw std::runtime_error(LOCATION);
+
+			if (it == IntType::TwosComplement)
+			{
+				// remove the sign and then call the unsigned version. Then
+				// add the sign back.
+
+				Bit dividendSign = dividend.back(),
+					dividerSign = divider.back(),
+					sign = dividendSign ^ dividerSign;
+
+				if (verbose)
+				{
+					cir << "q sign " << sign << " = " << dividendSign << " / " << dividerSign << "\n";
+				}
+
+				BVector
+					unsgineddividend(dividend.size()),
+					unsigneddivider(divider.size());
+
+				removeSign(dividend, unsgineddividend, op);
+				removeSign(divider, unsigneddivider, op);
+				BVector remainder(rem.size());
+
+				divideRemainder(
+					unsgineddividend, unsigneddivider,
+					quotient, remainder,
+					op, IntType::Unsigned);
+
+				addSign(sign, quotient, quotient, op);
+
+				if (rem.size())
+				{
+					// we follow the cpp notion of signed mod.
+					addSign(dividendSign, remainder, rem, op);
+				}
+			}
+			else
+			{
+				// We will shift the dividend up until its lsb is aligned 
+				// with the msb if the divider. We will then check if we 
+				// can subtract the shifted dividend. If so we subtract it
+				// and mark the quotient bit as 1.
+				// 
+				// We then shift the divider back down one position and
+				// repeat, where we now compare with the current value.
+				// 
+				// exmaple:
+				//         001110
+				//        ----------------
+				//   011 |   101101
+				//         011                  \
+				//       - 000             0    |
+				//         --------             | 
+				//           101101             | 
+				//          011                 | 
+				//        - 000            0    | q
+				//          -------             | u
+				//           101101             | o
+				//           011                | t
+				//         - 011            1   | i
+				//           ------             | e
+				//            10101             | n
+				//            011               | t
+				//          - 011           1   | 
+				//            -----             | 
+				//             1001             | 
+				//             011              | 
+				//           - 011          1   |
+				//            -----             | 
+				//              001             | 
+				//              011             | 
+				//           -  000         0   |
+				//             ----             /
+				//              001        <==== remainder
+				//
+
+				// current =  dividend
+				BVector current; current.insert(current.begin(), dividend.begin(), dividend.end());
+
+				u64 shifts = quotient.size() - 1;
+
+				if (verbose)
+				{
+					cir << "computing " << asInt(dividend) << " / " << asInt(divider) << "\n";
+				}
+				for (i64 i = shifts; i >= 0; --i)
+				{
+					// extract the relavent part of current. This is the part that 
+					//lines up with the current shift of divider.
+					auto cBegin = current.begin() + i;
+					auto cEnd = current.begin() + std::min<u64>(i + divider.size() + 1, current.size());
+					span<Bit> c2(cBegin, cEnd);
+
+					if (verbose)
+					{
+						BVector div(i); div.insert(div.end(), divider.begin(), divider.end());
+						cir << "-------- " << i << "\n";
+						cir << "cur  " << current << " " << asInt(current) << "\n";
+						cir << "div  " << div << " " << asInt(div) << "\n";
+						cir << "C    " << std::string(i, ' ') << c2 << " " << asInt(c2) << "\n";
+						cir << "D    " << std::string(i, ' ') << divider << " " << asInt(divider) << "\n";
+					}
+
+					// quotient[i] = (c2 >= divider)
+					//             = !(c2 < divider)
+					lessThan(c2, divider, quotient[i], IntType::Unsigned, op);
+					quotient[i] = !quotient[i];
+
+					if (verbose)
+					{
+						cir << "Q[" << i << "] = " << quotient[i] << " = " << asInt(c2) << " >= " << asInt(divider) << "\n";
+					}
+
+					// sub will b zero if quotient[i] is zero. Otherwise
+					// its the (logically shifted) divider.
+					BVector sub(std::min<u64>(c2.size(), divider.size()));
+					for (u64 j = 0; j < sub.size(); ++j)
+						sub[j] = divider[j] & quotient[i];
+
+
+					if (verbose)
+					{
+						BVector S(i); S.insert(S.end(), sub.begin(), sub.end());
+						cir << "sub  " << S << " " << asInt(S) << "\n";
+					}
+					// subtract sub. The relvent bits of current will be updated.
+					if (op == Optimized::Size)
+						rippleAdder(c2, sub, c2, IntType::Unsigned, AdderType::Subtraction);
+					else
+						parallelPrefix(c2, sub, c2, IntType::Unsigned, AdderType::Subtraction);
+
+
+					if (verbose)
+					{
+						cir << "cur* " << current << "\n";
+					}
+				}
+
+				for (u64 i = 0; i < std::min<u64>(current.size(), rem.size()); ++i)
+					rem[i] = current[i];
+				for (u64 i = current.size(); i < rem.size(); ++i)
+					rem[i] = 0;
+			}
 		}
 	}
 }

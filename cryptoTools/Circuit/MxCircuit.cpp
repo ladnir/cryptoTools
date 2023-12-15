@@ -10,6 +10,15 @@ namespace osuCrypto
 	namespace Mx
 	{
 
+		Circuit& operator<<(Circuit& o, span<const Bit> bits)
+		{
+			std::vector<const Bit*> b(bits.size());
+			for (u64 i = 0; i < b.size(); ++i)
+				b[i] = &bits[i];
+			o.addPrint(b, BVector::toString());
+			return o;
+		}
+
 		struct Mapper
 		{
 			std::vector<u64> mMap;

@@ -696,9 +696,9 @@ void MxCircuit_multiply_impl(u64 trials, Mx::Optimized op, PRNG& prng)
 	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
 	for (u64 i = 0; i < trials; ++i)
 	{
-		auto s0 = 4; (prng.get<u32>() % 64) + 1;
-		auto s1 = 8; (prng.get<u32>() % 64) + 1;
-		auto s2 = 8; (prng.get<u32>() % 64) + 1;
+		auto s0 = (prng.get<u32>() % 16) + 1;
+		auto s1 = (prng.get<u32>() % 16) + 1;
+		auto s2 = (prng.get<u32>() % 16) + 1;
 
 		Mx::Circuit cir;
 		auto A = cir.input<Mx::BVector>(s0);
@@ -717,13 +717,13 @@ void MxCircuit_multiply_impl(u64 trials, Mx::Optimized op, PRNG& prng)
 			T a = signEx(prng.get<T>(), s0);
 			T b = signEx(prng.get<T>(), s1);
 			T c = a * b;
-			//if (i != 1 || j != 4)
+			//if (i != 7 || j != 5)
 			//	continue;
 			c = signEx(c, s2);
 
 			memcpy(in[0].data(), &a, in[0].sizeBytes());
 			memcpy(in[1].data(), &b, in[1].sizeBytes());
-
+			//std::cout << "\n\n========================\n";
 			cir.evaluate(in, out);
 
 			T cAct = 0;
@@ -738,17 +738,95 @@ void MxCircuit_multiply_impl(u64 trials, Mx::Optimized op, PRNG& prng)
 			}
 		}
 	}
-
 }
+
 
 
 void MxCircuit_multiply_Test(const oc::CLP& cmd)
 {
 	PRNG prng(ZeroBlock);
-	auto trials = cmd.getOr<u64>("trials", 10);
+	auto trials = cmd.getOr<u64>("trials", 100);
 
-	//MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Depth, prng);
-	//MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Size, prng);
+	MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_multiply_impl<u64>(trials, Mx::Optimized::Size, prng);
 	MxCircuit_multiply_impl<i64>(trials, Mx::Optimized::Depth, prng);
 	MxCircuit_multiply_impl<i64>(trials, Mx::Optimized::Size, prng);
+}
+
+
+template<typename T>
+void MxCircuit_divideRemainder_impl(u64 trials, Mx::Optimized op, PRNG& prng)
+{
+	auto type = std::is_signed_v<T> ? Mx::IntType::TwosComplement : Mx::IntType::Unsigned;
+	for (u64 i = 0; i < trials; ++i)
+	{
+		auto s0 = (prng.get<u32>() % 8) + 1;
+		auto s1 = (prng.get<u32>() % 8) + 1;
+
+		Mx::Circuit cir;
+		auto A = cir.input<Mx::BVector>(s0);
+		auto B = cir.input<Mx::BVector>(s1);
+		Mx::BVector Q(s0), R(s0);
+		Mx::divideRemainder(A, B, Q, R, op, type);
+		cir.output(Q);
+		cir.output(R);
+
+
+		std::vector<BitVector> in(2), out(1);
+		in[0].resize(s0);
+		in[1].resize(s1);
+		out[0].resize(s0);
+		for (u64 j = 0; j < 10; ++j)
+		{
+			T a = signEx(prng.get<T>(), s0);
+			T b = 0;
+			while(b == 0)
+				b = signEx(prng.get<T>(), s1);
+			T q = a / b;
+			T r = a % b;
+			//if (i != 6 || j != 5)
+			//	continue;
+			q = signEx(q, s0);
+			r = signEx(r, s0);
+
+			memcpy(in[0].data(), &a, in[0].sizeBytes());
+			memcpy(in[1].data(), &b, in[1].sizeBytes());
+
+			cir.evaluate(in, out);
+
+			T qAct = 0, rAct = 0;
+			memcpy(&qAct, out[0].data(), out[0].sizeBytes());
+			qAct = signEx(qAct, s0);
+			memcpy(&rAct, out[1].data(), out[1].sizeBytes());
+			rAct = signEx(rAct, s0);
+
+			if (q != qAct)
+			{
+				std::cout << "\nA " << a << "\t" << BitVector((u8*)&a, s0) << "\n";
+				std::cout << "B " << b << "\t" << BitVector((u8*)&b, s1) << "\n";
+				std::cout << "Q\n exp " << q << "\t" << BitVector((u8*)&q, s0) << "\n";
+				std::cout << " act " << qAct << "\t" << BitVector((u8*)&qAct, s0) << "\n";
+				throw RTE_LOC;
+			}
+			if (r != rAct)
+			{
+				std::cout << "\nR\n exp " << r << "\t" << BitVector((u8*)&r, s0) << "\n";
+				std::cout << " act " << rAct << "\t" << BitVector((u8*)&rAct, s0) << "\n";
+				throw RTE_LOC;
+			}
+		}
+	}
+}
+
+
+void MxCircuit_divideRemainder_Test(const oc::CLP& cmd)
+{
+
+	PRNG prng(ZeroBlock);
+	auto trials = cmd.getOr<u64>("trials", 20);
+
+	MxCircuit_divideRemainder_impl<u64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_divideRemainder_impl<u64>(trials, Mx::Optimized::Size, prng);
+	MxCircuit_divideRemainder_impl<i64>(trials, Mx::Optimized::Depth, prng);
+	MxCircuit_divideRemainder_impl<i64>(trials, Mx::Optimized::Size, prng);
 }

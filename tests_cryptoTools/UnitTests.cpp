@@ -114,6 +114,7 @@ namespace tests_cryptoTools
         th.add("MxCircuit_rippleAdder_Test              ", MxCircuit_rippleAdder_Test);
         th.add("MxCircuit_parallelSummation_Test        ", MxCircuit_parallelSummation_Test);
         th.add("MxCircuit_multiply_Test                 ", MxCircuit_multiply_Test);
+        th.add("MxCircuit_divideRemainder_Test         ", MxCircuit_divideRemainder_Test);
         
         
         

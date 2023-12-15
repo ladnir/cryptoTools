@@ -569,6 +569,13 @@ namespace osuCrypto
 			: std::true_type{};
 
 
+		Circuit& operator<<(Circuit& o, span<const Bit> bits);
+		inline Circuit& operator<<(Circuit& o, span<Bit> bits)
+		{
+			span<const Bit> b2(bits);
+			return o << b2;
+		}
+
 		template<typename T>
 		inline typename std::enable_if<
 			has_bit_representation_type<T>::value == true
@@ -578,6 +585,7 @@ namespace osuCrypto
 			o.addPrint(elems, t.toString());
 			return o;
 		}
+
 
 
 		template<typename T>
