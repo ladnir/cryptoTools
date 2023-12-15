@@ -80,7 +80,7 @@ option(ENABLE_PIC       "compile with -fPIC " OFF)
 option(VERBOSE_FETCH    "" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
-	set(CRYPTO_TOOLS_STD_VER  14)
+	set(CRYPTO_TOOLS_STD_VER  17)
 endif()
 if(NOT ENABLE_SSE AND ENABLE_AVX)
 	message("AVX requires SSE to be enabled.")

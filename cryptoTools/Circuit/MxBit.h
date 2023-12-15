@@ -324,9 +324,9 @@ namespace osuCrypto
 				return i64(mVal) >> 40;
 			}
 
-			bool hasValue() const  { return mVal != -1; }
+			bool hasValue() const  { return mVal != u64(-1); }
 		private:
-			u64 mVal = -1;
+			u64 mVal = u64(-1);
 		};
 
 		inline std::ostream& operator<<(std::ostream& o, const Address& a)
