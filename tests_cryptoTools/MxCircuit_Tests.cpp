@@ -506,6 +506,8 @@ T signEx(T v, u64 s)
 	}
 }
 
+#ifdef ENABLE_CIRCUITS
+
 template<typename T>
 void MxCircuit_parallelPrefix_impl(u64 trials, Mx::AdderType at, PRNG& prng)
 {
@@ -852,3 +854,26 @@ void MxCircuit_divideRemainder_Test(const oc::CLP& cmd)
 	MxCircuit_divideRemainder_impl<i64>(trials, Mx::Optimized::Depth, prng);
 	MxCircuit_divideRemainder_impl<i64>(trials, Mx::Optimized::Size, prng);
 }
+#else
+void MxCircuit_parallelPrefix_Test(const oc::CLP& cmd)
+{
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+}
+void MxCircuit_rippleAdder_Test(const oc::CLP& cmd)
+{
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+}
+void MxCircuit_parallelSummation_Test(const oc::CLP& cmd)
+{
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+}
+void MxCircuit_multiply_Test(const oc::CLP& cmd)
+{
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+}
+void MxCircuit_divideRemainder_Test(const oc::CLP& cmd)
+{
+	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
+}
+
+#endif
