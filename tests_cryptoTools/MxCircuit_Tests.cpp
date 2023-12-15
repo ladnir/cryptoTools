@@ -125,6 +125,8 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 		auto vGt = a > b;
 		auto vGtEq = a >= b;
 
+		auto vSel = vGt.select(a, b);
+
 		auto zAnd = a & c;
 		auto zOr = a | c;
 		auto zXor = a ^ c;
@@ -180,6 +182,8 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 		cir.output(vLtEq);
 		cir.output(vGt);
 		cir.output(vGtEq);
+
+		cir.output(vSel);
 
 		cir.output(zAnd);
 		cir.output(zOr);
@@ -238,6 +242,8 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 			bool vGt = out[k++][0];
 			bool vGtEq = out[k++][0];
 
+			auto vSel = out[k++].getSpan<V>()[0];
+
 
 			auto zAnd = out[k++].getSpan<V>()[0];
 			auto zOr = out[k++].getSpan<V>()[0];
@@ -291,6 +297,10 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 			if (vGt != (a > b))
 				throw RTE_LOC;
 			if (vGtEq != (a >= b))
+				throw RTE_LOC;
+
+
+			if (vSel != ((a > b) ?  a : b))
 				throw RTE_LOC;
 
 			if (zAnd != (a & cVal))

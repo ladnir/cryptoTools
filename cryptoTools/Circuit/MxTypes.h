@@ -113,7 +113,7 @@ namespace osuCrypto
 			const Bit& back() const { return self().asBits().back(); }
 
 
-			std::vector<const Bit*> serialize()
+			std::vector<const Bit*> serialize() const
 			{
 				std::vector<const Bit*> r(size());
 				for (u64 i = 0; i < size(); ++i)

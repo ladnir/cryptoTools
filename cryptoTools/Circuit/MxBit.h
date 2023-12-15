@@ -377,6 +377,23 @@ namespace osuCrypto
 			Bit operator!() const;
 			Bit operator~() const;
 
+			template<typename T> 
+			T select(const T& IfTrue, const T& IfFalse) const
+			{
+				T ret = IfTrue;
+				auto d = ret.deserialize();
+				auto bOne = IfTrue.serialize();
+				auto bZero = IfFalse.serialize();
+
+				if (bZero.size() != d.size() || bOne.size() != d.size())
+					throw RTE_LOC;
+
+				for (u64 i = 0; i < d.size(); ++i)
+					*d[i] = *bZero[i] ^ (*bZero[i] ^ *bOne[i]) & *this;
+
+				return ret;
+			}
+
 			Bit addGate(OpType t, const Bit& b) const;
 
 			static std::function<std::string(const BitVector& b)> toString()
