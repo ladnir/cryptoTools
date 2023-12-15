@@ -87,6 +87,8 @@ void MxCircuit_Bit_Ops_Test(const oc::CLP& cmd)
 	throw UnitTestSkipped("ENABLE_CIRCUITS=false");
 #endif
 }
+
+
 template<typename T, typename V, typename ...Args>
 void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 {
@@ -110,6 +112,10 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 
 		auto vPlus = a + b;
 		auto vSub = a - b;
+		auto vNeg = -a;
+		auto vMult = a * b;
+		auto vDiv = a / b;
+		auto vRem = a % b;
 
 		auto vEqq = a == a;
 		auto vEq = a == b;
@@ -162,6 +168,10 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 
 		cir.output(vPlus);
 		cir.output(vSub);
+		cir.output(vNeg);
+		cir.output(vMult);
+		cir.output(vDiv);
+		cir.output(vRem);
 
 		cir.output(vEqq);
 		cir.output(vEq);
@@ -214,6 +224,10 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 
 			auto vPlus = out[k++].getSpan<V>()[0];
 			auto vSub = out[k++].getSpan<V>()[0];
+			auto vNeg = out[k++].getSpan<V>()[0];
+			auto vMult = out[k++].getSpan<V>()[0];
+			auto vDiv = out[k++].getSpan<V>()[0];
+			auto vRem = out[k++].getSpan<V>()[0];
 
 
 			bool vEqq = out[k++][0];
@@ -254,6 +268,14 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 			if (vPlus != (a + b))
 				throw RTE_LOC;
 			if (vSub != (a - b))
+				throw RTE_LOC;
+			if (vNeg != -a)
+				throw RTE_LOC;
+			if (vMult != (a * b))
+				throw RTE_LOC;
+			if (b && vDiv != (a / b))
+				throw RTE_LOC;
+			if (b && vRem != (a % b))
 				throw RTE_LOC;
 
 			if (!vEqq)
@@ -469,7 +491,7 @@ T signEx(T v, u64 s)
 	if (s == sizeof(T) * 8)
 		return v;
 
-	i64 sign = *BitIterator((u8*)&v, s-1);
+	i64 sign = *BitIterator((u8*)&v, s - 1);
 
 	if (sign && std::is_signed_v<T>)
 	{
@@ -528,8 +550,8 @@ void MxCircuit_parallelPrefix_impl(u64 trials, Mx::AdderType at, PRNG& prng)
 
 			if (c != cAct)
 			{
-				std::cout << " exp " << c  << "\t" << BitVector((u8*)&c, s2) << "\n";
-				std::cout << " act " << cAct << "\t"<< BitVector((u8*)&cAct, s2) << "\n";
+				std::cout << " exp " << c << "\t" << BitVector((u8*)&c, s2) << "\n";
+				std::cout << " act " << cAct << "\t" << BitVector((u8*)&cAct, s2) << "\n";
 				throw RTE_LOC;
 			}
 		}
@@ -625,7 +647,7 @@ void MxCircuit_parallelSummation_impl(u64 trials, Mx::Optimized op, PRNG& prng)
 	for (u64 i = 0; i < trials; ++i)
 	{
 		u64 numTerms = (prng.get<u32>() % 16 + 1);
-		auto s0 = (prng.get<u32>() % 16) + 1; 
+		auto s0 = (prng.get<u32>() % 16) + 1;
 
 		Mx::Circuit cir;
 		std::vector<Mx::BVector> X(numTerms);
@@ -681,7 +703,7 @@ void MxCircuit_parallelSummation_Test(const oc::CLP& cmd)
 
 	PRNG prng(ZeroBlock);
 	auto trials = cmd.getOr<u64>("trials", 10);
-	
+
 	MxCircuit_parallelSummation_impl<u64>(trials, Mx::Optimized::Depth, prng);
 	MxCircuit_parallelSummation_impl<u64>(trials, Mx::Optimized::Size, prng);
 	MxCircuit_parallelSummation_impl<i64>(trials, Mx::Optimized::Depth, prng);
@@ -780,7 +802,7 @@ void MxCircuit_divideRemainder_impl(u64 trials, Mx::Optimized op, PRNG& prng)
 		{
 			T a = signEx(prng.get<T>(), s0);
 			T b = 0;
-			while(b == 0)
+			while (b == 0)
 				b = signEx(prng.get<T>(), s1);
 			T q = a / b;
 			T r = a % b;

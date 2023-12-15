@@ -84,6 +84,13 @@ namespace osuCrypto
 			IntType it,
 			AdderType at);
 
+		inline void add(span<const Bit> a1_, span<const Bit> a2_, span<Bit> sum, IntType it, AdderType at, Optimized op)
+		{
+			if (op == Optimized::Size)
+				rippleAdder(a1_, a2_, sum, it, at);
+			else 
+				parallelPrefix(a1_, a2_, sum, it, at);
+		}
 
 		// compute the summation x[0] + x[1] + ...
 		void parallelSummation(
@@ -92,6 +99,32 @@ namespace osuCrypto
 			Optimized op,
 			IntType it
 		);
+
+		void negate(
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op);
+
+
+		void removeSign(
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op);
+
+
+		void addSign(
+			Bit sign,
+			span<const Bit> a1,
+			span<Bit> ret,
+			Optimized op);
+
+
+		void lessThan(
+			span<const Bit> a1,
+			span<const Bit> a2,
+			Bit& ret,
+			IntType it,
+			Optimized op);
 
 		// computes dst = a1 * a2;
 		void multiply(

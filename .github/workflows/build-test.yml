@@ -6,7 +6,7 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master, ci ]
+    branches: [ master, ci, mx ]
   pull_request: {}
 
   # Allows you to run this workflow manually from the Actions tab
@@ -104,7 +104,7 @@ jobs:
         run:  python3 build.py --setup --relic --par=4
           
       - name: build cryptoTools
-        run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SSE=OFF
+        run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SSE=OFF -D CRYPTO_TOOLS_STD_VER=17
 
       - name: unit tests
         run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u

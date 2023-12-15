@@ -37,6 +37,13 @@ namespace osuCrypto
 					r[i] = self()[i] & b[i];
 				return r;
 			}
+
+			C& operator&=(const C&b) {
+				*this = *this & b;
+				return *this;
+			}
+
+
 			C operator|(const C& b)const
 			{
 				if (self().size() != b.size())
@@ -46,6 +53,12 @@ namespace osuCrypto
 					r[i] = self()[i] | b[i];
 				return r;
 			}
+
+			C& operator|=(const C& b) {
+				*this = *this | b;
+				return *this;
+			}
+
 			C operator^(const C& b)const
 			{
 				if (self().size() != b.size())
@@ -54,6 +67,11 @@ namespace osuCrypto
 				for (u64 i = 0; i < self().size(); ++i)
 					r[i] = self()[i] ^ b[i];
 				return r;
+			}
+
+			C& operator^=(const C& b) {
+				*this = *this ^ b;
+				return *this;
 			}
 
 			C operator~()const
@@ -213,22 +231,67 @@ namespace osuCrypto
 			C operator+(const C& b)const
 			{
 				auto r = C::makeFromSize(self().size());
-				parallelPrefix(self().asBits(), b.asBits(), r.asBits(), Signed, AdderType::Addition);
+				add(self().asBits(), b.asBits(), r.asBits(), Signed, AdderType::Addition, Optimized::Depth);
 				return r;
+			}
+
+			C& operator+=(const C&b) {
+				*this = *this + b; 
+				return *this;
 			}
 
 			C operator-(const C& b)const
 			{
 				auto r = C::makeFromSize(self().size());
-				parallelPrefix(self().asBits(), b.asBits(), r.asBits(), Signed, AdderType::Subtraction);
+				add(self().asBits(), b.asBits(), r.asBits(), Signed, AdderType::Subtraction, Optimized::Depth);
+				return r;
+			}
+
+			C& operator-=(const C&b) {
+				*this = *this - b;
+				return *this;
+			}
+
+			C operator-() const
+			{
+				auto r = C::makeFromSize(self().size());
+				negate(self().asBits(), r.asBits(), Optimized::Depth);
+				return r;
+			}
+
+			C operator*(const C& b)const
+			{
+				auto r = C::makeFromSize(self().size());
+				multiply(self().asBits(), b.asBits(), r.asBits(), Optimized::Depth, Signed);
+				return r;
+			}
+
+			C& operator*=(const C&b) {
+				*this = *this * b;
+				return *this;
+			}
+
+
+			C operator/(const C& b)const
+			{
+				auto r = C::makeFromSize(self().size());
+				divideRemainder(self().asBits(), b.asBits(), r.asBits(), {}, Optimized::Depth, Signed);
+				return r;
+			}
+
+			C operator%(const C& b) const
+			{
+				auto d = C::makeFromSize(self().size());
+				auto r = C::makeFromSize(self().size());
+				divideRemainder(self().asBits(), b.asBits(), d.asBits(), r.asBits(), Optimized::Depth, Signed);
 				return r;
 			}
 
 			Bit operator<(const C& b)const
 			{
-				BVector r(self().size() + 1);
-				parallelPrefix(self().asBits(), b.asBits(), r.asBits(), Signed, AdderType::Subtraction);
-				return r.back();
+				Bit r;
+				lessThan(self().asBits(), b.asBits(), r, Signed, Optimized::Depth);
+				return r;
 			}
 
 			Bit operator>(const C& b)const

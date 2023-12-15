@@ -678,8 +678,6 @@ namespace osuCrypto
 			multiplex(sign, t, a1, ret);
 		}
 
-
-
 		// 
 		void lessThan(
 			span<const Bit> a1,
