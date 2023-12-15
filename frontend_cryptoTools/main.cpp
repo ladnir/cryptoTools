@@ -9,12 +9,9 @@
 using namespace osuCrypto;
 #include <sstream>
 #include <fstream>
-#include "cuckoo/cuckooTests.h"
-//#include <cryptoTools/Common/Backtrace.h>
 
 #ifdef ENABLE_CIRCUITS
 #include <cryptoTools/Circuit/BetaLibrary.h>
-//#include <cryptoTools/Crypto/Blake2/blake2.h>
 
 void print_aes_bristol()
 {
@@ -144,11 +141,6 @@ int main(int argc, char** argv)
 {
 
     CLP cmd(argc, argv);
-
-    if (cmd.isSet("cuckoo"))
-    {
-        simpleTest(argc, argv);
-    }
 
     if (cmd.isSet("tut"))
     {
