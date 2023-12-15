@@ -650,7 +650,7 @@ namespace osuCrypto
         {
             if (curveID != ep_param_get())
             {
-                ep_param_set(SECG_K256);
+                ep_param_set(curveID);
                 if (GSL_UNLIKELY(err_get_code()))
                     throw std::runtime_error("Relic set any error " LOCATION);
             }
