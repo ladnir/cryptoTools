@@ -149,7 +149,7 @@ namespace osuCrypto
 			{
 				struct Alloc
 				{
-					std::unique_ptr<T> mPtr;
+					std::unique_ptr<T[]> mPtr;
 					T* mBegin,* mEnd;
 					//span<T> mFree;
 				};
@@ -176,6 +176,7 @@ namespace osuCrypto
 						if (f.mBegin + n <= f.mEnd)
 						{
 							auto ret = span<T>(f.mBegin, n);
+							assert(ret.data() + ret.size() <= f.mEnd);
 							f.mBegin += n;
 							if (f.mBegin == f.mEnd)
 							{
