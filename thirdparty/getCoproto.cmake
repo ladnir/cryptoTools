@@ -2,7 +2,7 @@
 set(USER_NAME           )      
 set(TOKEN               )      
 set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_TAG             "1558d163846fc114d3101873201fb9edebc78f2d" )
+set(GIT_TAG             "5395e08211ffc5116a291dd093a07ddb91ecb0af" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
