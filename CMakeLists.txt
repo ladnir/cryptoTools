@@ -26,13 +26,6 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	endif()
 
 	if(MSVC)
-		# optionally add the following to CMAKE_PREFIX_PATH
-		if(NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED NO_OC_DEFAULT_PREFIX)
-			set(CMAKE_PREFIX_PATH
-				"c:/libs"
-				"${CMAKE_CURRENT_SOURCE_DIR}/.."
-				)
-		endif()
 	else()
 		# Select flags.
 		set(CMAKE_C_FLAGS "-Wall -Wfatal-errors")

@@ -450,7 +450,7 @@ namespace osuCrypto {
         auto buffer = boost::asio::buffer((char*)&mRecvChar, 1);
         auto& sock = mSock->mSock;
 
-        sock.async_receive(buffer, [this](const error_code& ec, u64 bytesTransferred) {
+        boost::asio::async_read(sock, buffer, [this](const error_code& ec, u64 bytesTransferred) {
             boost::asio::dispatch(mStrand, [this, ec, bytesTransferred] {
 
                 if (ec || bytesTransferred != 1)
@@ -488,14 +488,13 @@ namespace osuCrypto {
 
         std::copy(str.begin(), str.end(), mSendBuffer.begin() + sizeof(details::size_header_type));
 
-
         IF_LOG(mChl->mLog.push("Success: async connect to server. ConnectionString = " \
             + str + " " + std::to_string((u64) & *mChl->mHandle)));
 
         auto buffer = boost::asio::buffer((char*)mSendBuffer.data(), mSendBuffer.size());
         auto& sock = mSock->mSock;;
 
-        sock.async_send(buffer, [this](const error_code& ec, u64 bytesTransferred) {
+        boost::asio::async_write(sock, buffer, [this](const error_code& ec, u64 bytesTransferred) {
             boost::asio::dispatch(mStrand, [this, ec, bytesTransferred] {
 
                 if (ec || bytesTransferred != mSendBuffer.size())

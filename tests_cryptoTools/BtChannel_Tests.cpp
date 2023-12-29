@@ -532,6 +532,48 @@ namespace tests_cryptoTools
         //chl.waitForConnection(std::chrono::seconds(1));
     }
 
+
+
+    void BtNetwork_PartialConnect_Test(const CLP& cmd)
+    {
+        IOService ios;
+        ios.showErrorMessages(true);
+        auto tls = getIfTLS(cmd);
+
+        Session server(ios, "127.0.0.1", 1212, SessionMode::Server, tls, "name");
+        auto chl = server.addChannel();
+
+        boost::asio::ip::tcp::socket sock(ios.mIoService);
+
+        boost::asio::ip::tcp::resolver resolver(ios.mIoService);
+        boost::asio::ip::tcp::resolver::query query("127.0.0.1", "1212");
+        boost::asio::ip::tcp::endpoint addr = *resolver.resolve(query);
+
+        error_code ec;
+        sock.connect(addr, ec);
+
+
+        std::stringstream ss;
+        ss << "name`42`_autoName_0`_autoName_0";
+        auto str = ss.str();
+        u32 size = (u32)str.size();
+        auto buff = boost::asio::buffer((u8*)&size, sizeof(u32));;
+        boost::asio::write(sock, buff);
+
+        auto s = str.size() / 2;
+        buff = boost::asio::buffer(str.data(), s);;
+        boost::asio::write(sock, buff);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        buff = boost::asio::buffer(str.data() + s, str.size() - s);;
+        boost::asio::write(sock, buff);
+
+        auto c = chl.waitForConnection(std::chrono::seconds(10000));
+        if (!c)
+            throw RTE_LOC;
+    }
+
+
     void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd)
     {
 
