@@ -41,6 +41,8 @@ namespace tests_cryptoTools
         th.add("BtNetwork_ServerMode_Test               ", BtNetwork_ServerMode_Test);
         th.add("BtNetwork_clientClose_Test              ", BtNetwork_clientClose_Test);
         th.add("BtNetwork_BadConnect_Test               ", BtNetwork_BadConnect_Test);
+        th.add("BtNetwork_PartialConnect_Test           ", BtNetwork_PartialConnect_Test);
+        
         th.add("BtNetwork_oneWorker_Test                ", BtNetwork_oneWorker_Test);
         th.add("BtNetwork_queue_Test                    ", BtNetwork_queue_Test);
         th.add("BtNetwork_socketAdapter_test            ", BtNetwork_socketAdapter_test);

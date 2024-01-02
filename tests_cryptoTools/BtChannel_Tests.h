@@ -12,6 +12,8 @@ namespace tests_cryptoTools
 
     void BtNetwork_Connect1_Test(const osuCrypto::CLP& cmd);
     void BtNetwork_BadConnect_Test(const osuCrypto::CLP& cmd);
+    void BtNetwork_PartialConnect_Test(const osuCrypto::CLP& cmd);
+    
     void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd);
 
 
@@ -52,6 +54,7 @@ namespace tests_cryptoTools
     inline void np() { throw oc::UnitTestSkipped("ENABLE_BOOST not defined."); }
     inline void BtNetwork_Connect1_Test(const osuCrypto::CLP& cmd) { np(); }
     inline void BtNetwork_BadConnect_Test(const osuCrypto::CLP& cmd) { np(); }
+    inline void BtNetwork_PartialConnect_Test(const osuCrypto::CLP& cmd) { np(); }
     inline void BtNetwork_shutdown_test(const osuCrypto::CLP& cmd) { np(); }
     inline void BtNetwork_RapidConnect_Test(const osuCrypto::CLP& cmd) { np(); }
     inline void BtNetwork_OneMegabyteSend_Test(const osuCrypto::CLP& cmd) { np(); }

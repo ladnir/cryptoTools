@@ -140,7 +140,7 @@ namespace osuCrypto
                 //#endif
                 LOG_MSG("listening with socket#" + std::to_string(sockIter->mIdx) +
                     " at " + mAddress.address().to_string() + " : " + std::to_string(mAddress.port()));
-
+                
                 //BoostSocketInterface* newSocket = new BoostSocketInterface(mIOService.mIoService);
                 mHandle.async_accept(sockIter->mSock, [sockIter, this](const boost::system::error_code& ec)
                     {
@@ -208,7 +208,7 @@ namespace osuCrypto
         sockIter->mBuff[0] = 'q';
         auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
 
-        sockIter->mSock.async_send(buffer, [this, sockIter](const error_code& ec, u64 bytesTransferred) {
+        boost::asio::async_write(sockIter->mSock, buffer, [this, sockIter](const error_code& ec, u64 bytesTransferred) {
             if (ec || bytesTransferred != 1)
                 erasePendingSocket(sockIter);
             else
@@ -225,10 +225,10 @@ namespace osuCrypto
 
         sockIter->mBuff.resize(sizeof(u32));
         auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
-        sockIter->mSock.async_receive(buffer,
+        boost::asio::async_read(sockIter->mSock, buffer,
             [sockIter, this](const boost::system::error_code& ec, u64 bytesTransferred)
             {
-                if (!ec)
+                if (!ec && bytesTransferred == sizeof(u32))
                 {
                     LOG_MSG("Recv header with socket#" + std::to_string(sockIter->mIdx));
 
@@ -236,10 +236,14 @@ namespace osuCrypto
 
                     sockIter->mBuff.resize(size);
                     auto buffer = boost::asio::buffer((char*)sockIter->mBuff.data(), sockIter->mBuff.size());
+                    
+                    boost::asio::async_read(sockIter->mSock, buffer, 
+                        [sockIter, this, size](const boost::system::error_code& ec3, u64 bytesTransferred2) 
+                    {
+                        boost::asio::dispatch(mStrand, [sockIter, this, size, ec3, bytesTransferred2] 
+                        {
 
-                    sockIter->mSock.async_receive(buffer,
-                        bind_executor(mStrand, [sockIter, this](const boost::system::error_code& ec3, u64 bytesTransferred2) {
-                            if (!ec3)
+                            if (!ec3 && bytesTransferred2 == size)
                             {
                                 LOG_MSG("Recv boby with socket#" + std::to_string(sockIter->mIdx) + " ~ " + sockIter->mBuff);
 
@@ -251,16 +255,15 @@ namespace osuCrypto
                             else
                             {
                                 std::stringstream ss;
-                                ss << "socket header body failed: " << ec3.message() << std::endl;
+                                ss << "socket header body failed: " << ec3.message()
+                                    << ", bt: " << bytesTransferred2 << " / " << size << std::endl;
                                 mIOService.printError(ss.str());
                                 LOG_MSG("Recv body failed with socket#" + std::to_string(sockIter->mIdx) + " ~ " + ec3.message());
                             }
 
                             erasePendingSocket(sockIter);
-                            }
-                        )
-                    );
-
+                        });
+                    });
                 }
                 else
                 {
