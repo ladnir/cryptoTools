@@ -54,7 +54,7 @@ namespace osuCrypto
         Timer::timeUnit setTimePoint(const std::string& msg)
         {
             if(mTimer) return getTimer().setTimePoint(msg);
-            else return Timer::timeUnit::clock::now();
+            else return {};
         }
 
         Timer* mTimer = nullptr;
