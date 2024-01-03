@@ -389,7 +389,7 @@ namespace osuCrypto
 					throw RTE_LOC;
 
 				for (u64 i = 0; i < d.size(); ++i)
-					*d[i] = *bZero[i] ^ (*bZero[i] ^ *bOne[i]) & *this;
+					*d[i] = *bZero[i] ^ ((*bZero[i] ^ *bOne[i]) & *this);
 
 				return ret;
 			}

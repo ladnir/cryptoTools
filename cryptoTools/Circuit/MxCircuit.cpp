@@ -25,7 +25,7 @@ namespace osuCrypto
 
 			void map(u64 key, u64 val) {
 				if (mMap.size() <= key)
-					mMap.resize(std::max<u64>(key + 1, mMap.size() * 2), -1);
+					mMap.resize(std::max<u64>(key + 1, mMap.size() * 2), ~0ull);
 				mMap[key] = val;
 			};
 
@@ -190,7 +190,7 @@ namespace osuCrypto
 				{
 
 					auto s = node.mInput.size();
-					if (s && node.mInput.back().offset() == -1)
+					if (s && node.mInput.back().offset() == ~0ull)
 						--s;
 
 					BetaBundle b(s);

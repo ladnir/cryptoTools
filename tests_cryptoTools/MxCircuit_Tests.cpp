@@ -424,7 +424,7 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 
 	bool verbose = cmd.isSet("verbose");
 	PRNG prng(ZeroBlock);
-	auto trials = cmd.getOr("trials", 1);
+	auto trials = cmd.getOr("trials", 1ull);
 	for (u64 t = 0; t < trials; ++t)
 	{
 

@@ -124,7 +124,7 @@ namespace osuCrypto
 					else
 					{
 						G[i] =
-							!signExtend(a1_, i, it) &
+							(!signExtend(a1_, i, it)) &
 							signExtend(a2_, i, it);
 					}
 				}
@@ -626,7 +626,7 @@ namespace osuCrypto
 				throw RTE_LOC;
 
 			for (u64 i = 0; i < ret.size(); ++i)
-				ret[i] = bZero[i] ^ (bZero[i] ^ bOne[i]) & b;
+				ret[i] = bZero[i] ^ ((bZero[i] ^ bOne[i]) & b);
 		}
 
 		void negate(
@@ -764,7 +764,7 @@ namespace osuCrypto
 				//         001110
 				//        ----------------
 				//   011 |   101101
-				//         011                  \
+				//         011                  \. 
 				//       - 000             0    |
 				//         --------             | 
 				//           101101             | 
@@ -786,7 +786,7 @@ namespace osuCrypto
 				//              001             | 
 				//              011             | 
 				//           -  000         0   |
-				//             ----             /
+				//             ----             / 
 				//              001        <==== remainder
 				//
 

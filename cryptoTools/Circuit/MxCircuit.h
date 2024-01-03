@@ -287,7 +287,7 @@ namespace osuCrypto
 
 			Arena<Address> mArena;
 			std::vector<Gate> mGates;
-			u64 mPrevPrintIdx = -1;
+			u64 mPrevPrintIdx = ~0ull;
 
 			void addPrint(span<const Bit*> elems,
 				std::function<std::string(const BitVector& b)>&& p)
@@ -295,7 +295,7 @@ namespace osuCrypto
 				Gate g;
 				g.mType = OpType::Print;
 
-				u64 s = (mPrevPrintIdx != -1);
+				u64 s = (mPrevPrintIdx != ~0ull);
 				for (u64 i = 0; i < elems.size(); ++i)
 					s += elems[i]->isConst() == false;
 
@@ -311,9 +311,9 @@ namespace osuCrypto
 						consts[i] = elems[i]->constValue();
 				}
 
-				if (mPrevPrintIdx != -1)
+				if (mPrevPrintIdx != ~0ull)
 				{
-					g.mInput[j++] = Address(mPrevPrintIdx, -1);
+					g.mInput[j++] = Address(mPrevPrintIdx, ~0ull);
 				}
 
 				assert(j == s);
@@ -418,13 +418,13 @@ namespace osuCrypto
 					throw std::runtime_error("MxCircuit::evaluate(...), number of inputs provided is not correct. " LOCATION);
 				out.resize(mOutputs.size());
 
-				std::vector<u64> map(mGates.size(), -1);
+				std::vector<u64> map(mGates.size(), ~0ull);
 				u64 nc = std::accumulate(mGates.begin(), mGates.end(), 0ull, [](auto&& c, auto&& g) {
 					return g.mNumOutputs + c;
 					});
 				std::unique_ptr<u8[]>vals_(new u8[nc]);
 				auto vals = [&](const Address& a) -> auto& {
-					assert(map[a.gate()] != -1);
+					assert(map[a.gate()] != ~0ull);
 					return vals_[map[a.gate()] + a.offset()];
 					};
 
@@ -489,7 +489,7 @@ namespace osuCrypto
 						Print* p = dynamic_cast<Print*>(gate.mData.get());
 
 						auto s = gate.mInput.size();
-						if (s && gate.mInput.back().offset() == -1)
+						if (s && gate.mInput.back().offset() == ~0ull)
 							--s;
 						BitVector v(s);
 						for (u64 j = 0; j < v.size(); ++j)
