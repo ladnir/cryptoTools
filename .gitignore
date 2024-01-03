@@ -210,8 +210,6 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
-/WeGarbleTests__
-/thirdparty
 kProbe_data_*
 
 *.VC.db
