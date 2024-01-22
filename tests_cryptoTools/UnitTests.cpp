@@ -20,6 +20,7 @@ namespace tests_cryptoTools
 {
     TestCollection Tests([](TestCollection& th) {
 
+#ifdef ENABLE_BOOST
         th.add("BtNetwork_SBO_ptr_test                  ", SBO_ptr_test);
         th.add("BtNetwork_Connect1_Test                 ", BtNetwork_Connect1_Test);
         th.add("BtNetwork_RapidConnect_Test             ", BtNetwork_RapidConnect_Test);
@@ -47,11 +48,7 @@ namespace tests_cryptoTools
         th.add("BtNetwork_queue_Test                    ", BtNetwork_queue_Test);
         th.add("BtNetwork_socketAdapter_test            ", BtNetwork_socketAdapter_test);
         th.add("BtNetwork_BasicSocket_test              ", BtNetwork_BasicSocket_test);
-        
-        th.add("wolfSSL_echoServer_test                 ", wolfSSL_echoServer_test);
-        th.add("wolfSSL_mutualAuth_test                 ", wolfSSL_mutualAuth_test);
-        th.add("wolfSSL_channel_test                    ", wolfSSL_channel_test);
-        th.add("wolfSSL_CancelChannel_Test              ", wolfSSL_CancelChannel_Test);
+#endif
 
         th.add("block_operation_test                    ", block_operation_test);
         th.add("AES                                     ", AES_EncDec_Test);

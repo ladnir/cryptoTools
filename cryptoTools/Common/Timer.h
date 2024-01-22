@@ -57,6 +57,12 @@ namespace osuCrypto
             else return {};
         }
 
+        Timer::timeUnit setTimePoint(const char* msg)
+        {
+            if (mTimer) return getTimer().setTimePoint(msg);
+            else return {};
+        }
+
         Timer* mTimer = nullptr;
     };
 
