@@ -10,8 +10,18 @@ namespace osuCrypto
 {
     const Timer::timeUnit& Timer::setTimePoint(const std::string& msg)
     {
-        mTimes.push_back(std::make_pair(timeUnit::clock::now(), msg));
-        return  mTimes.back().first;
+        if (mLocking)
+        {
+            std::lock_guard<std::mutex> lock(mMtx);
+            mTimes.push_back(std::make_pair(timeUnit::clock::now(), msg));
+            return  mTimes.back().first;
+        }
+        else
+        {
+            mTimes.push_back(std::make_pair(timeUnit::clock::now(), msg));
+            return  mTimes.back().first;
+
+        }
     }
 
     void Timer::reset()
