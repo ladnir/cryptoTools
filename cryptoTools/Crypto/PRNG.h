@@ -40,12 +40,26 @@ namespace osuCrypto
         const block getSeed() const;
 
 
-        struct AnyPOD
+        //template<typename T, typename = void>
+        //struct has_randomize_member_func : std::false_type
+        //{};
+
+        //template <typename T>
+        //struct has_randomize_member_func < T, std::void_t<
+
+        //    // must have a randomize(PRNG&) member fn
+        //    decltype(std::declval<T>().randomize(std::declval<PRNG&>()))
+
+        //    >>
+        //    : std::true_type{};
+
+
+        struct Any
         {
             PRNG& mPrng;
 
             template<typename T, typename U = typename std::enable_if<
-                std::is_standard_layout<T>::value&&
+                std::is_standard_layout<T>::value &&
                 std::is_trivial<T>::value, T>::type>
                 operator T()
             {
@@ -54,7 +68,7 @@ namespace osuCrypto
 
         };
 
-        AnyPOD get()
+        Any get()
         {
             return { *this };
         }
@@ -79,6 +93,7 @@ namespace osuCrypto
 
             return ret;
         }
+
 
         // Templated function that fills the provided buffer 
         // with random elements of the given type T. 
@@ -180,14 +195,5 @@ namespace osuCrypto
         get((u8*)&ret, 1);
         return ret & 1;
     }
-
-
-	template<typename T>
-	typename std::enable_if<
-        std::is_standard_layout<T>::value&&
-        std::is_trivial<T>::value, PRNG&>::type operator<<(T& rhs, PRNG& lhs)
-	{
-		lhs.get(&rhs, 1);
-	}
 
 }
