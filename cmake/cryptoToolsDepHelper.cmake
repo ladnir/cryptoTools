@@ -268,7 +268,7 @@ if(ENABLE_GMP)
     endif()
 
     FIND_GMP(REQUIRED)
-    endif()
+endif()
 
 
 #######################################

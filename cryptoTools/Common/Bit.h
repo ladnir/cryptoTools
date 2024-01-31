@@ -369,28 +369,38 @@ namespace osuCrypto
         namespace detail
         {
 
-            constexpr inline int popcount_impl(std::uint32_t x) noexcept
+            inline int popcount_impl(std::uint32_t x) noexcept
             {
+#ifdef _MSC_VER
+                
+                return __popcnt(x);
+
+#else
                 x = x - ((x >> 1) & 0x55555555);
                 x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
                 x = (x + (x >> 4)) & 0x0F0F0F0F;
 
                 return static_cast<unsigned>((x * 0x01010101) >> 24);
+#endif
             }
 
-            constexpr inline int popcount_impl(std::uint64_t x) noexcept
+            inline int popcount_impl(std::uint64_t x) noexcept
             {
+#ifdef _MSC_VER
+                return __popcnt64(x);
+#else
                 x = x - ((x >> 1) & 0x5555555555555555);
                 x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
                 x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
 
                 return static_cast<unsigned>((x * 0x0101010101010101) >> 56);
+#endif  
             }
 
         } // namespace detail
 
         template<class T>
-        constexpr int popcount(T x) noexcept
+        int popcount(T x) noexcept
         {
             static_assert(sizeof(T) <= sizeof(std::uint64_t), "");
 
