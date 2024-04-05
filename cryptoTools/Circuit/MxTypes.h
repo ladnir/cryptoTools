@@ -197,6 +197,10 @@ namespace osuCrypto
 			std::vector<Bit>& asBits() { return *this; }
 			const std::vector<Bit>& asBits() const { return *this; }
 
+			static BVector makeFromSize(u64 s)
+			{
+				return BVector(s);
+			}
 		};
 
 		// a crtp that implement the integer operations for type C.

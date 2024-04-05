@@ -130,7 +130,7 @@ namespace osuCrypto
 		public:
 
 			Circuit() = default;
-			Circuit(Circuit&&) = delete;
+			Circuit(Circuit&&) = default;
 			Circuit(const Circuit&) = delete;
 
 			enum ValueType
@@ -414,6 +414,12 @@ namespace osuCrypto
 
 			void evaluate(const std::vector<BitVector>& in, std::vector<BitVector>& out)
 			{
+
+				if (mInputs.size() == 0)
+					throw std::runtime_error("MxCircuit::evaluate(...), zero inputs to cirucit. " LOCATION);
+				if (mOutputs.size() == 0)
+					throw std::runtime_error("MxCircuit::evaluate(...), zero output from cirucit. " LOCATION);
+
 				if (in.size() != mInputs.size())
 					throw std::runtime_error("MxCircuit::evaluate(...), number of inputs provided is not correct. " LOCATION);
 				out.resize(mOutputs.size());
