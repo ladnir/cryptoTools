@@ -136,8 +136,6 @@ namespace osuCrypto
 				if (addressMap.hasMapping(idx))
 				{
 					auto outIdx = addressMap[idx];
-					if (outIdx == 131)
-						std::cout << "here" << std::endl;
 				}
 				switch (node.mType)
 				{

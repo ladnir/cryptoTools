@@ -339,6 +339,9 @@ namespace osuCrypto
 
 			Bit addGate(OpType t, const Bit& a, const Bit& b)
 			{
+				//if (a.mAddress == b.mAddress && a.mAddress.hasValue())
+				//	throw std::runtime_error("illegal to provide the same bit. " LOCATION);
+
 				Bit ret;
 				ret.mCir = this;
 				ret.mAddress = Address(mGates.size(), 0);

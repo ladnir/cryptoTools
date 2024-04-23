@@ -325,6 +325,15 @@ namespace osuCrypto
 			}
 
 			bool hasValue() const  { return mVal != u64(-1); }
+			
+			bool operator==(const Address& a) const
+			{
+				return mVal == a.mVal;
+			}
+			bool operator!=(const Address& a) const
+			{
+				return !(*this == a);
+			}
 		private:
 			u64 mVal = u64(-1);
 		};

@@ -140,8 +140,8 @@ namespace osuCrypto
         if(out >= mWireCount)
             throw std::runtime_error(LOCATION);
 
-        if (aIdx == bIdx)
-            throw std::runtime_error(LOCATION);
+        //if (aIdx == bIdx)
+            //throw std::runtime_error(LOCATION);
         //std::cout << "add "<<mGates.size() << ": " << aIdx <<" "<< bIdx <<" " << gateToString(gt) << " " << out << std::endl;
 
         auto
