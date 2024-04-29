@@ -244,8 +244,9 @@ if (FETCH_SPAN_LITE_IMPL)
     include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
 endif()
 
-FIND_SPAN(REQUIRED)
-
+if(ENABLE_SPAN_LITE)
+    FIND_SPAN(REQUIRED)
+endif()
 ## GMP
 ###########################################################################
 

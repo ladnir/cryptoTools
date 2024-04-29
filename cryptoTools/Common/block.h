@@ -71,7 +71,8 @@ namespace osuCrypto
 
 		template<typename T,
 			typename Enable = typename std::enable_if<
-			std::is_pod<T>::value &&
+			std::is_standard_layout<T>::value&&
+			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
 			(16 % sizeof(T) == 0)
 		>::type>
@@ -176,7 +177,8 @@ namespace osuCrypto
 		// For integer types, this will be specialized with SSE futher down.
 		template<typename T>
 		OC_FORCEINLINE static typename std::enable_if<
-			std::is_pod<T>::value &&
+			std::is_standard_layout<T>::value&&
+			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
 			(16 % sizeof(T) == 0),
 			block>::type allSame(T val)

@@ -110,6 +110,8 @@ namespace osuCrypto
 
 #define _SILENCE_CXX20_IS_POD_DEPRECATION_WARNING
 
+
+
     /// type trait that defines what is considered a STL like Container
     /// 
     /// Must have the following member types:  pointer, size_type, value_type
@@ -127,8 +129,8 @@ namespace osuCrypto
         std::is_convertible<
         typename Container::size_type,
         decltype(std::declval<Container>().size())>::value&&
-        std::is_pod<typename Container::value_type>::value&&
-        std::is_pod<Container>::value == false>::type
+        std::is_trivial<typename Container::value_type>::value&&
+        std::is_trivial<Container>::value == false>::type
         ,
         void>;
 

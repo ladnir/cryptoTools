@@ -2,7 +2,7 @@
 set(USER_NAME           )      
 set(TOKEN               )      
 set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_TAG             "fd097b1f2498b73140dd6e2e3d0ee5c5e3c60cd2" )
+set(GIT_TAG             "22c98abba47dbfacd421e3dcd90702fff74de6f3" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
@@ -25,7 +25,7 @@ if(NOT coproto_FOUND)
                        -DCOPROTO_NO_SYSTEM_PATH=${NO_SYSTEM_PATH}
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
                        -DVERBOSE_FETCH=true
-                       -DCOPROTO_FETCH_SPAN=ON
+                       -DCOPROTO_FETCH_SPAN=OFF
                        -DCOPROTO_FETCH_FUNCTION2=ON
                        -DCOPROTO_FETCH_MACORO=ON
                        -DCOPROTO_FETCH_BOOST=${LOCAL_COPROTO_FETCH_BOOST}

@@ -16,7 +16,11 @@ namespace osuCrypto {
 	struct Hashable : std::false_type {};
 
 	template<typename T>
-	struct Hashable<T, typename std::enable_if<std::is_pod<T>::value>::type> : std::true_type
+	struct Hashable<T, 
+		typename std::enable_if<
+		std::is_standard_layout<T>::value&&
+		std::is_trivial<T>::value>::type
+	> : std::true_type
 	{
 		template<typename Hasher>
 		static void hash(const T& t, Hasher& hasher)
