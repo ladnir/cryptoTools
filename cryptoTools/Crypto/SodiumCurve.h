@@ -189,7 +189,7 @@ inline Prime25519 operator/(const Prime25519& a, const Prime25519& b)
     return a * b.inverse();
 }
 
-static_assert(std::is_pod<Prime25519>::value, "");
+static_assert(std::is_trivial<Prime25519>::value, "");
 
 struct Ed25519;
 
@@ -254,7 +254,7 @@ struct Ed25519
     unsigned char data[size];
 };
 
-static_assert(std::is_pod<Ed25519>::value, "");
+static_assert(std::is_trivial<Ed25519>::value, "");
 
 struct Rist25519;
 
@@ -363,7 +363,7 @@ struct Rist25519
     unsigned char data[size];
 };
 
-static_assert(std::is_pod<Rist25519>::value, "");
+static_assert(std::is_trivial<Rist25519>::value, "");
 
 #ifdef SODIUM_MONTGOMERY
 
@@ -455,7 +455,7 @@ struct Monty25519
     static const Monty25519 wholeTwistGroupGenerator;
 };
 
-static_assert(std::is_pod<Monty25519>::value, "");
+static_assert(std::is_trivial<Monty25519>::value, "");
 
 #endif
 
