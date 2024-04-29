@@ -648,7 +648,7 @@ namespace osuCrypto
 
         if (curveID)
         {
-            if (curveID != ep_param_get())
+            if (curveID != (u64)ep_param_get())
             {
                 ep_param_set(curveID);
                 if (GSL_UNLIKELY(err_get_code()))
