@@ -13,7 +13,7 @@
    https://blake2.net.
 */
 #include "cryptoTools/Common/config.h"
-#ifdef ENABLE_BLAKE2_SSE
+#ifdef ENABLE_SSE_BLAKE2
 
 #ifndef BLAKE2B_LOAD_SSE41_H
 #define BLAKE2B_LOAD_SSE41_H

@@ -13,31 +13,19 @@
    https://blake2.net.
 */
 #include "cryptoTools/Common/config.h"
-#ifdef ENABLE_BLAKE2_SSE
+#ifdef ENABLE_SSE_BLAKE2
 
 #ifndef BLAKE2_CONFIG_H
 #define BLAKE2_CONFIG_H
 
 
 /* These don't work everywhere */
-#if defined(__SSE2__) || defined(__x86_64__) || defined(__amd64__)
 #define HAVE_SSE2
-#endif
 
-#if defined(__SSSE3__)
+#ifdef ENABLE_AVX
 #define HAVE_SSSE3
-#endif
-
-#if defined(__SSE4_1__)
 #define HAVE_SSE41
-#endif
-
-#if defined(__AVX__)
 #define HAVE_AVX
-#endif
-
-#if defined(__XOP__)
-#define HAVE_XOP
 #endif
 
 

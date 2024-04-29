@@ -2,7 +2,7 @@
 // This file and the associated implementation has been placed in the public domain, waiving all copyright. No restrictions are placed on its use.
 #include <cryptoTools/Common/Defines.h>
 #include <type_traits>
-#ifdef ENABLE_BLAKE2_SSE
+#ifdef ENABLE_SSE_BLAKE2
 #include <cryptoTools/Crypto/blake2/sse/blake2.h>
 #else
 #include <cryptoTools/Crypto/blake2/c/blake2.h>
