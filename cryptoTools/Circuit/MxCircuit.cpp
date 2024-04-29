@@ -133,10 +133,10 @@ namespace osuCrypto
 				for (auto i : node.mInput)
 					if (dirty.find(i.gate()) != dirty.end())
 						throw RTE_LOC;
-				if (addressMap.hasMapping(idx))
-				{
-					auto outIdx = addressMap[idx];
-				}
+				//if (addressMap.hasMapping(idx))
+				//{
+				//	auto outIdx = addressMap[idx];
+				//}
 				switch (node.mType)
 				{
 				case OpType::a:

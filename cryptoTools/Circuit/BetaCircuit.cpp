@@ -1085,7 +1085,7 @@ namespace osuCrypto
     template<typename T>
     void write(T* ptr, u64 size, std::ostream& o)
     {
-        static_assert(std::is_pod<T>::value, "must be pod");
+        static_assert(std::is_trivial<T>::value, "must be pod");
         o.write((char*)ptr, size * sizeof(T));
     }
     void write(u64 v, std::ostream& o)
@@ -1166,7 +1166,7 @@ namespace osuCrypto
     template<typename T>
     void read(T* dest, u64 size, std::istream& in)
     {
-        static_assert(std::is_pod<T>::value, "must be pod");
+        static_assert(std::is_trivial<T>::value, "must be pod");
         in.read((char*)dest, size * sizeof(T));
     }
     void BetaCircuit::readBin(std::istream & in)
