@@ -71,8 +71,8 @@ namespace osuCrypto
 
         // Construct a reference to the bit in the provided byte offset by the shift.
         // Shift should be less than 8.
-        BitIterator(u8* byte, u64 shift = 0)
-            :mByte(byte + (shift / 8)), mShift(shift & 7) {}
+        BitIterator(void* byte, u64 shift = 0)
+            :mByte((u8*)byte + (shift / 8)), mShift(shift & 7) {}
 
         // Construct a reference to the current bit pointed to by the iterator.
         BitReference operator*() { return BitReference(mByte, mShift); }
