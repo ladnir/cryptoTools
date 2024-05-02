@@ -37,7 +37,7 @@ namespace osuCrypto
         mWireFlags.resize(mWireCount, BetaWireFlag::Uninitialized);
     }
 
-    void BetaCircuit::addTempWireBundle(BetaBundle & in)
+    void BetaCircuit::addTempWireBundle(BetaBundle& in)
     {
         for (u64 i = 0; i < in.mWires.size(); ++i)
         {
@@ -47,7 +47,7 @@ namespace osuCrypto
         mWireFlags.resize(mWireCount, BetaWireFlag::Uninitialized);
     }
 
-    void BetaCircuit::addInputBundle(BetaBundle & in)
+    void BetaCircuit::addInputBundle(BetaBundle& in)
     {
         for (u64 i = 0; i < in.mWires.size(); ++i)
         {
@@ -65,7 +65,7 @@ namespace osuCrypto
     }
 
 
-    void BetaCircuit::addOutputBundle(BetaBundle & out)
+    void BetaCircuit::addOutputBundle(BetaBundle& out)
     {
         for (u64 i = 0; i < out.mWires.size(); ++i)
         {
@@ -79,7 +79,7 @@ namespace osuCrypto
             throw std::runtime_error("outputs must be defined before gates are added. " LOCATION);
     }
 
-    void BetaCircuit::addConstBundle(BetaBundle & in, const BitVector& val)
+    void BetaCircuit::addConstBundle(BetaBundle& in, const BitVector& val)
     {
         mWireFlags.resize(mWireCount + in.mWires.size(), BetaWireFlag::Wire);
 
@@ -137,7 +137,7 @@ namespace osuCrypto
         if (bIdx >= mWireCount || mWireFlags[bIdx] == BetaWireFlag::Uninitialized)
             throw std::runtime_error(LOCATION);
 
-        if(out >= mWireCount)
+        if (out >= mWireCount)
             throw std::runtime_error(LOCATION);
 
         //if (aIdx == bIdx)
@@ -252,7 +252,7 @@ namespace osuCrypto
         mWireFlags[dest] = mWireFlags[src];
     }
 
-    void BetaCircuit::addCopy(const BetaBundle & src, const  BetaBundle & dest)
+    void BetaCircuit::addCopy(const BetaBundle& src, const  BetaBundle& dest)
     {
         auto d = dest.mWires.begin();
         //auto dd = dest.mWires.end();
@@ -309,7 +309,7 @@ namespace osuCrypto
     void BetaCircuit::addPrint(BetaBundle in, std::function<std::string(const BitVector& b)> formatter)
     {
         std::vector<int> consts(in.size());
-        Print p; 
+        Print p;
         p.mInvs.reserve(in.size());;
         p.mWires.reserve(in.size());;
         for (u64 i = 0; i < in.size(); ++i)
@@ -328,7 +328,7 @@ namespace osuCrypto
         }
 
 
-        p.mFn = [c = std::move(consts), f = std::move(formatter)] (const BitVector& b) -> std::string {
+        p.mFn = [c = std::move(consts), f = std::move(formatter)](const BitVector& b) -> std::string {
             BitVector v;
             for (u64 i = 0, j = 0; i < c.size(); ++i)
             {
@@ -342,7 +342,7 @@ namespace osuCrypto
                 }
             }
             return f(v);
-        };
+            };
 
         mPrints.push_back(std::move(p));
     }
@@ -406,10 +406,10 @@ namespace osuCrypto
                 if (iter->mFn)
                 {
                     BitVector bits(iter->mWires.size());
-                    for(u64 i =0; i < bits.size(); ++i)
-						bits[i] = mem[iter->mWires[i]] ^ (iter->mInvs[i] ? 1 : 0);
+                    for (u64 i = 0; i < bits.size(); ++i)
+                        bits[i] = mem[iter->mWires[i]] ^ (iter->mInvs[i] ? 1 : 0);
 
-					std::cout << iter->mFn(bits);
+                    std::cout << iter->mFn(bits);
                 }
                 else
                 {
@@ -504,12 +504,16 @@ namespace osuCrypto
 
         for (u64 i = 0; i < static_cast<u64>(output.size()); ++i)
         {
-            if (output[i].size() != mOutputs[i].mWires.size())
+            auto& outi = output[i];
+            if (outi.size() != mOutputs[i].mWires.size())
                 throw std::runtime_error(LOCATION);
 
             for (u64 j = 0; j < output[i].size(); ++j)
             {
-                output[i][j] = mem[mOutputs[i].mWires[j]] ^ (isInvert(mOutputs[i].mWires[j]) ? 1 : 0);
+                if (isConst(mOutputs[i].mWires[j]))
+                    output[i][j] = constVal(mOutputs[i].mWires[j]);
+                else
+                    output[i][j] = mem[mOutputs[i].mWires[j]] ^ (isInvert(mOutputs[i].mWires[j]) ? 1 : 0);
             }
         }
     }
@@ -752,52 +756,52 @@ namespace osuCrypto
         i64 nextWire = numInputs;
         std::vector<i64> freeWires, nextLvlFreeWires;
         auto getOutWire = [&](Node& node) -> u32
-        {
-            if (node.mFixedWireValue) {
-                node.mWire = node.mGate.mOutput;
-                return static_cast<u32>(node.mWire);
-            }
-            else if (node.mWire == uninit) {
-                if (freeWires.size()) {
-                    node.mWire = freeWires.back();
-                    freeWires.pop_back();
+            {
+                if (node.mFixedWireValue) {
+                    node.mWire = node.mGate.mOutput;
+                    return static_cast<u32>(node.mWire);
                 }
-                else {
-                    node.mWire = nextWire++;
+                else if (node.mWire == uninit) {
+                    if (freeWires.size()) {
+                        node.mWire = freeWires.back();
+                        freeWires.pop_back();
+                    }
+                    else {
+                        node.mWire = nextWire++;
+                    }
+                    return static_cast<u32>(node.mWire);
                 }
-                return static_cast<u32>(node.mWire);
-            }
 
-            throw std::runtime_error(LOCATION);
-        };
+                throw std::runtime_error(LOCATION);
+            };
 
         auto getInWire = [&](Node& node, u64 i) -> u32
-        {
-            auto& depList = node.mInput[i]->mOutputs;
-
-            auto iter = std::find(depList.begin(), depList.end(), &node);
-
-            if (iter == depList.end() || 
-                (   node.mGate.mType != GateType::a && 
-                    std::find(iter + 1, depList.end(), &node) != depList.end()))
-                throw std::runtime_error("input value appears more than once... " LOCATION);
-
-            auto wire = node.mInput[i]->mWire;
-            if (wire < 0)
-                throw std::runtime_error("wire is uninit... " LOCATION);
-
-
-            if (depList.size() == 1 && node.mInput[i]->mFixedWireValue == false)
             {
-                nextLvlFreeWires.push_back(wire);
-                node.mInput[i]->mWire = freed;
-            }
+                auto& depList = node.mInput[i]->mOutputs;
 
-            std::swap(*iter, depList.back());
-            depList.pop_back();
+                auto iter = std::find(depList.begin(), depList.end(), &node);
 
-            return static_cast<u32>(wire);
-        };
+                if (iter == depList.end() ||
+                    (node.mGate.mType != GateType::a &&
+                        std::find(iter + 1, depList.end(), &node) != depList.end()))
+                    throw std::runtime_error("input value appears more than once... " LOCATION);
+
+                auto wire = node.mInput[i]->mWire;
+                if (wire < 0)
+                    throw std::runtime_error("wire is uninit... " LOCATION);
+
+
+                if (depList.size() == 1 && node.mInput[i]->mFixedWireValue == false)
+                {
+                    nextLvlFreeWires.push_back(wire);
+                    node.mInput[i]->mWire = freed;
+                }
+
+                std::swap(*iter, depList.back());
+                depList.pop_back();
+
+                return static_cast<u32>(wire);
+            };
 
         for (u64 i = 0; i < mOutputs.size(); ++i)
         {
@@ -805,7 +809,7 @@ namespace osuCrypto
             {
                 nextWire = std::max<i64>(nextWire, mOutputs[i].mWires[j] + 1);
 
-                if(wireOwner[mOutputs[i].mWires[j]])
+                if (wireOwner[mOutputs[i].mWires[j]])
                     wireOwner[mOutputs[i].mWires[j]]->mFixedWireValue = true;
 
                 //std::cout << "out[" << i << "][" << j << "] = " << mOutputs[i].mWires[j] << std::endl;
@@ -886,7 +890,7 @@ namespace osuCrypto
     }
 
 #ifdef USE_JSON
-    void BetaCircuit::writeJson(std::ostream & out)
+    void BetaCircuit::writeJson(std::ostream& out)
     {
         json j;
         if (mName.size())
@@ -942,7 +946,7 @@ namespace osuCrypto
         out << j;
     }
 
-    void BetaCircuit::readJson(std::istream & in)
+    void BetaCircuit::readJson(std::istream& in)
     {
         json j;
         in >> j;
@@ -1098,7 +1102,7 @@ namespace osuCrypto
         o.write(str.data(), str.size());
     }
 
-    void BetaCircuit::writeBin(std::ostream & out)
+    void BetaCircuit::writeBin(std::ostream& out)
     {
 
         // name
@@ -1169,7 +1173,7 @@ namespace osuCrypto
         static_assert(std::is_pod<T>::value, "must be pod");
         in.read((char*)dest, size * sizeof(T));
     }
-    void BetaCircuit::readBin(std::istream & in)
+    void BetaCircuit::readBin(std::istream& in)
     {
 
         // name
@@ -1264,7 +1268,7 @@ namespace osuCrypto
         i64 mNewOutput = -1;
     };
 
-    void BetaCircuit::writeBristol(std::ostream & out)const
+    void BetaCircuit::writeBristol(std::ostream& out)const
     {
         if (mInputs.size() != 2)
             throw std::runtime_error("bristol only supports two inputs. Merge into for a single party...");
@@ -1420,7 +1424,7 @@ namespace osuCrypto
 
     }
 
-    void BetaCircuit::readBristol(std::istream & in)
+    void BetaCircuit::readBristol(std::istream& in)
     {
         // call the destructor and constructor to make sure this object is empty;
         //BetaCircuit::~BetaCircuit();
@@ -1464,7 +1468,7 @@ namespace osuCrypto
                 return idx - internal.size();
 
             return idx + numOutputs;
-        };
+            };
 
         std::string gate;
         u64 fanIn, fanOut, inIdx0, inIdx1, outIdx;

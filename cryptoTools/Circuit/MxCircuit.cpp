@@ -105,11 +105,11 @@ namespace osuCrypto
 			std::vector<BetaBundle> outputs(mOutputs.size());
 			for (u64 i = 0; i < mOutputs.size(); ++i)
 			{
-				auto& out = mGates[mOutputs[i]];
+				auto& outGate = mGates[mOutputs[i]];
+				auto out = dynamic_cast<Output*>(outGate.mData.get());
 
-				outputs[i].resize(out.mInput.size());
+				outputs[i].resize(out->mConsts.size());
 				cir.addOutputBundle(outputs[i]);
-				//addressMap.map(mOutputs[i], b[0]);
 			}
 
 			DirtyFlag dirty;
@@ -260,13 +260,21 @@ namespace osuCrypto
 			}
 			for (u64 i = 0; i < mOutputs.size(); ++i)
 			{
-				auto& out = mGates[mOutputs[i]];
-				for (u64 j = 0; j < out.mInput.size(); ++j)
+				auto& outGate = mGates[mOutputs[i]];
+				auto out = dynamic_cast<Output*>(outGate.mData.get());
+				auto iter = outGate.mInput.begin();
+				for (u64 j = 0; j < out->mConsts.size(); ++j)
 				{
-					auto s = addressMap[out.mInput[j].gate()] + out.mInput[j].offset();
-					auto d = outputs[i][j];
-					cir.addCopy(s, d);
-					++cir.mLevelCounts.back();
+					if (out->mConsts[j].has_value())
+						cir.addConst(outputs[i][j], out->mConsts[j].value());
+					else
+					{
+						auto wire = *iter++;
+						auto s = addressMap[wire.gate()] + wire.offset();
+						auto d = outputs[i][j];
+						cir.addCopy(s, d);
+						++cir.mLevelCounts.back();
+					}
 				}
 			}
 

@@ -300,7 +300,7 @@ void MxCircuit_int_Ops_Test(const oc::CLP& cmd, Args... args)
 				throw RTE_LOC;
 
 
-			if (vSel != ((a > b) ?  a : b))
+			if (vSel != ((a > b) ? a : b))
 				throw RTE_LOC;
 
 			if (zAnd != (a & cVal))
@@ -434,6 +434,7 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 			auto b = cir.input<Mx::Bit>();
 			auto A = cir.input<Mx::BInt<64>>();
 			auto B = cir.input<Mx::BInt<64>>();
+			auto constOut = Mx::BInt<64>(42);
 
 			if (verbose)
 				cir << "A " << A << "\nB " << B << "\n";
@@ -451,11 +452,12 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 
 			cir.output(vPlus);
 			cir.output(vSub);
+			cir.output(constOut);
 		}
 
 		auto bc = cir.asBetaCircuit();
 
-		std::vector<BitVector> in(4), out(3);
+		std::vector<BitVector> in(4), out(4);
 		in[0].resize(1);
 		in[1].resize(1);
 		in[2].resize(64);
@@ -465,6 +467,7 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 		out[0].resize(1);
 		out[1].resize(64);
 		out[2].resize(64);
+		out[3].resize(64);
 		for (u64 i = 0; i < 4; ++i)
 		{
 			auto a = i % 2;
@@ -487,6 +490,10 @@ void MxCircuit_asBetaCircuit_Test(const oc::CLP& cmd)
 				throw RTE_LOC;
 			}
 			if (out[2].getSpan<i64>()[0] != (A - B))
+				throw RTE_LOC;
+
+			auto v = out[3].getSpan<i64>()[0];
+			if (v != 42)
 				throw RTE_LOC;
 		}
 	}

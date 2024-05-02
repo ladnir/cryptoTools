@@ -465,8 +465,10 @@ namespace osuCrypto
 						assert(d);
 						auto idx = d->mIndex;
 						auto& x = in[idx];
-						if (x.size() != gate.mNumOutputs)
+						if (x.size() != gate.mNumOutputs) {
+							std::cout << "x.size() id " << x.size() << " " << idx << " gate.mNumOutputs " << gate.mNumOutputs << std::endl;
 							throw std::runtime_error("MxCircuit::evaluate(...), the " + std::to_string(idx) + "'th input provided is not the correct size. " LOCATION);
+						}
 
 						for (u64 j = 0; j < x.size(); ++j)
 						{
