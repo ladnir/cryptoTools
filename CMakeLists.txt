@@ -6,7 +6,7 @@ endif (POLICY CMP0048)
 project(cryptoTools VERSION 1.10.1)
 
 
-
+ 
 
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 

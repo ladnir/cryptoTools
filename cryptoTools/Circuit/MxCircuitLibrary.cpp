@@ -255,20 +255,41 @@ namespace osuCrypto
 			if (a2.size() != bits)
 				throw RTE_LOC;
 
+			// Bit r = 1;
+			// for (u64 i = 0; i < bits; ++i)
+			// 	r = r & (~(a1[i] ^ a2[i]));
+			// return r;
 			BVector t(bits);
 			for (u64 i = 0; i < bits; ++i)
 				t[i] = ~(a1[i] ^ a2[i]);
 
-			auto levels = log2ceil(bits);
-			for (u64 i = 0; i < levels; ++i)
+			while (t.size() > 1)
 			{
-				auto step = 1ull << i;
-				auto size = bits / 2 / step;
-				for (u64 j = 0; j < size; ++j)
+				BVector t2;
+				for (u64 i = 0; i < t.size(); i += 2)
 				{
-					t[j] = t[2 * j + 0] & t[2 * j + 1];
+					if (i + 1 < t.size())
+						t2.push_back(t[i] & t[i + 1]);
+					else
+						t2.push_back(t[i]);
 				}
+				t = std::move(t2);
+				// auto s = t.size() / 2;
+				// auto sc = divCeil(t.size(), 2);
+				// for (u64 i = 0; i < s; ++i)
+				// 	t[i] = t[i] & t[sc + i];
+				// t.resize(sc);
 			}
+
+			// for (u64 i = 0; i < levels; ++i)
+			// {
+			// 	auto step = 1ull << i;
+			// 	auto size = bits / 2 / step;
+			// 	for (u64 j = 0; j < size; ++j)
+			// 	{
+			// 		t[j] = t[2 * j + 0] & t[2 * j + 1];
+			// 	}
+			// }
 			return t[0];
 		}
 
