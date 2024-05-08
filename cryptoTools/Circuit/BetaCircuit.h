@@ -31,24 +31,24 @@ namespace osuCrypto
 			: mInput({ {in0, in1} })
 			, mOutput(out)
 			, mType(gt)
-			, mAAlpha(gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or)
-			, mBAlpha(gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or)
-			, mCAlpha(gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or)
+			//, mAAlpha(gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or)
+			//, mBAlpha(gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or)
+			//, mCAlpha(gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or)
 		{}
 
 		void setType(osuCrypto::GateType gt)
 		{
 			mType = gt;
 			// compute the gate modifier variables
-			mAAlpha = (gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or);
-			mBAlpha = (gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or);
-			mCAlpha = (gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or);
+			//mAAlpha = (gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or);
+			//mBAlpha = (gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or);
+			//mCAlpha = (gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or);
 		}
 
 		std::array<BetaWire, 2> mInput;
 		BetaWire mOutput;
 		GateType mType;
-		u8 mAAlpha, mBAlpha, mCAlpha;
+		//u8 mAAlpha, mBAlpha, mCAlpha;
 
 		bool operator!=(const BetaGate& r) const {
 			return mInput[0] != r.mInput[0]

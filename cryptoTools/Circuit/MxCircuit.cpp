@@ -75,6 +75,7 @@ namespace osuCrypto
 			auto childEdges = computeChildEdges();
 
 			BetaCircuit cir;
+			cir.mGates.reserve(mGates.size() + 400);
 			Mapper addressMap;
 			std::vector<u64> depCount(mGates.size());
 			std::vector<u64>

@@ -85,43 +85,19 @@ namespace osuCrypto {
 		{
 			mInput = { { input0, input1 } };
 			mType = gt;
-			//mLgicTable =
-			//{ {
-			//	static_cast<u8>(static_cast<u8>(gt) & static_cast<u8>(1)),
-			//	static_cast<u8>(static_cast<u8>(gt) & static_cast<u8>(2)),
-			//	static_cast<u8>(static_cast<u8>(gt) & static_cast<u8>(4)),
-			//	static_cast<u8>(static_cast<u8>(gt) & static_cast<u8>(8))
-			//} };
 			mWireIdx = output;
 
-
 			// compute the gate modifier variables
-			mAAlpha = (gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or);
-			mBAlpha = (gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or);
-			mCAlpha = (gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or);
+			//mAAlpha = (gt == GateType::Nor || gt == GateType::na_And || gt == GateType::nb_Or || gt == GateType::Or);
+			//mBAlpha = (gt == GateType::Nor || gt == GateType::nb_And || gt == GateType::na_Or || gt == GateType::Or);
+			//mCAlpha = (gt == GateType::Nand || gt == GateType::nb_Or || gt == GateType::na_Or || gt == GateType::Or);
 		}
-
-		//// returns the gate type i.e. and, or, ...
-		//inline GateType Type() const
-		//{
-		//	return mType;// (GateType)(
-		//		//(mLgicTable[0] ? 1 : 0) |
-		//		//(mLgicTable[1] ? 2 : 0) |
-		//		//(mLgicTable[2] ? 4 : 0) |
-		//		//(mLgicTable[3] ? 8 : 0));
-		//}
-
-		// truth table padded to be 64 bits
-		//std::array<u8, 4> mLgicTable;
+		
 		std::array<u64, 2> mInput;
 		u64 mWireIdx;
 		inline const GateType& Type() const { return mType; }
-		inline const u8& AAlpha() const { return mAAlpha; }
-		inline const u8& BAlpha() const { return mBAlpha; }
-		inline const u8& CAlpha() const { return mCAlpha; }
 	private:
 		GateType mType;
-		u8 mAAlpha, mBAlpha, mCAlpha;
 	};
 
 
