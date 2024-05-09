@@ -169,6 +169,28 @@ if (ENABLE_SODIUM)
     endif()
 endif (ENABLE_SODIUM)
 
+## Span
+###########################################################################
+
+macro(FIND_SPAN)
+    set(ARGS ${ARGN})
+    if(FETCH_SPAN_LITE)
+        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
+    elseif(${NO_SYSTEM_PATH})
+        list(APPEND ARGS NO_CMAKE_SYSTEM_PATH)
+    endif()
+    find_package(span-lite ${ARGS})
+endmacro()
+    
+if (FETCH_SPAN_LITE_IMPL)
+    FIND_SPAN(QUIET)
+    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
+endif()
+
+if(ENABLE_SPAN_LITE)
+    FIND_SPAN(REQUIRED)
+endif()
+
 ## coproto
 ###########################################################################
 
@@ -225,28 +247,6 @@ if(ENABLE_COPROTO)
     FIND_COPROTO(REQUIRED)
 endif()
 
-
-## Span
-###########################################################################
-
-macro(FIND_SPAN)
-    set(ARGS ${ARGN})
-    if(FETCH_SPAN_LITE)
-        list(APPEND ARGS NO_DEFAULT_PATH PATHS ${OC_THIRDPARTY_HINT})
-    elseif(${NO_SYSTEM_PATH})
-        list(APPEND ARGS NO_CMAKE_SYSTEM_PATH)
-    endif()
-    find_package(span-lite ${ARGS})
-endmacro()
-    
-if (FETCH_SPAN_LITE_IMPL)
-    FIND_SPAN(QUIET)
-    include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getSpanLite.cmake")
-endif()
-
-if(ENABLE_SPAN_LITE)
-    FIND_SPAN(REQUIRED)
-endif()
 ## GMP
 ###########################################################################
 
