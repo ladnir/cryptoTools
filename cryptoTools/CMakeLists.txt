@@ -84,7 +84,7 @@ endif (ENABLE_SODIUM)
 ###########################################################################
 
 if (ENABLE_COPROTO)
-  target_link_libraries(cryptoTools coproto::coproto)
+  target_link_libraries(cryptoTools coproto)
 endif (ENABLE_COPROTO)
 
 

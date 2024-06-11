@@ -1,7 +1,7 @@
-cmake_policy(PUSH)
-cmake_policy(SET CMP0057 NEW)
-cmake_policy(SET CMP0045 NEW)
-cmake_policy(SET CMP0074 NEW)
+#cmake_policy(PUSH)
+#cmake_policy(SET CMP0057 NEW)
+#cmake_policy(SET CMP0045 NEW)
+#cmake_policy(SET CMP0074 NEW)
 
 
 
@@ -37,6 +37,7 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
         set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../../..")
     endif()
 endif()
+include_guard(GLOBAL)
 
 
 if(NOT OC_THIRDPARTY_CLONE_DIR)
@@ -240,11 +241,12 @@ endmacro()
 if(ENABLE_COPROTO)
 
     if(FETCH_COPROTO_IMPL)
-        FIND_COPROTO(QUIET)
+        #FIND_COPROTO(QUIET)
         include(${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getCoproto.cmake)
+    else()
+        FIND_COPROTO(REQUIRED)
     endif()
 
-    FIND_COPROTO(REQUIRED)
 endif()
 
 ## GMP
@@ -315,4 +317,4 @@ message(STATUS "LIBDIVIDE_INCLUDE_DIRS:  ${LIBDIVIDE_INCLUDE_DIRS}")
 
 # resort the previous prefix path
 set(CMAKE_PREFIX_PATH ${PUSHED_CMAKE_PREFIX_PATH})
-cmake_policy(POP)
+#cmake_policy(POP)
