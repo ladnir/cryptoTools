@@ -1,6 +1,10 @@
 @PACKAGE_INIT@
 
-include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsTargets.cmake")
+
+if(NOT CRYPTOTOOLS_FIND_QUIETLY AND NOT CRYPTOTOOLS_CONFIG_MESSAGE_DONE)
+    message("cryptoToolsConfig.cmake: ${CMAKE_CURRENT_LIST_DIR}")
+endif()
+
 
 
 set(ENABLE_SPAN_LITE @ENABLE_SPAN_LITE@)
@@ -17,6 +21,8 @@ set(ENABLE_COPROTO   @ENABLE_COPROTO@)
 set(CRYPTO_TOOLS_STD_VER @CRYPTO_TOOLS_STD_VER@)
 
 include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsDepHelper.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsTargets.cmake")
+
 
 
 foreach(component ${cryptoTools_FIND_COMPONENTS})
