@@ -2,7 +2,7 @@
 set(USER_NAME           )      
 set(TOKEN               )      
 #set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_REPOSITORY      "https://github.com/ladnir/p-coproto.git")
+set(GIT_REPOSITORY      "https://github.com/ladnir/coproto.git")
 
 if(DEFINED COPROTO_GIT_TAG)
     set(GIT_TAG              ${COPROTO_GIT_TAG})
