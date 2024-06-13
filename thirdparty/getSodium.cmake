@@ -43,7 +43,7 @@ if(NOT SODIUM_FOUND)
         ## in case this is hosted in WSL
         find_program(DOS2UNIX dos2unix)
         if(DOS2UNIX)
-            set(DOS2UNIX_CMD bash -c "find . \\( -name \"*.m4\" -o -name \"*.ac\" -o -name \"*.am\" \\) | xargs ${DOS2UNIX}")
+            set(DOS2UNIX_CMD bash -c "find . \\( -name \"*.m4\" -o -name \"*.ac\" -o -name \"*.am\" -o -name \"*.sh\" \\) | xargs ${DOS2UNIX}")
             run(NAME "dos2unix" CMD ${DOS2UNIX_CMD} WD ${CLONE_DIR})
         endif()
         
