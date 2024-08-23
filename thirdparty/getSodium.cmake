@@ -74,6 +74,7 @@ if(NOT SODIUM_FOUND)
 
         run(NAME "Autogen"         CMD ${AUTOGEN_CMD} WD ${CLONE_DIR})
         run(NAME "Configure"       CMD ${CONFIGURE_CMD} WD ${CLONE_DIR})
+        run(NAME "ls"       CMD "ls ." WD ${CLONE_DIR})
         run(NAME "Build"           CMD ${BUILD_CMD}     WD ${CLONE_DIR})
         run(NAME "Install"         CMD ${INSTALL_CMD}   WD ${CLONE_DIR})
         run(NAME "Install2"        CMD "mkdir" "-p"  "${OC_THIRDPARTY_INSTALL_PREFIX}/lib/cmake/libsodium" WD ${CLONE_DIR})
