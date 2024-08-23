@@ -37,13 +37,16 @@ option(ENABLE_PIC       "compile with -fPIC " OFF)
 option(VERBOSE_FETCH    "" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
-	set(CRYPTO_TOOLS_STD_VER  17)
+	set(CRYPTO_TOOLS_STD_VER  20)
 endif()
 if(NOT ENABLE_SSE AND ENABLE_AVX)
 	message("AVX requires SSE to be enabled.")
 	set(ENABLE_AVX OFF)
 endif()
 
+if(ENABLE_BOOST AND (CRYPTO_TOOLS_STD_VER EQUAL 14 OR CRYPTO_TOOLS_STD_VER EQUAL 17))
+	message(FATAL_ERROR "boost requires cpp 20 or newer.")
+endif()
 
 option(FETCH_AUTO      "automatically download and build dependencies" OFF)
 
