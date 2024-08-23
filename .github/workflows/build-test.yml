@@ -124,7 +124,6 @@ jobs:
   
      - name: install prefix test
        run: |
-           python3 build.py --setup --boost --relic --install=~/install
            python3 build.py --install=~/install
            cd tests_cryptoTools/cmakeTests
            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
@@ -136,7 +135,6 @@ jobs:
   
      - name: install test
        run: |
-           python3 build.py --setup --boost --relic --install --sudo
            python3 build.py --install --sudo
            cd tests_cryptoTools/cmakeTests
            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
