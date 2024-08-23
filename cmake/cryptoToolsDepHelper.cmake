@@ -47,6 +47,8 @@ endif()
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
 set(CMAKE_PREFIX_PATH "${OC_THIRDPARTY_HINT};${CMAKE_PREFIX_PATH}")
 
+#message("OC_THIRDPARTY_HINT=${OC_THIRDPARTY_HINT}")
+#message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 
 ## Relic
 ###########################################################################

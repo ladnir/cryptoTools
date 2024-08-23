@@ -10,6 +10,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "FETCH_AUTO": true,
+        "ENABLE_BOOST": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
       },
       "vendor": {
@@ -30,6 +31,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "ENABLE_RELIC": false,
+        "ENABLE_SODIUM": true,
         "ENABLE_CIRCUITS": false,
         "FETCH_AUTO": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"

@@ -19,6 +19,9 @@ if(NOT DEFINED OC_THIRDPARTY_HINT)
     set(OC_THIRDPARTY_HINT "${CMAKE_CURRENT_LIST_DIR}/../out/install/${OC_CONFIG}")
 endif()
 
+
 include("${CMAKE_CURRENT_LIST_DIR}/cryptoToolsFindBuildDir.cmake")
+set(CMAKE_PREFIX_PATH "${CRYPTOTOOLS_BUILD_DIR}/macoro;${CMAKE_PREFIX_PATH}")
+set(CMAKE_PREFIX_PATH "${CRYPTOTOOLS_BUILD_DIR}/coproto;${CMAKE_PREFIX_PATH}")
 include("${CRYPTOTOOLS_BUILD_DIR}/cryptoToolsConfig.cmake")
 

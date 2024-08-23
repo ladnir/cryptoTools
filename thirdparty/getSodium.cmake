@@ -1,7 +1,7 @@
 
 
-set(GIT_REPOSITORY      https://github.com/ladnir/libsodium.git)
-set(GIT_TAG             "884b4d3ab22e905fad69e5f8add35a50be82c2ba" )
+set(GIT_REPOSITORY      https://github.com/osu-crypto/libsodium.git)
+set(GIT_TAG             "778c9cf491fdeeef362512fb964db0943732f275" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/libsodium")
 set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
