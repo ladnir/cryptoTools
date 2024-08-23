@@ -14,80 +14,10 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  #build-ubuntu:
-  #  # The type of runner that the job will run on
-  #  runs-on: ubuntu-latest
-  #
-  #  # Steps represent a sequence of tasks that will be executed as part of the job
-  #  steps:
-  #    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-  #    - uses: actions/checkout@v2
-  #      with:
-  #          submodules: recursive
-  #
-  #    # Runs a set of commands using the runners shell
-  #    - name: build boost
-  #      run:  python3 build.py --setup --boost --par=4
-  #      
-  #    - name: build relic
-  #      run:  python3 build.py --setup --relic --par=4
-  #      
-  #    - name: build sodium
-  #      run:  python3 build.py --setup --sodium --par=4
-  #
-  #    - name: build cryptoTools
-  #      run:  python3 build.py --par=4 -DENABLE_RELIC=ON  -D ENABLE_SODIUM=ON -DENABLE_CIRCUITS=ON
-  #
-  #    - name: unit tests
-  #      run:  ./out/build/linux/frontend_cryptoTools/frontend_cryptoTools -u
-  #     
-  #
-  #    - name: find source tree
-  #      run: |
-  #          cd tests_cryptoTools/cmakeTests
-  #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-  #          cmake --build out/
-  #          ./out/main
-  #          rm -rf out/
-  #          cd ../..
-  #          
-  #    - name: hint test
-  #      run: |
-  #          cd tests_cryptoTools/cmakeTests
-  #          cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
-  #          cmake --build out/
-  #          ./out/main
-  #          rm -rf out/
-  #          cd ../..
-  #
-  #    - name: install prefix test
-  #      run: |
-  #          python3 build.py --setup --boost --relic --install=~/install
-  #          python3 build.py --install=~/install
-  #          cd tests_cryptoTools/cmakeTests
-  #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
-  #          cmake --build out/
-  #          ./out/main
-  #          rm -rf out/
-  #          cd ../..
-  #          
-  #
-  #    - name: install test
-  #      run: |
-  #          python3 build.py --setup --boost --relic --install --sudo
-  #          python3 build.py --install --sudo
-  #          cd tests_cryptoTools/cmakeTests
-  #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
-  #          cmake --build out/
-  #          ./out/main
-  #          rm -rf out/
-  #          cd ../..
-  
-  # This workflow contains a single job called "build"
-  build-osx:
+  This workflow contains a single job called "build"
+  build-ubuntu:
    # The type of runner that the job will run on
-   runs-on: macos-14
+   runs-on: ubuntu-latest
   
    # Steps represent a sequence of tasks that will be executed as part of the job
    steps:
@@ -97,11 +27,20 @@ jobs:
            submodules: recursive
   
      # Runs a set of commands using the runners shell
+     - name: build boost
+       run:  python3 build.py --setup --boost --par=4
+       
+     - name: build relic
+       run:  python3 build.py --setup --relic --par=4
+       
+     - name: build sodium
+       run:  python3 build.py --setup --sodium --par=4
+  
      - name: build cryptoTools
-       run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_BOOST=OFF -D ENABLE_SSE=OFF 
+       run:  python3 build.py --par=4 -DENABLE_RELIC=ON  -D ENABLE_SODIUM=ON -DENABLE_CIRCUITS=ON
   
      - name: unit tests
-       run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
+       run:  ./out/build/linux/frontend_cryptoTools/frontend_cryptoTools -u
       
   
      - name: find source tree
@@ -124,6 +63,7 @@ jobs:
   
      - name: install prefix test
        run: |
+           python3 build.py --setup --boost --relic --install=~/install
            python3 build.py --install=~/install
            cd tests_cryptoTools/cmakeTests
            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
@@ -135,6 +75,7 @@ jobs:
   
      - name: install test
        run: |
+           python3 build.py --setup --boost --relic --install --sudo
            python3 build.py --install --sudo
            cd tests_cryptoTools/cmakeTests
            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
@@ -143,137 +84,196 @@ jobs:
            rm -rf out/
            cd ../..
   
-            
-  # This workflow contains a single job called "build"
-  build-osx-sodium:
-    # The type of runner that the job will run on
-    runs-on: macos-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-            submodules: recursive
-            
-      # Runs a set of commands using the runners shell
-      - name: automake
-        run: brew install autoconf automake libtool
-        
-      - name: build cryptoTools
-        run:  python3 build.py -D ENABLE_SODIUM=ON -D ENABLE_SSE=OFF -D CRYPTO_TOOLS_STD_VER=17 -DFETCH_SODIUM=ON
-
-
-      - name: list
-        run:  |
-            ls out/libsodium/
-            cat out/libsodium/config.log
-
-
-
-
-      - name: unit tests
-        run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
-       
-
-      - name: find source tree
-        run: |
-            cd tests_cryptoTools/cmakeTests
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
-            
-      - name: hint test
-        run: |
-            cd tests_cryptoTools/cmakeTests
-            cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
-
-      - name: install prefix test
-        run: |
-            python3 build.py --setup --boost --relic --install=~/install
-            python3 build.py --install=~/install
-            cd tests_cryptoTools/cmakeTests
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
-            
-
-      - name: install test
-        run: |
-            python3 build.py --setup --boost --relic --install --sudo
-            python3 build.py --install --sudo
-            cd tests_cryptoTools/cmakeTests
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
-
-  #build-windows:
+  # # This workflow contains a single job called "build"
+  # build-osx:
   #  # The type of runner that the job will run on
-  #  runs-on: windows-2019
-  #
+  #  runs-on: macos-14
+  
   #  # Steps represent a sequence of tasks that will be executed as part of the job
   #  steps:
   #    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
   #    - uses: actions/checkout@v2
   #      with:
   #          submodules: recursive
-  #    - uses: seanmiddleditch/gha-setup-ninja@v3
-  #    - uses: ilammy/msvc-dev-cmd@v1
-  #
+  
   #    # Runs a set of commands using the runners shell
-  #    - name: build boost
-  #      run: python3 build.py --setup --boost --par=4 -G Ninja
-  #
-  #    - name: build relic
-  #      run: python3 build.py --setup --relic --par=4 -G Ninja
-  #      
-  #    - name: build sodium
-  #      run:  python3 build.py --setup --sodium --par=4 -G Ninja
-  #
   #    - name: build cryptoTools
-  #      run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SODIUM=ON -G Ninja
-  #
-  #      
-  #    - name: unit test
-  #      run:  ./out/build/x64-Release/frontend_cryptoTools/frontend_cryptoTools.exe -u
-  #        
+  #      run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_BOOST=OFF -D ENABLE_SSE=OFF 
+  
+  #    - name: unit tests
+  #      run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
+      
+  
   #    - name: find source tree
   #      run: |
   #          cd tests_cryptoTools/cmakeTests
   #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-  #          cmake --build out/ --config Release
-  #          ./out/Release/main.exe
-  #          rm -r -fo out/
+  #          cmake --build out/
+  #          ./out/main
+  #          rm -rf out/
   #          cd ../..
-  #          
+           
   #    - name: hint test
   #      run: |
-  #          python3 build.py --setup 
-  #          python3 build.py
   #          cd tests_cryptoTools/cmakeTests
   #          cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
-  #          cmake --build out/ --config Release
-  #          ./out/Release/main.exe
-  #          rm -r -fo out/
+  #          cmake --build out/
+  #          ./out/main
+  #          rm -rf out/
   #          cd ../..
-  #
+  
   #    - name: install prefix test
   #      run: |
-  #          python3 build.py --setup --relic --boost --install=~/install 
-  #          python3 build.py --install=~/install 
+  #          python3 build.py --install=~/install
   #          cd tests_cryptoTools/cmakeTests
   #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
-  #          cmake --build out/ --config Release
-  #          ./out/Release/main.exe
-  #          rm -r -fo out/
+  #          cmake --build out/
+  #          ./out/main
+  #          rm -rf out/
   #          cd ../..
+           
+  
+  #    - name: install test
+  #      run: |
+  #          python3 build.py --install --sudo
+  #          cd tests_cryptoTools/cmakeTests
+  #          cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
+  #          cmake --build out/
+  #          ./out/main
+  #          rm -rf out/
+  #          cd ../..
+  
+            
+  # # This workflow contains a single job called "build"
+  # build-osx-sodium:
+  #   # The type of runner that the job will run on
+  #   runs-on: macos-latest
+
+  #   # Steps represent a sequence of tasks that will be executed as part of the job
+  #   steps:
+  #     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+  #     - uses: actions/checkout@v2
+  #       with:
+  #           submodules: recursive
+            
+  #     # Runs a set of commands using the runners shell
+  #     - name: automake
+  #       run: brew install autoconf automake libtool
+        
+  #     - name: build cryptoTools
+  #       run:  python3 build.py -D ENABLE_SODIUM=ON -D ENABLE_SSE=OFF -D CRYPTO_TOOLS_STD_VER=17 -DFETCH_SODIUM=ON
+
+
+  #     - name: list
+  #       run:  |
+  #           ls out/libsodium/
+  #           cat out/libsodium/config.log
+
+
+
+
+  #     - name: unit tests
+  #       run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
+       
+
+  #     - name: find source tree
+  #       run: |
+  #           cd tests_cryptoTools/cmakeTests
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
+            
+  #     - name: hint test
+  #       run: |
+  #           cd tests_cryptoTools/cmakeTests
+  #           cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
+
+  #     - name: install prefix test
+  #       run: |
+  #           python3 build.py --setup --boost --relic --install=~/install
+  #           python3 build.py --install=~/install
+  #           cd tests_cryptoTools/cmakeTests
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
+            
+
+  #     - name: install test
+  #       run: |
+  #           python3 build.py --setup --boost --relic --install --sudo
+  #           python3 build.py --install --sudo
+  #           cd tests_cryptoTools/cmakeTests
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
+
+  build-windows:
+   # The type of runner that the job will run on
+   runs-on: windows-2019
+  
+   # Steps represent a sequence of tasks that will be executed as part of the job
+   steps:
+     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+     - uses: actions/checkout@v2
+       with:
+           submodules: recursive
+     - uses: seanmiddleditch/gha-setup-ninja@v3
+     - uses: ilammy/msvc-dev-cmd@v1
+  
+     # Runs a set of commands using the runners shell
+     - name: build boost
+       run: python3 build.py --setup --boost --par=4 -G Ninja
+  
+     - name: build relic
+       run: python3 build.py --setup --relic --par=4 -G Ninja
+       
+     - name: build sodium
+       run:  python3 build.py --setup --sodium --par=4 -G Ninja
+  
+     - name: build cryptoTools
+       run:  python3 build.py --par=4 -D ENABLE_RELIC=ON -D ENABLE_SODIUM=ON -G Ninja
+  
+       
+     - name: unit test
+       run:  ./out/build/x64-Release/frontend_cryptoTools/frontend_cryptoTools.exe -u
+         
+     - name: find source tree
+       run: |
+           cd tests_cryptoTools/cmakeTests
+           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
+           cmake --build out/ --config Release
+           ./out/Release/main.exe
+           rm -r -fo out/
+           cd ../..
+           
+     - name: hint test
+       run: |
+           python3 build.py --setup 
+           python3 build.py
+           cd tests_cryptoTools/cmakeTests
+           cmake -S . -B out/  -D CRYPTOTOOLS_HINT=../..
+           cmake --build out/ --config Release
+           ./out/Release/main.exe
+           rm -r -fo out/
+           cd ../..
+  
+     - name: install prefix test
+       run: |
+           python3 build.py --setup --relic --boost --install=~/install 
+           python3 build.py --install=~/install 
+           cd tests_cryptoTools/cmakeTests
+           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+           cmake --build out/ --config Release
+           ./out/Release/main.exe
+           rm -r -fo out/
+           cd ../..
