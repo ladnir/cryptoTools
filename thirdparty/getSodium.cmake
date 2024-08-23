@@ -64,7 +64,7 @@ if(NOT SODIUM_FOUND)
 
     
         set(AUTOGEN_CMD "./autogen.sh" "-s")
-        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}" ${WITH_PIC})
+        set(CONFIGURE_CMD "./configure" "--prefix=${OC_THIRDPARTY_INSTALL_PREFIX}" ${WITH_PIC} "--verbose")
         set(BUILD_CMD     "make" "-j" "${PARALLEL_FETCH}")
         set(INSTALL_CMD   ${SUDO} "make" "install")
 
