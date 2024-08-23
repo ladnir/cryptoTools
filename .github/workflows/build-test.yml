@@ -166,10 +166,10 @@ jobs:
         run:  python3 build.py -D ENABLE_SODIUM=ON -D ENABLE_SSE=OFF -D CRYPTO_TOOLS_STD_VER=17 -DFETCH_SODIUM=ON
 
 
-      - name: list
-        run:  |
-            ls out/libsodium/
-            cat out/libsodium/config.log
+      # - name: list
+      #   run:  |
+      #       ls out/libsodium/
+      #       cat out/libsodium/config.log
 
 
 
