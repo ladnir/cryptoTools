@@ -167,7 +167,10 @@ jobs:
 
 
       - name: list
-        run:  ls out/libsodium/
+        run:  |
+            ls out/libsodium/
+            cat out/libsodium/config.log
+
 
 
 
