@@ -161,9 +161,15 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: automake
         run: brew install autoconf automake libtool
-
+        
       - name: build cryptoTools
         run:  python3 build.py -D ENABLE_SODIUM=ON -D ENABLE_SSE=OFF -D CRYPTO_TOOLS_STD_VER=17 -DFETCH_SODIUM=ON
+
+
+      - name: list
+        run:  ls out/libsodium/
+
+
 
       - name: unit tests
         run:  ./out/build/osx/frontend_cryptoTools/frontend_cryptoTools -u
