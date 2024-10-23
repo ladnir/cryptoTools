@@ -167,12 +167,31 @@ namespace osuCrypto {
             }
         }
 
-
-        std::array<std::array<u8, 4>, 4>& stateView(block& state)
+#ifdef ENABLE_ARM_AES
+        template<>
+        void AES<ARM>::setKey(const block& userKey)
         {
-            return *(std::array<std::array<u8, 4>, 4>*) & state;
+            AES<Portable> p;
+            p.setKey(userKey);
+            memcpy(&mRoundKey, &p.mRoundKey, sizeof(mRoundKey));
+        }
+#endif
+
+        std::array<std::array<u8, 4>, 4> unpackState(block& state)
+        {
+            auto r = std::array<std::array<u8, 4>, 4>{};
+            static_assert(sizeof(r) == sizeof(state));
+            memcpy(&r, &state, sizeof(r));
+            return r;
         }
 
+        block packState(std::array<std::array<u8, 4>, 4>& state)
+        {
+            auto r = block{};
+            static_assert(sizeof(r) == sizeof(state));
+            memcpy(&r, &state, sizeof(r));
+            return r;
+        }
 
         // The SubBytes Function Substitutes the values in the
         // state matrix with values in an S-box.
@@ -190,7 +209,7 @@ namespace osuCrypto {
         inline void ShiftRows(block& state_)
         {
             uint8_t temp;
-            auto& state = stateView(state_);
+            auto state = unpackState(state_);
 
             // Rotate first row 1 columns to left
             temp = state[0][1];
@@ -214,6 +233,8 @@ namespace osuCrypto {
             state[3][3] = state[2][3];
             state[2][3] = state[1][3];
             state[1][3] = temp;
+
+            state_ = packState(state);
         }
 
         inline uint8_t xtime(uint8_t x)
@@ -233,7 +254,7 @@ namespace osuCrypto {
         // MixColumns function mixes the columns of the state matrix
         inline void MixColumns(block& state_)
         {
-            auto& state = stateView(state_);
+            auto state = unpackState(state_);
             uint8_t i;
             uint8_t Tmp, Tm, t;
             for (i = 0; i < 4; ++i)
@@ -245,6 +266,7 @@ namespace osuCrypto {
                 Tm = state[i][2] ^ state[i][3]; Tm = xtime(Tm);  state[i][2] ^= Tm ^ Tmp;
                 Tm = state[i][3] ^ t;           Tm = xtime(Tm);  state[i][3] ^= Tm ^ Tmp;
             }
+            state_ = packState(state);
         }
 
 
@@ -318,6 +340,26 @@ namespace osuCrypto {
             ctrModeEnd<type, step>(*this, baseIdx, blockLength % step, superBlock, ciphertext);
         }
 
+#ifdef ENABLE_ARM_AES
+
+        template<>
+        block AESDec<ARM>::roundDec(block state, const block& roundKey)
+        {
+            block r;
+            r.mData = vaesdq_u8(state.mData, roundKey.mData);
+            r.mData = vaesimcq_u8(r.mData);
+            return r;
+        }
+
+        template<>
+        block AESDec<ARM>::finalDec(block state, const block& roundKey)
+        {
+            
+            block r;
+            r.mData = vaesdq_u8(state.mData, roundKey.mData);
+            return r;
+        }
+#endif
 
 #ifdef OC_ENABLE_AESNI
         template<>
@@ -373,7 +415,7 @@ namespace osuCrypto {
         static void InvMixColumns(block& state_)
         {
 
-            auto& state = stateView(state_);
+            auto state = unpackState(state_);
             int i;
             uint8_t a, b, c, d;
             for (i = 0; i < 4; ++i)
@@ -388,6 +430,8 @@ namespace osuCrypto {
                 state[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
                 state[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
             }
+
+            state_ = packState(state);
         }
 
 
@@ -403,7 +447,7 @@ namespace osuCrypto {
         static void InvShiftRows(block& state_)
         {
             uint8_t temp;
-            auto& state = stateView(state_);
+            auto state = unpackState(state_);
 
             // Rotate first row 1 columns to right
             temp = state[3][1];
@@ -427,6 +471,9 @@ namespace osuCrypto {
             state[1][3] = state[2][3];
             state[2][3] = state[3][3];
             state[3][3] = temp;
+
+            state_ = packState(state);
+
         }
 
 
@@ -452,6 +499,14 @@ namespace osuCrypto {
 
         template<>
         void AESDec<Portable>::setKey(const block& userKey)
+        {
+            // same as enc but in reverse
+            AES<Portable> aes;
+            aes.setKey(userKey);
+            std::copy(aes.mRoundKey.begin(), aes.mRoundKey.end(), mRoundKey.rbegin());
+        }
+        template<>
+        void AESDec<ARM>::setKey(const block& userKey)
         {
             // same as enc but in reverse
             AES<Portable> aes;
@@ -531,6 +586,11 @@ namespace osuCrypto {
 #ifdef OC_ENABLE_AESNI
     template class details::AES<details::NI>;
     template class details::AESDec<details::NI>;
+#endif
+
+#ifdef ENABLE_ARM_AES
+    template class details::AES<details::ARM>;
+    template class details::AESDec<details::ARM>;
 #endif
 
 

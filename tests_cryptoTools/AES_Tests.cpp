@@ -135,9 +135,26 @@ namespace tests_cryptoTools
 
     void AES_EncDec_Test()
     {
+        block b = block(0,2);
+        block c = oc::OneBlock;
+        auto port = details::AES<details::Portable>(b);
+        auto arm = details::AES<details::ARM>(b);
+
+
+        auto e0 = port.roundEnc(c, port.mRoundKey[0]);
+        auto e1 = arm.roundEnc(c, port.mRoundKey[0]);
+
+        if(e0 !=e1)
+        {
+            throw RTE_LOC;
+        }
+
 #ifdef OC_ENABLE_AESNI
         test<details::AESTypes::NI>();
 #endif // ENABLE_SSE
+#ifdef ENABLE_ARM_AES
+        test<details::AESTypes::ARM>();
+#endif // ENABLE_ARM_AES
 #ifdef OC_ENABLE_PORTABLE_AES
         test<details::AESTypes::Portable>();
 #endif // ENABLE_PORTABLE_AES

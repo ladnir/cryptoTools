@@ -12,7 +12,8 @@ namespace osuCrypto {
         enum AESTypes
         {
             NI,
-            Portable
+            Portable,
+            ARM
         };
 
         template<AESTypes type>
@@ -431,6 +432,27 @@ namespace osuCrypto {
             return _mm_aesenc_si128(state, roundKey);
         }
 
+#elif defined(ENABLE_ARM_AES)
+
+        template<>
+        void AES<ARM>::setKey(const block& userKey);
+
+        template<>
+        inline block AES<ARM>::finalEnc(block state, const block& roundKey)
+        {
+            block r;
+            r.mData = vaeseq_u8(state.mData, roundKey.mData);
+            return r;
+        }
+
+        template<>
+        inline block AES<ARM>::roundEnc(block state, const block& roundKey)
+        {
+            block r;
+            r.mData = vaeseq_u8(state.mData, roundKey.mData);
+		    r.mData = vaesmcq_u8(r.mData);
+            return r;
+        }
 
 #endif
 
@@ -474,6 +496,9 @@ namespace osuCrypto {
 #ifdef OC_ENABLE_AESNI
     using AES = details::AES<details::NI>;
     using AESDec = details::AESDec<details::NI>;
+#elif defined(ENABLE_ARM_AES)
+    using AES = details::AES<details::ARM>;
+    using AESDec = details::AESDec<details::ARM>;
 #else
     using AES = details::AES<details::Portable>;
     using AESDec = details::AESDec<details::Portable>;

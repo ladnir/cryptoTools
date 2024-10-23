@@ -17,6 +17,19 @@ if(DEFINED OC_PIC)
 	unset(OC_PIC CACHE)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+    # Code for ARM architecture
+    message(STATUS "Building for ARM")
+	set(ENABLE_ARM_AES_DEFAULT true)
+	set(ENABLE_SSE_DEFAULT false)
+else()
+    # Code for other architectures
+    message(STATUS "Not building for x86-64")
+	set(ENABLE_ARM_AES_DEFAULT false)
+	set(ENABLE_SSE_DEFAULT true)
+endif()
+
+
 
 #############################################
 #                  CONFIGURE                #
@@ -28,7 +41,8 @@ option(ENABLE_SODIUM    "use libsodium" OFF)
 option(ENABLE_CIRCUITS  "compile the circuit module" OFF)
 option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "compiler with WolfSSL enabled" OFF)
-option(ENABLE_SSE       "compile with SSE instructions" ON)
+option(ENABLE_ARM_AES   "compile with ARM AES instructions" ${ENABLE_ARM_AES_DEFAULT})
+option(ENABLE_SSE       "compile with SSE instructions" ${ENABLE_SSE_DEFAULT})
 option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
 option(ENABLE_BOOST     "compile with BOOST networking integration" OFF)
 option(ENABLE_OPENSSL   "compile with OpenSSL networking integration" OFF)

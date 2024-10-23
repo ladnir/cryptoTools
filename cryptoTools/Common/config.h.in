@@ -32,6 +32,9 @@
 // enable integration with boost for networking.
 #cmakedefine ENABLE_BOOST @ENABLE_BOOST@
 
+// enable the use of ARM AES instructions.
+#cmakedefine ENABLE_ARM_AES @ENABLE_ARM_AES@
+
 // enable the use of intel SSE instructions.
 #cmakedefine ENABLE_SSE @ENABLE_SSE@
 
