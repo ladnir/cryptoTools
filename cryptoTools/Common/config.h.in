@@ -42,7 +42,7 @@
 #cmakedefine ENABLE_AVX @ENABLE_AVX@
 
 // enable the use of the portable AES implementation.
-// #cmakedefine ENABLE_PORTABLE_AES @ENABLE_PORTABLE_AES@
+#cmakedefine ENABLE_PORTABLE_AES @ENABLE_PORTABLE_AES@
 
 #if (defined(_MSC_VER) || defined(__SSE2__)) && defined(ENABLE_SSE)
 #define ENABLE_SSE_BLAKE2 ON
@@ -55,8 +55,10 @@
 
 #if (defined(_MSC_VER) || defined(__AES__)) && defined(ENABLE_SSE)
 #define OC_ENABLE_AESNI ON
-#else
-#define OC_ENABLE_PORTABLE_AES ON
+#endif
+
+#if defined(ENABLE_PORTABLE_AES)
+	#define OC_ENABLE_PORTABLE_AES ON
 #endif
 
 #if (defined(_MSC_VER) || defined(__AVX2__)) && defined(ENABLE_AVX)
