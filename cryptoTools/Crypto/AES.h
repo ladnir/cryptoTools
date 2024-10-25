@@ -6,6 +6,10 @@
 #include <cassert>
 #include <utility>
 
+#ifdef ARM
+#undef ARM
+#endif
+
 namespace osuCrypto {
 
 	namespace details
