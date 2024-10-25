@@ -134,33 +134,42 @@ namespace osuCrypto {
 			////////////////////////////////////////
 			// Low level
 
+            // AES is implemented as:
+            // state = key[0] ^ input
+            // state = (^key[1]  o mixCol o shiftRow o sbox)(state) 
+            // state = (^key[2]  o mixCol o shiftRow o sbox)(state) 
+            // ...
+            // state = (^key[9]  o mixCol o shiftRow o sbox)(state) 
+            // state = (^key[10] o          shiftRow o sbox)(state) 
+
+
 			// applies the round function and then XORs with the round key.
+            // output = (mixCol o shiftRow o sbox)(input) ^ roundKey.
 			static block roundEnc(block state, const block& roundKey);
 
-
 			// combine the state with the first round key. 
-			// For portable and NI, this applies keyXor.
-			// For ARM, this applies keyXor, shiftRows, sbox, mixCols. 
+			// For portable and NI: ^roundKey(state).
+			// For ARM: (mixCol o shiftRow o sbox o ^roundKey)(state) 
 			static block firstFn(block state, const block& roundKey);
 
 			// combine the state with a middle round key. 
-			// For portable and NI, this applies shiftRows, sbox, mixCols, keyXor
-			// For ARM, this applies keyXor, shiftRows, sbox, mixCols. 
+			// For portable and NI: (^roundKey o mixCol o shiftRow o sbox)(state) 
+			// For ARM: (mixCol o shiftRow o sbox o ^roundKey)(state) 
 			static block roundFn(block state, const block& roundKey);
 
 			// combine the state with the last round key. 
-			// For portable and NI, this applies roundFn.
-			// For ARM, this applies keyXor, shiftRows, sbox.
+			// For portable and NI: (^roundKey o mixCol o shiftRow o sbox)(state) 
+			// For ARM: (shiftRow o sbox o ^roundKey)(state) 
 			static block penultimateFn(block state, const block& roundKey);
 
 			// combine the state with the last round key. 
-			// For portable and NI, this applies shiftRows, sbox, keyXor
-			// For ARM, this applies keyXor. 
+			// For portable and NI: (^roundKey o sbox o shiftRows)(state) 
+			// For ARM: ^roundKey(state).
 			static block finalFn(block state, const block& roundKey);
 
 		private:
 
-			bool isOverlapping(const block* ptr1, std::size_t size1, const block* ptr2, std::size_t size2) {
+			static bool isOverlapping(const block* ptr1, std::size_t size1, const block* ptr2, std::size_t size2) {
 				auto end1 = ptr1 + size1;
 				auto end2 = ptr2 + size2;
 				return (ptr1 < end2) && (ptr2 < end1);
@@ -587,7 +596,7 @@ namespace osuCrypto {
 		template<>
 		inline block AES<ARM>::finalFn(block state, const block& roundKey)
 		{
-			return state & roundKey;
+			return state ^ roundKey;
 		}
 #endif
 
@@ -621,10 +630,61 @@ namespace osuCrypto {
 			std::array<block, rounds + 1> mRoundKey;
 
 
-			static block roundDec(block state, const block& roundKey);
-			static block finalDec(block state, const block& roundKey);
+			////////////////////////////////////////
+			// Low level
+
+            // AESDec is implemented as:
+            // state = key[0] ^ input
+            // state = (^key[1]  o -sbox o -shiftRow)(state) 
+            // state = (^key[2]  o -sbox o -shiftRow o -mixCols)(state) 
+            // ...
+            // state = (^key[9]  o -sbox o -shiftRow o -mixCols)(state) 
+            // state = (^key[10] o -sbox o -shiftRow o -mixCols)(state) 
+
+
+
+            // NI,Portable: (^roundKey)(state)
+            // ARM: (-sbox o -shiftRow o ^roundKey)(state)
+			static block firstFn(block state, const block& roundKey);
+
+            // Portable: (-mixCols o ^roundKey o -sbox o -shiftRow)(state)
+            // NI: (^-mixCols(roundKey) o -mixCols o -sbox o -shiftRow)(state)
+            //   = (-mixCols o ^-roundKey o -sbox o -shiftRow)(state)
+			// ARM: (-sbox o -shiftRow o ^-mixCols(roundKey) o -mixCols )(state)
+            //    = (-sbox o -shiftRow o -mixCols o ^roundKey)(state)
+			static block roundFn(block state, const block& roundKey);
+
+            // NI,Portable: (^roundKey o -sbox o -shiftRow)(state)
+			// ARM: (^roundKey)(state)
+			static block finalFn(block state, const block& roundKey);
 
 		};
+
+        
+#ifdef ENABLE_ARM_AES
+
+#endif
+
+#ifdef OC_ENABLE_AESNI
+
+		template<>
+		inline block AESDec<NI>::firstFn(block state, const block& roundKey)
+		{
+			return state ^ roundKey;
+		}
+
+		template<>
+		inline block AESDec<NI>::roundFn(block state, const block& roundKey)
+		{
+			return _mm_aesdec_si128(state, roundKey);
+		}
+
+		template<>
+		inline block AESDec<NI>::finalFn(block state, const block& roundKey)
+		{
+			return _mm_aesdeclast_si128(state, roundKey);
+		}
+#endif
 
 	}
 

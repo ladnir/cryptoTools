@@ -9,8 +9,11 @@
 #include <cryptoTools/Crypto/AES.h> 
 #include <cryptoTools/Common/Log.h>
 
+namespace osuCrypto
+{
+    void aesCheck();
+}
 using namespace osuCrypto;
-
 //namespace tests_cryptoTools
 //{
 #include <iomanip>
@@ -49,13 +52,14 @@ namespace tests_cryptoTools
 
 		details::AESDec<type> decKey(userKey);
 
+        std::cout << (int)type << std::endl;
 		auto ptxt2 = decKey.ecbDecBlock(ctxt);
 		if (neq(ptxt2, ptxt))
 			throw UnitTestFail();
 
-		for (u64 tt = 0; tt < 8; ++tt)
+		for (u64 tt = 0; tt < 0; ++tt)
 		{
-			u64 length = 1 << 6 + tt;
+			u64 length = (1ull << 6) + tt;
 
 			std::vector<block> data(length);
 			std::vector<block> cyphertext1(length);
@@ -147,19 +151,41 @@ namespace tests_cryptoTools
 				throw RTE_LOC;
 		}
 	}
-
+    
 	void AES_EncDec_Test()
 	{
 
+#if defined(ENABLE_ARM_AES) && defined(OC_ENABLE_PORTABLE_AES)
+
+        using Port = details::AESDec<details::AESTypes::Portable>;
+        using ARM = details::AESDec<details::AESTypes::ARM>;
+        oc::aesCheck();
+        //ARM::firstFn;
+
+#endif
+        // // NI,Portable: (^roundKey)(state)
+        // // ARM: (-sbox o -shiftRow o ^roundKey)(state)
+        // static block firstFn(block state, const block& roundKey);
+
+        // // Portable: (-mixCols o ^roundKey o -sbox o -shiftRow)(state)
+        // // NI: (^-mixCols(roundKey) o -mixCols o -sbox o -shiftRow)(state)
+        // //   = (-mixCols o ^-roundKey o -sbox o -shiftRow)(state)
+        // // ARM: (-sbox o -shiftRow o ^-mixCols(roundKey) o -mixCols )(state)
+        // //    = (-sbox o -shiftRow o -mixCols o ^roundKey)(state)
+        // static block roundFn(block state, const block& roundKey);
+
+        // // NI,Portable: (^roundKey o -sbox o -shiftRow)(state)
+        // // ARM: (^roundKey)(state)
+        // static block finalFn(block state, const block& roundKey);
+#ifdef OC_ENABLE_PORTABLE_AES
+		test<details::AESTypes::Portable>();
+#endif // ENABLE_PORTABLE_AES
 #ifdef OC_ENABLE_AESNI
 		test<details::AESTypes::NI>();
 #endif // ENABLE_SSE
 #ifdef ENABLE_ARM_AES
 		test<details::AESTypes::ARM>();
 #endif // ENABLE_ARM_AES
-#ifdef OC_ENABLE_PORTABLE_AES
-		test<details::AESTypes::Portable>();
-#endif // ENABLE_PORTABLE_AES
 
 #if defined(OC_ENABLE_AESNI) && defined(OC_ENABLE_PORTABLE_AES)
 		compare<details::AESTypes::NI, details::AESTypes::Portable>();

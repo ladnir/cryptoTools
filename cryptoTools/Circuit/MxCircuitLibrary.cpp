@@ -82,7 +82,7 @@ namespace osuCrypto
 
 
 			BVector P(sSize), G(sSize - 1);
-			Bit tempWire;
+			//Bit tempWire;
 			//auto a1 = signExtendResize(a1_, sSize, it);
 			//auto a2 = signExtendResize(a2_, sSize, it);;
 
