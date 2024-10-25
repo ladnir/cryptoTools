@@ -396,7 +396,7 @@ namespace osuCrypto
 
         auto levelRemIter = mLevelCounts.begin();
         auto curLevelRem = mLevelCounts.size() ? *levelRemIter++ : u64(-1);
-        u64 level = 0;
+        //u64 level = 0;
 
         for (u64 i = 0; i < mGates.size(); ++i)
         {
@@ -468,7 +468,7 @@ namespace osuCrypto
             {
                 std::fill(outOfDate.begin(), outOfDate.end(), 0);
                 curLevelRem = *levelRemIter++;
-                ++level;
+                //++level;
             }
 
         }

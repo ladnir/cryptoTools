@@ -9,140 +9,170 @@
 #include <cryptoTools/Crypto/AES.h> 
 #include <cryptoTools/Common/Log.h>
 
+namespace osuCrypto
+{
+    void aesCheck();
+}
 using namespace osuCrypto;
-
 //namespace tests_cryptoTools
 //{
 #include <iomanip>
 namespace tests_cryptoTools
 {
-    block byteReverse(block b)
-    {
-        block r;
-        auto bb = b.data();
-        auto rr = r.data();
-        for (u64 i = 0; i < 16; ++i)
-            rr[i] = bb[15 - i];
-        return r;
-    }
+	block byteReverse(block b)
+	{
+		block r;
+		auto bb = b.data();
+		auto rr = r.data();
+		for (u64 i = 0; i < 16; ++i)
+			rr[i] = bb[15 - i];
+		return r;
+	}
 
-    template<details::AESTypes type>
-    void test()
-    {
+	template<details::AESTypes type>
+	void test()
+	{
 
-        block userKey = byteReverse(toBlock(
-            0x0001020304050607,
-            0x08090a0b0c0d0e0f));
-        block ptxt = byteReverse(toBlock(
-            0x0011223344556677,
-            0x8899aabbccddeeff));
-        block exp = byteReverse(toBlock(
-            0x69c4e0d86a7b0430,
-            0xd8cdb78070b4c55a));
+		block userKey = byteReverse(toBlock(
+			0x0001020304050607,
+			0x08090a0b0c0d0e0f));
+		block ptxt = byteReverse(toBlock(
+			0x0011223344556677,
+			0x8899aabbccddeeff));
+		block exp = byteReverse(toBlock(
+			0x69c4e0d86a7b0430,
+			0xd8cdb78070b4c55a));
 
-        details::AES<type> encKey(userKey);
-        //details::AES<details::Portable> encKey2(userKey);
+		details::AES<type> encKey(userKey);
+		//details::AES<details::Portable> encKey2(userKey);
 
-        auto ctxt = encKey.ecbEncBlock(ptxt);
-        if (neq(ctxt, exp))
-            throw UnitTestFail();
+		auto ctxt = encKey.ecbEncBlock(ptxt);
+		if (neq(ctxt, exp))
+			throw UnitTestFail();
 
-        details::AESDec<type> decKey(userKey);
+		details::AESDec<type> decKey(userKey);
 
-        auto ptxt2 = decKey.ecbDecBlock(ctxt);
-        if (neq(ptxt2, ptxt))
-            throw UnitTestFail();
+        std::cout << (int)type << std::endl;
+		auto ptxt2 = decKey.ecbDecBlock(ctxt);
+		if (neq(ptxt2, ptxt))
+			throw UnitTestFail();
 
-        u64 length = 1 << 4;
+		for (u64 tt = 0; tt < 0; ++tt)
+		{
+			u64 length = (1ull << 6) + tt;
 
-        std::vector<block> data(length);
-        std::vector<block> cyphertext1(length);
-        std::vector<block> cyphertext2(length);
+			std::vector<block> data(length);
+			std::vector<block> cyphertext1(length);
+			std::vector<block> cyphertext2(length);
 
-        for (u64 i = 0; i < length; ++i)
-        {
-            data[i] = toBlock(i);
-            //block ptxt; , itxt;
+			for (u64 i = 0; i < length; ++i)
+			{
+				data[i] = toBlock(i);
+				encKey.ecbEncBlock(data[i], cyphertext1[i]);
+				decKey.ecbDecBlock(cyphertext1[i], ptxt);
+				if (neq(data[i], ptxt))
+					throw UnitTestFail();
+			}
 
-            encKey.ecbEncBlock(data[i], cyphertext1[i]);
+			encKey.ecbEncBlocks(data.data(), data.size(), cyphertext2.data());
+			for (u64 i = 0; i < length; ++i)
+			{
+				if (neq(cyphertext1[i], cyphertext2[i]))
+					throw UnitTestFail();
+			}
 
-            decKey.ecbDecBlock(cyphertext1[i], ptxt);
+			encKey.ecbEncCounterMode(1423234, data.size(), cyphertext2.data());
+			for (u64 i = 0; i < length; ++i)
+			{
+				if (neq(encKey.ecbEncBlock(block(1423234 + i)), cyphertext2[i]))
+					throw UnitTestFail();
+			}
 
-            //itxt = cyphertext1[i];
-            //details::InvCipher(itxt, encKey2.mRoundKey);
+			u64 step = 3;
+			std::vector<block> data2(length * step);
+			for (u64 i = 0; i < length; ++i)
+			{
+				for (u64 j = 0; j < step; ++j)
+				{
+					data2[i * step + j] = block(45233453 * i, 234235543 * j);
+				}
 
-            //if (neq(data[i], plaintext[i]))
-            //    throw UnitTestFail();
+				data[i] = data2[i * step + (i % step)];
+			}
 
-            if (neq(data[i], ptxt))
-                throw UnitTestFail();
-        }
+			encKey.TmmoHashBlocks(data, cyphertext1, [t = 0]() mutable {return block(t++); });
+			encKey.TmmoHashBlocks(data, cyphertext2, [t = 0]() mutable {return block(t++); });
 
-        encKey.ecbEncBlocks(data.data(), data.size(), cyphertext2.data());
+			for (u64 i = 0; i < length; ++i)
+			{
 
-        for (u64 i = 0; i < length; ++i)
-        {
-            if (neq(cyphertext1[i], cyphertext2[i]))
-                throw UnitTestFail();
-        }
+				if (cyphertext1[i] != cyphertext2[i])
+				{
+					throw RTE_LOC;
+				}
 
+				// y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
+				if (cyphertext1[i] != (encKey.ecbEncBlock(encKey.ecbEncBlock(data[i]) ^ block(i)) ^ encKey.ecbEncBlock(data[i])))
+					throw RTE_LOC;
 
-        u64 step = 3;
-        std::vector<block> data2(length * step);
-        for (u64 i = 0; i < length; ++i)
-        {
-            for (u64 j = 0; j < step; ++j)
-            {
-                data2[i * step + j] = block(45233453 * i, 234235543 * j);
-            }
+				if (cyphertext1[i] != encKey.TmmoHashBlock(data[i], block(i)))
+					throw RTE_LOC;
+			}
 
-            data[i] = data2[i * step + (i % step)];
-        }
+			cyphertext2.resize(data2.size());
+			encKey.TmmoHashBlocks(data2, cyphertext2, [t = 0, step]() mutable {return block(t++ / step); });
 
-        encKey.TmmoHashBlocks(data, cyphertext1, [t = 0]() mutable {return block(t++); });
-        encKey.TmmoHashBlocks(data, cyphertext2, [t = 0]() mutable {return block(t++); });
-
-        for (u64 i = 0; i < length; ++i)
-        {
-
-            if (cyphertext1[i] != cyphertext2[i])
-            {
-                throw RTE_LOC;
-            }
-
-            // y_i = AES(AES(x_i) ^ tweak_i) + AES(x_i).
-            if (cyphertext1[i] != (encKey.ecbEncBlock(encKey.ecbEncBlock(data[i]) ^ block(i)) ^ encKey.ecbEncBlock(data[i])))
-                throw RTE_LOC;
-
-            if (cyphertext1[i] != encKey.TmmoHashBlock(data[i], block(i)))
-                throw RTE_LOC;
+			for (u64 i = 0; i < length; ++i)
+			{
+				if (cyphertext1[i] != cyphertext2[i * step + (i % step)])
+				{
+					throw RTE_LOC;
+				}
+			}
+		}
+	}
 
 
-        }
 
-        cyphertext2.resize(data2.size());
-        encKey.TmmoHashBlocks(data2, cyphertext2, [t = 0, step]() mutable {return block(t++ / step); });
+	template<details::AESTypes type0, details::AESTypes type1>
+	void compare()
+	{
+		block userKey(2342134234, 213421341234);
+		details::AES<type0> enc0(userKey);
+		details::AES<type1> enc1(userKey);
 
-        for (u64 i = 0; i < length; ++i)
-        {
 
-            if (cyphertext1[i] != cyphertext2[i * step + (i % step)])
-            {
-                throw RTE_LOC;
-            }
-        }
-    }
+		for (u64 i = 0; i < 40; ++i)
+		{
+			auto b0 = enc0.ecbEncBlock(block(324223, i));
+			auto b1 = enc1.ecbEncBlock(block(324223, i));
 
-    void AES_EncDec_Test()
-    {
-#ifdef OC_ENABLE_AESNI
-        test<details::AESTypes::NI>();
-#endif // ENABLE_SSE
+			if (b0 != b1)
+				throw RTE_LOC;
+		}
+	}
+    
+	void AES_EncDec_Test()
+	{
+
 #ifdef OC_ENABLE_PORTABLE_AES
-        test<details::AESTypes::Portable>();
+		test<details::AESTypes::Portable>();
 #endif // ENABLE_PORTABLE_AES
+#ifdef OC_ENABLE_AESNI
+		test<details::AESTypes::NI>();
+#endif // ENABLE_SSE
+#ifdef ENABLE_ARM_AES
+		test<details::AESTypes::ARM>();
+#endif // ENABLE_ARM_AES
 
+#if defined(OC_ENABLE_AESNI) && defined(OC_ENABLE_PORTABLE_AES)
+		compare<details::AESTypes::NI, details::AESTypes::Portable>();
+#endif
 
-    }
+#if defined(ENABLE_ARM_AES) && defined(OC_ENABLE_PORTABLE_AES)
+		compare<details::AESTypes::ARM, details::AESTypes::Portable>();
+#endif
+
+}
 
 }

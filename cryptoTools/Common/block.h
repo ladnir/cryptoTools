@@ -16,6 +16,23 @@
 #include <wmmintrin.h>
 #endif
 
+#ifdef ENABLE_ARM_AES
+#if defined(__arm__) || defined(__aarch32__) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM) || defined(_M_ARM64)
+# if defined(__GNUC__)
+#  include <stdint.h>
+# endif
+# if defined(__ARM_NEON) || defined(_MSC_VER)
+#  include <arm_neon.h>
+# endif
+/* GCC and LLVM Clang, but not Apple Clang */
+# if defined(__GNUC__) && !defined(__apple_build_version__)
+#  if defined(__ARM_ACLE) || defined(__ARM_FEATURE_CRYPTO)
+#   include <arm_acle.h>
+#  endif
+# endif
+#endif  /* ARM Headers */
+#endif
+
 // OC_FORCEINLINE ---------------------------------------------//
 // Macro to use in place of 'inline' to force a function to be inline
 #if !defined(OC_FORCEINLINE)
@@ -36,6 +53,8 @@ namespace osuCrypto
 	{
 #ifdef OC_ENABLE_SSE2
 		__m128i mData;
+#elif defined(ENABLE_ARM_AES)
+		uint8x16_t mData;
 #else
 		std::uint64_t mData[2];
 #endif
