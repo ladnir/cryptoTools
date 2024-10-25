@@ -375,6 +375,7 @@ namespace osuCrypto {
             return state;
         }
 
+#endif
 
 
         template<AESTypes type>
@@ -395,7 +396,6 @@ namespace osuCrypto {
             }
             mRoundKey[10] = aes.mRoundKey[0];
         }
-#endif
 
         template<AESTypes type>
         void AESDec<type>::ecbDecBlock(const block& ciphertext, block& plaintext)
