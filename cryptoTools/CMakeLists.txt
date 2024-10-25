@@ -56,6 +56,8 @@ else()
 endif()
 
 
+target_link_libraries(cryptoTools libdivide)
+
 ## span-lite
 ###########################################################################
 
