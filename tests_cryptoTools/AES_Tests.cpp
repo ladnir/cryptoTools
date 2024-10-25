@@ -155,28 +155,6 @@ namespace tests_cryptoTools
 	void AES_EncDec_Test()
 	{
 
-#if defined(ENABLE_ARM_AES) && defined(OC_ENABLE_PORTABLE_AES)
-
-        using Port = details::AESDec<details::AESTypes::Portable>;
-        using ARM = details::AESDec<details::AESTypes::ARM>;
-        oc::aesCheck();
-        //ARM::firstFn;
-
-#endif
-        // // NI,Portable: (^roundKey)(state)
-        // // ARM: (-sbox o -shiftRow o ^roundKey)(state)
-        // static block firstFn(block state, const block& roundKey);
-
-        // // Portable: (-mixCols o ^roundKey o -sbox o -shiftRow)(state)
-        // // NI: (^-mixCols(roundKey) o -mixCols o -sbox o -shiftRow)(state)
-        // //   = (-mixCols o ^-roundKey o -sbox o -shiftRow)(state)
-        // // ARM: (-sbox o -shiftRow o ^-mixCols(roundKey) o -mixCols )(state)
-        // //    = (-sbox o -shiftRow o -mixCols o ^roundKey)(state)
-        // static block roundFn(block state, const block& roundKey);
-
-        // // NI,Portable: (^roundKey o -sbox o -shiftRow)(state)
-        // // ARM: (^roundKey)(state)
-        // static block finalFn(block state, const block& roundKey);
 #ifdef OC_ENABLE_PORTABLE_AES
 		test<details::AESTypes::Portable>();
 #endif // ENABLE_PORTABLE_AES

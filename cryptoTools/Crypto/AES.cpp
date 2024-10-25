@@ -376,28 +376,6 @@ namespace osuCrypto {
         }
 
 
-        template<>
-        inline block AESDec<ARM>::firstFn(block state, const block& roundKey)
-        {
-            block r;
-            r.mData = vaesdq_u8(state.mData, roundKey.mData);
-            return r;
-        }
-        template<>
-        inline block AESDec<ARM>::roundFn(block state, const block& roundKey)
-        {
-            block r;
-            r.mData = vaesimcq_u8(state.mData);
-            r.mData = vaesdq_u8(r.mData, roundKey.mData); // roundKey is already mixed.
-            return r;
-        }
-
-        template<>
-        inline block AESDec<ARM>::finalFn(block state, const block& roundKey)
-        {
-            return state ^ roundKey;
-        }
-
 
         template<AESTypes type>
         void AESDec<type>::setKey(const block& userKey)
@@ -451,29 +429,4 @@ namespace osuCrypto {
     template class details::AESDec<details::ARM>;
 #endif
 
-
-    void aesCheck()
-    {
-        using namespace details;
-        
-        block c = block(342345234532,32453245324523);
-        block k = block(67857856786,56786785678657);
-        block imcC0;
-        imcC0.mData = vaesimcq_u8(c.mData);
-        auto imcC1 = c;
-        InvMixColumns<Portable>(imcC1);
-
-        if(imcC0 != imcC1)
-            throw RTE_LOC;
-
-        // (sbox o shiftrow o ^key)
-        block e0,e1;
-        e0.mData = vaesdq_u8(c.mData, k.mData);
-        e1 = c ^k;
-        InvShiftRows(e1);
-        InvSubBytes(e1);
-
-        if(e0 != e1)
-            throw RTE_LOC;
-    }
 }

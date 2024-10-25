@@ -663,6 +663,28 @@ namespace osuCrypto {
         
 #ifdef ENABLE_ARM_AES
 
+		template<>
+		inline block AESDec<ARM>::firstFn(block state, const block& roundKey)
+		{
+			block r;
+			r.mData = vaesdq_u8(state.mData, roundKey.mData);
+			return r;
+		}
+		template<>
+		inline block AESDec<ARM>::roundFn(block state, const block& roundKey)
+		{
+			block r;
+			r.mData = vaesimcq_u8(state.mData);
+			r.mData = vaesdq_u8(r.mData, roundKey.mData); // roundKey is already mixed.
+			return r;
+		}
+
+		template<>
+		inline block AESDec<ARM>::finalFn(block state, const block& roundKey)
+		{
+			return state ^ roundKey;
+		}
+
 #endif
 
 #ifdef OC_ENABLE_AESNI
