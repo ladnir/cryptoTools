@@ -52,7 +52,6 @@ namespace tests_cryptoTools
 
 		details::AESDec<type> decKey(userKey);
 
-        std::cout << (int)type << std::endl;
 		auto ptxt2 = decKey.ecbDecBlock(ctxt);
 		if (neq(ptxt2, ptxt))
 			throw UnitTestFail();
