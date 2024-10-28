@@ -70,13 +70,14 @@ namespace osuCrypto {
 
             if (mBytesIdx == mBufferByteCapacity)
             {
-                if (lengthu8 >= 8 * sizeof(block))
+                while (lengthu8 >= 8 * sizeof(block))
                 {
-                    span<block> b((block*)destu8, lengthu8 / sizeof(block));
+                    oc::AlignedArray<block, 8> b;
                     mAes.ecbEncCounterMode(mBlockIdx, b.size(), b.data());
+                    memcpy(destu8, &b, sizeof(b));
                     mBlockIdx += b.size();
 
-                    step = b.size() * sizeof(block);
+                    step = sizeof(b);
 
                     destu8 += step;
                     lengthu8 -= step;

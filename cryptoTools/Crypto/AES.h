@@ -313,7 +313,7 @@ namespace osuCrypto {
 		}
 
 		template<AESTypes type>
-		void AES<type>::ecbEncCounterMode(block baseIdx, u64 blockLength, block* ciphertext) const
+		inline void AES<type>::ecbEncCounterMode(block baseIdx, u64 blockLength, block* ciphertext) const
 		{
 
 			constexpr u64 step = 8;
