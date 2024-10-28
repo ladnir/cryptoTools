@@ -4,8 +4,8 @@
 
 #include "MxBit.h"
 #include <unordered_map>
-#include "macoro/optional.h"
-#include "macoro/variant.h"
+#include <optional>
+#include <variant>
 #include "cryptoTools/Circuit/BetaCircuit.h"
 #include<numeric>
 namespace osuCrypto
@@ -232,7 +232,7 @@ namespace osuCrypto
 			struct Output :OpData
 			{
 				u64 mIndex;
-				std::vector<macoro::optional<bool>> mConsts;
+				std::vector<std::optional<bool>> mConsts;
 			};
 
 			struct Print : OpData
@@ -301,7 +301,7 @@ namespace osuCrypto
 
 				g.mInput = mArena.allocate(s);
 
-				std::vector<macoro::optional<bool>> consts(elems.size());
+				std::vector<std::optional<bool>> consts(elems.size());
 				u64 j = 0;
 				for (u64 i = 0; i < elems.size(); ++i)
 				{
