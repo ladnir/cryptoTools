@@ -98,6 +98,138 @@ namespace osuCrypto {
         Uninitialized,
         Zeroed
     };
+
+
+
+
+    template<typename T, typename = void>
+    struct has_data_member_func : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct has_data_member_func < T, std::void_t<
+        // must have value_type
+        typename T::value_type,
+
+        // must have a data() member fn
+        decltype(std::declval<T>().data()),
+
+        // must return value_type* or const value_type*
+        std::enable_if_t<
+        std::is_same<
+        decltype(std::declval<T>().data()),
+        typename T::value_type*
+        >::value
+        ||
+        // pre CPP 17 std::string returns a const pointer. So we
+        // will allow this case.
+        std::is_same<
+        decltype(std::declval<T>().data()),
+        const typename T::value_type*
+        >::value
+        >
+        >>
+        : std::true_type{};
+
+
+    template<typename T, typename = void>
+    struct has_size_member_func : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct has_size_member_func <T, std::void_t<
+        // must have size type
+        typename T::size_type,
+
+        // must have a size() member fn
+        decltype(std::declval<T>().size()),
+
+        // must return size_type
+        std::enable_if_t<
+        std::is_same<
+        decltype(std::declval<T>().size()),
+        typename T::size_type
+        >::value
+        >
+        >>
+        : std::true_type{};
+
+
+    template<class Container, typename = void>
+    struct is_container : std::false_type
+    {
+    };
+
+    template<class Container>
+    struct is_container < Container, std::void_t <
+        std::enable_if_t<has_data_member_func<typename std::remove_reference<Container>::type>::value>,
+        std::enable_if_t<has_size_member_func<typename std::remove_reference<Container>::type>::value>
+        >> :
+        std::true_type {};
+
+    class BitVector;
+    template<typename T>
+    auto asSpan(T&& t)
+    {
+        static_assert(std::is_pointer_v<T> == false);
+
+        if constexpr (std::is_same_v<std::remove_cvref_t<T>, BitVector>)
+        {
+            return t.template getSpan<u8>();
+        }
+        if constexpr (is_container<T>::value)
+        {
+            using U = std::remove_reference_t<decltype(*t.data())>;
+            return span<U>(t.data(), t.size());
+        }
+        else if constexpr (std::is_trivial_v<std::remove_reference_t<T>>)
+        {
+            return std::span<std::remove_reference_t<T>, 1>(&t, &t + 1);
+        }
+        else
+        {
+            static_assert(
+                is_container<T>::value ||
+                std::is_trivial_v<std::remove_reference_t<T>>
+                );
+        }
+    }
+
+    template<typename D, typename S>
+    OC_FORCEINLINE void copyBytes(D&& dst, S&& src)
+    {
+        auto d = asSpan(dst);
+        auto s = asSpan(src);
+        if (d.size_bytes() != s.size_bytes())
+            throw RTE_LOC;
+        static_assert(std::is_trivially_copyable_v<std::remove_reference_t<decltype(*d.data())>>);
+        static_assert(std::is_trivially_copyable_v<std::remove_reference_t<decltype(*s.data())>>);
+        if (d.size())
+            std::memcpy(d.data(), s.data(), d.size_bytes());
+    }
+
+    template<typename D, typename S>
+    OC_FORCEINLINE void copyBytesMin(D&& dst, S&& src)
+    {
+        auto d = asSpan(dst);
+        auto s = asSpan(src);
+        auto size = std::min(s.size_bytes(), d.size_bytes());
+        static_assert(std::is_trivially_copyable_v<std::remove_reference_t<decltype(*d.data())>>);
+        static_assert(std::is_trivially_copyable_v<std::remove_reference_t<decltype(*s.data())>>);
+        if (size)
+            std::memcpy(d.data(), s.data(), size);
+    }
+
+    template<typename D>
+    OC_FORCEINLINE void setBytes(D&& dst, char v)
+    {
+        auto d = asSpan(dst);
+        static_assert(std::is_trivially_copyable_v<std::remove_reference_t<decltype(*d.data())>>);
+        if (d.size())
+            std::memset(d.data(), v, d.size_bytes());
+    }
 }
 
 namespace oc = osuCrypto;
