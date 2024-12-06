@@ -19,7 +19,7 @@ namespace osuCrypto {
         BitVector() = default;
 
         // Inititialize the BitVector with length bits pointed to by data.
-        BitVector(u8* data, u64 length);
+        BitVector(u8* data, u64 length, u64 offset = 0);
 
         // Inititialize the BitVector from a string of '0' and '1' characters.
         BitVector(std::string data);

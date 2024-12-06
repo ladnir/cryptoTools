@@ -158,12 +158,12 @@ namespace osuCrypto {
 
 
     template<class Container, typename = void>
-    struct is_container : std::false_type
+    struct is_container_type : std::false_type
     {
     };
 
     template<class Container>
-    struct is_container < Container, std::void_t <
+    struct is_container_type < Container, std::void_t <
         std::enable_if_t<has_data_member_func<typename std::remove_reference<Container>::type>::value>,
         std::enable_if_t<has_size_member_func<typename std::remove_reference<Container>::type>::value>
         >> :
@@ -179,7 +179,7 @@ namespace osuCrypto {
         {
             return t.template getSpan<u8>();
         }
-        if constexpr (is_container<T>::value)
+        if constexpr (is_container_type<T>::value)
         {
             using U = std::remove_reference_t<decltype(*t.data())>;
             return span<U>(t.data(), t.size());
@@ -191,7 +191,7 @@ namespace osuCrypto {
         else
         {
             static_assert(
-                is_container<T>::value ||
+                is_container_type<T>::value ||
                 std::is_trivial_v<std::remove_reference_t<T>>
                 );
         }

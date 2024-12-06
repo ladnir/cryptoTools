@@ -16,9 +16,9 @@ namespace osuCrypto {
 		fromString(data);
 	}
 
-	BitVector::BitVector(u8* data, u64 length)
+	BitVector::BitVector(u8* data, u64 length, u64 offset)
 	{
-		append(data, length, 0);
+		append(data, length, offset);
 	}
 
 	void BitVector::assign(const block& b)
