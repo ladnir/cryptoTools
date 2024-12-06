@@ -7,7 +7,7 @@ set(GIT_REPOSITORY      "https://github.com/ladnir/coproto.git")
 if(DEFINED COPROTO_GIT_TAG)
     set(GIT_TAG              ${COPROTO_GIT_TAG})
 else()
-    set(GIT_TAG             "3ec2d5b4fc94c7bcf152ec0d135bb2b6ed8cd97f" )
+    set(GIT_TAG             "c9e646b2f350c998e5225a67166573ad88ac9dbd" )
 endif()
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
