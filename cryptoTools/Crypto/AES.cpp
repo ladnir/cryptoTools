@@ -5,7 +5,7 @@
 #ifdef OC_ENABLE_AESNI
 #include <wmmintrin.h>
 #elif !defined(OC_ENABLE_PORTABLE_AES) && !defined(ENABLE_ARM_AES)
-static_assert(0, "OC_ENABLE_PORTABLE_AES must be defined if ENABLE_AESNI is not.");
+static_assert(0, "OC_ENABLE_PORTABLE_AES must be defined if ENABLE_AESNI and ENABLE_ARM_AES are not.");
 #endif
 
 namespace osuCrypto {
