@@ -599,6 +599,8 @@ namespace osuCrypto
 		{
 #ifdef OC_ENABLE_PCLMUL
 			mm_gf128Mul(y, xy1, xy2);
+#elif defined(ENABLE_ARM_AES)
+			arm_gf128Mul(y, xy1, xy2);
 #else
 			cc_gf128Mul(y, xy1, xy2);
 #endif // !OC_ENABLE_PCLMUL
@@ -609,6 +611,8 @@ namespace osuCrypto
 			block xy1, xy2;
 #ifdef OC_ENABLE_PCLMUL
 			mm_gf128Mul(y, xy1, xy2);
+#elif defined(ENABLE_ARM_AES)
+			arm_gf128Mul(y, xy1, xy2);
 #else
 			cc_gf128Mul(y, xy1, xy2);
 #endif // !OC_ENABLE_PCLMUL
@@ -659,6 +663,28 @@ namespace osuCrypto
 			xy2 = t4;
 		}
 #endif
+
+
+#ifdef ENABLE_ARM_AES
+		OC_FORCEINLINE  void arm_gf128Mul(const block& y, block& xy1, block& xy2) const
+		{
+			auto& x = *this;
+
+			block t1 = x.clmulepi64_si128<0x00>(y);
+			block t2 = x.clmulepi64_si128<0x10>(y);
+			block t3 = x.clmulepi64_si128<0x01>(y);
+			block t4 = x.clmulepi64_si128<0x11>(y);
+			t2 = (t2 ^ t3);
+			t3 = t2.slli_si128<8>();
+			t2 = t2.srli_si128<8>();
+			t1 = (t1 ^ t3);
+			t4 = (t4 ^ t2);
+
+			xy1 = t1;
+			xy2 = t4;
+		}
+#endif
+
 		OC_FORCEINLINE  void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
 		{
 			static const constexpr std::uint64_t mod = 0b10000111;
@@ -698,6 +724,8 @@ namespace osuCrypto
 		{
 #ifdef OC_ENABLE_PCLMUL
 			return mm_gf128Reduce(x1);
+#elif defined(ENABLE_ARM_AES)
+			return arm_gf128Reduce(x1);
 #else
 			return cc_gf128Reduce(x1);
 #endif
@@ -730,6 +758,28 @@ namespace osuCrypto
 		}
 #endif
 
+#ifdef ENABLE_ARM_AES
+		block arm_gf128Reduce(const block& x1) const
+		{
+			auto mul256_low = *this;
+			auto mul256_high = x1;
+			static const constexpr std::uint64_t mod = 0b10000111;
+
+			/* reduce w.r.t. high half of mul256_high */
+			const block modulus(0,mod);
+			block tmp = mul256_high.clmulepi64_si128<0x01>(modulus);
+			mul256_low = mul256_low ^ tmp.slli_si128<8>();
+			mul256_high = mul256_high ^ tmp.srli_si128<8>();
+
+			/* reduce w.r.t. low half of mul256_high */
+			tmp = mul256_high.clmulepi64_si128<0x00>(modulus);
+			mul256_low = mul256_low ^ tmp;
+
+			return mul256_low;
+		}
+#endif
+
+
 #ifdef OC_ENABLE_SSE2
 		template<int imm8>
 		OC_FORCEINLINE  block mm_clmulepi64_si128(const block b) const
@@ -737,7 +787,22 @@ namespace osuCrypto
 			return _mm_clmulepi64_si128(*this, b, imm8);
 		}
 #endif
+#ifdef ENABLE_ARM_AES
 
+		template<int imm8>
+		OC_FORCEINLINE  block arm_clmulepi64_si128(const block& b) const
+		{
+			static_assert(imm8 == 0x00 || imm8 == 0x01 || imm8 == 0x10 || imm8==0x11);
+
+			poly64_t x,y;
+			memcpy(&x, (poly64_t*)&mData + (imm8 & 1), sizeof(poly64_t));
+			memcpy(&y, (poly64_t*)&b.mData + (imm8 >> 4 & 1), sizeof(poly64_t));
+			poly128_t z = vmull_p64(x,y);
+			block r;
+			memcpy(&r, &z, sizeof(block));
+			return r;
+		}
+#endif
 		template<int imm8>
 		OC_FORCEINLINE  block cc_clmulepi64_si128(const block b) const
 		{
