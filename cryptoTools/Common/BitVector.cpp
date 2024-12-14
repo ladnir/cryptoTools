@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iomanip>
 //#include <atomic>
+#include <algorithm>
 
 namespace osuCrypto {
 
