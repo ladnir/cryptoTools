@@ -1,8 +1,8 @@
 
 set(USER_NAME           )      
 set(TOKEN               )      
-set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-set(GIT_TAG             "fd097b1f2498b73140dd6e2e3d0ee5c5e3c60cd2" )
+set(GIT_REPOSITORY      "https://github.com/ladnir/coproto.git")
+set(GIT_TAG             "libOTe_v2.1" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
