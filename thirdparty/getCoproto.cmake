@@ -7,7 +7,7 @@ set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
 if(DEFINED COPROTO_GIT_TAG)
     set(GIT_TAG              ${COPROTO_GIT_TAG})
 else()
-    set(GIT_TAG             "b5a11b31bfb5476f0d816bb73a26973999f7c9df" )
+    set(GIT_TAG             "1d88e908d62272f37bfeeafaeebacd08fa2dca82" )
 endif()
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
