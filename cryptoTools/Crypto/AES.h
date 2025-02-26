@@ -322,14 +322,14 @@ namespace osuCrypto {
 
 			for (; idx + step <= blockLength; idx += step)
 			{
-				plaintext[0] = baseIdx + block(idx + 0);
-				plaintext[1] = baseIdx + block(idx + 1);
-				plaintext[2] = baseIdx + block(idx + 2);
-				plaintext[3] = baseIdx + block(idx + 3);
-				plaintext[4] = baseIdx + block(idx + 4);
-				plaintext[5] = baseIdx + block(idx + 5);
-				plaintext[6] = baseIdx + block(idx + 6);
-				plaintext[7] = baseIdx + block(idx + 7);
+				plaintext[0] = baseIdx.add_epi64(block(idx + 0));
+				plaintext[1] = baseIdx.add_epi64(block(idx + 1));
+				plaintext[2] = baseIdx.add_epi64(block(idx + 2));
+				plaintext[3] = baseIdx.add_epi64(block(idx + 3));
+				plaintext[4] = baseIdx.add_epi64(block(idx + 4));
+				plaintext[5] = baseIdx.add_epi64(block(idx + 5));
+				plaintext[6] = baseIdx.add_epi64(block(idx + 6));
+				plaintext[7] = baseIdx.add_epi64(block(idx + 7));
 				ecbEncBlocks<step>(plaintext.data(), ciphertext + idx);
 			}
 
@@ -337,7 +337,7 @@ namespace osuCrypto {
 			switch (misalignment) {
 #define SWITCH_CASE(n) \
 		    case n: \
-				for(u64 j = 0; j < n; ++j) plaintext[j] = baseIdx + block(idx + j);\
+				for(u64 j = 0; j < n; ++j) plaintext[j] = baseIdx.add_epi64(block(idx + j));\
 		        ecbEncBlocks<n>(plaintext.data(), ciphertext + idx); \
 		        break
 				SWITCH_CASE(1);
