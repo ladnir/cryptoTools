@@ -326,15 +326,13 @@ namespace osuCrypto
 		}
 
 
+		[[deprecated("use slli_epi64 instead")]]
 		OC_FORCEINLINE  osuCrypto::block operator<<(const std::uint8_t& rhs)const
 		{
-#ifdef OC_ENABLE_SSE2
-			return mm_slli_epi64(rhs);
-#else
-			return cc_slli_epi64(rhs);
-#endif
+			return slli_epi64(rhs);
 		}
 
+		[[deprecated("use slli_epi64 instead")]]
 		OC_FORCEINLINE  osuCrypto::block& operator<<=(const std::uint8_t& rhs)
 		{
 			*this = *this << rhs;
@@ -353,6 +351,16 @@ namespace osuCrypto
 			ret[0] <<= rhs;
 			ret[1] <<= rhs;
 			return ret;
+		}
+
+
+		OC_FORCEINLINE  osuCrypto::block slli_epi64(const std::uint8_t& rhs)const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_slli_epi64(rhs);
+#else
+			return cc_slli_epi64(rhs);
+#endif
 		}
 
 		OC_FORCEINLINE  block operator>>(const std::uint8_t& rhs)const
@@ -384,16 +392,13 @@ namespace osuCrypto
 			return ret;;
 		}
 
-
+		[[deprecated("use add_epi64 instead")]]
 		OC_FORCEINLINE  osuCrypto::block operator+(const osuCrypto::block& rhs)const
 		{
-#ifdef OC_ENABLE_SSE2
-			return mm_add_epi64(rhs);
-#else
-			return cc_add_epi64(rhs);
-#endif
+			return add_epi64(rhs);
 		}
 
+		[[deprecated("use add_epi64 instead")]]
 		OC_FORCEINLINE  osuCrypto::block& operator+=(const osuCrypto::block& rhs)
 		{
 			*this = *this + rhs;
@@ -416,16 +421,24 @@ namespace osuCrypto
 			return ret;
 		}
 
-
-		OC_FORCEINLINE  osuCrypto::block operator-(const osuCrypto::block& rhs)const
+		OC_FORCEINLINE  block add_epi64(const osuCrypto::block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
-			return mm_sub_epi64(rhs);
+			return mm_add_epi64(rhs);
 #else
-			return cc_sub_epi64(rhs);
+			return cc_add_epi64(rhs);
 #endif
 		}
 
+
+
+		[[deprecated("use sub_epi64 instead")]]
+		OC_FORCEINLINE  osuCrypto::block operator-(const osuCrypto::block& rhs)const
+		{
+			return sub_epi64(rhs);
+		}
+
+		[[deprecated("use sub_epi64 instead")]]
 		OC_FORCEINLINE  osuCrypto::block& operator-=(const osuCrypto::block& rhs)
 		{
 			*this = *this - rhs;
@@ -446,6 +459,15 @@ namespace osuCrypto
 			ret[0] -= rhsa[0];
 			ret[1] -= rhsa[1];
 			return ret;
+		}
+
+		OC_FORCEINLINE  block sub_epi64(const osuCrypto::block& rhs) const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_sub_epi64(rhs);
+#else
+			return cc_sub_epi64(rhs);
+#endif
 		}
 
 		OC_FORCEINLINE  block& cmov(const osuCrypto::block& rhs, bool cond);
@@ -1052,6 +1074,8 @@ namespace osuCrypto
 			return cc_slli_epi32<imm8>();
 #endif
 		}
+
+
 
 	};
 
