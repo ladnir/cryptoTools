@@ -76,6 +76,10 @@ else()
 	set(FETCH_SPAN_LITE_IMPL OFF)
 endif()
 
+if(NOT ENABLE_SSE AND NOT ENABLE_ARM_AES)
+	set(ENABLE_PORTABLE_AES true)
+endif()
+
 #option(FETCH_SPAN_LITE		"download and build span" OFF))
 EVAL(FETCH_GMP_IMPL 
 	(DEFINED FETCH_GMP AND FETCH_GMP) OR
@@ -119,29 +123,31 @@ message(STATUS "cryptoTools options\n===========================================
 
 message(STATUS "Option: CRYPTO_TOOLS_STD_VER  = ${CRYPTO_TOOLS_STD_VER}\n")
 
-message(STATUS "Option: NO_SYSTEM_PATH    = ${NO_SYSTEM_PATH}")
-message(STATUS "Option: FETCH_AUTO        = ${FETCH_AUTO}")
-message(STATUS "Option: VERBOSE_FETCH     = ${VERBOSE_FETCH}\n")
+message(STATUS "Option: NO_SYSTEM_PATH      = ${NO_SYSTEM_PATH}")
+message(STATUS "Option: FETCH_AUTO          = ${FETCH_AUTO}")
+message(STATUS "Option: VERBOSE_FETCH       = ${VERBOSE_FETCH}\n")
+										    
+message(STATUS "Option: FETCH_RELIC         = ${FETCH_RELIC}")
+message(STATUS "Option: FETCH_SODIUM        = ${FETCH_SODIUM}")
+message(STATUS "Option: FETCH_BOOST         = ${FETCH_BOOST}")
+message(STATUS "Option: FETCH_COPROTO       = ${FETCH_COPROTO}")
+message(STATUS "Option: FETCH_LIBDIVIDE     = ${FETCH_LIBDIVIDE_IMPL}\n")
+										    
+message(STATUS "Option: CMAKE_BUILD_TYPE    = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")					 	 
+message(STATUS "Option: ENABLE_SPAN_LITE    = ${ENABLE_SPAN_LITE}")
+message(STATUS "Option: ENABLE_GMP          = ${ENABLE_GMP}")
+message(STATUS "Option: ENABLE_RELIC        = ${ENABLE_RELIC}")
+message(STATUS "Option: ENABLE_SODIUM       = ${ENABLE_SODIUM}")
+message(STATUS "Option: ENABLE_BOOST        = ${ENABLE_BOOST}")
+message(STATUS "Option: ENABLE_OPENSSL      = ${ENABLE_OPENSSL}")
+message(STATUS "Option: ENABLE_COPROTO      = ${ENABLE_COPROTO}")
+message(STATUS "Option: ENABLE_CIRCUITS     = ${ENABLE_CIRCUITS}")
+										    
+message(STATUS "Option: ENABLE_ARM_AES      = ${ENABLE_ARM_AES}")
+message(STATUS "Option: ENABLE_PORTABLE_AES = ${ENABLE_PORTABLE_AES}")
 
-message(STATUS "Option: FETCH_RELIC       = ${FETCH_RELIC}")
-message(STATUS "Option: FETCH_SODIUM      = ${FETCH_SODIUM}")
-message(STATUS "Option: FETCH_BOOST       = ${FETCH_BOOST}")
-message(STATUS "Option: FETCH_COPROTO     = ${FETCH_COPROTO}")
-message(STATUS "Option: FETCH_LIBDIVIDE   = ${FETCH_LIBDIVIDE_IMPL}\n")
-
-message(STATUS "Option: CMAKE_BUILD_TYPE  = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
-message(STATUS "Option: ENABLE_SPAN_LITE  = ${ENABLE_SPAN_LITE}")
-message(STATUS "Option: ENABLE_GMP        = ${ENABLE_GMP}")
-message(STATUS "Option: ENABLE_RELIC      = ${ENABLE_RELIC}")
-message(STATUS "Option: ENABLE_SODIUM     = ${ENABLE_SODIUM}")
-message(STATUS "Option: ENABLE_BOOST      = ${ENABLE_BOOST}")
-message(STATUS "Option: ENABLE_OPENSSL    = ${ENABLE_OPENSSL}")
-message(STATUS "Option: ENABLE_COPROTO    = ${ENABLE_COPROTO}")
-message(STATUS "Option: ENABLE_CIRCUITS   = ${ENABLE_CIRCUITS}")
-
-message(STATUS "Option: ENABLE_ARM_AES    = ${ENABLE_ARM_AES}")
-message(STATUS "Option: ENABLE_SSE        = ${ENABLE_SSE}")
-message(STATUS "Option: ENABLE_AVX        = ${ENABLE_AVX}")
-message(STATUS "Option: ENABLE_PIC        = ${ENABLE_PIC}")
-message(STATUS "Option: ENABLE_ASAN       = ${ENABLE_ASAN}\n\n")
+message(STATUS "Option: ENABLE_SSE          = ${ENABLE_SSE}")
+message(STATUS "Option: ENABLE_AVX          = ${ENABLE_AVX}")
+message(STATUS "Option: ENABLE_PIC          = ${ENABLE_PIC}")
+message(STATUS "Option: ENABLE_ASAN         = ${ENABLE_ASAN}\n\n")
 
