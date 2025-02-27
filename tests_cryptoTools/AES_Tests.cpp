@@ -133,8 +133,8 @@ namespace tests_cryptoTools
 		{
 			block state(241453245234532ull, 2345123451235123ull);
 			block t = details::AES<type>::roundEnc(state, state);
-			std::cout << t.get<u64>(1) << std::endl;
-			std::cout << t.get<u64>(0) << std::endl;
+			//std::cout << t.get<u64>(1) << std::endl;
+			//std::cout << t.get<u64>(0) << std::endl;
 			block exp(7833415616886348363, 14916852119338822067);
 			if (t != exp)
 				throw RTE_LOC;
