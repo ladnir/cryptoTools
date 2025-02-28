@@ -1,13 +1,13 @@
 
 set(USER_NAME           )      
 set(TOKEN               )      
-set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
-#set(GIT_REPOSITORY      "https://github.com/ladnir/coproto.git")
+#set(GIT_REPOSITORY      "https://github.com/Visa-Research/coproto.git")
+set(GIT_REPOSITORY      "https://github.com/ladnir/coproto.git")
 
 if(DEFINED COPROTO_GIT_TAG)
     set(GIT_TAG              ${COPROTO_GIT_TAG})
 else()
-    set(GIT_TAG             "1d88e908d62272f37bfeeafaeebacd08fa2dca82" )
+    set(GIT_TAG             "adcfcc47e86190fd26be49d37caefcff9020f6b9" )
 endif()
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/coproto")
