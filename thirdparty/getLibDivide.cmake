@@ -1,6 +1,6 @@
 set(DEP_NAME            libdivide)
 set(GIT_REPOSITORY      https://github.com/ridiculousfish/libdivide.git)
-set(GIT_TAG             "b322221677351ebb11f0a42fe9a9a2794da5bfe5" )
+set(GIT_TAG             "v5.2.0" )
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/${DEP_NAME}")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${OC_CONFIG}")
