@@ -438,7 +438,7 @@ namespace osuCrypto
             {}
 
             RefSendBuff(RefSendBuff<F>&& v)
-                :RefSendBuff(v.obj)
+                :RefSendBuff(v.mObj)
             {}
         };
 
