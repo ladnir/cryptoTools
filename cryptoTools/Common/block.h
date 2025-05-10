@@ -59,17 +59,17 @@ namespace osuCrypto
 		std::uint64_t mData[2];
 #endif
 
-		block() = default;
-		block(const block&) = default;
-#ifdef OC_ENABLE_SSE2
-		block(uint64_t x1, uint64_t x0)
+		OC_CUDA_CALLABLE block() = default;
+		OC_CUDA_CALLABLE block(const block&) = default;
+		OC_CUDA_CALLABLE block(uint64_t x1, uint64_t x0)
 		{
+#ifdef OC_ENABLE_SSE2
 			mData = _mm_set_epi64x(x1, x0);
-		}
 #else
-		block(uint64_t x1, uint64_t x0)
-			: block(std::array<std::uint64_t, 2> {x0, x1}) {}
+			mData[0] = x0;
+			mData[1] = x1;
 #endif
+		}
 
 #ifdef OC_ENABLE_SSE2
 		block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
@@ -77,25 +77,25 @@ namespace osuCrypto
 			mData = _mm_set_epi8(e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0);
 		}
 #else
-		block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
+		OC_CUDA_CALLABLE block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
 			: block(std::array<char, 16> {
 			e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15
 		}) {}
 #endif
 
-		explicit block(uint64_t x)
+		OC_CUDA_CALLABLE explicit block(uint64_t x)
 		{
 			*this = block(0, x);
 		}
 
-		template<typename T,
+		 template<typename T,
 			typename Enable = typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
 			(16 % sizeof(T) == 0)
 		>::type>
-			block(const std::array<T, 16 / sizeof(T)>& arr)
+		OC_CUDA_CALLABLE block(const std::array<T, 16 / sizeof(T)>& arr)
 		{
 			memcpy(data(), arr.data(), 16);
 		}
@@ -125,33 +125,18 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE unsigned char* data()
+		OC_CUDA_CALLABLE OC_FORCEINLINE unsigned char* data()
 		{
 			return (unsigned char*)&mData;
 		}
 
-		OC_FORCEINLINE const unsigned char* data() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE const unsigned char* data() const
 		{
 			return (const unsigned char*)&mData;
 		}
 
-#ifdef OC_ENABLE_DEPRECATED_BLOCK_AS
 		template<typename T>
-		typename std::enable_if<
-		    std::is_standard_layout<T>::value&&
-		    std::is_trivial<T>::value &&
-		    (sizeof(T) <= 16) &&
-		    (16 % sizeof(T) == 0)
-		    ,
-		    std::array<T, 16 / sizeof(T)>&
-		>::type as()
-		{
-		    return *(std::array<T, 16 / sizeof(T)>*)this;
-		}
-#endif
-
-		template<typename T>
-		OC_FORCEINLINE typename std::enable_if<
+		OC_CUDA_CALLABLE OC_FORCEINLINE typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
@@ -167,7 +152,7 @@ namespace osuCrypto
 
 
 		template<typename T>
-		OC_FORCEINLINE typename std::enable_if<
+		OC_CUDA_CALLABLE OC_FORCEINLINE typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
@@ -183,7 +168,7 @@ namespace osuCrypto
 		}
 
 		template<typename T>
-		OC_FORCEINLINE typename std::enable_if<
+		OC_CUDA_CALLABLE OC_FORCEINLINE typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
@@ -195,7 +180,7 @@ namespace osuCrypto
 
 		// For integer types, this will be specialized with SSE futher down.
 		template<typename T>
-		OC_FORCEINLINE static typename std::enable_if<
+		OC_CUDA_CALLABLE OC_FORCEINLINE static typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
 			(sizeof(T) <= 16) &&
@@ -208,7 +193,7 @@ namespace osuCrypto
 			return arr;
 		}
 
-		OC_FORCEINLINE  osuCrypto::block operator^(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator^(const osuCrypto::block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_xor_si128(rhs);
@@ -222,7 +207,7 @@ namespace osuCrypto
 			return _mm_xor_si128(*this, rhs);
 		}
 #endif
-		OC_FORCEINLINE  osuCrypto::block cc_xor_si128(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block cc_xor_si128(const osuCrypto::block& rhs) const
 		{
 			auto ret = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -231,15 +216,15 @@ namespace osuCrypto
 			return ret;
 		}
 
-		OC_FORCEINLINE  osuCrypto::block& operator^=(const osuCrypto::block& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator^=(const osuCrypto::block& rhs)
 		{
 			*this = *this ^ rhs;
 			return *this;
 		}
 
-		OC_FORCEINLINE  block operator~() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block operator~() const
 		{
-			return *this ^ block(-1, -1);
+			return *this ^ block(~0ull, ~0ull);
 		}
 
 
@@ -251,12 +236,12 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE block cc_andnot_si128(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE block cc_andnot_si128(const block& rhs) const
 		{
 			return ~*this & rhs;
 		}
 
-		OC_FORCEINLINE block andnot_si128(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE block andnot_si128(const block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_andnot_si128(rhs);
@@ -265,7 +250,7 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  osuCrypto::block operator&(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator&(const osuCrypto::block& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_and_si128(rhs);
@@ -274,7 +259,7 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  osuCrypto::block& operator&=(const osuCrypto::block& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator&=(const osuCrypto::block& rhs)
 		{
 			*this = *this & rhs;
 			return *this;
@@ -286,7 +271,7 @@ namespace osuCrypto
 			return _mm_and_si128(*this, rhs);
 		}
 #endif
-		OC_FORCEINLINE  osuCrypto::block cc_and_si128(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block cc_and_si128(const osuCrypto::block& rhs)const
 		{
 			auto ret = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -296,7 +281,7 @@ namespace osuCrypto
 		}
 
 
-		OC_FORCEINLINE  osuCrypto::block operator|(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator|(const osuCrypto::block& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_or_si128(rhs);
@@ -310,7 +295,7 @@ namespace osuCrypto
 			return _mm_or_si128(*this, rhs);
 		}
 #endif
-		OC_FORCEINLINE  osuCrypto::block cc_or_si128(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block cc_or_si128(const osuCrypto::block& rhs)const
 		{
 			auto ret = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -319,7 +304,7 @@ namespace osuCrypto
 			return ret;
 		}
 
-		OC_FORCEINLINE  osuCrypto::block& operator|=(const osuCrypto::block& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator|=(const osuCrypto::block& rhs)
 		{
 			*this = *this | rhs;
 			return *this;
@@ -327,13 +312,13 @@ namespace osuCrypto
 
 
 		[[deprecated("use slli_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block operator<<(const std::uint8_t& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator<<(const std::uint8_t& rhs)const
 		{
 			return slli_epi64(rhs);
 		}
 
 		[[deprecated("use slli_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block& operator<<=(const std::uint8_t& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator<<=(const std::uint8_t& rhs)
 		{
 			*this = slli_epi64(rhs);
 			return *this;
@@ -345,7 +330,7 @@ namespace osuCrypto
 			return _mm_slli_epi64(*this, rhs);
 		}
 #endif
-		OC_FORCEINLINE  osuCrypto::block cc_slli_epi64(const std::uint8_t& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block cc_slli_epi64(const std::uint8_t& rhs)const
 		{
 			auto ret = get<std::uint64_t>();
 			ret[0] <<= rhs;
@@ -354,7 +339,7 @@ namespace osuCrypto
 		}
 
 
-		OC_FORCEINLINE  osuCrypto::block slli_epi64(const std::uint8_t& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block slli_epi64(const std::uint8_t& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_slli_epi64(rhs);
@@ -363,7 +348,7 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  block operator>>(const std::uint8_t& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block operator>>(const std::uint8_t& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_srli_epi64(rhs);
@@ -372,7 +357,7 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  osuCrypto::block& operator>>=(const std::uint8_t& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator>>=(const std::uint8_t& rhs)
 		{
 			*this = *this >> rhs;
 			return *this;
@@ -384,7 +369,7 @@ namespace osuCrypto
 			return _mm_srli_epi64(*this, rhs);
 		}
 #endif
-		OC_FORCEINLINE  block cc_srli_epi64(const std::uint8_t& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srli_epi64(const std::uint8_t& rhs) const
 		{
 			auto ret = get<std::uint64_t>();
 			ret[0] >>= rhs;
@@ -393,13 +378,13 @@ namespace osuCrypto
 		}
 
 		[[deprecated("use add_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block operator+(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator+(const osuCrypto::block& rhs)const
 		{
 			return add_epi64(rhs);
 		}
 
 		[[deprecated("use add_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block& operator+=(const osuCrypto::block& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator+=(const osuCrypto::block& rhs)
 		{
 			*this = add_epi64(rhs);
 			return *this;
@@ -412,7 +397,7 @@ namespace osuCrypto
 
 		}
 #endif
-		OC_FORCEINLINE  block cc_add_epi64(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_add_epi64(const osuCrypto::block& rhs) const
 		{
 			auto ret = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -421,7 +406,7 @@ namespace osuCrypto
 			return ret;
 		}
 
-		OC_FORCEINLINE  block add_epi64(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block add_epi64(const osuCrypto::block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_add_epi64(rhs);
@@ -433,13 +418,13 @@ namespace osuCrypto
 
 
 		[[deprecated("use sub_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block operator-(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator-(const osuCrypto::block& rhs)const
 		{
 			return sub_epi64(rhs);
 		}
 
 		[[deprecated("use sub_epi64 instead")]]
-		OC_FORCEINLINE  osuCrypto::block& operator-=(const osuCrypto::block& rhs)
+		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator-=(const osuCrypto::block& rhs)
 		{
 			*this = sub_epi64(rhs);
 			return *this;
@@ -452,7 +437,7 @@ namespace osuCrypto
 
 		}
 #endif
-		OC_FORCEINLINE  block cc_sub_epi64(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_sub_epi64(const osuCrypto::block& rhs) const
 		{
 			auto ret = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -461,7 +446,7 @@ namespace osuCrypto
 			return ret;
 		}
 
-		OC_FORCEINLINE  block sub_epi64(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block sub_epi64(const osuCrypto::block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_sub_epi64(rhs);
@@ -470,12 +455,12 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  block& cmov(const osuCrypto::block& rhs, bool cond);
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block& cmov(const osuCrypto::block& rhs, bool cond);
 
 		// Same, but expects cond to be either 0x00 or 0xff.
-		OC_FORCEINLINE  block& cmovBytes(const osuCrypto::block& rhs, uint8_t cond);
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block& cmovBytes(const osuCrypto::block& rhs, uint8_t cond);
 
-		OC_FORCEINLINE  bool operator==(const osuCrypto::block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator==(const osuCrypto::block& rhs) const
 		{
 #ifdef OC_ENABLE_SSE2
 			auto neq = _mm_xor_si128(*this, rhs);
@@ -485,37 +470,37 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  bool operator!=(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator!=(const osuCrypto::block& rhs)const
 		{
 			return !(*this == rhs);
 		}
 
 
-		OC_FORCEINLINE  bool operator<(const osuCrypto::block& rhs)const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator<(const osuCrypto::block& rhs)const
 		{
 			auto lhsa = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
 			return lhsa[1] < rhsa[1] || (lhsa[1] == rhsa[1] && lhsa[0] < rhsa[0]);
 		}
 
-		OC_FORCEINLINE  bool operator>(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator>(const block& rhs) const
 		{
 			return rhs < *this;
 		}
 
-		OC_FORCEINLINE  bool operator<=(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator<=(const block& rhs) const
 		{
 			return !(*this > rhs);
 		}
 
-		OC_FORCEINLINE  bool operator>=(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  bool operator>=(const block& rhs) const
 		{
 			return !(*this < rhs);
 		}
 
 
 
-		OC_FORCEINLINE  block srai_epi16(int imm8) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srai_epi16(int imm8) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_srai_epi16(imm8);
@@ -530,7 +515,7 @@ namespace osuCrypto
 			return _mm_srai_epi16(*this, imm8);
 		}
 #endif
-		OC_FORCEINLINE  block cc_srai_epi16(char imm8) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srai_epi16(char imm8) const
 		{
 			auto v = get<std::int16_t>();
 			std::array<std::int16_t, 8> r;
@@ -562,7 +547,7 @@ namespace osuCrypto
 		}
 
 
-		OC_FORCEINLINE  int movemask_epi8() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  int movemask_epi8() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_movemask_epi8();
@@ -578,7 +563,7 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE  int cc_movemask_epi8() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  int cc_movemask_epi8() const
 		{
 			int ret{ 0 };
 			auto v = get<unsigned char>();
@@ -592,7 +577,7 @@ namespace osuCrypto
 			return ret;
 		}
 
-		OC_FORCEINLINE  int testc(const block& b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  int testc(const block& b) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_testc_si128(b);
@@ -601,7 +586,7 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_FORCEINLINE  int cc_testc_si128(const block& rhs) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  int cc_testc_si128(const block& rhs) const
 		{
 			auto lhsa = get<std::uint64_t>();
 			auto rhsa = rhs.get<std::uint64_t>();
@@ -617,7 +602,7 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE  void gf128Mul(const block& y, block& xy1, block& xy2) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  void gf128Mul(const block& y, block& xy1, block& xy2) const
 		{
 #ifdef OC_ENABLE_PCLMUL
 			mm_gf128Mul(y, xy1, xy2);
@@ -628,7 +613,7 @@ namespace osuCrypto
 #endif // !OC_ENABLE_PCLMUL
 		}
 
-		OC_FORCEINLINE  block gf128Mul(const block& y) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block gf128Mul(const block& y) const
 		{
 			block xy1, xy2;
 #ifdef OC_ENABLE_PCLMUL
@@ -642,7 +627,7 @@ namespace osuCrypto
 			return xy1.gf128Reduce(xy2);
 		}
 
-		OC_FORCEINLINE  block gf128Pow(std::uint64_t i) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block gf128Pow(std::uint64_t i) const
 		{
 			if (*this == block(0, 0))
 				return block(0, 0);
@@ -688,7 +673,7 @@ namespace osuCrypto
 
 
 #ifdef ENABLE_ARM_AES
-		OC_FORCEINLINE  void arm_gf128Mul(const block& y, block& xy1, block& xy2) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  void arm_gf128Mul(const block& y, block& xy1, block& xy2) const
 		{
 			auto& x = *this;
 
@@ -707,7 +692,7 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE  void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
 		{
 			static const constexpr std::uint64_t mod = 0b10000111;
 			auto shifted = get<uint64_t>();
@@ -742,7 +727,7 @@ namespace osuCrypto
 		}
 
 
-		block gf128Reduce(const block& x1) const
+		OC_CUDA_CALLABLE block gf128Reduce(const block& x1) const
 		{
 #ifdef OC_ENABLE_PCLMUL
 			return mm_gf128Reduce(x1);
@@ -812,7 +797,7 @@ namespace osuCrypto
 #ifdef ENABLE_ARM_AES
 
 		template<int imm8>
-		OC_FORCEINLINE  block arm_clmulepi64_si128(const block& b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block arm_clmulepi64_si128(const block& b) const
 		{
 			static_assert(imm8 == 0x00 || imm8 == 0x01 || imm8 == 0x10 || imm8==0x11);
 
@@ -826,7 +811,7 @@ namespace osuCrypto
 		}
 #endif
 		template<int imm8>
-		OC_FORCEINLINE  block cc_clmulepi64_si128(const block b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_clmulepi64_si128(const block b) const
 		{
 
 			std::array<uint64_t,2> shifted, result0;
@@ -852,7 +837,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block clmulepi64_si128(block b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block clmulepi64_si128(block b) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_clmulepi64_si128<imm8>(b);
@@ -862,7 +847,7 @@ namespace osuCrypto
 		}
 
 
-		OC_FORCEINLINE  block cc_unpacklo_epi64(block b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_unpacklo_epi64(block b) const
 		{
 			return std::array<uint64_t, 2>{get<uint64_t>()[0], b.get<uint64_t>()[0]};
 		}
@@ -874,7 +859,7 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_FORCEINLINE  block unpacklo_epi64(block b) const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block unpacklo_epi64(block b) const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_unpacklo_epi64(b);
@@ -885,7 +870,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block cc_srli_si128() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srli_si128() const
 		{
 			static_assert(imm8 < 16, "");
 			block r;
@@ -907,7 +892,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block srli_si128() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srli_si128() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_srli_si128<imm8>();
@@ -920,7 +905,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block cc_slli_si128() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_slli_si128() const
 		{
 			static_assert(imm8 < 16, "");
 			block r;
@@ -943,7 +928,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block slli_si128() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block slli_si128() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_slli_si128<imm8>();
@@ -956,7 +941,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block cc_shuffle_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_shuffle_epi32() const
 		{
 			auto xx = get<uint32_t>();
 			std::array<uint32_t,4> rr;
@@ -976,7 +961,7 @@ namespace osuCrypto
 #endif
 
 		template<int imm8>
-		OC_FORCEINLINE  block shuffle_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block shuffle_epi32() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_shuffle_epi32<imm8>();
@@ -990,7 +975,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block cc_srai_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srai_epi32() const
 		{
 			auto r = get<int32_t>();
 			if (imm8 > 31)
@@ -1021,7 +1006,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block srai_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srai_epi32() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_srai_epi32<imm8>();
@@ -1035,7 +1020,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block cc_slli_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_slli_epi32() const
 		{
 			auto r = get<int32_t>();
 			if (imm8 > 31)
@@ -1066,7 +1051,7 @@ namespace osuCrypto
 
 
 		template<int imm8>
-		OC_FORCEINLINE  block slli_epi32() const
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block slli_epi32() const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_slli_epi32<imm8>();
@@ -1131,7 +1116,7 @@ namespace osuCrypto
 
 	// Specialize to send bool to all bits.
 	template<>
-	OC_FORCEINLINE  block block::allSame<bool>(bool val)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block block::allSame<bool>(bool val)
 	{
 		return block::allSame<uint64_t>(-(int64_t)val);
 	}
@@ -1143,31 +1128,31 @@ namespace osuCrypto
 	//#define _SILENCE_ALL_CXX20_DEPRECATION_WARNINGS
 		//static_assert(std::is_pod<block>::value, "expected block pod");
 
-	OC_FORCEINLINE  block toBlock(std::uint64_t high_u64, std::uint64_t low_u64)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block toBlock(std::uint64_t high_u64, std::uint64_t low_u64)
 	{
 		return block(high_u64, low_u64);
 	}
-	OC_FORCEINLINE  block toBlock(std::uint64_t low_u64) { return toBlock(0, low_u64); }
-	OC_FORCEINLINE  block toBlock(const std::uint8_t* data) { return toBlock(((std::uint64_t*)data)[1], ((std::uint64_t*)data)[0]); }
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block toBlock(std::uint64_t low_u64) { return toBlock(0, low_u64); }
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block toBlock(const std::uint8_t* data) { return toBlock(((std::uint64_t*)data)[1], ((std::uint64_t*)data)[0]); }
 
-	OC_FORCEINLINE  block& block::cmov(const osuCrypto::block& rhs, bool cond)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block& block::cmov(const osuCrypto::block& rhs, bool cond)
 	{
 		return *this ^= allSame(cond) & (*this ^ rhs);
 	}
 
-	OC_FORCEINLINE  block& block::cmovBytes(const osuCrypto::block& rhs, uint8_t cond)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  block& block::cmovBytes(const osuCrypto::block& rhs, uint8_t cond)
 	{
 		return *this ^= allSame(cond) & (*this ^ rhs);
 	}
 
-	OC_FORCEINLINE  void cswap(block& x, block& y, bool cond)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  void cswap(block& x, block& y, bool cond)
 	{
 		block diff = block::allSame(cond) & (x ^ y);
 		x ^= diff;
 		y ^= diff;
 	}
 
-	OC_FORCEINLINE  void cswapBytes(block& x, block& y, uint8_t cond)
+	OC_CUDA_CALLABLE OC_FORCEINLINE  void cswapBytes(block& x, block& y, uint8_t cond)
 	{
 		block diff = block::allSame(cond) & (x ^ y);
 		x ^= diff;
@@ -1187,12 +1172,12 @@ namespace osuCrypto
 	using ::operator<<;
 }
 
-OC_FORCEINLINE  bool eq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+OC_CUDA_CALLABLE OC_FORCEINLINE  bool eq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
 {
 	return lhs == rhs;
 }
 
-OC_FORCEINLINE  bool neq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
+OC_CUDA_CALLABLE OC_FORCEINLINE  bool neq(const osuCrypto::block& lhs, const osuCrypto::block& rhs)
 {
 	return lhs != rhs;
 }

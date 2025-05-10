@@ -22,6 +22,7 @@
 #define LOCATION __FILE__ ":" STRINGIZE(__LINE__)
 #define RTE_LOC std::runtime_error(LOCATION)
 
+
 #ifdef _MSC_VER
     #ifndef _WIN32_WINNT
         // compile for win 7 and up.
