@@ -61,15 +61,16 @@ namespace osuCrypto
 
 		OC_CUDA_CALLABLE block() = default;
 		OC_CUDA_CALLABLE block(const block&) = default;
-		OC_CUDA_CALLABLE block(uint64_t x1, uint64_t x0)
-		{
 #ifdef OC_ENABLE_SSE2
+		block(uint64_t x1, uint64_t x0)
+		{
 			mData = _mm_set_epi64x(x1, x0);
-#else
-			mData[0] = x0;
-			mData[1] = x1;
-#endif
 		}
+#else
+		OC_CUDA_CALLABLE block(uint64_t x1, uint64_t x0)
+			: block(std::array<std::uint64_t, 2> {x0, x1}) {
+		}
+#endif
 
 #ifdef OC_ENABLE_SSE2
 		block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
@@ -80,7 +81,8 @@ namespace osuCrypto
 		OC_CUDA_CALLABLE block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
 			: block(std::array<char, 16> {
 			e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15
-		}) {}
+		}) {
+		}
 #endif
 
 		OC_CUDA_CALLABLE explicit block(uint64_t x)
@@ -88,7 +90,7 @@ namespace osuCrypto
 			*this = block(0, x);
 		}
 
-		 template<typename T,
+		template<typename T,
 			typename Enable = typename std::enable_if<
 			std::is_standard_layout<T>::value&&
 			std::is_trivial<T>::value &&
@@ -773,7 +775,7 @@ namespace osuCrypto
 			static const constexpr std::uint64_t mod = 0b10000111;
 
 			/* reduce w.r.t. high half of mul256_high */
-			const block modulus(0,mod);
+			const block modulus(0, mod);
 			block tmp = mul256_high.clmulepi64_si128<0x01>(modulus);
 			mul256_low = mul256_low ^ tmp.slli_si128<8>();
 			mul256_high = mul256_high ^ tmp.srli_si128<8>();
@@ -799,12 +801,12 @@ namespace osuCrypto
 		template<int imm8>
 		OC_CUDA_CALLABLE OC_FORCEINLINE  block arm_clmulepi64_si128(const block& b) const
 		{
-			static_assert(imm8 == 0x00 || imm8 == 0x01 || imm8 == 0x10 || imm8==0x11);
+			static_assert(imm8 == 0x00 || imm8 == 0x01 || imm8 == 0x10 || imm8 == 0x11);
 
-			poly64_t x,y;
+			poly64_t x, y;
 			memcpy(&x, (poly64_t*)&mData + (imm8 & 1), sizeof(poly64_t));
 			memcpy(&y, (poly64_t*)&b.mData + (imm8 >> 4 & 1), sizeof(poly64_t));
-			poly128_t z = vmull_p64(x,y);
+			poly128_t z = vmull_p64(x, y);
 			block r;
 			memcpy(&r, &z, sizeof(block));
 			return r;
@@ -814,7 +816,7 @@ namespace osuCrypto
 		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_clmulepi64_si128(const block b) const
 		{
 
-			std::array<uint64_t,2> shifted, result0;
+			std::array<uint64_t, 2> shifted, result0;
 
 			auto x = get<uint64_t>()[imm8 & 1];
 			auto y = b.get<uint64_t>()[(imm8 >> 4) & 1];
@@ -944,7 +946,7 @@ namespace osuCrypto
 		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_shuffle_epi32() const
 		{
 			auto xx = get<uint32_t>();
-			std::array<uint32_t,4> rr;
+			std::array<uint32_t, 4> rr;
 			rr[0] = xx[(imm8 >> 0) & 3];
 			rr[1] = xx[(imm8 >> 2) & 3];
 			rr[2] = xx[(imm8 >> 4) & 3];
