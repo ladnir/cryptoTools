@@ -152,28 +152,32 @@ namespace osuCrypto
     template<typename T>
     BitReference bit(T&& data, u64 index)
     {
-        if constexpr (bit_compatable_container<T>::value)
+        using TT = std::remove_cvref_t<T>;
+        if constexpr (bit_compatable_container<TT>::value)
         {
-            static_assert(std::is_trivially_copyable_v<typename T::value_type>, 
+            static_assert(std::is_trivially_copyable_v<typename TT::value_type>,
                 "bit(x, i) must be called with an x that is a container of trivial "
                 "values, or be a trivial value, or a pointer to a trivial type");
-            if (index >= sizeof(typename T::value_type) * 8 * data.size())
+            if (index >= sizeof(typename TT::value_type) * 8 * data.size())
                 throw RTE_LOC;
             return BitReference((u8*)data.data(), index);
         }
-        else if constexpr (std::is_pointer_v<T>)
+        else if constexpr (std::is_pointer_v<TT>)
         {
-            static_assert(std::is_trivially_copyable_v<std::remove_pointer_t<T>>,
+            static_assert(std::is_trivially_copyable_v<std::remove_pointer_t<TT>>,
                 "bit(x, i) must be called with an x that is a container of trivial "
                 "values, or be a trivial value, or a pointer to a trivial type");
             return BitReference((u8*)data, index);
         }
         else 
         {
-            static_assert(std::is_trivially_copyable_v<T>, 
+            static_assert(
+                bit_compatable_container<TT>::value ||
+                std::is_pointer_v<TT> ||
+                std::is_trivially_copyable_v<TT>,
                 "bit(x, i) must be called with an x that is a container of trivial "
                 "values, or be a trivial value, or a pointer to a trivial type");
-            if (index >= sizeof(T) * 8)
+            if (index >= sizeof(TT) * 8)
                 throw RTE_LOC;
 
             return BitReference((u8*)&data, index);
