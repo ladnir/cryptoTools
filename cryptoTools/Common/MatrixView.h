@@ -139,6 +139,12 @@ namespace osuCrypto
             return mView;
         }
 
+        MatrixView<T> submtx(u64 beginRow, u64 rowCount)
+        {
+            if(beginRow >= rows() || rowCount + beginRow > rows())
+				throw std::runtime_error(LOCATION);
+			return MatrixView<T>(data(beginRow), rowCount, stride());
+        }
 
         template<typename TT = T>
         typename std::enable_if<
