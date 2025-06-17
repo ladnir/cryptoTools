@@ -350,7 +350,8 @@ namespace osuCrypto
 #endif
 		}
 
-		OC_CUDA_CALLABLE OC_FORCEINLINE  block operator>>(const std::uint8_t& rhs)const
+
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srli_epi64(const std::uint8_t& rhs)const
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_srli_epi64(rhs);
@@ -359,6 +360,14 @@ namespace osuCrypto
 #endif
 		}
 
+
+		[[deprecated("use srli_epi64 instead")]]
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block operator>>(const std::uint8_t& rhs)const
+		{
+			return srli_epi64(rhs);
+		}
+
+		[[deprecated("use srli_epi64 instead")]]
 		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator>>=(const std::uint8_t& rhs)
 		{
 			*this = *this >> rhs;
