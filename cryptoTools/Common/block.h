@@ -370,7 +370,7 @@ namespace osuCrypto
 		[[deprecated("use srli_epi64 instead")]]
 		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block& operator>>=(const std::uint8_t& rhs)
 		{
-			*this = *this >> rhs;
+			*this = this->srli_epi64(rhs);
 			return *this;
 		}
 
