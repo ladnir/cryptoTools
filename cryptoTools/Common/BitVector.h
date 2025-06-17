@@ -158,10 +158,10 @@ namespace osuCrypto {
         template<class T>
         span<T> getSpan() const;
 
-        BitVector subvec(u64 begin, u64 size = -1) const
+        BitVector subvec(u64 begin, u64 size = ~0ull) const
         {
 
-            if (size == -1) size = mNumBits - begin;
+            if (size == ~0ull) size = mNumBits - begin;
             if (begin + size > mNumBits) 
                 throw std::runtime_error("rt error at " LOCATION);
             BitVector ret;
