@@ -18,7 +18,7 @@ namespace osuCrypto
 
         std::list<std::pair<timeUnit, std::string>> mTimes;
         bool mLocking;
-        std::mutex mMtx;
+        mutable std::mutex mMtx;
 
         Timer(bool locking = false)
             :mLocking(locking)
@@ -28,6 +28,24 @@ namespace osuCrypto
 
         const timeUnit& setTimePoint(const std::string& msg);
 
+        timeUnit operator[](const std::string& msg) const
+        {
+            if (mLocking)
+                mMtx.lock();
+            for (auto& t : mTimes)
+            {
+                if (t.second == msg)
+                {
+                    if (mLocking)
+                        mMtx.unlock();
+                    return t.first;
+                }
+            }
+            if (mLocking)
+                mMtx.unlock();
+			throw std::runtime_error("Timer: " + msg + " not found.");
+
+        }
 
         friend std::ostream& operator<<(std::ostream& out, const Timer& timer);
 

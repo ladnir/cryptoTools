@@ -427,6 +427,35 @@ namespace osuCrypto
 		}
 
 
+#ifdef OC_ENABLE_SSE2
+		OC_FORCEINLINE  block mm_add_epi32(const osuCrypto::block& rhs) const
+		{
+			return _mm_add_epi32(*this, rhs);
+
+		}
+#endif
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_add_epi32(const osuCrypto::block& rhs) const
+		{
+			auto ret = get<std::uint32_t>();
+			auto rhsa = rhs.get<std::uint32_t>();
+			ret[0] += rhsa[0];
+			ret[1] += rhsa[1];
+			ret[2] += rhsa[2];
+			ret[3] += rhsa[3];
+			return ret;
+		}
+
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block add_epi32(const osuCrypto::block& rhs) const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_add_epi32(rhs);
+#else
+			return cc_add_epi32(rhs);
+#endif
+		}
+
+
+
 
 		[[deprecated("use sub_epi64 instead")]]
 		OC_CUDA_CALLABLE OC_FORCEINLINE  osuCrypto::block operator-(const osuCrypto::block& rhs)const
