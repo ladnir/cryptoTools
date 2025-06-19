@@ -72,6 +72,16 @@ namespace osuCrypto
 		}
 #endif
 
+
+		block(uint32_t x3, uint32_t x2, uint32_t x1, uint32_t x0)
+		{
+#ifdef OC_ENABLE_SSE2
+			mData = _mm_set_epi32(x3,x2,x1, x0);
+#else
+			*this = std::array<uint32_t, 4>{ x0,x1,x2,x3 };
+#endif
+		}
+
 #ifdef OC_ENABLE_SSE2
 		block(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0)
 		{
@@ -350,6 +360,85 @@ namespace osuCrypto
 #endif
 		}
 
+
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srli_epi32(const std::uint8_t& rhs)const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_srli_epi32(rhs);
+#else
+			return cc_srli_epi32(rhs);
+#endif
+		}
+
+
+#ifdef OC_ENABLE_SSE2
+		OC_FORCEINLINE  block mm_srli_epi32(const std::uint8_t& rhs) const
+		{
+			return _mm_srli_epi32(*this, rhs);
+		}
+#endif
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srli_epi32(const std::uint8_t& rhs) const
+		{
+			auto ret = get<std::uint32_t>();
+			ret[0] >>= rhs;
+			ret[1] >>= rhs;
+			ret[2] >>= rhs;
+			ret[3] >>= rhs;
+			return ret;;
+		}
+
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block srl_epi32(const std::uint8_t& rhs)const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_srl_epi32(rhs);
+#else
+			return cc_srl_epi32(rhs);
+#endif
+		}
+
+
+#ifdef OC_ENABLE_SSE2
+		OC_FORCEINLINE  block mm_srl_epi32(const std::uint8_t& rhs) const
+		{
+			return _mm_srl_epi32(*this, block(rhs));
+		}
+#endif
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_srl_epi32(const std::uint8_t& rhs) const
+		{
+			auto ret = get<std::uint32_t>();
+			ret[0] >>= rhs;
+			ret[1] >>= rhs;
+			ret[2] >>= rhs;
+			ret[3] >>= rhs;
+			return ret;;
+		}
+
+
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block sll_epi32(const std::uint8_t& rhs)const
+		{
+#ifdef OC_ENABLE_SSE2
+			return mm_sll_epi32(rhs);
+#else
+			return cc_sll_epi32(rhs);
+#endif
+		}
+
+
+#ifdef OC_ENABLE_SSE2
+		OC_FORCEINLINE  block mm_sll_epi32(const std::uint8_t& rhs) const
+		{
+			return _mm_sll_epi32(*this, block(rhs));
+		}
+#endif
+		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_sll_epi32(const std::uint8_t& rhs) const
+		{
+			auto ret = get<std::uint32_t>();
+			ret[0] <<= rhs;
+			ret[1] <<= rhs;
+			ret[2] <<= rhs;
+			ret[3] <<= rhs;
+			return ret;;
+		}
 
 		OC_CUDA_CALLABLE OC_FORCEINLINE  block srli_epi64(const std::uint8_t& rhs)const
 		{
