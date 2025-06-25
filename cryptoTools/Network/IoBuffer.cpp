@@ -34,7 +34,7 @@ namespace osuCrypto
             mBase = base;
 
             if (!mComHandle)
-                throw std::runtime_error(LOCATION);
+                throw NetworkException(LOCATION);
 
             // first we have to receive the header which tells us how much.
             base->mRecvBuffer = getRecvHeaderBuffer();
@@ -76,11 +76,13 @@ namespace osuCrypto
                     mBase->mHandle->async_recv({ &mBase->mRecvBuffer , 1 }, [this, bt1](const error_code& ec, u64 bt2)
                     {
 
-                        if (!ec) mPromise.set_value();
-                        else mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+                        if (!ec) 
+                            mPromise.set_value();
+                        else 
+                            mPromise.set_exception(std::make_exception_ptr(NetworkException(ec.message())));
                         
                         if (!mComHandle)
-                            throw std::runtime_error(LOCATION);
+                            throw NetworkException(LOCATION);
 
 #ifdef ENABLE_NET_LOG
                         if(ec)
@@ -97,7 +99,7 @@ namespace osuCrypto
 #ifdef ENABLE_NET_LOG
                     log("FixedRecvBuff error " + std::to_string(mIdx) + " " + ec.message() +"  " + LOCATION);
 #endif
-                    mPromise.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+                    mPromise.set_exception(std::make_exception_ptr(NetworkException(ec.message())));
                     mComHandle(ec, bt1);
                 }
             });

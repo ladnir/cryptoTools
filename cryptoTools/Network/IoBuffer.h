@@ -206,6 +206,12 @@ namespace osuCrypto
         {}
     };
 
+    struct NetworkException : public std::runtime_error
+    {
+        NetworkException(const std::string& what)
+            : std::runtime_error(what)
+        {}
+	};
 
     template<typename T>
     inline u8* channelBuffData(const T& container) { return (u8*)container.data(); }

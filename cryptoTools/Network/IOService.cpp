@@ -586,7 +586,8 @@ namespace osuCrypto
 
     void Acceptor::asyncGetSocket(std::shared_ptr<ChannelBase> chl)
     {
-        if (stopped()) throw std::runtime_error(LOCATION);
+        if (stopped()) 
+            throw std::runtime_error(LOCATION);
         LOG_MSG("queuing getSocket(...) Channel "
             + chl->mSession->mName + " "
             + chl->mLocalName + " "
