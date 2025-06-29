@@ -136,14 +136,47 @@ Rist25519 Rist25519::fromHash(const unsigned char* d)
 
 #ifdef SODIUM_MONTGOMERY
 
+
+namespace internal
+{
+    // Primary template for the compile-time check.
+    template <typename, typename... T>
+    struct has_crypto_scalarmult_noclamp_impl : std::false_type {};
+
+    // Specialization that is selected if the decltype expression is valid.
+    // This indicates that the function is available with the given argument types.
+    template <typename... T>
+    struct has_crypto_scalarmult_noclamp_impl<
+        std::void_t<decltype(crypto_scalarmult_noclamp(std::declval<T>()...))>, T...>
+        : std::true_type {
+    };
+}
+
+// Helper variable template to simplify usage of the trait.
+template <typename... T>
+constexpr bool has_crypto_scalarmult_noclamp_v =
+internal::has_crypto_scalarmult_noclamp_impl<void, T...>::value;
+
+// Statically assert that the required `crypto_scalarmult_noclamp` function is available.
+// The argument types are based on its usage in `operator*(const Scalar25519&, const Monty25519&)`.
+static_assert(has_crypto_scalarmult_noclamp_v<unsigned char*, const unsigned char*, const unsigned char*>,
+    "libOTe is being compiled with SODIUM_MONTGOMERY=true "
+    "but the version of libsodium being linked with does not have the required function crypto_scalarmult_noclamp(...). "
+    "This function is on a custom branch of libsodium that can be obtained by using the build system `-DFETCH_SODIUM=true`."
+    " If you wish to use the existing libsodium then simply build libOTe with `-DSODIUM_MONTGOMERY=false`.");
+
+
+
 bool Monty25519::operator==(const Monty25519& cmp) const
 {
     return sodium_memcmp(data, cmp.data, size) == 0;
 }
 
+
 Monty25519 operator*(const Scalar25519& a, const Monty25519& b)
 {
     Monty25519 prod;
+    
     if (crypto_scalarmult_noclamp(prod.data, a.data, b.data) < 0)
         throw std::runtime_error(LOCATION);
     return prod;
