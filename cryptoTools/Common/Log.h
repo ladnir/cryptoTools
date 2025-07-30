@@ -219,4 +219,19 @@ namespace osuCrypto
     void setThreadName(const std::string name);
     void setThreadName(const char* name);
 
+
+    struct OK_t {};
+    struct FAIL_t {};
+
+    inline std::ostream& operator<<(std::ostream& o, OK_t) {
+        o << Color::Green << "[OK]" << Color::Default;
+        return o;
+    }
+    inline std::ostream& operator<<(std::ostream& o, FAIL_t) {
+        o << Color::Red << "[FAIL]" << Color::Default;
+        return o;
+    }
+
+    static constexpr OK_t OK;
+    static constexpr FAIL_t FAIL{};
 }
