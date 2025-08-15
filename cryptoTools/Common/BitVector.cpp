@@ -34,7 +34,7 @@ namespace osuCrypto {
 		std::copy_n(K.mData.get(), sizeBlocks(), mData.get());
 	}
 
-	void BitVector::append(u8* dataIn, u64 length, u64 offset)
+	void BitVector::append(const u8* dataIn, u64 length, u64 offset)
 	{
 
 		auto bitIdx = mNumBits;

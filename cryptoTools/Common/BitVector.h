@@ -40,7 +40,7 @@ namespace osuCrypto {
         void assign(const BitVector& K);
 
         // Append length bits pointed to by data starting a the bit index by offset.
-        void append(u8* data, u64 length, u64 offset = 0);
+        void append(const u8* data, u64 length, u64 offset = 0);
 
         // Append an existing BitVector to this BitVector.
         void append(const BitVector& k) { append(k.data(), k.size()); }
