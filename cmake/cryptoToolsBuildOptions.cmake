@@ -1,5 +1,7 @@
 
 include_guard(GLOBAL)
+include(CheckCXXCompilerFlag)
+
 
 set(CRYPTOTOOLS_BUILD ON)
 
@@ -22,11 +24,32 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     message(STATUS "Building for ARM")
 	set(ENABLE_ARM_AES_DEFAULT true)
 	set(ENABLE_SSE_DEFAULT false)
+	set(ENABLE_AVX_DEFAULT false)
+	set(ENABLE_AVX2_DEFAULT false)
+	set(ENABLE_AVX512_DEFAULT false)
 else()
     # Code for other architectures
     message(STATUS "Building for x86-64")
 	set(ENABLE_ARM_AES_DEFAULT false)
-	set(ENABLE_SSE_DEFAULT true)
+	
+	# defines ENABLE_SSE_DEFAULT, etc
+	include(${CMAKE_CURRENT_LIST_DIR}/CheckISA.cmake)
+
+	#set(ENABLE_SSE_DEFAULT true)
+	#if(MSVC)
+	#	check_cxx_compiler_flag("/arch:SSE2"   ENABLE_SSE_DEFAULT)
+	#	check_cxx_compiler_flag("/arch:AVX"    ENABLE_AVX_DEFAULT)
+	#	check_cxx_compiler_flag("/arch:AVX2"   ENABLE_AVX2_DEFAULT)
+	#	check_cxx_compiler_flag("/arch:AVX512" ENABLE_AVX512_DEFAULT)
+	#else()
+	#	check_cxx_compiler_flag("-msse2"    ENABLE_SSE_DEFAULT)
+	#	check_cxx_compiler_flag("-mavx"     ENABLE_AVX_DEFAULT)
+	#	check_cxx_compiler_flag("-mavx2"    ENABLE_AVX2_DEFAULT)
+	#	check_cxx_compiler_flag("-mavx512f" ENABLE_AVX512_DEFAULT)
+	#endif()
+
+
+
 endif()
 
 
@@ -43,11 +66,15 @@ option(ENABLE_NET_LOG   "compile with network logging" OFF)
 option(ENABLE_WOLFSSL   "compiler with WolfSSL enabled" OFF)
 option(ENABLE_ARM_AES   "compile with ARM AES instructions" ${ENABLE_ARM_AES_DEFAULT})
 option(ENABLE_SSE       "compile with SSE instructions" ${ENABLE_SSE_DEFAULT})
-option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_SSE})
+option(ENABLE_AVX       "compile with AVX instructions" ${ENABLE_AVX_DEFAULT})
+option(ENABLE_AVX2      "compile with AVX2 instructions" ${ENABLE_AVX2_DEFAULT})
+option(ENABLE_AVX512    "compile with AVX512 instructions" ${ENABLE_AVX512_DEFAULT})
+option(ENABLE_BMI2      "compile with BMI2 instructions" ${ENABLE_BMI2_DEFAULT})
 option(ENABLE_BOOST     "compile with BOOST networking integration" OFF)
 option(ENABLE_OPENSSL   "compile with OpenSSL networking integration" OFF)
 option(ENABLE_ASAN      "build with asan" OFF)
 option(ENABLE_PIC       "compile with -fPIC " OFF)
+
 option(VERBOSE_FETCH    "" ON)
 
 if(NOT DEFINED CRYPTO_TOOLS_STD_VER)
@@ -148,6 +175,9 @@ message(STATUS "Option: ENABLE_PORTABLE_AES = ${ENABLE_PORTABLE_AES}")
 
 message(STATUS "Option: ENABLE_SSE          = ${ENABLE_SSE}")
 message(STATUS "Option: ENABLE_AVX          = ${ENABLE_AVX}")
+message(STATUS "Option: ENABLE_AVX2         = ${ENABLE_AVX2}")
+message(STATUS "Option: ENABLE_AVX512       = ${ENABLE_AVX512}")
+message(STATUS "Option: ENABLE_BMI2         = ${ENABLE_BMI2}")
 message(STATUS "Option: ENABLE_PIC          = ${ENABLE_PIC}")
 message(STATUS "Option: ENABLE_ASAN         = ${ENABLE_ASAN}\n\n")
 

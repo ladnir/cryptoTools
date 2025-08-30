@@ -522,7 +522,7 @@ namespace osuCrypto {
 
 
 		template<AESTypes type>
-		block AES<type>::roundEnc(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<type>::roundEnc(block state, const block& roundKey)
 		{
 			if constexpr (type == AESTypes::ARM)
 			{
@@ -537,7 +537,7 @@ namespace osuCrypto {
 
 #ifdef OC_ENABLE_PORTABLE_AES
 		template<>
-		inline block AES<Portable>::firstFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<Portable>::firstFn(block state, const block& roundKey)
 		{
 			return state ^ roundKey;
 		}
@@ -548,26 +548,26 @@ namespace osuCrypto {
 #ifdef OC_ENABLE_AESNI
 
 		template<>
-		inline block AES<NI>::firstFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<NI>::firstFn(block state, const block& roundKey)
 		{
 			return state ^ roundKey;
 		}
 
 		template<>
-		inline block AES<NI>::roundFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<NI>::roundFn(block state, const block& roundKey)
 		{
 			return _mm_aesenc_si128(state, roundKey);
 		}
 
 		template<>
-		inline block AES<NI>::penultimateFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<NI>::penultimateFn(block state, const block& roundKey)
 		{
 			return roundFn(state, roundKey);
 		}
 
 
 		template<>
-		inline block AES<NI>::finalFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<NI>::finalFn(block state, const block& roundKey)
 		{
 			return _mm_aesenclast_si128(state, roundKey);
 		}
@@ -575,7 +575,7 @@ namespace osuCrypto {
 #elif defined(ENABLE_ARM_AES)
 
 		template<>
-		inline block AES<ARM>::firstFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<ARM>::firstFn(block state, const block& roundKey)
 		{
 			block r;
 			r.mData = vaeseq_u8(state.mData, roundKey.mData);
@@ -584,13 +584,13 @@ namespace osuCrypto {
 		}
 
 		template<>
-		inline block AES<ARM>::roundFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<ARM>::roundFn(block state, const block& roundKey)
 		{
 			return firstFn(state, roundKey);
 		}
 
 		template<>
-		inline block AES<ARM>::penultimateFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<ARM>::penultimateFn(block state, const block& roundKey)
 		{
 			block r;
 			r.mData = vaeseq_u8(state.mData, roundKey.mData);
@@ -598,7 +598,7 @@ namespace osuCrypto {
 		}
 
 		template<>
-		inline block AES<ARM>::finalFn(block state, const block& roundKey)
+		OC_FORCEINLINE block AES<ARM>::finalFn(block state, const block& roundKey)
 		{
 			return state ^ roundKey;
 		}

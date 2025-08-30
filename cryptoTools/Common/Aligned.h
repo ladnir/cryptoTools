@@ -276,7 +276,8 @@ namespace osuCrypto
                 if (oldCap)
                 {
                     auto m = std::min<size_t>(oldSpan.size(), n);
-                    std::copy(oldSpan.begin(), oldSpan.begin() + m, mSpan.begin());
+                    if(m)
+                        std::copy(oldSpan.begin(), oldSpan.begin() + m, mSpan.begin());
 
                     Allocator::deallocate(oldSpan.data(), mCapacity);
                 }

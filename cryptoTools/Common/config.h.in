@@ -41,6 +41,17 @@
 // enable the use of intel AVX instructions.
 #cmakedefine ENABLE_AVX @ENABLE_AVX@
 
+// enable the use of intel AVX2 instructions.
+#cmakedefine ENABLE_AVX2 @ENABLE_AVX2@
+
+// enable the use of intel AVX512 instructions.
+#cmakedefine ENABLE_AVX512 @ENABLE_AVX512@
+
+// enable the use of intel BMI2 instructions.
+#cmakedefine ENABLE_BMI2 @ENABLE_BMI2@
+
+
+
 // enable the use of the portable AES implementation.
 #cmakedefine ENABLE_PORTABLE_AES @ENABLE_PORTABLE_AES@
 
