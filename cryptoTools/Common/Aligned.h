@@ -271,13 +271,22 @@ namespace osuCrypto
             else
             {
                 mSpan = span<T>(Allocator::allocate(n), n);
+                if (mSpan.data() == nullptr)
+                    throw std::bad_alloc();
                 mCapacity = n;
 
                 if (oldCap)
                 {
-                    auto m = std::min<size_t>(oldSpan.size(), n);
-                    if(m)
+                    
+                    if constexpr (std::is_trivially_copyable_v<T>)
+                    {
+                        copyBytesMin(mSpan, oldSpan);
+                    }
+                    else
+                    {
+                        auto m = std::min<size_t>(oldSpan.size(), n);
                         std::copy(oldSpan.begin(), oldSpan.begin() + m, mSpan.begin());
+                    }
 
                     Allocator::deallocate(oldSpan.data(), mCapacity);
                 }
