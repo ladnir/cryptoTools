@@ -20,7 +20,7 @@ target_include_directories(cryptoTools PUBLIC
 if(MSVC)
     if(ENABLE_ASAN)
         message("Warning: ASAN is enabled for cryptoTools")
-        target_compile_options(cryptoTools PUBLIC "/fsanitize=address")
+        target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/fsanitize=address>)
     endif()
 
     target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/std:c++${CRYPTO_TOOLS_STD_VER}>)
