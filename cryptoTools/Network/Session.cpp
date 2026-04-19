@@ -77,13 +77,13 @@ namespace osuCrypto {
         else
         {
 			PRNG prng(ioService.getRandom(), sizeof(block) + sizeof(u64));
-			mBase->mSessionID = prng.get();
+            mBase->mSessionID = prng.get();
 #ifdef ENABLE_WOLFSSL
 			mBase->mTLSSessionID = prng.get();
 #endif
             boost::asio::ip::tcp::resolver resolver(ioService.mIoService);
-            boost::asio::ip::tcp::resolver::query query(mBase->mIP, boost::lexical_cast<std::string>(port));
-            mBase->mRemoteAddr = *resolver.resolve(query);
+            auto results = resolver.resolve(mBase->mIP, boost::lexical_cast<std::string>(port));
+            mBase->mRemoteAddr = *results.begin();
         }
     }
 

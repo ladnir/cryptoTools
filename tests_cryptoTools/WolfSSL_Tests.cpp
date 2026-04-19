@@ -57,8 +57,8 @@ int client()
     }
 
     boost::asio::ip::tcp::resolver resolver(ios.mIoService);
-    boost::asio::ip::tcp::resolver::query query("127.0.0.1", "1212");
-    boost::asio::ip::tcp::endpoint addr = *resolver.resolve(query);
+    auto results = resolver.resolve("127.0.0.1", "1212");
+    boost::asio::ip::tcp::endpoint addr = *results.begin();
    // lout << "c 4" << std::endl;
 
     u64 bt;
@@ -131,8 +131,8 @@ int server()
 
     IOService ios;
     boost::asio::ip::tcp::resolver resolver(ios.mIoService);
-    boost::asio::ip::tcp::resolver::query query("127.0.0.1", "1212");
-    boost::asio::ip::tcp::endpoint addr = *resolver.resolve(query);
+    auto results = resolver.resolve("127.0.0.1", "1212");
+    boost::asio::ip::tcp::endpoint addr = *results.begin();
     boost::asio::ip::tcp::acceptor accpt(ios.mIoService);
 
     //lout << "server 1" << std::endl;
@@ -146,7 +146,7 @@ int server()
         lout << "ec bind " << ec.message() << std::endl;
         throw RTE_LOC;
     }
-    accpt.listen(boost::asio::socket_base::max_connections, ec);
+    accpt.listen(boost::asio::socket_base::max_listen_connections, ec);
     if (ec)
     {
         lout << "ec listen " << ec.message() << std::endl;
@@ -296,14 +296,14 @@ void wolfSSL_mutualAuth_test(const osuCrypto::CLP& cmd)
     u64 bt;
 
     boost::asio::ip::tcp::resolver resolver(ios.mIoService);
-    boost::asio::ip::tcp::resolver::query query("127.0.0.1", "1212");
-    boost::asio::ip::tcp::endpoint addr = *resolver.resolve(query);
+    auto results = resolver.resolve("127.0.0.1", "1212");
+    boost::asio::ip::tcp::endpoint addr = *results.begin();
     boost::asio::ip::tcp::acceptor accpt(ios.mIoService);
     accpt.open(addr.protocol());
     accpt.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
     accpt.bind(addr, ec);
     if (ec) throwEC(ec);
-    accpt.listen(boost::asio::socket_base::max_connections);
+    accpt.listen(boost::asio::socket_base::max_listen_connections);
 
 
     WolfContext sctx;

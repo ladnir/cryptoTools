@@ -75,7 +75,7 @@ namespace osuCrypto
             {
                 for (auto& b : mState->mRecvRequest[idx])
                 {
-                    auto data = boost::asio::buffer_cast<char*>(b);
+                    auto data = buffer_data<char>(b);
                     auto size = boost::asio::buffer_size(b);
                     mState->mRecvBuffers[idx].read(data, size);
                 }
@@ -144,7 +144,7 @@ namespace osuCrypto
             auto idx = mIdx ^ 1;
             for (auto b : buffers)
             {
-                auto data = boost::asio::buffer_cast<char*>(b);
+                auto data = buffer_data<char>(b);
                 auto size = boost::asio::buffer_size(b);
                 mState->mRecvBuffers[idx].write(data, size);
                 sendSize += size;

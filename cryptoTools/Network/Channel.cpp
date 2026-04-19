@@ -369,7 +369,7 @@ namespace osuCrypto {
         }
         
         mIsFirst = true;
-        mTimer.expires_from_now(boost::posix_time::millisec(count));
+        mTimer.expires_after(std::chrono::milliseconds(count));
         mTimer.async_wait([this](const error_code& ec) {
             boost::asio::dispatch(mStrand, [this](){
                 if (mIsFirst) {
@@ -537,7 +537,7 @@ namespace osuCrypto {
             mSock->mSock.close(ec2);
 
             auto count = static_cast<u64>(mBackoff);
-            mTimer.expires_from_now(boost::posix_time::millisec(count));
+            mTimer.expires_after(std::chrono::milliseconds(count));
             mBackoff = std::min(mBackoff * 1.2, 1000.0);
             if (mBackoff >= 1000.0)
             {

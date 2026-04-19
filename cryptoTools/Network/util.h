@@ -12,13 +12,30 @@
 
 namespace osuCrypto
 {
+    using AsioContext = boost::asio::io_context;
+    using AsioExecutor = AsioContext::executor_type;
+    using AsioStrand = boost::asio::strand<AsioExecutor>;
+    using AsioWorkGuard = boost::asio::executor_work_guard<AsioExecutor>;
+    using AsioTimer = boost::asio::steady_timer;
+
+    template<typename T>
+    inline T* buffer_data(boost::asio::mutable_buffer buffer)
+    {
+        return static_cast<T*>(buffer.data());
+    }
+
+    template<typename T>
+    inline const T* buffer_data(boost::asio::const_buffer buffer)
+    {
+        return static_cast<const T*>(buffer.data());
+    }
 
     class IOService;
 
     class Work
     {
     public:
-        std::unique_ptr<boost::asio::io_service::work> mWork;
+        std::unique_ptr<AsioWorkGuard> mWork;
         std::string mReason;
         IOService& mIos;
         Work(IOService& ios, std::string reason);

@@ -414,13 +414,13 @@ namespace osuCrypto {
         }
 
 
-        boost::asio::deadline_timer mTimer;
+        AsioTimer mTimer;
 
         enum class ComHandleStatus { Uninit, Init, Eval };
         ComHandleStatus mSendStatus = ComHandleStatus::Uninit;
         ComHandleStatus mRecvStatus = ComHandleStatus::Uninit;
 
-        boost::asio::strand<boost::asio::io_context::executor_type>& mStrand;
+        AsioStrand& mStrand;
         std::vector<u8> mSendBuffer;
         std::unique_ptr<BoostSocketInterface> mSock;
 
@@ -526,7 +526,7 @@ namespace osuCrypto {
 
         std::unique_ptr<SocketInterface> mHandle;
 
-        boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
+        AsioStrand mStrand;
 
         u64 mTotalSentData = 0;
         u64 mTotalRecvData = 0;

@@ -240,7 +240,7 @@ namespace osuCrypto
         using buffer = boost::asio::mutable_buffer;
 
         boost::asio::ip::tcp::socket mSock;
-        boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
+        AsioStrand mStrand;
         boost::asio::io_context& mIos;
         WOLFSSL* mSSL = nullptr;
 #ifdef WOLFSSL_LOGGING

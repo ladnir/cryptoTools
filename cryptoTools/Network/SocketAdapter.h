@@ -100,7 +100,7 @@ namespace osuCrypto
                 for (u64 i = 0; i < u64( buffers.size()); ++i) {
                     try {
                         // Use boost conversions to get normal pointer size
-                        auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
+                        auto data = buffer_data<u8>(buffers[i]);
                         auto size = boost::asio::buffer_size(buffers[i]);
 
                         // NOTE: I am assuming that this is blocking. 
@@ -133,7 +133,7 @@ namespace osuCrypto
                 for (u64 i = 0; i < u64(buffers.size()); ++i) {
                     try {
                         // Use boost conversions to get normal pointer size
-                        auto data = boost::asio::buffer_cast<u8*>(buffers[i]);
+                        auto data = buffer_data<u8>(buffers[i]);
                         auto size = boost::asio::buffer_size(buffers[i]);
 
                         // Note that I am assuming that this is blocking. 
@@ -237,7 +237,7 @@ namespace osuCrypto
 
                 for (auto buffer : buffers)
                 {
-                    auto b = span<u8>(boost::asio::buffer_cast<u8*>(buffer), boost::asio::buffer_size(buffer));
+                    auto b = span<u8>(buffer_data<u8>(buffer), boost::asio::buffer_size(buffer));
                     op.mBuffers.push_back(b);
                 }
                 op.mType = Operation::Recv;
@@ -263,7 +263,7 @@ namespace osuCrypto
                 Operation op;
                 for (auto buffer : buffers)
                 {
-                    auto b = span<u8>(boost::asio::buffer_cast<u8*>(buffer), boost::asio::buffer_size(buffer));
+                    auto b = span<u8>(buffer_data<u8>(buffer), boost::asio::buffer_size(buffer));
                     op.mBuffers.push_back(b);
                 }
                 op.mType = Operation::Send;
