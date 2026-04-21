@@ -62,7 +62,7 @@ def Build(projectName, argv, install, par, sudo, noConfig):
     if par != 1:
         parallel = " --parallel " + str(par)
 
-    mkDirCmd = "mkdir -p {0}".format(buildDir); 
+    mkDirCmd = "mkdir {0}".format(buildDir); 
     CMakeCmd = "cmake -S . -B {0} {1}".format(buildDir, argStr)
     BuildCmd = "cmake --build {0} {1} {2} ".format(buildDir, config, parallel)
 
@@ -96,9 +96,10 @@ def Build(projectName, argv, install, par, sudo, noConfig):
     status = 0
 
     if not noConfig:
-        status = run(mkDirCmd)
-        if status:
-            return status
+        try:
+            os.makedirs(buildDir, exist_ok=True)
+        except OSError:
+            return 1
         status = run(CMakeCmd)
         if status:
             return status
