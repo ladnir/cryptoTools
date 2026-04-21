@@ -1,5 +1,6 @@
 import os
 import platform
+import subprocess
 import sys
 import multiprocessing
 
@@ -22,19 +23,27 @@ def replace(list, find, replace):
         list[idx] = replace;
     return list
 
+def getSuffix(X, prefix):
+    for x in X:
+        if x.startswith(prefix):
+            return x[len(prefix):]
+    return ""
+
 def Build(projectName, argv, install, par, sudo, noConfig):
 
     osStr = (platform.system())
     buildDir = ""
     config = ""
-    buildType = ""
+    buildType = getSuffix(argv, "-DCMAKE_BUILD_TYPE=")
     setup = "--setup" in argv;
     argv = replace(argv, "--setup", "")
 
-    if "--debug" in argv:
-        buildType = "Debug"
-    else:
-        buildType = "Release"
+    if buildType == "":
+        if "--debug" in argv:
+            buildType = "Debug"
+        else:
+            buildType = "Release"
+        argv.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
     argv = replace(argv, "--debug", "")
 
 
@@ -45,10 +54,6 @@ def Build(projectName, argv, install, par, sudo, noConfig):
         buildDir = "out/build/osx"
     else:
         buildDir = "out/build/linux"
-
-    if not any("DCMAKE_BUILD_TYPE" in s for s in argv):
-        argv.append("-DCMAKE_BUILD_TYPE={0}".format(buildType))
-
     argStr = ""
     for a in argv:
         argStr = argStr + " " + a
@@ -85,17 +90,33 @@ def Build(projectName, argv, install, par, sudo, noConfig):
             print(InstallCmd)
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
 
+    def run(cmd):
+        return subprocess.call(cmd, shell=True)
+
+    status = 0
+
     if not noConfig:
-        os.system(mkDirCmd)
-        os.system(CMakeCmd)
+        status = run(mkDirCmd)
+        if status:
+            return status
+        status = run(CMakeCmd)
+        if status:
+            return status
 
     if not setup:
-        os.system(BuildCmd)
+        status = run(BuildCmd)
+        if status:
+            return status
 
         if len(sudo) > 0:
             print("installing "+projectName+": {0}\n".format(InstallCmd))
 
-        os.system(InstallCmd)
+        if InstallCmd:
+            status = run(InstallCmd)
+            if status:
+                return status
+
+    return 0
 
 
 
@@ -173,8 +194,8 @@ def main(projectName, argv):
     argv = replace(argv, "--nc", "")
 
 
-    Build(projectName, argv, install, par, sudo, noConfig)
+    return Build(projectName, argv, install, par, sudo, noConfig)
 
 if __name__ == "__main__":
 
-    main("cryptoTools", sys.argv[1:])
+    sys.exit(main("cryptoTools", sys.argv[1:]))
