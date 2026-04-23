@@ -203,8 +203,8 @@ namespace osuCrypto {
 		template<AESTypes type>
 		OC_FORCEINLINE void aesEcbEncBlocksSmall(
 			const AES<type>& aes,
-			const block* __restrict plaintext,
-			block* __restrict ciphertext,
+			const block* plaintext,
+			block* ciphertext,
 			std::integral_constant<u64, 1>)
 		{
 			block x0;
@@ -224,8 +224,8 @@ namespace osuCrypto {
 		template<AESTypes type, u64 blocks>
 		OC_FORCEINLINE void aesEcbEncBlocksSmall(
 			const AES<type>& aes,
-			const block* __restrict plaintext,
-			block* __restrict ciphertext,
+			const block* plaintext,
+			block* ciphertext,
 			std::integral_constant<u64, blocks>)
 		{
 			static_assert(blocks >= 2 && blocks <= 8);
@@ -309,8 +309,8 @@ namespace osuCrypto {
 		template<AESTypes type>
 		OC_FORCEINLINE void aesHashBlocksSmall(
 			const AES<type>& aes,
-			const block* __restrict plaintext,
-			block* __restrict ciphertext,
+			const block* plaintext,
+			block* ciphertext,
 			std::integral_constant<u64, 1>)
 		{
 			block x0;
@@ -330,8 +330,8 @@ namespace osuCrypto {
 		template<AESTypes type, u64 blocks>
 		OC_FORCEINLINE void aesHashBlocksSmall(
 			const AES<type>& aes,
-			const block* __restrict plaintext,
-			block* __restrict ciphertext,
+			const block* plaintext,
+			block* ciphertext,
 			std::integral_constant<u64, blocks>)
 		{
 			static_assert(blocks >= 2 && blocks <= 8);
