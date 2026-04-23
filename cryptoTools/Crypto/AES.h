@@ -201,13 +201,229 @@ namespace osuCrypto {
 
 
 		template<AESTypes type>
+		OC_FORCEINLINE void aesEcbEncBlocksSmall(
+			const AES<type>& aes,
+			const block* __restrict plaintext,
+			block* __restrict ciphertext,
+			std::integral_constant<u64, 1>)
+		{
+			block x0;
+			x0 = AES<type>::firstFn(plaintext[0], aes.mRoundKey[0]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[1]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[2]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[3]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[4]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[5]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[6]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[7]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[8]);
+			x0 = AES<type>::penultimateFn(x0, aes.mRoundKey[9]);
+			ciphertext[0] = AES<type>::finalFn(x0, aes.mRoundKey[10]);
+		}
+
+		template<AESTypes type, u64 blocks>
+		OC_FORCEINLINE void aesEcbEncBlocksSmall(
+			const AES<type>& aes,
+			const block* __restrict plaintext,
+			block* __restrict ciphertext,
+			std::integral_constant<u64, blocks>)
+		{
+			static_assert(blocks >= 2 && blocks <= 8);
+			static_assert(AES<type>::rounds == 10);
+
+#define OC_AES_CAT2(a, b) a##b
+#define OC_AES_CAT(a, b) OC_AES_CAT2(a, b)
+#define OC_AES_EXPAND_ONE(value, maxValue, macro) \
+			do                                       \
+			{                                        \
+				if constexpr ((value) < (maxValue)) \
+				{                                    \
+					macro(value);                    \
+				}                                    \
+			} while (false)
+#define OC_AES_EXPAND8(maxValue, macro) \
+			OC_AES_EXPAND_ONE(0, maxValue, macro); \
+			OC_AES_EXPAND_ONE(1, maxValue, macro); \
+			OC_AES_EXPAND_ONE(2, maxValue, macro); \
+			OC_AES_EXPAND_ONE(3, maxValue, macro); \
+			OC_AES_EXPAND_ONE(4, maxValue, macro); \
+			OC_AES_EXPAND_ONE(5, maxValue, macro); \
+			OC_AES_EXPAND_ONE(6, maxValue, macro); \
+			OC_AES_EXPAND_ONE(7, maxValue, macro)
+
+			block x0;
+			block x1;
+			block x2;
+			block x3;
+			block x4;
+			block x5;
+			block x6;
+			block x7;
+
+#define OC_AES_INIT(i) \
+			OC_AES_CAT(x, i) = AES<type>::firstFn(plaintext[i], aes.mRoundKey[0])
+
+			OC_AES_EXPAND8(blocks, OC_AES_INIT);
+
+#undef OC_AES_INIT
+
+#define OC_AES_ROUND_LANE(i) \
+			OC_AES_CAT(x, i) = AES<type>::roundFn(OC_AES_CAT(x, i), roundKey)
+
+#define OC_AES_PENULTIMATE_LANE(i) \
+			OC_AES_CAT(x, i) = AES<type>::penultimateFn(OC_AES_CAT(x, i), roundKey)
+
+#define OC_AES_DO_ROUND(roundIndex, laneMacro)        \
+			do                                          \
+			{                                           \
+				const auto& roundKey = aes.mRoundKey[roundIndex]; \
+				OC_AES_EXPAND8(blocks, laneMacro);      \
+			} while (false)
+
+			OC_AES_DO_ROUND(1, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(2, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(3, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(4, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(5, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(6, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(7, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(8, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(9, OC_AES_PENULTIMATE_LANE);
+
+#undef OC_AES_DO_ROUND
+#undef OC_AES_ROUND_LANE
+#undef OC_AES_PENULTIMATE_LANE
+
+#define OC_AES_FINAL(i) \
+			ciphertext[i] = AES<type>::finalFn(OC_AES_CAT(x, i), aes.mRoundKey[10])
+
+			OC_AES_EXPAND8(blocks, OC_AES_FINAL);
+
+#undef OC_AES_FINAL
+#undef OC_AES_EXPAND8
+#undef OC_AES_EXPAND_ONE
+#undef OC_AES_CAT
+#undef OC_AES_CAT2
+		}
+
+		template<AESTypes type>
+		OC_FORCEINLINE void aesHashBlocksSmall(
+			const AES<type>& aes,
+			const block* __restrict plaintext,
+			block* __restrict ciphertext,
+			std::integral_constant<u64, 1>)
+		{
+			block x0;
+			x0 = AES<type>::firstFn(plaintext[0], aes.mRoundKey[0]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[1]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[2]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[3]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[4]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[5]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[6]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[7]);
+			x0 = AES<type>::roundFn(x0, aes.mRoundKey[8]);
+			x0 = AES<type>::penultimateFn(x0, aes.mRoundKey[9]);
+			ciphertext[0] = AES<type>::finalFn(x0, aes.mRoundKey[10]) ^ plaintext[0];
+		}
+
+		template<AESTypes type, u64 blocks>
+		OC_FORCEINLINE void aesHashBlocksSmall(
+			const AES<type>& aes,
+			const block* __restrict plaintext,
+			block* __restrict ciphertext,
+			std::integral_constant<u64, blocks>)
+		{
+			static_assert(blocks >= 2 && blocks <= 8);
+			static_assert(AES<type>::rounds == 10);
+
+#define OC_AES_HASH_CAT2(a, b) a##b
+#define OC_AES_HASH_CAT(a, b) OC_AES_HASH_CAT2(a, b)
+#define OC_AES_HASH_EXPAND_ONE(value, maxValue, macro) \
+			do                                            \
+			{                                             \
+				if constexpr ((value) < (maxValue))      \
+				{                                         \
+					macro(value);                         \
+				}                                         \
+			} while (false)
+#define OC_AES_HASH_EXPAND8(maxValue, macro) \
+			OC_AES_HASH_EXPAND_ONE(0, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(1, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(2, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(3, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(4, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(5, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(6, maxValue, macro); \
+			OC_AES_HASH_EXPAND_ONE(7, maxValue, macro)
+
+			block x0;
+			block x1;
+			block x2;
+			block x3;
+			block x4;
+			block x5;
+			block x6;
+			block x7;
+
+#define OC_AES_INIT(i) \
+			OC_AES_HASH_CAT(x, i) = AES<type>::firstFn(plaintext[i], aes.mRoundKey[0])
+
+			OC_AES_HASH_EXPAND8(blocks, OC_AES_INIT);
+
+#undef OC_AES_INIT
+
+#define OC_AES_ROUND_LANE(i) \
+			OC_AES_HASH_CAT(x, i) = AES<type>::roundFn(OC_AES_HASH_CAT(x, i), roundKey)
+
+#define OC_AES_PENULTIMATE_LANE(i) \
+			OC_AES_HASH_CAT(x, i) = AES<type>::penultimateFn(OC_AES_HASH_CAT(x, i), roundKey)
+
+#define OC_AES_DO_ROUND(roundIndex, laneMacro)        \
+			do                                          \
+			{                                           \
+				const auto& roundKey = aes.mRoundKey[roundIndex]; \
+				OC_AES_HASH_EXPAND8(blocks, laneMacro); \
+			} while (false)
+
+			OC_AES_DO_ROUND(1, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(2, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(3, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(4, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(5, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(6, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(7, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(8, OC_AES_ROUND_LANE);
+			OC_AES_DO_ROUND(9, OC_AES_PENULTIMATE_LANE);
+
+#undef OC_AES_DO_ROUND
+#undef OC_AES_ROUND_LANE
+#undef OC_AES_PENULTIMATE_LANE
+
+#define OC_AES_FINAL(i) \
+			ciphertext[i] = AES<type>::finalFn(OC_AES_HASH_CAT(x, i), aes.mRoundKey[10]) ^ plaintext[i]
+
+			OC_AES_HASH_EXPAND8(blocks, OC_AES_FINAL);
+
+#undef OC_AES_FINAL
+#undef OC_AES_HASH_EXPAND8
+#undef OC_AES_HASH_EXPAND_ONE
+#undef OC_AES_HASH_CAT
+#undef OC_AES_HASH_CAT2
+		}
+
+		template<AESTypes type>
 		template<u64 blocks>
 		OC_FORCEINLINE void AES<type>::ecbEncBlocks(const block* plaintext, block* ciphertext) const
 		{
 			assert((u64)plaintext % 16 == 0 && "plaintext must be aligned.");
 			assert((u64)ciphertext % 16 == 0 && "ciphertext must be aligned.");
 
-			if constexpr (blocks <= 16)
+			if constexpr (blocks <= 8)
+			{
+				aesEcbEncBlocksSmall(*this, plaintext, ciphertext, std::integral_constant<u64, blocks>{});
+			}
+			else if constexpr (blocks <= 16)
 			{
 				oc::AlignedArray<block, blocks> buffer;
 				for (u64 j = 0; j < blocks; ++j)
@@ -259,6 +475,44 @@ namespace osuCrypto {
 
 			const u64 step = 8;
 			u64 idx = 0;
+
+			if constexpr (type == AESTypes::NI)
+			{
+#define OC_AES_DO_STEP_8(offset) \
+				ecbEncBlocks<step>(plaintext + idx + (offset) * step, ciphertext + idx + (offset) * step)
+
+				constexpr u64 step16 = step * 16;
+				for (; idx + step16 <= blockLength; idx += step16)
+				{
+					OC_AES_DO_STEP_8(0);
+					OC_AES_DO_STEP_8(1);
+					OC_AES_DO_STEP_8(2);
+					OC_AES_DO_STEP_8(3);
+					OC_AES_DO_STEP_8(4);
+					OC_AES_DO_STEP_8(5);
+					OC_AES_DO_STEP_8(6);
+					OC_AES_DO_STEP_8(7);
+					OC_AES_DO_STEP_8(8);
+					OC_AES_DO_STEP_8(9);
+					OC_AES_DO_STEP_8(10);
+					OC_AES_DO_STEP_8(11);
+					OC_AES_DO_STEP_8(12);
+					OC_AES_DO_STEP_8(13);
+					OC_AES_DO_STEP_8(14);
+					OC_AES_DO_STEP_8(15);
+				}
+
+				constexpr u64 step4 = step * 4;
+				for (; idx + step4 <= blockLength; idx += step4)
+				{
+					OC_AES_DO_STEP_8(0);
+					OC_AES_DO_STEP_8(1);
+					OC_AES_DO_STEP_8(2);
+					OC_AES_DO_STEP_8(3);
+				}
+
+#undef OC_AES_DO_STEP_8
+			}
 
 			for (; idx + step <= blockLength; idx += step)
 			{
@@ -450,9 +704,12 @@ namespace osuCrypto {
 		template<u64 blocks>
 		OC_FORCEINLINE void AES<type>::hashBlocks(const block* plaintext, block* ciphertext) const
 		{
-			if constexpr (blocks <= 16)
+			if constexpr (blocks <= 8)
 			{
-
+				aesHashBlocksSmall(*this, plaintext, ciphertext, std::integral_constant<u64, blocks>{});
+			}
+			else if constexpr (blocks <= 16)
+			{
 				oc::AlignedArray<block, blocks> buff;
 				ecbEncBlocks<blocks>(plaintext, buff.data());
 				for (u64 j = 0; j < blocks; ++j)
@@ -493,6 +750,44 @@ namespace osuCrypto {
 		{
 			const u64 step = 8;
 			u64 idx = 0;
+
+			if constexpr (type == AESTypes::NI)
+			{
+#define OC_AES_DO_HASH_STEP_8(offset) \
+				hashBlocks<step>(plaintext + idx + (offset) * step, ciphertext + idx + (offset) * step)
+
+				constexpr u64 step16 = step * 16;
+				for (; idx + step16 <= blockLength; idx += step16)
+				{
+					OC_AES_DO_HASH_STEP_8(0);
+					OC_AES_DO_HASH_STEP_8(1);
+					OC_AES_DO_HASH_STEP_8(2);
+					OC_AES_DO_HASH_STEP_8(3);
+					OC_AES_DO_HASH_STEP_8(4);
+					OC_AES_DO_HASH_STEP_8(5);
+					OC_AES_DO_HASH_STEP_8(6);
+					OC_AES_DO_HASH_STEP_8(7);
+					OC_AES_DO_HASH_STEP_8(8);
+					OC_AES_DO_HASH_STEP_8(9);
+					OC_AES_DO_HASH_STEP_8(10);
+					OC_AES_DO_HASH_STEP_8(11);
+					OC_AES_DO_HASH_STEP_8(12);
+					OC_AES_DO_HASH_STEP_8(13);
+					OC_AES_DO_HASH_STEP_8(14);
+					OC_AES_DO_HASH_STEP_8(15);
+				}
+
+				constexpr u64 step4 = step * 4;
+				for (; idx + step4 <= blockLength; idx += step4)
+				{
+					OC_AES_DO_HASH_STEP_8(0);
+					OC_AES_DO_HASH_STEP_8(1);
+					OC_AES_DO_HASH_STEP_8(2);
+					OC_AES_DO_HASH_STEP_8(3);
+				}
+
+#undef OC_AES_DO_HASH_STEP_8
+			}
 
 			for (; idx + step <= blockLength; idx += step)
 			{
