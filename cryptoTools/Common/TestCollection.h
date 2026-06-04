@@ -28,6 +28,7 @@ namespace osuCrypto
         {
             std::string mName;
             std::function<void(const CLP&)> mTest;
+            bool mIsExtended = false;
         };
         TestCollection() = default; 
         TestCollection(std::function<void(TestCollection&)> init)
@@ -47,14 +48,19 @@ namespace osuCrypto
         Result runOne(u64 idx, CLP const * cmd = nullptr);
         Result run(std::vector<u64> testIdxs, u64 repeatCount = 1, CLP const * cmd = nullptr);
         Result runAll(uint64_t repeatCount = 1, CLP const * cmd = nullptr);
+        Result runAll(uint64_t repeatCount, bool includeExtended, CLP const * cmd = nullptr);
         Result runIf(CLP& cmd);
         void list();
+        void list(bool includeExtended);
 
         std::vector<u64> search(const std::list<std::string>& s);
+        std::vector<u64> search(const std::list<std::string>& s, bool includeExtended);
 
 
-        void add(std::string name, std::function<void()> test);
-        void add(std::string name, std::function<void(const CLP&)> test);
+        void add(std::string name, std::function<void()> test, bool extended = false);
+        void add(std::string name, std::function<void(const CLP&)> test, bool extended = false);
+        void addExtended(std::string name, std::function<void()> test);
+        void addExtended(std::string name, std::function<void(const CLP&)> test);
 
         void operator+=(const TestCollection& add);
     };

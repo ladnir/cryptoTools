@@ -13,16 +13,27 @@ namespace osuCrypto
     TestCollection globalTests;
 
 
-    void TestCollection::add(std::string name, std::function<void(const CLP&)> fn)
+    void TestCollection::add(std::string name, std::function<void(const CLP&)> fn, bool extended)
     {
-        mTests.push_back({ std::move(name), std::move(fn) });
+        mTests.push_back({ std::move(name), std::move(fn), extended });
     }
-    void TestCollection::add(std::string name, std::function<void()> fn)
+
+    void TestCollection::add(std::string name, std::function<void()> fn, bool extended)
     {
         mTests.push_back({ std::move(name),[fn](const CLP& cmd)
         {
             fn();
-        } });
+        }, extended });
+    }
+
+    void TestCollection::addExtended(std::string name, std::function<void(const CLP&)> fn)
+    {
+        add(std::move(name), std::move(fn), true);
+    }
+
+    void TestCollection::addExtended(std::string name, std::function<void()> fn)
+    {
+        add(std::move(name), std::move(fn), true);
     }
 
     TestCollection::Result TestCollection::runOne(uint64_t idx, CLP const * cmd)
@@ -112,6 +123,11 @@ namespace osuCrypto
 
     std::vector<u64> TestCollection::search(const std::list<std::string>& s)
     {
+        return search(s, true);
+    }
+
+    std::vector<u64> TestCollection::search(const std::list<std::string>& s, bool includeExtended)
+    {
         std::set<u64> ss;
         std::vector<u64> ret;
         std::vector<std::string> names;
@@ -123,7 +139,7 @@ namespace osuCrypto
         };
 
         for (auto& t : mTests)
-            names.push_back(toLower(t.mName));
+            names.push_back(includeExtended || !t.mIsExtended ? toLower(t.mName) : std::string{});
 
         for (auto str : s)
         {
@@ -146,7 +162,7 @@ namespace osuCrypto
     {
         if (cmd.isSet("list"))
         {
-            list();
+            list(cmd.isSet("extended"));
             return Result::passed;
         }
         auto unitTestTag = std::vector<std::string>{ "u","unitTests" };
@@ -159,31 +175,50 @@ namespace osuCrypto
             {
                 auto& str = cmd.getList(unitTestTag);
                 if (str.front().size() && std::isalpha(str.front()[0]))
-                    return run(search(str), loop, &cmd);
+                    return run(search(str, true), loop, &cmd);
                 else
                     return run(cmd.getMany<u64>(unitTestTag), loop, &cmd);
             }
             else
-                return runAll(loop, &cmd);
+                return runAll(loop, cmd.isSet("extended"), &cmd);
         }
         return Result::skipped;
     }
 
     TestCollection::Result TestCollection::runAll(uint64_t rp, CLP const * cmd)
     {
+        return runAll(rp, true, cmd);
+    }
+
+    TestCollection::Result TestCollection::runAll(uint64_t rp, bool includeExtended, CLP const * cmd)
+    {
         std::vector<u64> v;
         for (u64 i = 0; i < mTests.size(); ++i)
-            v.push_back(i);
+        {
+            if (includeExtended || !mTests[i].mIsExtended)
+                v.push_back(i);
+        }
 
         return run(v, rp, cmd);
     }
 
     void TestCollection::list()
     {
+        list(true);
+    }
+
+    void TestCollection::list(bool includeExtended)
+    {
         int w = int(std::ceil(std::log10(mTests.size())));
         for (uint64_t i = 0; i < mTests.size(); ++i)
         {
-            std::cout << std::setw(w) << i << " - " << Color::Blue << mTests[i].mName << std::endl << ColorDefault;
+            if (includeExtended || !mTests[i].mIsExtended)
+            {
+                std::cout << std::setw(w) << i << " - " << Color::Blue << mTests[i].mName;
+                if (mTests[i].mIsExtended)
+                    std::cout << Color::Yellow << " [extended]";
+                std::cout << std::endl << ColorDefault;
+            }
         }
     }
 
