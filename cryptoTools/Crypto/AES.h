@@ -325,7 +325,7 @@ namespace osuCrypto {
 			x0 = AES<type>::roundFn(x0, aes.mRoundKey[8]);
 			x0 = AES<type>::penultimateFn(x0, aes.mRoundKey[9]);
 #if defined(_MSC_VER) && defined(OC_ENABLE_SSE2)
-			// Avoid an MSVC coroutine miscompile involving the block-returning XOR wrapper.
+			// MSVC 19.50.35728 (_MSC_VER 1950) miscompiles the block-returning XOR wrapper in a coroutine.
 			ciphertext[0].mData = _mm_xor_si128(
 				AES<type>::finalFn(x0, aes.mRoundKey[10]).mData,
 				plaintext[0].mData);
@@ -408,7 +408,7 @@ namespace osuCrypto {
 #undef OC_AES_PENULTIMATE_LANE
 
 #if defined(_MSC_VER) && defined(OC_ENABLE_SSE2)
-			// Avoid an MSVC coroutine miscompile involving the block-returning XOR wrapper.
+			// MSVC 19.50.35728 (_MSC_VER 1950) miscompiles the block-returning XOR wrapper in a coroutine.
 #define OC_AES_FINAL(i) \
 			ciphertext[i].mData = _mm_xor_si128( \
 				AES<type>::finalFn(OC_AES_HASH_CAT(x, i), aes.mRoundKey[10]).mData, \
