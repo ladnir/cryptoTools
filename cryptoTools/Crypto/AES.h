@@ -324,7 +324,14 @@ namespace osuCrypto {
 			x0 = AES<type>::roundFn(x0, aes.mRoundKey[7]);
 			x0 = AES<type>::roundFn(x0, aes.mRoundKey[8]);
 			x0 = AES<type>::penultimateFn(x0, aes.mRoundKey[9]);
+#if defined(_MSC_VER) && defined(OC_ENABLE_SSE2)
+			// Avoid an MSVC coroutine miscompile involving the block-returning XOR wrapper.
+			ciphertext[0].mData = _mm_xor_si128(
+				AES<type>::finalFn(x0, aes.mRoundKey[10]).mData,
+				plaintext[0].mData);
+#else
 			ciphertext[0] = AES<type>::finalFn(x0, aes.mRoundKey[10]) ^ plaintext[0];
+#endif
 		}
 
 		template<AESTypes type, u64 blocks>
@@ -400,8 +407,16 @@ namespace osuCrypto {
 #undef OC_AES_ROUND_LANE
 #undef OC_AES_PENULTIMATE_LANE
 
+#if defined(_MSC_VER) && defined(OC_ENABLE_SSE2)
+			// Avoid an MSVC coroutine miscompile involving the block-returning XOR wrapper.
+#define OC_AES_FINAL(i) \
+			ciphertext[i].mData = _mm_xor_si128( \
+				AES<type>::finalFn(OC_AES_HASH_CAT(x, i), aes.mRoundKey[10]).mData, \
+				plaintext[i].mData)
+#else
 #define OC_AES_FINAL(i) \
 			ciphertext[i] = AES<type>::finalFn(OC_AES_HASH_CAT(x, i), aes.mRoundKey[10]) ^ plaintext[i]
+#endif
 
 			OC_AES_HASH_EXPAND8(blocks, OC_AES_FINAL);
 
