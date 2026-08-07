@@ -71,6 +71,7 @@ namespace tests_cryptoTools
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
         th.add("Edwards25519_4xBase_Test               ", Edwards25519_4xBase_Test);
+        th.add("Edwards25519_HashToCurve_Test          ", Edwards25519_HashToCurve_Test);
 
 
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);

@@ -3,6 +3,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
+
+#include <cryptoTools/Crypto/Hashable.h>
 
 extern "C" {
 #include <cryptoTools/Crypto/Edwards25519/ge25519.h>
@@ -45,6 +48,13 @@ namespace Edwards25519
         Point() noexcept;
 
         static Point mulGenerator(const Scalar& scalar) noexcept;
+        // A random-oracle hash to the prime-order Edwards25519 subgroup.
+        // This is a custom XMD:BLAKE2B_ELL2_RO_ suite using the RFC 9380
+        // Elligator2 map and cofactor clearing. The mandatory application
+        // domain is wrapped in a versioned cryptoTools suite identifier.
+        static Point hashToCurveElligator2(
+            const std::uint8_t* message, std::size_t messageSize,
+            const std::uint8_t* domain, std::size_t domainSize);
         Point mul(const Scalar& scalar) const noexcept;
         Point operator+(const Point& rhs) const noexcept;
         Point operator-(const Point& rhs) const noexcept;
@@ -84,4 +94,28 @@ namespace Edwards25519
         ge4x mValue;
     };
 }
+
+template<>
+struct Hashable<Edwards25519::Point, void> : std::true_type
+{
+    template<typename Hasher>
+    static void hash(const Edwards25519::Point& point, Hasher& hasher)
+    {
+        std::uint8_t encoded[Edwards25519::encodedSize];
+        point.toBytes(encoded);
+        hasher.Update(encoded, Edwards25519::encodedSize);
+    }
+};
+
+template<>
+struct Hashable<Edwards25519::Point4, void> : std::true_type
+{
+    template<typename Hasher>
+    static void hash(const Edwards25519::Point4& points, Hasher& hasher)
+    {
+        std::uint8_t encoded[Edwards25519::lanes * Edwards25519::encodedSize];
+        points.toBytes(encoded);
+        hasher.Update(encoded, Edwards25519::lanes * Edwards25519::encodedSize);
+    }
+};
 }

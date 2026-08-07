@@ -17,6 +17,7 @@ set(EDWARDS25519_COMMON_SOURCES
     fe25519_utils.c
     ge25519_add.c
     ge25519_double.c
+    ge25519_elligator2.c
     ge25519_pack.c
     ge25519_scalarmult.c
     ge25519_scalarmult_base.c
@@ -96,7 +97,20 @@ target_include_directories(cryptoToolsEdwards25519Objects PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../..
     ${CMAKE_CURRENT_BINARY_DIR}/../../..)
 
-target_compile_features(cryptoToolsEdwards25519Objects PRIVATE cxx_std_14)
+if(MSVC)
+    target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:/std:c++${CRYPTO_TOOLS_STD_VER}>)
+else()
+    target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-std=c++${CRYPTO_TOOLS_STD_VER}>)
+endif()
+
+# Edwards25519.cpp now uses cryptoTools' hashing interface, whose configured
+# implementation may require the same public ISA flags as the parent target.
+target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
+    $<TARGET_PROPERTY:cryptoTools,INTERFACE_COMPILE_OPTIONS>)
+target_compile_definitions(cryptoToolsEdwards25519Objects PRIVATE
+    $<TARGET_PROPERTY:cryptoTools,INTERFACE_COMPILE_DEFINITIONS>)
 
 if(ENABLE_EDWARDS25519_ASM)
     target_compile_definitions(cryptoToolsEdwards25519Objects PRIVATE

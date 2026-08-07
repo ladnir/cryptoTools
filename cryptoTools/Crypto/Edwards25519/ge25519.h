@@ -85,6 +85,10 @@ extern void ge25519_subtract(ge25519 *r, const ge25519 *p, const ge25519 *q); //
 
 extern void ge25519_double(ge25519 *r, const ge25519 *p); //
 
+/* RFC 9380, Appendix G.2: map one field element to edwards25519 with
+ * Elligator 2. The result is not cofactor-cleared. */
+extern void ge25519_map_to_curve_elligator2(ge25519 *r, const fe25519 *u);
+
 extern void ge25519_scalarmult(ge25519 *q, ge25519 *r, const sc25519 *s); //
 extern void ge25519_scalarmult_base(ge25519 *r, const sc25519 *s); //
 
