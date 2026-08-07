@@ -12,18 +12,19 @@ remain replaceable without C++ name mangling or runtime dispatch.
 The portable backend contains independent radix-2^51 field arithmetic and
 scalar extended-coordinate curve formulas. Its four-lane implementation runs
 four scalar points and is intended as the correctness reference and as the
-fallback for Windows and non-x86 platforms.
+fallback for unsupported platforms.
 
-Set `ENABLE_EDWARDS25519_ASM=ON` to select the optimized x86-64 System-V
-backend where supported. It retains the original fixed-width four-lane AVX
-layout and qhasm-generated kernels. Backend selection is at compile time, so
-the optimized hot path has no indirect calls or runtime feature checks.
+Set `ENABLE_EDWARDS25519_ASM=ON` to select the optimized backend on x86-64
+Linux/System-V or Windows/MSVC. It retains the original fixed-width four-lane
+AVX layout and qhasm-generated kernels. Backend selection is at compile time,
+so the optimized hot path has no indirect calls or runtime feature checks.
 
 All Edwards25519 objects are compiled as position-independent code. The
 assembly constants use RIP-relative addressing, allowing the resulting
 objects to be included in PIE executables and shared libraries.
 
-The current assembly backend uses GAS syntax and the System-V calling
-convention. Native Win64 assembly still requires COFF-compatible source,
-Microsoft x64 argument handling, and preservation of its nonvolatile vector
-registers; Windows currently selects the portable C backend.
+The Win64 MASM source is mechanically produced by `generate_win64_asm.py`
+from those same qhasm/GAS instruction streams. Its generated prologues adapt
+the Microsoft x64 argument registers, preserve nonvolatile integer and vector
+registers, and emit unwind metadata. Regenerate the `.asm` file after changing
+one of the source `.s` files.

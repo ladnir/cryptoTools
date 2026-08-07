@@ -222,7 +222,7 @@ static const double ge4x_base_multiples_niels[32][8][3][12] =
 
 void ge4x_scalarsmults_base(ge4x * a, const sc25519 * s)
 {
-	const int dist=2;
+	enum { dist = 2 };
 	int i, j, pos;
 	signed char idx[4], w[4][64];
 

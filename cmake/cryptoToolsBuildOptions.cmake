@@ -74,7 +74,7 @@ option(ENABLE_BOOST     "compile with BOOST networking integration" OFF)
 option(ENABLE_OPENSSL   "compile with OpenSSL networking integration" OFF)
 option(ENABLE_ASAN      "build with asan" OFF)
 option(ENABLE_PIC       "compile with -fPIC " OFF)
-option(ENABLE_EDWARDS25519_ASM "use the x86-64 System-V Edwards25519 assembly backend" OFF)
+option(ENABLE_EDWARDS25519_ASM "use the x86-64 Edwards25519 assembly backend" OFF)
 
 option(VERBOSE_FETCH    "" ON)
 
@@ -87,10 +87,10 @@ if(NOT ENABLE_SSE AND ENABLE_AVX)
 endif()
 
 if(ENABLE_EDWARDS25519_ASM AND
-   (NOT UNIX OR APPLE OR MSVC OR
-    NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$"))
-	message(WARNING "The Edwards25519 assembly backend requires the x86-64 System-V ABI; using the portable C backend")
-	set(ENABLE_EDWARDS25519_ASM OFF CACHE BOOL "use the x86-64 System-V Edwards25519 assembly backend" FORCE)
+   (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$" OR
+    NOT ((UNIX AND NOT APPLE AND NOT MSVC) OR (WIN32 AND MSVC))))
+	message(WARNING "The Edwards25519 assembly backend supports x86-64 Linux/System-V and Windows/MSVC; using the portable C backend")
+	set(ENABLE_EDWARDS25519_ASM OFF CACHE BOOL "use the x86-64 Edwards25519 assembly backend" FORCE)
 endif()
 
 if(ENABLE_BOOST AND (CRYPTO_TOOLS_STD_VER EQUAL 14 OR CRYPTO_TOOLS_STD_VER EQUAL 17))

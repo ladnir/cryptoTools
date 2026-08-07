@@ -27,7 +27,7 @@ set(EDWARDS25519_COMMON_SOURCES
     sc25519_to32bytes.c
     sc25519_window4.c)
 
-set(EDWARDS25519_ASM_SOURCES
+set(EDWARDS25519_SYSV_ASM_SOURCES
     consts.s
     consts4x.s
     fe25519_freeze.s
@@ -41,23 +41,28 @@ set(EDWARDS25519_ASM_SOURCES
     ge25519_nielsadd2.s
     ge25519_p1p1_to_p2.s
     ge25519_p1p1_to_p3.s
-    ge4x.c
     ge4x_add_p1p1.s
     ge4x_double_p1p1.s
     ge4x_lookup.s
     ge4x_lookup_niels.s
     ge4x_niels_add_p1p1.s
+    gfe4x_add.s
+    gfe4x_mul.s
+    gfe4x_square.s
+    gfe4x_sub.s)
+
+set(EDWARDS25519_WIN64_ASM_SOURCES
+    edwards25519_win64.asm)
+
+set(EDWARDS25519_ASM_SUPPORT_SOURCES
+    ge4x.c
     ge4x_pack.c
     ge4x_unpack_vartime.c
     gfe4x.c
-    gfe4x_add.s
     gfe4x_getparity.c
     gfe4x_iseq_vartime.c
-    gfe4x_mul.s
     gfe4x_nsquare.c
-    gfe4x_pow2523.c
-    gfe4x_square.s
-    gfe4x_sub.s)
+    gfe4x_pow2523.c)
 
 set(EDWARDS25519_REF_SOURCES
     fe25519_ref.c
@@ -65,8 +70,17 @@ set(EDWARDS25519_REF_SOURCES
     ge4x_ref.c)
 
 if(ENABLE_EDWARDS25519_ASM)
-    enable_language(ASM)
-    set(EDWARDS25519_BACKEND_SOURCES ${EDWARDS25519_ASM_SOURCES})
+    if(MSVC)
+        enable_language(ASM_MASM)
+        set(EDWARDS25519_BACKEND_SOURCES
+            ${EDWARDS25519_WIN64_ASM_SOURCES}
+            ${EDWARDS25519_ASM_SUPPORT_SOURCES})
+    else()
+        enable_language(ASM)
+        set(EDWARDS25519_BACKEND_SOURCES
+            ${EDWARDS25519_SYSV_ASM_SOURCES}
+            ${EDWARDS25519_ASM_SUPPORT_SOURCES})
+    endif()
 else()
     set(EDWARDS25519_BACKEND_SOURCES ${EDWARDS25519_REF_SOURCES})
 endif()
@@ -89,8 +103,10 @@ if(ENABLE_EDWARDS25519_ASM)
         CRYPTOTOOLS_EDWARDS25519_ASM=1)
     target_compile_definitions(cryptoTools PUBLIC
         CRYPTOTOOLS_EDWARDS25519_ASM=1)
-    target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
-        $<$<COMPILE_LANGUAGE:ASM>:-Wa,--noexecstack>)
+    if(NOT MSVC)
+        target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
+            $<$<COMPILE_LANGUAGE:ASM>:-Wa,--noexecstack>)
+    endif()
 endif()
 
 target_sources(cryptoTools PRIVATE
