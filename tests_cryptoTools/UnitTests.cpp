@@ -12,6 +12,7 @@
 #include "tests_cryptoTools/block_Tests.h"
 #include "tests_cryptoTools/MxCircuit_Tests.h"
 #include "tests_cryptoTools/WolfSSL_Tests.h"
+#include "tests_cryptoTools/Edwards25519_Tests.h"
 
 #include <cryptoTools/Common/config.h>
 using namespace osuCrypto;
@@ -68,6 +69,8 @@ namespace tests_cryptoTools
 
         th.add("REccpNumber_Test                        ", REccpNumber_Test);
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
+
+        th.add("Edwards25519_4xBase_Test               ", Edwards25519_4xBase_Test);
 
 
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);

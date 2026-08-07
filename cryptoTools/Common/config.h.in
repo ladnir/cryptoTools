@@ -47,6 +47,8 @@
 // enable the use of intel AVX512 instructions.
 #cmakedefine ENABLE_AVX512 @ENABLE_AVX512@
 
+#cmakedefine ENABLE_EDWARDS25519_ASM @ENABLE_EDWARDS25519_ASM@
+
 // enable the use of intel BMI2 instructions.
 #cmakedefine ENABLE_BMI2 @ENABLE_BMI2@
 

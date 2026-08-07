@@ -6,7 +6,10 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 
 # add the source files
 file(GLOB_RECURSE SRCS *.cpp *.c)
+list(FILTER SRCS EXCLUDE REGEX ".*/Crypto/Edwards25519/.*")
+
 add_library(cryptoTools STATIC ${SRCS})
+add_subdirectory(Crypto/Edwards25519)
 
 # make projects that include cryptoTools use this as an include folder
 target_include_directories(cryptoTools PUBLIC

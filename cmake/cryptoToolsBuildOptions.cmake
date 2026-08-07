@@ -74,6 +74,7 @@ option(ENABLE_BOOST     "compile with BOOST networking integration" OFF)
 option(ENABLE_OPENSSL   "compile with OpenSSL networking integration" OFF)
 option(ENABLE_ASAN      "build with asan" OFF)
 option(ENABLE_PIC       "compile with -fPIC " OFF)
+option(ENABLE_EDWARDS25519_ASM "use the x86-64 System-V Edwards25519 assembly backend" OFF)
 
 option(VERBOSE_FETCH    "" ON)
 
@@ -83,6 +84,13 @@ endif()
 if(NOT ENABLE_SSE AND ENABLE_AVX)
 	message("AVX requires SSE to be enabled.")
 	set(ENABLE_AVX OFF)
+endif()
+
+if(ENABLE_EDWARDS25519_ASM AND
+   (NOT UNIX OR APPLE OR MSVC OR
+    NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$"))
+	message(WARNING "The Edwards25519 assembly backend requires the x86-64 System-V ABI; using the portable C backend")
+	set(ENABLE_EDWARDS25519_ASM OFF CACHE BOOL "use the x86-64 System-V Edwards25519 assembly backend" FORCE)
 endif()
 
 if(ENABLE_BOOST AND (CRYPTO_TOOLS_STD_VER EQUAL 14 OR CRYPTO_TOOLS_STD_VER EQUAL 17))
@@ -179,5 +187,6 @@ message(STATUS "Option: ENABLE_AVX2         = ${ENABLE_AVX2}")
 message(STATUS "Option: ENABLE_AVX512       = ${ENABLE_AVX512}")
 message(STATUS "Option: ENABLE_BMI2         = ${ENABLE_BMI2}")
 message(STATUS "Option: ENABLE_PIC          = ${ENABLE_PIC}")
+message(STATUS "Option: ENABLE_EDWARDS25519_ASM = ${ENABLE_EDWARDS25519_ASM}")
 message(STATUS "Option: ENABLE_ASAN         = ${ENABLE_ASAN}\n\n")
 
