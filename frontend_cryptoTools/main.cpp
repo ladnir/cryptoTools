@@ -1,6 +1,7 @@
 
 #include "../tests_cryptoTools/UnitTests.h"
 #include "Tutorials/Network.h"
+#include "CurveBench.h"
 #include "cryptoTools/Network/Channel.h"
 #include "cryptoTools/Network/IOService.h"
 #include <cryptoTools/Common/Matrix.h>
@@ -146,6 +147,10 @@ int main(int argc, char** argv)
     {
         networkTutorial();
     }
+    else if (cmd.isSet("curveBench"))
+    {
+        curveBench(cmd);
+    }
     else if(cmd.isSet("u"))
     {
         tests_cryptoTools::Tests.runIf(cmd);
@@ -155,7 +160,10 @@ int main(int argc, char** argv)
         std::cout << "Run the unit tests with:\n\n\t"
             << Color::Green << cmd.mProgramName << " -u\n\n" << Color::Default
             << "Run the  network tutorial with:\n\n\t"
-            << Color::Green << cmd.mProgramName << " -tut" << Color::Default
+            << Color::Green << cmd.mProgramName << " -tut\n\n" << Color::Default
+            << "Benchmark Edwards25519 curve operations with:\n\n\t"
+            << Color::Green << cmd.mProgramName << " -curveBench"
+            << Color::Default
             << std::endl;
     }
 }
