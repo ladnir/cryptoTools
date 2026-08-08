@@ -17,7 +17,7 @@ namespace osuCrypto
 namespace Edwards25519
 {
     constexpr std::size_t encodedSize = 32;
-    constexpr std::size_t lanes = 4;
+    constexpr std::size_t lanes = 8;
 
 #ifdef CRYPTOTOOLS_EDWARDS25519_ASM
     constexpr bool hasOptimizedBackend = true;
@@ -39,7 +39,7 @@ namespace Edwards25519
     private:
         sc25519 mValue{};
         friend class Point;
-        friend class Point4;
+        friend class Point8;
     };
 
     class Point
@@ -66,37 +66,38 @@ namespace Edwards25519
 
     private:
         ge25519 mValue;
-        friend class Point4;
+        friend class Point8;
     };
 
-    // A fixed four-point batch. The optimized backend retains the original
-    // structure-of-arrays AVX representation; the fallback holds four scalar
-    // points. Selection is entirely at compile time.
-    class Point4
+    // A fixed eight-point batch. The current backend is two independent
+    // four-lane blocks; AVX-512 IFMA can replace this private representation
+    // without changing consumers.
+    class Point8
     {
     public:
-        Point4() noexcept;
+        Point8() noexcept;
 
-        static Point4 broadcast(const Point& point) noexcept;
-        // Hash four equal-length, lane-major messages. messages contains
-        // lane 0 followed by lane 1, lane 2, and lane 3.
-        static Point4 hashToCurveElligator2(
+        static Point8 broadcast(const Point& point) noexcept;
+        // Hash eight equal-length, lane-major messages.
+        static Point8 hashToCurveElligator2(
             const std::uint8_t* messages, std::size_t messageSize,
             const std::uint8_t* domain, std::size_t domainSize);
-        static Point4 mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept;
-        Point4 mul(const Scalar& scalar) const noexcept;
-        Point4 mul(const std::array<Scalar, lanes>& scalars) const noexcept;
-        Point4 operator+(const Point4& rhs) const noexcept;
-        Point4 operator-(const Point4& rhs) const noexcept;
-        Point4 doubled() const noexcept;
-        void conditionalMove(const Point4& source,
+        static Point8 mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept;
+        Point8 mul(const Scalar& scalar) const noexcept;
+        Point8 mul(const std::array<Scalar, lanes>& scalars) const noexcept;
+        Point8 operator+(const Point8& rhs) const noexcept;
+        Point8 operator-(const Point8& rhs) const noexcept;
+        Point8 doubled() const noexcept;
+        void conditionalMove(const Point8& source,
                              const std::array<std::uint8_t, lanes>& select) noexcept;
 
         bool fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept;
         void toBytes(std::uint8_t bytes[lanes * encodedSize]) const noexcept;
 
     private:
-        ge4x mValue;
+        struct Uninitialized {};
+        explicit Point8(Uninitialized) noexcept {}
+        ge4x mValue[2];
     };
 }
 
@@ -113,10 +114,10 @@ struct Hashable<Edwards25519::Point, void> : std::true_type
 };
 
 template<>
-struct Hashable<Edwards25519::Point4, void> : std::true_type
+struct Hashable<Edwards25519::Point8, void> : std::true_type
 {
     template<typename Hasher>
-    static void hash(const Edwards25519::Point4& points, Hasher& hasher)
+    static void hash(const Edwards25519::Point8& points, Hasher& hasher)
     {
         std::uint8_t encoded[Edwards25519::lanes * Edwards25519::encodedSize];
         points.toBytes(encoded);

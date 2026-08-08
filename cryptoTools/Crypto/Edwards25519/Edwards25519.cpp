@@ -260,28 +260,30 @@ namespace Edwards25519
         return ge25519_isneutral_vartime(&mValue) != 0;
     }
 
-    Point4::Point4() noexcept
+    Point8::Point8() noexcept
     {
-        ge4x_setneutral(&mValue);
+        ge4x_setneutral(&mValue[0]);
+        ge4x_setneutral(&mValue[1]);
     }
 
-    Point4 Point4::broadcast(const Point& point) noexcept
+    Point8 Point8::broadcast(const Point& point) noexcept
     {
-        Point4 r;
-        ge4x_from_ge25519(&r.mValue, &point.mValue);
+        Point8 r{Uninitialized{}};
+        ge4x_from_ge25519(&r.mValue[0], &point.mValue);
+        ge4x_from_ge25519(&r.mValue[1], &point.mValue);
         return r;
     }
 
-    Point4 Point4::hashToCurveElligator2(
+    Point8 Point8::hashToCurveElligator2(
         const std::uint8_t* messages, std::size_t messageSize,
         const std::uint8_t* domain, std::size_t domainSize)
     {
         if (messageSize && messages == nullptr)
             throw std::invalid_argument(
-                "Edwards25519 four-lane messages pointer is null");
+                "Edwards25519 eight-lane messages pointer is null");
         if (messageSize > std::numeric_limits<std::size_t>::max() / lanes)
             throw std::invalid_argument(
-                "Edwards25519 four-lane message size overflows");
+                "Edwards25519 eight-lane message size overflows");
 
         std::array<fe25519, lanes> u0;
         std::array<fe25519, lanes> u1;
@@ -296,74 +298,91 @@ namespace Edwards25519
                 uniform.data() + fieldElementWideSize);
         }
 
-        Point4 q0, q1, result;
-        ge4x_map_to_curve_elligator2(&q0.mValue, u0.data());
-        ge4x_map_to_curve_elligator2(&q1.mValue, u1.data());
-        ge4x_add(&result.mValue, &q0.mValue, &q1.mValue);
-        ge4x_double(&result.mValue, &result.mValue);
-        ge4x_double(&result.mValue, &result.mValue);
-        ge4x_double(&result.mValue, &result.mValue);
+        Point8 q0{Uninitialized{}};
+        Point8 q1{Uninitialized{}};
+        Point8 result{Uninitialized{}};
+        ge4x_map_to_curve_elligator2(&q0.mValue[0], u0.data());
+        ge4x_map_to_curve_elligator2(&q0.mValue[1], u0.data() + 4);
+        ge4x_map_to_curve_elligator2(&q1.mValue[0], u1.data());
+        ge4x_map_to_curve_elligator2(&q1.mValue[1], u1.data() + 4);
+        ge4x_add(&result.mValue[0], &q0.mValue[0], &q1.mValue[0]);
+        ge4x_add(&result.mValue[1], &q0.mValue[1], &q1.mValue[1]);
+        ge4x_double(&result.mValue[0], &result.mValue[0]);
+        ge4x_double(&result.mValue[1], &result.mValue[1]);
+        ge4x_double(&result.mValue[0], &result.mValue[0]);
+        ge4x_double(&result.mValue[1], &result.mValue[1]);
+        ge4x_double(&result.mValue[0], &result.mValue[0]);
+        ge4x_double(&result.mValue[1], &result.mValue[1]);
         return result;
     }
 
-    Point4 Point4::mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept
+    Point8 Point8::mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept
     {
-        Point4 r;
+        Point8 r{Uninitialized{}};
         sc25519 s[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
             s[i] = scalars[i].mValue;
-        ge4x_scalarsmults_base(&r.mValue, s);
+        ge4x_scalarsmults_base(&r.mValue[0], s);
+        ge4x_scalarsmults_base(&r.mValue[1], s + 4);
         return r;
     }
 
-    Point4 Point4::mul(const Scalar& scalar) const noexcept
+    Point8 Point8::mul(const Scalar& scalar) const noexcept
     {
-        Point4 r;
-        ge4x p = mValue;
-        ge4x_scalarmults(&r.mValue, &p, &scalar.mValue);
+        Point8 r{Uninitialized{}};
+        ge4x p0 = mValue[0];
+        ge4x p1 = mValue[1];
+        ge4x_scalarmults(&r.mValue[0], &p0, &scalar.mValue);
+        ge4x_scalarmults(&r.mValue[1], &p1, &scalar.mValue);
         return r;
     }
 
-    Point4 Point4::mul(const std::array<Scalar, lanes>& scalars) const noexcept
+    Point8 Point8::mul(const std::array<Scalar, lanes>& scalars) const noexcept
     {
-        Point4 r;
-        ge4x p = mValue;
+        Point8 r{Uninitialized{}};
+        ge4x p0 = mValue[0];
+        ge4x p1 = mValue[1];
         sc25519 s[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
             s[i] = scalars[i].mValue;
-        ge4x_scalarsmults(&r.mValue, &p, s);
+        ge4x_scalarsmults(&r.mValue[0], &p0, s);
+        ge4x_scalarsmults(&r.mValue[1], &p1, s + 4);
         return r;
     }
 
-    Point4 Point4::operator+(const Point4& rhs) const noexcept
+    Point8 Point8::operator+(const Point8& rhs) const noexcept
     {
-        Point4 r;
-        ge4x_add(&r.mValue, &mValue, &rhs.mValue);
+        Point8 r{Uninitialized{}};
+        ge4x_add(&r.mValue[0], &mValue[0], &rhs.mValue[0]);
+        ge4x_add(&r.mValue[1], &mValue[1], &rhs.mValue[1]);
         return r;
     }
 
-    Point4 Point4::operator-(const Point4& rhs) const noexcept
+    Point8 Point8::operator-(const Point8& rhs) const noexcept
     {
-        Point4 r;
-        ge4x_sub(&r.mValue, &mValue, &rhs.mValue);
+        Point8 r{Uninitialized{}};
+        ge4x_sub(&r.mValue[0], &mValue[0], &rhs.mValue[0]);
+        ge4x_sub(&r.mValue[1], &mValue[1], &rhs.mValue[1]);
         return r;
     }
 
-    Point4 Point4::doubled() const noexcept
+    Point8 Point8::doubled() const noexcept
     {
-        Point4 r;
-        ge4x_double(&r.mValue, &mValue);
+        Point8 r{Uninitialized{}};
+        ge4x_double(&r.mValue[0], &mValue[0]);
+        ge4x_double(&r.mValue[1], &mValue[1]);
         return r;
     }
 
-    void Point4::conditionalMove(const Point4& source,
+    void Point8::conditionalMove(const Point8& source,
                                  const std::array<std::uint8_t, lanes>& select) noexcept
     {
         auto bits = select;
-        ge4x_cmovs(&mValue, &source.mValue, bits.data());
+        ge4x_cmovs(&mValue[0], &source.mValue[0], bits.data());
+        ge4x_cmovs(&mValue[1], &source.mValue[1], bits.data() + 4);
     }
 
-    bool Point4::fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept
+    bool Point8::fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept
     {
         for (std::size_t lane = 0; lane != lanes; ++lane)
             if (!isCanonicalPointEncoding(bytes + lane * encodedSize))
@@ -372,12 +391,14 @@ namespace Edwards25519
         std::array<std::uint8_t, lanes * encodedSize> copy;
         for (std::size_t i = 0; i != copy.size(); ++i)
             copy[i] = bytes[i];
-        return ge4x_unpack_vartime(&mValue, copy.data()) == 0;
+        return ge4x_unpack_vartime(&mValue[0], copy.data()) == 0 &&
+            ge4x_unpack_vartime(&mValue[1], copy.data() + 4 * encodedSize) == 0;
     }
 
-    void Point4::toBytes(std::uint8_t bytes[lanes * encodedSize]) const noexcept
+    void Point8::toBytes(std::uint8_t bytes[lanes * encodedSize]) const noexcept
     {
-        ge4x_pack(bytes, &mValue);
+        ge4x_pack(bytes, &mValue[0]);
+        ge4x_pack(bytes + 4 * encodedSize, &mValue[1]);
     }
 }
 }

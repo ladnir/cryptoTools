@@ -33,7 +33,7 @@ namespace
 
 namespace tests_cryptoTools
 {
-    void Edwards25519_4xBase_Test()
+    void Edwards25519_8xBase_Test()
     {
         using namespace osuCrypto::Edwards25519;
 
@@ -46,7 +46,7 @@ namespace tests_cryptoTools
             scalars[i].fromBytes(scalarBytes[i].data());
         }
 
-        const auto batch = Point4::mulGenerator(scalars);
+        const auto batch = Point8::mulGenerator(scalars);
         std::array<osuCrypto::u8, lanes * encodedSize> batchPacked;
         batch.toBytes(batchPacked.data());
 
@@ -58,7 +58,7 @@ namespace tests_cryptoTools
             if (std::memcmp(packed.data(), batchPacked.data() + encodedSize * i,
                             packed.size()))
                 throw osuCrypto::UnitTestFail(
-                    "four-lane Edwards25519 base multiplication mismatch");
+                    "eight-lane Edwards25519 base multiplication mismatch");
 
             const auto doubled = point + point;
             std::array<osuCrypto::u8, encodedSize> doubledPacked, sumPacked;
@@ -66,6 +66,41 @@ namespace tests_cryptoTools
             point.doubled().toBytes(sumPacked.data());
             if (doubledPacked != sumPacked)
                 throw osuCrypto::UnitTestFail("Edwards25519 add/double mismatch");
+        }
+
+        const auto products = batch.mul(scalars);
+        std::array<osuCrypto::u8, lanes * encodedSize> productsPacked;
+        products.toBytes(productsPacked.data());
+        for (std::size_t i = 0; i != lanes; ++i)
+        {
+            std::array<osuCrypto::u8, encodedSize> expectedProduct;
+            Point::mulGenerator(scalars[i]).mul(scalars[i])
+                .toBytes(expectedProduct.data());
+            if (std::memcmp(
+                    expectedProduct.data(),
+                    productsPacked.data() + i * encodedSize,
+                    encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "eight-lane Edwards25519 scalar multiplication mismatch");
+        }
+
+        Point8 selected;
+        const std::array<osuCrypto::u8, lanes> select = {
+            0, 1, 0, 1, 1, 0, 1, 0};
+        selected.conditionalMove(batch, select);
+        std::array<osuCrypto::u8, lanes * encodedSize> selectedPacked;
+        selected.toBytes(selectedPacked.data());
+        std::array<osuCrypto::u8, encodedSize> neutralPacked;
+        Point{}.toBytes(neutralPacked.data());
+        for (std::size_t i = 0; i != lanes; ++i)
+        {
+            const auto* expectedLane = select[i] ?
+                batchPacked.data() + i * encodedSize : neutralPacked.data();
+            if (std::memcmp(
+                    expectedLane, selectedPacked.data() + i * encodedSize,
+                    encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "eight-lane Edwards25519 conditional move mismatch");
         }
 
         std::array<osuCrypto::u8, encodedSize> vectorInput{};
@@ -82,7 +117,7 @@ namespace tests_cryptoTools
         if (vectorOutput != expected)
             throw osuCrypto::UnitTestFail("Edwards25519 known-answer mismatch");
 
-        const auto broadcast = Point4::broadcast(Point::mulGenerator(vectorScalar));
+        const auto broadcast = Point8::broadcast(Point::mulGenerator(vectorScalar));
         std::array<osuCrypto::u8, lanes * encodedSize> broadcastPacked;
         broadcast.toBytes(broadcastPacked.data());
         for (std::size_t i = 0; i != lanes; ++i)
@@ -90,16 +125,16 @@ namespace tests_cryptoTools
                             expected.data(), expected.size()))
                 throw osuCrypto::UnitTestFail("Edwards25519 broadcast mismatch");
 
-        Point4 unpacked;
+        Point8 unpacked;
         if (!unpacked.fromBytes(batchPacked.data()))
             throw osuCrypto::UnitTestFail(
-                "four-lane Edwards25519 point failed to unpack");
+                "eight-lane Edwards25519 point failed to unpack");
 
         std::array<osuCrypto::u8, lanes * encodedSize> repacked;
         unpacked.toBytes(repacked.data());
         if (repacked != batchPacked)
             throw osuCrypto::UnitTestFail(
-                "four-lane Edwards25519 pack/unpack mismatch");
+                "eight-lane Edwards25519 pack/unpack mismatch");
 
         Point invalidPoint;
         std::array<osuCrypto::u8, encodedSize> nonCanonicalField;
@@ -120,10 +155,11 @@ namespace tests_cryptoTools
                     nonCanonicalField.data(), encodedSize);
         if (unpacked.fromBytes(invalidBatch.data()))
             throw osuCrypto::UnitTestFail(
-                "four-lane Edwards25519 accepted a non-canonical lane");
+                "eight-lane Edwards25519 accepted a non-canonical lane");
 
-        std::array<sc25519, lanes> rawScalars;
-        for (std::size_t i = 0; i != lanes; ++i)
+        constexpr std::size_t backendLanes = 4;
+        std::array<sc25519, backendLanes> rawScalars;
+        for (std::size_t i = 0; i != backendLanes; ++i)
             sc25519_from32bytes(&rawScalars[i], scalarBytes[i].data());
         ge4x rawBase, directProduct, tableProduct;
         ge4x_scalarsmults_base(&rawBase, rawScalars.data());
@@ -132,7 +168,7 @@ namespace tests_cryptoTools
         ge4x_maketable(table, &rawBase, 1);
         ge4x_scalarsmults_table(
             &tableProduct, table, rawScalars.data(), 1);
-        std::array<osuCrypto::u8, lanes * encodedSize> directPacked, tablePacked;
+        std::array<osuCrypto::u8, backendLanes * encodedSize> directPacked, tablePacked;
         ge4x_pack(directPacked.data(), &directProduct);
         ge4x_pack(tablePacked.data(), &tableProduct);
         if (directPacked != tablePacked)
@@ -189,8 +225,12 @@ namespace tests_cryptoTools
             'a', 'b', 'c',
             0x00, 0x01, 0x02,
             0xff, 0x80, 0x40,
-            'x', 'y', 'z'};
-        const auto batchHashPoint = Point4::hashToCurveElligator2(
+            'x', 'y', 'z',
+            0x10, 0x20, 0x30,
+            'm', 'a', 'p',
+            0x7f, 0x00, 0xfe,
+            'o', 't', 'e'};
+        const auto batchHashPoint = Point8::hashToCurveElligator2(
             batchMessages.data(), batchMessageSize,
             hashDomain, sizeof(hashDomain) - 1);
         std::array<osuCrypto::u8, lanes * encodedSize> batchHashPacked;
@@ -209,7 +249,7 @@ namespace tests_cryptoTools
                 !isPrimeSubgroupPoint(
                     batchHashPacked.data() + lane * encodedSize))
                 throw osuCrypto::UnitTestFail(
-                    "four-lane Edwards25519 Elligator2 mismatch");
+                    "eight-lane Edwards25519 Elligator2 mismatch");
         }
 
         osuCrypto::Blake2 canonicalBatchHash(32), encodedBatchHash(32);
@@ -220,10 +260,10 @@ namespace tests_cryptoTools
         encodedBatchHash.Final(encodedDigest.data());
         if (canonicalDigest != encodedDigest)
             throw osuCrypto::UnitTestFail(
-                "four-lane Edwards25519 Hashable encoding is not canonical");
+                "eight-lane Edwards25519 Hashable encoding is not canonical");
 
         std::array<osuCrypto::u8, lanes * encodedSize> emptyBatchPacked;
-        Point4::hashToCurveElligator2(
+        Point8::hashToCurveElligator2(
             nullptr, 0, hashDomain, sizeof(hashDomain) - 1)
             .toBytes(emptyBatchPacked.data());
         std::array<osuCrypto::u8, encodedSize> emptyScalarPacked;
@@ -235,7 +275,7 @@ namespace tests_cryptoTools
                     emptyBatchPacked.data() + lane * encodedSize,
                     emptyScalarPacked.data(), encodedSize) != 0)
                 throw osuCrypto::UnitTestFail(
-                    "four-lane empty-message Elligator2 mismatch");
+                    "eight-lane empty-message Elligator2 mismatch");
 
         constexpr std::size_t variedMessageSize = 17;
         std::array<osuCrypto::u8, lanes * variedMessageSize> variedMessages;
@@ -244,7 +284,7 @@ namespace tests_cryptoTools
             for (std::size_t i = 0; i != variedMessages.size(); ++i)
                 variedMessages[i] = static_cast<osuCrypto::u8>(
                     29 * batch + 17 * i + i * i);
-            Point4::hashToCurveElligator2(
+            Point8::hashToCurveElligator2(
                 variedMessages.data(), variedMessageSize,
                 hashDomain, sizeof(hashDomain) - 1)
                 .toBytes(batchHashPacked.data());
@@ -258,7 +298,7 @@ namespace tests_cryptoTools
                         batchHashPacked.data() + lane * encodedSize,
                         emptyScalarPacked.data(), encodedSize) != 0)
                     throw osuCrypto::UnitTestFail(
-                        "four-lane varied-input Elligator2 mismatch");
+                        "eight-lane varied-input Elligator2 mismatch");
             }
         }
     }

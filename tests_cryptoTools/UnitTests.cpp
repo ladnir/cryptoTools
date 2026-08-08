@@ -70,7 +70,7 @@ namespace tests_cryptoTools
         th.add("REccpNumber_Test                        ", REccpNumber_Test);
         th.add("REccpPoint_Test                         ", REccpPoint_Test);
 
-        th.add("Edwards25519_4xBase_Test               ", Edwards25519_4xBase_Test);
+        th.add("Edwards25519_8xBase_Test               ", Edwards25519_8xBase_Test);
         th.add("Edwards25519_HashToCurve_Test          ", Edwards25519_HashToCurve_Test);
 
 

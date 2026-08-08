@@ -86,7 +86,7 @@ namespace
         return {median / (iterations * pointsPerIteration), iterations};
     }
 
-    void consume(const ed::Point4& point)
+    void consume(const ed::Point8& point)
     {
         alignas(32) std::array<std::uint8_t,
             ed::lanes * ed::encodedSize> encoded;
@@ -98,7 +98,7 @@ namespace
     void consume(const ge4x& point)
     {
         alignas(32) std::array<std::uint8_t,
-            ed::lanes * ed::encodedSize> encoded;
+            4 * ed::encodedSize> encoded;
         ge4x_pack(encoded.data(), &point);
         benchmarkSink = static_cast<std::uint8_t>(
             benchmarkSink ^ encoded[0] ^ encoded[encoded.size() - 1]);
@@ -120,9 +120,9 @@ namespace
     {
         std::array<fe25519, ed::lanes> u0;
         std::array<fe25519, ed::lanes> u1;
-        alignas(32) ge4x q0;
-        alignas(32) ge4x q1;
-        alignas(32) ge4x result;
+        alignas(32) ge4x q0[2];
+        alignas(32) ge4x q1[2];
+        alignas(32) ge4x result[2];
 
         explicit EdwardsMapState(PRNG& prng)
         {
@@ -140,12 +140,18 @@ namespace
 
         void operator()()
         {
-            ge4x_map_to_curve_elligator2(&q0, u0.data());
-            ge4x_map_to_curve_elligator2(&q1, u1.data());
-            ge4x_add(&result, &q0, &q1);
-            ge4x_double(&result, &result);
-            ge4x_double(&result, &result);
-            ge4x_double(&result, &result);
+            ge4x_map_to_curve_elligator2(&q0[0], u0.data());
+            ge4x_map_to_curve_elligator2(&q0[1], u0.data() + 4);
+            ge4x_map_to_curve_elligator2(&q1[0], u1.data());
+            ge4x_map_to_curve_elligator2(&q1[1], u1.data() + 4);
+            ge4x_add(&result[0], &q0[0], &q1[0]);
+            ge4x_add(&result[1], &q0[1], &q1[1]);
+            ge4x_double(&result[0], &result[0]);
+            ge4x_double(&result[1], &result[1]);
+            ge4x_double(&result[0], &result[0]);
+            ge4x_double(&result[1], &result[1]);
+            ge4x_double(&result[0], &result[0]);
+            ge4x_double(&result[1], &result[1]);
         }
     };
 
@@ -155,8 +161,8 @@ namespace
         std::array<Measurement, operationCount> results;
         const auto scalars = randomEdwardsScalars(prng);
         const auto otherScalars = randomEdwardsScalars(prng);
-        auto point = ed::Point4::mulGenerator(scalars);
-        const auto other = ed::Point4::mulGenerator(otherScalars);
+        auto point = ed::Point8::mulGenerator(scalars);
+        const auto other = ed::Point8::mulGenerator(otherScalars);
         alignas(32) std::array<std::uint8_t,
             ed::lanes * ed::encodedSize> messages;
         alignas(32) std::array<std::uint8_t,
@@ -165,7 +171,7 @@ namespace
         point.toBytes(encoded.data());
 
         auto hashToGroup = [&]() {
-            point = ed::Point4::hashToCurveElligator2(
+            point = ed::Point8::hashToCurveElligator2(
                 messages.data(), ed::encodedSize,
                 hashDomain, sizeof(hashDomain) - 1);
         };
@@ -176,10 +182,11 @@ namespace
         EdwardsMapState mapState(prng);
         results[1] = measure(
             mapState, ed::lanes, targetMilliseconds, repetitions);
-        consume(mapState.result);
+        consume(mapState.result[0]);
+        consume(mapState.result[1]);
 
         auto mulGenerator = [&]() {
-            point = ed::Point4::mulGenerator(scalars);
+            point = ed::Point8::mulGenerator(scalars);
         };
         results[2] = measure(
             mulGenerator, ed::lanes, targetMilliseconds, repetitions);
@@ -206,7 +213,7 @@ namespace
             encode, ed::lanes, targetMilliseconds, repetitions);
         benchmarkSink = static_cast<std::uint8_t>(benchmarkSink ^ encoded[0]);
 
-        ed::Point4 decoded;
+        ed::Point8 decoded;
         auto decode = [&]() {
             (void)decoded.fromBytes(encoded.data());
         };
@@ -379,13 +386,13 @@ void curveBench(const osuCrypto::CLP& cmd)
     const auto edwards = benchmarkEdwards(
         prng, targetMilliseconds, repetitions);
     const char* edwardsBackend = ed::hasOptimizedBackend ?
-        "edwards25519-4x-asm" : "edwards25519-4x-c";
+        "edwards25519-8x-asm" : "edwards25519-8x-c";
 
     std::cout << "Curve benchmark (median of " << repetitions
               << ", >= " << targetMilliseconds << " ms/sample)\n"
               << "Times exclude input generation; hash_to_group includes the KDF, "
                  "map_to_group does not.\n"
-              << "Four-wide Edwards25519 times are normalized per point.\n\n"
+              << "Eight-wide Edwards25519 times are normalized per point.\n\n"
               << std::left << std::setw(22) << "backend"
               << std::setw(18) << "operation"
               << std::right << std::setw(14) << "ns/point"
