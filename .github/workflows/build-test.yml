@@ -27,8 +27,6 @@ jobs:
             options: -DENABLE_EDWARDS25519_ASM=ON -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=ON -DENABLE_RELIC=ON
           - backend: sodium
             options: -DENABLE_EDWARDS25519_ASM=OFF -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=ON -DENABLE_RELIC=ON
-          - backend: relic-ed
-            options: -DENABLE_EDWARDS25519_ASM=OFF -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=OFF -DENABLE_RELIC=ON
     steps:
       - uses: actions/checkout@v5
         with:

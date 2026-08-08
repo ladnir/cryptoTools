@@ -1,11 +1,11 @@
 #ifndef GE4X_H
 #define GE4X_H
 
-#include "ge25519.h"
+#include "../portable/ge25519.h"
 #ifdef CRYPTOTOOLS_EDWARDS25519_ASM
 #include "gfe4x.h"
 #endif
-#include "sc25519.h"
+#include "../portable/sc25519.h"
 
 /* Four-lane Edwards25519 arithmetic in structure-of-arrays form.
  * Values are 32-byte aligned; keep batches intact to preserve the assembly

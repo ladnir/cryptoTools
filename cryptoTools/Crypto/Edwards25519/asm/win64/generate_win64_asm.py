@@ -12,6 +12,7 @@ import struct
 
 
 HERE = Path(__file__).resolve().parent
+SYSV = HERE.parent / "sysv"
 OUTPUT = HERE / "edwards25519_win64.asm"
 
 DATA_SOURCES = ["consts.s", "consts4x.s"]
@@ -126,7 +127,7 @@ def data_block() -> tuple[list[str], set[str]]:
     output = [".const", "ALIGN 16"]
     labels: set[str] = set()
     for filename in DATA_SOURCES:
-        for raw in (HERE / filename).read_text(encoding="utf-8").splitlines():
+        for raw in (SYSV / filename).read_text(encoding="utf-8").splitlines():
             line = raw.strip()
             match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*):\s+\.(quad|double)\s+(.+)", line)
             if not match:
@@ -239,7 +240,7 @@ def main() -> None:
     data, local_data = data_block()
     rip_symbols: set[str] = set()
     for filename in CODE_SOURCES:
-        text = (HERE / filename).read_text(encoding="utf-8")
+        text = (SYSV / filename).read_text(encoding="utf-8")
         rip_symbols.update(re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\(%rip\)", text))
     externs = sorted(rip_symbols - local_data)
 
@@ -253,7 +254,7 @@ def main() -> None:
     output.extend(f"EXTERN {symbol}:BYTE" for symbol in externs)
     output.extend(["", *data, "", ".code"])
     for filename in CODE_SOURCES:
-        output.extend(function_block(HERE / filename))
+        output.extend(function_block(SYSV / filename))
     output.extend(["", "END", ""])
     OUTPUT.write_text("\n".join(output), encoding="utf-8", newline="\n")
 

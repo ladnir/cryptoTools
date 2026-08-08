@@ -10,15 +10,15 @@
 #include <cryptoTools/Crypto/RandomOracle.h>
 
 extern "C" {
-#include <cryptoTools/Crypto/Edwards25519/ge25519.h>
-#include <cryptoTools/Crypto/Edwards25519/ristretto255_ref.h>
+#include <cryptoTools/Crypto/Edwards25519/portable/ge25519.h>
+#include <cryptoTools/Crypto/Edwards25519/portable/ristretto255_ref.h>
 #ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
-#include <cryptoTools/Crypto/Edwards25519/ge4x.h>
+#include <cryptoTools/Crypto/Edwards25519/batch/ge4x.h>
 #endif
 }
 
 #ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
-#include <cryptoTools/Crypto/Edwards25519/ge8x_ifma.h>
+#include <cryptoTools/Crypto/Edwards25519/ifma/ge8x_ifma.h>
 #endif
 
 namespace osuCrypto

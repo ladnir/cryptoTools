@@ -19,10 +19,15 @@ Applications that want the best configured implementation should include
 `Curve25519Backend.h` and use `osuCrypto::Edwards25519::Backend` or
 `osuCrypto::Ristretto255::Backend`. Each facade exposes `Scalar`, `Point`, and
 the fixed-width `Point8` batch type without runtime dispatch. Edwards25519 is
-selected in the order IFMA, assembly, libsodium, RELIC `ed_*`, portable C;
+selected in the order IFMA, assembly, portable C;
 Ristretto255 is selected in the order IFMA, assembly, libsodium, portable C.
 The Elligator2 hash-to-curve result and both canonical encodings are identical
 across providers, so builds using different providers remain wire compatible.
+
+The external Edwards25519 providers were intentionally removed from automatic
+selection: pinned-core Masny--Rindal measurements found portable C 18% faster
+than libsodium and 26% faster than RELIC. Ristretto255 retains libsodium, where
+it remains substantially faster than portable C.
 
 The portable backend contains independent radix-2^51 field arithmetic and
 scalar extended-coordinate curve formulas. Its `Point8` representation uses
@@ -54,13 +59,14 @@ All Edwards25519 objects are compiled as position-independent code. The
 assembly constants use RIP-relative addressing, allowing the resulting
 objects to be included in PIE executables and shared libraries.
 
-The Win64 MASM source is mechanically produced by `generate_win64_asm.py`
-from those same qhasm/GAS instruction streams. Its generated prologues adapt
+The Win64 MASM source is mechanically produced by
+`asm/win64/generate_win64_asm.py` from the qhasm/GAS instruction streams in
+`asm/sysv`. Its generated prologues adapt
 the Microsoft x64 argument registers, preserve nonvolatile integer and vector
 registers, and emit unwind metadata. Regenerate the `.asm` file after changing
 one of the source `.s` files.
 
-`ge8x_ifma.cpp` is licensed under Apache-2.0 because its radix-2^52
+`ifma/ge8x_ifma.cpp` is licensed under Apache-2.0 because its radix-2^52
 multiplication and reduction schedule is derived from Intel Cryptography
 Primitives. The file retains the Intel attribution and license notice.
 The portable Ristretto formulas in `ristretto255.c` are adapted from

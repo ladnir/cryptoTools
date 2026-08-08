@@ -20,12 +20,9 @@ namespace tests_cryptoTools
 #elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
         static_assert(Edwards::implementation == Implementation::Assembly);
         static_assert(Ristretto::implementation == Implementation::Assembly);
-#elif defined(CRYPTOTOOLS_EDWARDS25519_BACKEND_SODIUM)
-        static_assert(Edwards::implementation == Implementation::Sodium);
+#elif defined(CRYPTOTOOLS_RISTRETTO255_BACKEND_SODIUM)
+        static_assert(Edwards::implementation == Implementation::Portable);
         static_assert(Ristretto::implementation == Implementation::Sodium);
-#elif defined(CRYPTOTOOLS_EDWARDS25519_BACKEND_RELIC)
-        static_assert(Edwards::implementation == Implementation::Relic);
-        static_assert(Ristretto::implementation == Implementation::Portable);
 #else
         static_assert(Edwards::implementation == Implementation::Portable);
         static_assert(Ristretto::implementation == Implementation::Portable);

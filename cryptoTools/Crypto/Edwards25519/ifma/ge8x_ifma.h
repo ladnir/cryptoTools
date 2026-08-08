@@ -3,9 +3,9 @@
 
 #include <immintrin.h>
 
-#include "fe25519.h"
-#include "ge25519.h"
-#include "sc25519.h"
+#include "../portable/fe25519.h"
+#include "../portable/ge25519.h"
+#include "../portable/sc25519.h"
 
 #if defined(_MSC_VER)
 #define CRYPTOTOOLS_EDWARDS25519_ALIGN64 __declspec(align(64))

@@ -5,74 +5,74 @@
 set(EDWARDS25519_COMMON_SOURCES
     Edwards25519.cpp
     Ristretto255.cpp
-    fe25519_add.c
-    fe25519_getparity.c
-    fe25519_invert.c
-    fe25519_iseq_vartime.c
-    fe25519_neg.c
-    fe25519_pack.c
-    fe25519_pow2523.c
-    fe25519_setint.c
-    fe25519_sub.c
-    fe25519_unpack.c
-    fe25519_utils.c
-    ge25519_add.c
-    ge25519_double.c
-    ge25519_elligator2.c
-    ge25519_pack.c
-    ge25519_scalarmult.c
-    ge25519_scalarmult_base.c
-    ge25519_setneutral.c
-    ge25519_unpack.c
-    ge25519_utils.c
-    ristretto255.c
-    sc25519_from32bytes.c
-    sc25519_to32bytes.c
-    sc25519_window4.c)
+    portable/fe25519_add.c
+    portable/fe25519_getparity.c
+    portable/fe25519_invert.c
+    portable/fe25519_iseq_vartime.c
+    portable/fe25519_neg.c
+    portable/fe25519_pack.c
+    portable/fe25519_pow2523.c
+    portable/fe25519_setint.c
+    portable/fe25519_sub.c
+    portable/fe25519_unpack.c
+    portable/fe25519_utils.c
+    portable/ge25519_add.c
+    portable/ge25519_double.c
+    portable/ge25519_elligator2.c
+    portable/ge25519_pack.c
+    portable/ge25519_scalarmult.c
+    portable/ge25519_scalarmult_base.c
+    portable/ge25519_setneutral.c
+    portable/ge25519_unpack.c
+    portable/ge25519_utils.c
+    portable/ristretto255.c
+    portable/sc25519_from32bytes.c
+    portable/sc25519_to32bytes.c
+    portable/sc25519_window4.c)
 
 set(EDWARDS25519_SYSV_ASM_SOURCES
-    consts.s
-    consts4x.s
-    fe25519_freeze.s
-    fe25519_mul.s
-    fe25519_nsquare.s
-    fe25519_square.s
-    ge25519_add_p1p1.s
-    ge25519_dbl_p1p1.s
-    ge25519_lookup.s
-    ge25519_lookup_niels.s
-    ge25519_nielsadd2.s
-    ge25519_p1p1_to_p2.s
-    ge25519_p1p1_to_p3.s
-    ge4x_add_p1p1.s
-    ge4x_double_p1p1.s
-    ge4x_lookup.s
-    ge4x_lookup_niels.s
-    ge4x_niels_add_p1p1.s
-    gfe4x_add.s
-    gfe4x_mul.s
-    gfe4x_square.s
-    gfe4x_sub.s)
+    asm/sysv/consts.s
+    asm/sysv/consts4x.s
+    asm/sysv/fe25519_freeze.s
+    asm/sysv/fe25519_mul.s
+    asm/sysv/fe25519_nsquare.s
+    asm/sysv/fe25519_square.s
+    asm/sysv/ge25519_add_p1p1.s
+    asm/sysv/ge25519_dbl_p1p1.s
+    asm/sysv/ge25519_lookup.s
+    asm/sysv/ge25519_lookup_niels.s
+    asm/sysv/ge25519_nielsadd2.s
+    asm/sysv/ge25519_p1p1_to_p2.s
+    asm/sysv/ge25519_p1p1_to_p3.s
+    asm/sysv/ge4x_add_p1p1.s
+    asm/sysv/ge4x_double_p1p1.s
+    asm/sysv/ge4x_lookup.s
+    asm/sysv/ge4x_lookup_niels.s
+    asm/sysv/ge4x_niels_add_p1p1.s
+    asm/sysv/gfe4x_add.s
+    asm/sysv/gfe4x_mul.s
+    asm/sysv/gfe4x_square.s
+    asm/sysv/gfe4x_sub.s)
 
 set(EDWARDS25519_WIN64_ASM_SOURCES
-    edwards25519_win64.asm)
+    asm/win64/edwards25519_win64.asm)
 
 set(EDWARDS25519_ASM_SUPPORT_SOURCES
-    ge4x.c
-    ge4x_elligator2.cpp
-    ge4x_pack.c
-    ge4x_unpack_vartime.c
-    gfe4x.c
-    gfe4x_getparity.c
-    gfe4x_iseq_vartime.c
-    gfe4x_nsquare.c
-    gfe4x_pow2523.c)
+    batch/ge4x.c
+    batch/ge4x_elligator2.cpp
+    batch/ge4x_pack.c
+    batch/ge4x_unpack_vartime.c
+    batch/gfe4x.c
+    batch/gfe4x_getparity.c
+    batch/gfe4x_iseq_vartime.c
+    batch/gfe4x_nsquare.c
+    batch/gfe4x_pow2523.c)
 
 set(EDWARDS25519_REF_SOURCES
-    fe25519_ref.c
-    ge25519_ref.c
-    ge4x_ref.c
-    ge4x_elligator2_ref.c)
+    portable/fe25519_ref.c
+    portable/ge25519_ref.c
+    batch/ge4x_ref.c
+    batch/ge4x_elligator2_ref.c)
 
 if(ENABLE_EDWARDS25519_ASM)
     if(MSVC)
@@ -95,31 +95,23 @@ add_library(cryptoToolsEdwards25519Objects OBJECT
     ${EDWARDS25519_BACKEND_SOURCES})
 
 if(ENABLE_EDWARDS25519_IFMA)
-    target_sources(cryptoToolsEdwards25519Objects PRIVATE ge8x_ifma.cpp)
+    target_sources(cryptoToolsEdwards25519Objects PRIVATE ifma/ge8x_ifma.cpp)
     if(MSVC)
-        set_source_files_properties(ge8x_ifma.cpp PROPERTIES
+        set_source_files_properties(ifma/ge8x_ifma.cpp PROPERTIES
             COMPILE_OPTIONS "/arch:AVX512")
     else()
-        set_source_files_properties(ge8x_ifma.cpp PROPERTIES
+        set_source_files_properties(ifma/ge8x_ifma.cpp PROPERTIES
             COMPILE_OPTIONS "-mavx512f;-mavx512ifma")
     endif()
 endif()
 
-# Select the public curve facades at compile time. The tuned cryptoTools
-# implementations win whenever available; external libraries are fallbacks.
+# Select the public curve facades at compile time. Edwards25519 always uses
+# cryptoTools' implementation; libsodium remains the optimized Ristretto255
+# fallback when neither native backend is enabled.
 if(NOT ENABLE_EDWARDS25519_IFMA AND NOT ENABLE_EDWARDS25519_ASM)
     if(ENABLE_SODIUM)
         target_compile_definitions(cryptoTools PUBLIC
-            CRYPTOTOOLS_EDWARDS25519_BACKEND_SODIUM=1
             CRYPTOTOOLS_RISTRETTO255_BACKEND_SODIUM=1)
-    elseif(ENABLE_RELIC)
-        target_sources(cryptoToolsEdwards25519Objects PRIVATE
-            RelicEdwards25519.cpp)
-        target_compile_definitions(cryptoTools PUBLIC
-            CRYPTOTOOLS_EDWARDS25519_BACKEND_RELIC=1)
-        target_compile_definitions(cryptoToolsEdwards25519Objects PRIVATE
-            CRYPTOTOOLS_EDWARDS25519_BACKEND_RELIC=1)
-        target_link_libraries(cryptoToolsEdwards25519Objects PRIVATE relic)
     endif()
 endif()
 
@@ -128,7 +120,10 @@ set_target_properties(cryptoToolsEdwards25519Objects PROPERTIES
 
 target_include_directories(cryptoToolsEdwards25519Objects PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../..
-    ${CMAKE_CURRENT_BINARY_DIR}/../../..)
+    ${CMAKE_CURRENT_BINARY_DIR}/../../..
+    ${CMAKE_CURRENT_SOURCE_DIR}/portable
+    ${CMAKE_CURRENT_SOURCE_DIR}/batch
+    ${CMAKE_CURRENT_SOURCE_DIR}/ifma)
 
 if(MSVC)
     target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
