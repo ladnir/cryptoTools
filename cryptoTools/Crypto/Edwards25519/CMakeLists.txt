@@ -4,6 +4,7 @@
 
 set(EDWARDS25519_COMMON_SOURCES
     Edwards25519.cpp
+    Ristretto255.cpp
     fe25519_add.c
     fe25519_getparity.c
     fe25519_invert.c
@@ -24,6 +25,7 @@ set(EDWARDS25519_COMMON_SOURCES
     ge25519_setneutral.c
     ge25519_unpack.c
     ge25519_utils.c
+    ristretto255.c
     sc25519_from32bytes.c
     sc25519_to32bytes.c
     sc25519_window4.c)

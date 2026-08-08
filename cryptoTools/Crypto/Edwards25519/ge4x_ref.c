@@ -30,6 +30,20 @@ void ge4x_from_ge25519(ge4x *r, const ge25519 *p)
     r->lane[i] = *p;
 }
 
+void ge4x_from_ge25519s(ge4x *r, const ge25519 p[4])
+{
+  int i;
+  for (i = 0; i != 4; ++i)
+    r->lane[i] = p[i];
+}
+
+void ge4x_to_ge25519s(ge25519 p[4], const ge4x *r)
+{
+  int i;
+  for (i = 0; i != 4; ++i)
+    p[i] = r->lane[i];
+}
+
 void ge4x_cmovs(ge4x *r, const ge4x *x, unsigned char *b)
 {
   int i;

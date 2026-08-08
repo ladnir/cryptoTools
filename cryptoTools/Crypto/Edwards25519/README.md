@@ -2,7 +2,13 @@
 
 This directory contains the public-domain Edwards25519 arithmetic extracted
 from Simplest OT. It implements the raw, cofactor-8 twisted Edwards curve over
-`2^255 - 19`. It is not a Ristretto or Decaf encoding.
+`2^255 - 19`. The raw Edwards API is not a Ristretto or Decaf encoding.
+
+The same arithmetic also backs the standard prime-order
+`osuCrypto::Ristretto255::{Scalar, Point, Point8}` API in `Ristretto255.h`.
+Ristretto encoding, canonical decoding, and the 64-byte uniform map are
+performed only at that API boundary; scalar multiplication and group
+operations reuse the Edwards extended-coordinate kernels without conversion.
 
 Edwards25519 is always part of the main `cryptoTools` library. The public C++
 API is `osuCrypto::Edwards25519::{Scalar, Point, Point8}` in
@@ -48,3 +54,5 @@ one of the source `.s` files.
 `ge8x_ifma.cpp` is licensed under Apache-2.0 because its radix-2^52
 multiplication and reduction schedule is derived from Intel Cryptography
 Primitives. The file retains the Intel attribution and license notice.
+The portable Ristretto formulas in `ristretto255.c` are adapted from
+libsodium ref10 under the ISC license in `RISTRETTO_LICENSE`.

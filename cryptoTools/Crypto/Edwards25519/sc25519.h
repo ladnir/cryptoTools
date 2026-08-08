@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 void sc25519_from32bytes(sc25519 *r, const unsigned char x[32]);
+void sc25519_from32bytes_mod_order(sc25519 *r, const unsigned char x[32]);
 void sc25519_to32bytes(unsigned char r[32], const sc25519 *x);
 void sc25519_window4(signed char r[64], const sc25519 *s); //
 

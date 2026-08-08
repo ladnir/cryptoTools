@@ -63,3 +63,33 @@ void sc25519_from32bytes(sc25519 *r, const unsigned char x[32])
       r->v[i] ^= mask & (r->v[i] ^ t[i]);
   }
 }
+
+void sc25519_from32bytes_mod_order(sc25519 *r, const unsigned char x[32])
+{
+  unsigned long long t[4];
+  unsigned long long b;
+  unsigned long long mask;
+  int i, j;
+
+  /* Any 256-bit integer is smaller than 16*n. Fifteen fixed conditional
+   * subtractions therefore reduce the input without the Simplest-OT clamp. */
+  memcpy(&r->v[0], x + 0, 8);
+  memcpy(&r->v[1], x + 8, 8);
+  memcpy(&r->v[2], x + 16, 8);
+  memcpy(&r->v[3], x + 24, 8);
+
+  for (j = 0; j != 15; ++j)
+  {
+    b = 0;
+    for (i = 0; i != 4; ++i)
+    {
+      const unsigned long long add = order[i] + b;
+      const unsigned long long carry = (add < order[i]);
+      t[i] = r->v[i] - add;
+      b = carry | smaller(r->v[i], add);
+    }
+    mask = b - 1;
+    for (i = 0; i != 4; ++i)
+      r->v[i] ^= mask & (r->v[i] ^ t[i]);
+  }
+}

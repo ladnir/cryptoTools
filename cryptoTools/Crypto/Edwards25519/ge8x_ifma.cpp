@@ -329,7 +329,9 @@ namespace
         alignas(64) std::uint64_t limb[5][8];
         for (unsigned lane = 0; lane != 8; ++lane)
         {
-            const auto* a = input[lane].v;
+            fe25519 canonical = input[lane];
+            fe25519_freeze(&canonical);
+            const auto* a = canonical.v;
             limb[0][lane] = a[0] | ((a[1] & 1) << 51);
             limb[1][lane] = (a[1] >> 1) | ((a[2] & 3) << 50);
             limb[2][lane] = (a[2] >> 2) | ((a[3] & 7) << 49);
@@ -344,7 +346,9 @@ namespace
 
     inline Fe feBroadcast51(const fe25519& input)
     {
-        const auto* a = input.v;
+        fe25519 canonical = input;
+        fe25519_freeze(&canonical);
+        const auto* a = canonical.v;
         Fe r;
         r.limb[0] = set1(a[0] | ((a[1] & 1) << 51));
         r.limb[1] = set1((a[1] >> 1) | ((a[2] & 3) << 50));
@@ -398,6 +402,89 @@ namespace
         const Vec w3 = _mm512_or_si512(_mm512_srli_epi64(a.limb[3], 36), _mm512_slli_epi64(a.limb[4], 16));
         _mm512_store_si512(words[0], w0); _mm512_store_si512(words[1], w1);
         _mm512_store_si512(words[2], w2); _mm512_store_si512(words[3], w3);
+    }
+
+    inline void feToBytes(unsigned char encoded[8 * 32], const Fe& input)
+    {
+        alignas(64) std::uint64_t words[4][8];
+        feToWords(words, input);
+        for (unsigned lane = 0; lane != 8; ++lane)
+        {
+            std::memcpy(encoded + lane * 32 + 0, &words[0][lane], 8);
+            std::memcpy(encoded + lane * 32 + 8, &words[1][lane], 8);
+            std::memcpy(encoded + lane * 32 + 16, &words[2][lane], 8);
+            std::memcpy(encoded + lane * 32 + 24, &words[3][lane], 8);
+        }
+    }
+
+    inline void feAbs(Fe& r, const Fe& a)
+    {
+        Fe n;
+        feNeg(n, a);
+        r = a;
+        feCmov(r, n, feParity(r));
+    }
+
+    Mask feSqrtRatioM1(Fe& x, const Fe& u, const Fe& v)
+    {
+        static const std::uint64_t sqrtM1_51[5] = {
+            1718705420411056ULL, 234908883556509ULL, 2233514472574048ULL,
+            2117202627021982ULL, 765476049583133ULL};
+        const Fe sqrtM1 = feConstant51(sqrtM1_51);
+        Fe v3, vxx, mcheck, pcheck, fcheck, xsqrtm1, t;
+        feSquare(v3, v); feMul(v3, v3, v);
+        feSquare(x, v3); feMul(x, x, u); feMul(x, x, v);
+        fePow2523(x, x); feMul(x, x, v3); feMul(x, x, u);
+        feSquare(vxx, x); feMul(vxx, vxx, v);
+        feSub(mcheck, vxx, u); feAdd(pcheck, vxx, u);
+        feMul(t, u, sqrtM1); feAdd(fcheck, vxx, t);
+        const Mask hasM = feEqual(mcheck, feZero());
+        const Mask hasP = feEqual(pcheck, feZero());
+        const Mask hasF = feEqual(fcheck, feZero());
+        feMul(xsqrtm1, x, sqrtM1);
+        feCmov(x, xsqrtm1, static_cast<Mask>(hasP | hasF));
+        feAbs(x, x);
+        return static_cast<Mask>(hasM | hasP);
+    }
+
+    Ge ristrettoElligator(const Fe& t)
+    {
+        static const std::uint64_t sqrtM1_51[5] = {
+            1718705420411056ULL, 234908883556509ULL, 2233514472574048ULL,
+            2117202627021982ULL, 765476049583133ULL};
+        static const std::uint64_t d_51[5] = {
+            929955233495203ULL, 466365720129213ULL, 1662059464998953ULL,
+            2033849074728123ULL, 1442794654840575ULL};
+        static const std::uint64_t oneMinusDSquared_51[5] = {
+            1136626929484150ULL, 1998550399581263ULL, 496427632559748ULL,
+            118527312129759ULL, 45110755273534ULL};
+        static const std::uint64_t dMinusOneSquared_51[5] = {
+            1507062230895904ULL, 1572317787530805ULL, 683053064812840ULL,
+            317374165784489ULL, 1572899562415810ULL};
+        static const std::uint64_t sqrtADMinusOne_51[5] = {
+            2241493124984347ULL, 425987919032274ULL, 2207028919301688ULL,
+            1220490630685848ULL, 974799131293748ULL};
+        const Fe sqrtM1 = feConstant51(sqrtM1_51);
+        const Fe d = feConstant51(d_51);
+        const Fe oneMinusDSquared = feConstant51(oneMinusDSquared_51);
+        const Fe dMinusOneSquared = feConstant51(dMinusOneSquared_51);
+        const Fe sqrtADMinusOne = feConstant51(sqrtADMinusOne_51);
+        const Fe one = feOne();
+        Fe c, n, rr, rpd, s, sprime, ss, u, v, w0, w1, w2, w3;
+        feSquare(rr, t); feMul(rr, sqrtM1, rr);
+        feAdd(u, rr, one); feMul(u, u, oneMinusDSquared);
+        feNeg(c, one);
+        feAdd(rpd, rr, d); feMul(v, rr, d); feSub(v, c, v); feMul(v, v, rpd);
+        const Mask nonsquare = static_cast<Mask>(~feSqrtRatioM1(s, u, v));
+        feMul(sprime, s, t); feAbs(sprime, sprime); feNeg(sprime, sprime);
+        feCmov(s, sprime, nonsquare); feCmov(c, rr, nonsquare);
+        feSub(n, rr, one); feMul(n, n, c); feMul(n, n, dMinusOneSquared); feSub(n, n, v);
+        feAdd(w0, s, s); feMul(w0, w0, v); feMul(w1, n, sqrtADMinusOne);
+        feSquare(ss, s); feSub(w2, one, ss); feAdd(w3, one, ss);
+        Ge p;
+        feMul(p.x, w0, w3); feMul(p.y, w2, w1);
+        feMul(p.z, w1, w3); feMul(p.t, w0, w2);
+        return p;
     }
 
     inline void geCmov(Ge& r, const Ge& a, Mask select)
@@ -543,6 +630,39 @@ extern "C" void ge8x_from_ge25519(ge8x* r, const ge25519* p)
     r->z = feBroadcast51(p->z); r->t = feBroadcast51(p->t);
 }
 
+extern "C" void ge8x_from_ge25519s(ge8x* r, const ge25519 p[8])
+{
+    fe25519 c[8];
+    for (unsigned i = 0; i != 8; ++i) c[i] = p[i].x;
+    r->x = feFrom51(c);
+    for (unsigned i = 0; i != 8; ++i) c[i] = p[i].y;
+    r->y = feFrom51(c);
+    for (unsigned i = 0; i != 8; ++i) c[i] = p[i].z;
+    r->z = feFrom51(c);
+    for (unsigned i = 0; i != 8; ++i) c[i] = p[i].t;
+    r->t = feFrom51(c);
+}
+
+extern "C" void ge8x_to_ge25519s(ge25519 p[8], const ge8x* r)
+{
+    alignas(64) std::uint64_t words[4][8];
+    unsigned char encoded[8 * 32];
+    const auto unpack = [&](fe25519 ge25519::*member, const Fe& value) {
+        feToWords(words, value);
+        for (unsigned lane = 0; lane != 8; ++lane) {
+            std::memcpy(encoded + lane * 32 + 0, &words[0][lane], 8);
+            std::memcpy(encoded + lane * 32 + 8, &words[1][lane], 8);
+            std::memcpy(encoded + lane * 32 + 16, &words[2][lane], 8);
+            std::memcpy(encoded + lane * 32 + 24, &words[3][lane], 8);
+            fe25519_unpack(&(p[lane].*member), encoded + lane * 32);
+        }
+    };
+    unpack(&ge25519::x, r->x);
+    unpack(&ge25519::y, r->y);
+    unpack(&ge25519::z, r->z);
+    unpack(&ge25519::t, r->t);
+}
+
 extern "C" void ge8x_add(ge8x* r, const ge8x* p, const ge8x* q)
 {
     Ge out;
@@ -617,6 +737,81 @@ extern "C" void ge8x_map_to_curve_elligator2(ge8x* r, const fe25519 input[8])
     feCmov(yn, one, exceptional); feCmov(yd, one, exceptional);
     feMul(r->x, xn, yd); feMul(r->y, yn, xdn);
     feMul(r->z, xdn, yd); feMul(r->t, xn, yn);
+}
+
+extern "C" void ge8x_ristretto_from_uniform(
+    ge8x* r, const unsigned char uniform[8 * 64])
+{
+    alignas(64) unsigned char first[8 * 32];
+    alignas(64) unsigned char second[8 * 32];
+    for (unsigned lane = 0; lane != 8; ++lane)
+    {
+        std::memcpy(first + lane * 32, uniform + lane * 64, 32);
+        std::memcpy(second + lane * 32, uniform + lane * 64 + 32, 32);
+    }
+    const Ge p0 = ristrettoElligator(feFromBytes(first));
+    const Ge p1 = ristrettoElligator(feFromBytes(second));
+    geAddImpl(*r, p0, p1);
+}
+
+extern "C" int ge8x_ristretto_frombytes(
+    ge8x* h, const unsigned char encoded[8 * 32])
+{
+    static const std::uint64_t d_51[5] = {
+        929955233495203ULL, 466365720129213ULL, 1662059464998953ULL,
+        2033849074728123ULL, 1442794654840575ULL};
+    const Fe d = feConstant51(d_51);
+    const Fe one = feOne();
+    const Fe s = feFromBytes(encoded);
+    Mask highClear = 0;
+    for (unsigned lane = 0; lane != 8; ++lane)
+        highClear = static_cast<Mask>(highClear |
+            ((((encoded[lane * 32 + 31] >> 7) ^ 1) & 1) << lane));
+    Mask valid = static_cast<Mask>(highClear & feCanonical(s) & ~feParity(s));
+    Fe ss, u1, u2, u1sq, u2sq, v, vu2sq, invsqrt;
+    feSquare(ss, s);
+    feSub(u1, one, ss); feSquare(u1sq, u1);
+    feAdd(u2, one, ss); feSquare(u2sq, u2);
+    feMul(v, d, u1sq); feNeg(v, v); feSub(v, v, u2sq);
+    feMul(vu2sq, v, u2sq);
+    valid = static_cast<Mask>(valid & feSqrtRatioM1(invsqrt, one, vu2sq));
+    feMul(h->x, invsqrt, u2);
+    feMul(h->y, invsqrt, h->x); feMul(h->y, h->y, v);
+    feMul(h->x, h->x, s); feAdd(h->x, h->x, h->x); feAbs(h->x, h->x);
+    feMul(h->y, u1, h->y); h->z = one; feMul(h->t, h->x, h->y);
+    valid = static_cast<Mask>(valid & ~feParity(h->t) &
+        ~feEqual(h->y, feZero()));
+    return valid == static_cast<Mask>(0xff) ? 0 : -1;
+}
+
+extern "C" void ge8x_ristretto_tobytes(
+    unsigned char encoded[8 * 32], const ge8x* h)
+{
+    static const std::uint64_t sqrtM1_51[5] = {
+        1718705420411056ULL, 234908883556509ULL, 2233514472574048ULL,
+        2117202627021982ULL, 765476049583133ULL};
+    static const std::uint64_t invSqrtAMinusD_51[5] = {
+        278908739862762ULL, 821645201101625ULL, 8113234426968ULL,
+        1777959178193151ULL, 2118520810568447ULL};
+    const Fe sqrtM1 = feConstant51(sqrtM1_51);
+    const Fe invSqrtAMinusD = feConstant51(invSqrtAMinusD_51);
+    const Fe one = feOne();
+    Fe den1, den2, deninv, eden, invsqrt, ix, iy, s, tzinv;
+    Fe u1, u2, u1u2sq, x, y, xzinv, zinv, zmy, negy;
+    feAdd(u1, h->z, h->y); feSub(zmy, h->z, h->y); feMul(u1, u1, zmy);
+    feMul(u2, h->x, h->y); feSquare(u1u2sq, u2); feMul(u1u2sq, u1, u1u2sq);
+    (void)feSqrtRatioM1(invsqrt, one, u1u2sq);
+    feMul(den1, invsqrt, u1); feMul(den2, invsqrt, u2);
+    feMul(zinv, den1, den2); feMul(zinv, zinv, h->t);
+    feMul(ix, h->x, sqrtM1); feMul(iy, h->y, sqrtM1);
+    feMul(eden, den1, invSqrtAMinusD);
+    feMul(tzinv, h->t, zinv);
+    const Mask rotate = feParity(tzinv);
+    x = h->x; y = h->y; deninv = den2;
+    feCmov(x, iy, rotate); feCmov(y, ix, rotate); feCmov(deninv, eden, rotate);
+    feMul(xzinv, x, zinv); feNeg(negy, y); feCmov(y, negy, feParity(xzinv));
+    feSub(s, h->z, y); feMul(s, deninv, s); feAbs(s, s);
+    feToBytes(encoded, s);
 }
 
 extern "C" int ge8x_unpack_vartime(ge8x* r, const unsigned char encoded[8 * 32])

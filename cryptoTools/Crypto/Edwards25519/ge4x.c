@@ -28,6 +28,34 @@ void ge4x_from_ge25519(ge4x *r, const ge25519 *p)
 	}
 }
 
+void ge4x_from_ge25519s(ge4x *r, const ge25519 p[4])
+{
+	unsigned char packed[128];
+	int i;
+	for (i = 0; i != 4; ++i) fe25519_pack(packed + 32 * i, &p[i].x);
+	gfe4x_unpack(&r->x, packed);
+	for (i = 0; i != 4; ++i) fe25519_pack(packed + 32 * i, &p[i].y);
+	gfe4x_unpack(&r->y, packed);
+	for (i = 0; i != 4; ++i) fe25519_pack(packed + 32 * i, &p[i].z);
+	gfe4x_unpack(&r->z, packed);
+	for (i = 0; i != 4; ++i) fe25519_pack(packed + 32 * i, &p[i].t);
+	gfe4x_unpack(&r->t, packed);
+}
+
+void ge4x_to_ge25519s(ge25519 p[4], const ge4x *r)
+{
+	unsigned char packed[128];
+	int i;
+	gfe4x_pack(packed, &r->x);
+	for (i = 0; i != 4; ++i) fe25519_unpack(&p[i].x, packed + 32 * i);
+	gfe4x_pack(packed, &r->y);
+	for (i = 0; i != 4; ++i) fe25519_unpack(&p[i].y, packed + 32 * i);
+	gfe4x_pack(packed, &r->z);
+	for (i = 0; i != 4; ++i) fe25519_unpack(&p[i].z, packed + 32 * i);
+	gfe4x_pack(packed, &r->t);
+	for (i = 0; i != 4; ++i) fe25519_unpack(&p[i].t, packed + 32 * i);
+}
+
 void ge4x_cmovs(ge4x *r, const ge4x *x, unsigned char * b)
 {
 	gfe4x_cmov(&r->x, &(x->x), b);

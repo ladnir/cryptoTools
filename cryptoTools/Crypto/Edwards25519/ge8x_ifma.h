@@ -32,12 +32,17 @@ extern "C" {
 
 void ge8x_setneutral(ge8x* r);
 void ge8x_from_ge25519(ge8x* r, const ge25519* p);
+void ge8x_from_ge25519s(ge8x* r, const ge25519 p[8]);
+void ge8x_to_ge25519s(ge25519 p[8], const ge8x* r);
 void ge8x_add(ge8x* r, const ge8x* p, const ge8x* q);
 void ge8x_sub(ge8x* r, const ge8x* p, const ge8x* q);
 void ge8x_double(ge8x* r, const ge8x* p);
 void ge8x_cmovs(ge8x* r, const ge8x* p, const unsigned char select[8]);
 
 void ge8x_map_to_curve_elligator2(ge8x* r, const fe25519 u[8]);
+void ge8x_ristretto_from_uniform(ge8x* r, const unsigned char uniform[8 * 64]);
+int ge8x_ristretto_frombytes(ge8x* r, const unsigned char encoded[8 * 32]);
+void ge8x_ristretto_tobytes(unsigned char encoded[8 * 32], const ge8x* p);
 int ge8x_unpack_vartime(ge8x* r, const unsigned char encoded[8 * 32]);
 void ge8x_pack(unsigned char encoded[8 * 32], const ge8x* p);
 

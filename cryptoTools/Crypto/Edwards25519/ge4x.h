@@ -100,6 +100,8 @@ void ge4x_map_to_curve_elligator2(ge4x *r, const fe25519 u[4]);
 
 /* Replicate one scalar point into all four lanes without packing it. */
 void ge4x_from_ge25519(ge4x *r, const ge25519 *p);
+void ge4x_from_ge25519s(ge4x *r, const ge25519 p[4]);
+void ge4x_to_ge25519s(ge25519 p[4], const ge4x *r);
 
 #ifdef __cplusplus
 }
