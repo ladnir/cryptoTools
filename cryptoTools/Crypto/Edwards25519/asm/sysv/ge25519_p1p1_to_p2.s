@@ -106,10 +106,10 @@
 # qhasm: enter ge25519_p1p1_to_p2
 .text
 .p2align 5
-.globl _ge25519_p1p1_to_p2
-.globl ge25519_p1p1_to_p2
-_ge25519_p1p1_to_p2:
-ge25519_p1p1_to_p2:
+.globl _osuCrypto_ge25519_p1p1_to_p2
+.globl osuCrypto_ge25519_p1p1_to_p2
+_osuCrypto_ge25519_p1p1_to_p2:
+osuCrypto_ge25519_p1p1_to_p2:
 mov %rsp,%r11
 and $31,%r11
 add $96,%r11

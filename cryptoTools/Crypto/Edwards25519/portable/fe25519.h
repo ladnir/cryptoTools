@@ -1,6 +1,8 @@
 #ifndef FE25519_H
 #define FE25519_H
 
+#define fe25519_invert osuCrypto_fe25519_invert
+
 typedef struct 
 {
   unsigned long long v[5]; 

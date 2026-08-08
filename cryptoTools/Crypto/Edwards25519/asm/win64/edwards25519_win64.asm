@@ -4346,8 +4346,8 @@ ge25519_nielsadd2 PROC FRAME
 ge25519_nielsadd2 ENDP
 
 ALIGN 16
-PUBLIC ge25519_p1p1_to_p2
-ge25519_p1p1_to_p2 PROC FRAME
+PUBLIC osuCrypto_ge25519_p1p1_to_p2
+osuCrypto_ge25519_p1p1_to_p2 PROC FRAME
     push rdi
     .pushreg rdi
     push rsi
@@ -4846,11 +4846,11 @@ ge25519_p1p1_to_p2 PROC FRAME
     pop rsi
     pop rdi
     ret
-ge25519_p1p1_to_p2 ENDP
+osuCrypto_ge25519_p1p1_to_p2 ENDP
 
 ALIGN 16
-PUBLIC ge25519_p1p1_to_p3
-ge25519_p1p1_to_p3 PROC FRAME
+PUBLIC osuCrypto_ge25519_p1p1_to_p3
+osuCrypto_ge25519_p1p1_to_p3 PROC FRAME
     push rdi
     .pushreg rdi
     push rsi
@@ -5499,7 +5499,7 @@ ge25519_p1p1_to_p3 PROC FRAME
     pop rsi
     pop rdi
     ret
-ge25519_p1p1_to_p3 ENDP
+osuCrypto_ge25519_p1p1_to_p3 ENDP
 
 ALIGN 16
 PUBLIC ge4x_add_p1p1_asm

@@ -1,6 +1,12 @@
 #ifndef GE25519_H
 #define GE25519_H
 
+#define ge25519_add osuCrypto_ge25519_add
+#define ge25519_p1p1_to_p2 osuCrypto_ge25519_p1p1_to_p2
+#define ge25519_p1p1_to_p3 osuCrypto_ge25519_p1p1_to_p3
+#define ge25519_scalarmult osuCrypto_ge25519_scalarmult
+#define ge25519_scalarmult_base osuCrypto_ge25519_scalarmult_base
+
 /*
  * Arithmetic on the twisted Edwards curve -x^2 + y^2 = 1 + dx^2y^2
  * with d = -(121665/121666) =
