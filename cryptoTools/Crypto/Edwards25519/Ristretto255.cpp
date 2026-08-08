@@ -32,7 +32,7 @@ namespace Ristretto255
     {
         std::uint8_t uniform[uniformSize];
         prng.get(uniform, sizeof(uniform));
-        ristretto255_from_uniform(&mValue, uniform);
+        osuCrypto_ristretto255_from_uniform(&mValue, uniform);
     }
 
     Point Point::mulGenerator(const Scalar& scalar) noexcept
@@ -45,7 +45,7 @@ namespace Ristretto255
     Point Point::fromUniformBytes(const std::uint8_t uniform[uniformSize]) noexcept
     {
         Point r{Uninitialized{}};
-        ristretto255_from_uniform(&r.mValue, uniform);
+        osuCrypto_ristretto255_from_uniform(&r.mValue, uniform);
         return r;
     }
 
@@ -80,12 +80,12 @@ namespace Ristretto255
 
     bool Point::fromBytes(const std::uint8_t bytes[encodedSize]) noexcept
     {
-        return ristretto255_frombytes(&mValue, bytes) == 0;
+        return osuCrypto_ristretto255_frombytes(&mValue, bytes) == 0;
     }
 
     void Point::toBytes(std::uint8_t bytes[encodedSize]) const noexcept
     {
-        ristretto255_tobytes(bytes, &mValue);
+        osuCrypto_ristretto255_tobytes(bytes, &mValue);
     }
 
     bool Point::operator==(const Point& rhs) const noexcept
@@ -131,7 +131,7 @@ namespace Ristretto255
 #else
         ge25519 points[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
-            ristretto255_from_uniform(&points[i], uniform + i * uniformSize);
+            osuCrypto_ristretto255_from_uniform(&points[i], uniform + i * uniformSize);
         Point8 r{Uninitialized{}};
         ge4x_from_ge25519s(&r.mValue[0], points);
         ge4x_from_ge25519s(&r.mValue[1], points + 4);
@@ -236,7 +236,7 @@ namespace Ristretto255
 #else
         ge25519 points[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
-            if (ristretto255_frombytes(&points[i], bytes + i * encodedSize) != 0)
+            if (osuCrypto_ristretto255_frombytes(&points[i], bytes + i * encodedSize) != 0)
                 return false;
         ge4x_from_ge25519s(&mValue[0], points);
         ge4x_from_ge25519s(&mValue[1], points + 4);
@@ -253,7 +253,7 @@ namespace Ristretto255
         ge4x_to_ge25519s(points, &mValue[0]);
         ge4x_to_ge25519s(points + 4, &mValue[1]);
         for (std::size_t i = 0; i != lanes; ++i)
-            ristretto255_tobytes(bytes + i * encodedSize, &points[i]);
+            osuCrypto_ristretto255_tobytes(bytes + i * encodedSize, &points[i]);
 #endif
     }
 }

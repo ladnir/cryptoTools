@@ -85,7 +85,7 @@ static int encoding_is_canonical(const unsigned char s[32])
   return s[0] < 0xed;
 }
 
-int ristretto255_frombytes(ge25519 *h, const unsigned char s[32])
+int osuCrypto_ristretto255_frombytes(ge25519 *h, const unsigned char s[32])
 {
   fe25519 invsqrt, one, sf, ss, u1, u2, u1sq, u2sq, v, vu2sq;
   int square;
@@ -118,7 +118,7 @@ int ristretto255_frombytes(ge25519 *h, const unsigned char s[32])
   return (!square || fe_negative(&h->t) || fe25519_iszero_vartime(&h->y)) ? -1 : 0;
 }
 
-void ristretto255_tobytes(unsigned char s[32], const ge25519 *h)
+void osuCrypto_ristretto255_tobytes(unsigned char s[32], const ge25519 *h)
 {
   fe25519 den1, den2, deninv, eden, invsqrt, ix, iy, one, sf;
   fe25519 tzinv, u1, u2, u1u2sq, x, y, xzinv, zinv, zmy;
@@ -196,7 +196,7 @@ static void elligator(ge25519 *p, const fe25519 *t)
   fe25519_mul(&p->t, &w0, &w2);
 }
 
-void ristretto255_from_uniform(ge25519 *r, const unsigned char uniform[64])
+void osuCrypto_ristretto255_from_uniform(ge25519 *r, const unsigned char uniform[64])
 {
   fe25519 t0, t1;
   ge25519 p0, p1;
