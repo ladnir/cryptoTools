@@ -18,6 +18,44 @@ namespace
     constexpr std::size_t suiteOverhead =
         sizeof(suitePrefix) + sizeof(suiteSuffix) - 2;
 
+    bool isCanonicalPointEncoding(const std::uint8_t bytes[32]) noexcept
+    {
+        // The encoded y coordinate must be less than p = 2^255 - 19. Almost
+        // every valid encoding exits on this first branch.
+        const auto high = static_cast<std::uint8_t>(bytes[31] & 0x7f);
+        if (high == 0x7f)
+        {
+            std::size_t i = 30;
+            while (i != 0 && bytes[i] == 0xff)
+                --i;
+            if (i == 0 && bytes[0] >= 0xed)
+                return false;
+        }
+
+        // RFC 8032 uses zero as the unique sign for x = 0. On this curve that
+        // occurs only at y = 1 and y = -1.
+        if ((bytes[31] & 0x80) != 0)
+        {
+            if (bytes[0] == 1 && high == 0)
+            {
+                std::size_t i = 1;
+                while (i != 31 && bytes[i] == 0)
+                    ++i;
+                if (i == 31)
+                    return false;
+            }
+            else if (bytes[0] == 0xec && high == 0x7f)
+            {
+                std::size_t i = 1;
+                while (i != 31 && bytes[i] == 0xff)
+                    ++i;
+                if (i == 31)
+                    return false;
+            }
+        }
+        return true;
+    }
+
     void updateByte(osuCrypto::Blake2& hash, std::uint8_t value)
     {
         hash.Update(&value, 1);
@@ -207,6 +245,8 @@ namespace Edwards25519
 
     bool Point::fromBytes(const std::uint8_t bytes[encodedSize]) noexcept
     {
+        if (!isCanonicalPointEncoding(bytes))
+            return false;
         return ge25519_unpack_vartime(&mValue, bytes) == 0;
     }
 
@@ -325,6 +365,10 @@ namespace Edwards25519
 
     bool Point4::fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept
     {
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+            if (!isCanonicalPointEncoding(bytes + lane * encodedSize))
+                return false;
+
         std::array<std::uint8_t, lanes * encodedSize> copy;
         for (std::size_t i = 0; i != copy.size(); ++i)
             copy[i] = bytes[i];

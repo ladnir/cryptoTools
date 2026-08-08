@@ -101,6 +101,27 @@ namespace tests_cryptoTools
             throw osuCrypto::UnitTestFail(
                 "four-lane Edwards25519 pack/unpack mismatch");
 
+        Point invalidPoint;
+        std::array<osuCrypto::u8, encodedSize> nonCanonicalField;
+        nonCanonicalField.fill(0xff);
+        if (invalidPoint.fromBytes(nonCanonicalField.data()))
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 accepted a non-canonical field encoding");
+
+        std::array<osuCrypto::u8, encodedSize> nonCanonicalSign{};
+        nonCanonicalSign[0] = 1;
+        nonCanonicalSign[31] = 0x80;
+        if (invalidPoint.fromBytes(nonCanonicalSign.data()))
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 accepted a non-canonical zero-x sign");
+
+        auto invalidBatch = batchPacked;
+        std::memcpy(invalidBatch.data() + encodedSize,
+                    nonCanonicalField.data(), encodedSize);
+        if (unpacked.fromBytes(invalidBatch.data()))
+            throw osuCrypto::UnitTestFail(
+                "four-lane Edwards25519 accepted a non-canonical lane");
+
         std::array<sc25519, lanes> rawScalars;
         for (std::size_t i = 0; i != lanes; ++i)
             sc25519_from32bytes(&rawScalars[i], scalarBytes[i].data());
