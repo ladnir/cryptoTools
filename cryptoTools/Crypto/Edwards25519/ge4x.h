@@ -94,6 +94,10 @@ void ge4x_scalarsmults_table(ge4x * a, ge4x (*table)[8], const sc25519 * s, int 
 int ge4x_unpack_vartime(ge4x * r, unsigned char p[128]);
 void ge4x_pack(unsigned char r[128], const ge4x *p);
 
+/* Map four field elements to Edwards25519 with RFC 9380 Elligator 2.
+ * The four output lanes are not cofactor-cleared. */
+void ge4x_map_to_curve_elligator2(ge4x *r, const fe25519 u[4]);
+
 /* Replicate one scalar point into all four lanes without packing it. */
 void ge4x_from_ge25519(ge4x *r, const ge25519 *p);
 

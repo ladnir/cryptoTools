@@ -57,6 +57,7 @@ set(EDWARDS25519_WIN64_ASM_SOURCES
 
 set(EDWARDS25519_ASM_SUPPORT_SOURCES
     ge4x.c
+    ge4x_elligator2.cpp
     ge4x_pack.c
     ge4x_unpack_vartime.c
     gfe4x.c
@@ -68,7 +69,8 @@ set(EDWARDS25519_ASM_SUPPORT_SOURCES
 set(EDWARDS25519_REF_SOURCES
     fe25519_ref.c
     ge25519_ref.c
-    ge4x_ref.c)
+    ge4x_ref.c
+    ge4x_elligator2_ref.c)
 
 if(ENABLE_EDWARDS25519_ASM)
     if(MSVC)

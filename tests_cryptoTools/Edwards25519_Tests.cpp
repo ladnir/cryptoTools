@@ -162,5 +162,83 @@ namespace tests_cryptoTools
         if (otherDomainPoint == hashPointPacked)
             throw osuCrypto::UnitTestFail(
                 "Edwards25519 Elligator2 domain separation failed");
+
+        constexpr std::size_t batchMessageSize = 3;
+        const std::array<osuCrypto::u8, lanes * batchMessageSize> batchMessages = {
+            'a', 'b', 'c',
+            0x00, 0x01, 0x02,
+            0xff, 0x80, 0x40,
+            'x', 'y', 'z'};
+        const auto batchHashPoint = Point4::hashToCurveElligator2(
+            batchMessages.data(), batchMessageSize,
+            hashDomain, sizeof(hashDomain) - 1);
+        std::array<osuCrypto::u8, lanes * encodedSize> batchHashPacked;
+        batchHashPoint.toBytes(batchHashPacked.data());
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+        {
+            const auto scalarHashPoint = Point::hashToCurveElligator2(
+                batchMessages.data() + lane * batchMessageSize,
+                batchMessageSize, hashDomain, sizeof(hashDomain) - 1);
+            std::array<osuCrypto::u8, encodedSize> scalarHashPacked;
+            scalarHashPoint.toBytes(scalarHashPacked.data());
+            if (std::memcmp(
+                    scalarHashPacked.data(),
+                    batchHashPacked.data() + lane * encodedSize,
+                    encodedSize) != 0 ||
+                !isPrimeSubgroupPoint(
+                    batchHashPacked.data() + lane * encodedSize))
+                throw osuCrypto::UnitTestFail(
+                    "four-lane Edwards25519 Elligator2 mismatch");
+        }
+
+        osuCrypto::Blake2 canonicalBatchHash(32), encodedBatchHash(32);
+        canonicalBatchHash.Update(batchHashPoint);
+        canonicalBatchHash.Final(canonicalDigest.data());
+        encodedBatchHash.Update(
+            batchHashPacked.data(), batchHashPacked.size());
+        encodedBatchHash.Final(encodedDigest.data());
+        if (canonicalDigest != encodedDigest)
+            throw osuCrypto::UnitTestFail(
+                "four-lane Edwards25519 Hashable encoding is not canonical");
+
+        std::array<osuCrypto::u8, lanes * encodedSize> emptyBatchPacked;
+        Point4::hashToCurveElligator2(
+            nullptr, 0, hashDomain, sizeof(hashDomain) - 1)
+            .toBytes(emptyBatchPacked.data());
+        std::array<osuCrypto::u8, encodedSize> emptyScalarPacked;
+        Point::hashToCurveElligator2(
+            nullptr, 0, hashDomain, sizeof(hashDomain) - 1)
+            .toBytes(emptyScalarPacked.data());
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+            if (std::memcmp(
+                    emptyBatchPacked.data() + lane * encodedSize,
+                    emptyScalarPacked.data(), encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "four-lane empty-message Elligator2 mismatch");
+
+        constexpr std::size_t variedMessageSize = 17;
+        std::array<osuCrypto::u8, lanes * variedMessageSize> variedMessages;
+        for (std::size_t batch = 0; batch != 8; ++batch)
+        {
+            for (std::size_t i = 0; i != variedMessages.size(); ++i)
+                variedMessages[i] = static_cast<osuCrypto::u8>(
+                    29 * batch + 17 * i + i * i);
+            Point4::hashToCurveElligator2(
+                variedMessages.data(), variedMessageSize,
+                hashDomain, sizeof(hashDomain) - 1)
+                .toBytes(batchHashPacked.data());
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                Point::hashToCurveElligator2(
+                    variedMessages.data() + lane * variedMessageSize,
+                    variedMessageSize, hashDomain, sizeof(hashDomain) - 1)
+                    .toBytes(emptyScalarPacked.data());
+                if (std::memcmp(
+                        batchHashPacked.data() + lane * encodedSize,
+                        emptyScalarPacked.data(), encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "four-lane varied-input Elligator2 mismatch");
+            }
+        }
     }
 }

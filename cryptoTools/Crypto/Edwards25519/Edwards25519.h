@@ -78,6 +78,11 @@ namespace Edwards25519
         Point4() noexcept;
 
         static Point4 broadcast(const Point& point) noexcept;
+        // Hash four equal-length, lane-major messages. messages contains
+        // lane 0 followed by lane 1, lane 2, and lane 3.
+        static Point4 hashToCurveElligator2(
+            const std::uint8_t* messages, std::size_t messageSize,
+            const std::uint8_t* domain, std::size_t domainSize);
         static Point4 mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept;
         Point4 mul(const Scalar& scalar) const noexcept;
         Point4 mul(const std::array<Scalar, lanes>& scalars) const noexcept;

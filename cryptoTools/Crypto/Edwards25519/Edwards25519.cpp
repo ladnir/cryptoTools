@@ -3,6 +3,7 @@
 #include <cryptoTools/Crypto/Blake2.h>
 
 #include <array>
+#include <limits>
 #include <stdexcept>
 
 namespace
@@ -229,6 +230,40 @@ namespace Edwards25519
         Point4 r;
         ge4x_from_ge25519(&r.mValue, &point.mValue);
         return r;
+    }
+
+    Point4 Point4::hashToCurveElligator2(
+        const std::uint8_t* messages, std::size_t messageSize,
+        const std::uint8_t* domain, std::size_t domainSize)
+    {
+        if (messageSize && messages == nullptr)
+            throw std::invalid_argument(
+                "Edwards25519 four-lane messages pointer is null");
+        if (messageSize > std::numeric_limits<std::size_t>::max() / lanes)
+            throw std::invalid_argument(
+                "Edwards25519 four-lane message size overflows");
+
+        std::array<fe25519, lanes> u0;
+        std::array<fe25519, lanes> u1;
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+        {
+            const auto* message = messageSize ?
+                messages + lane * messageSize : nullptr;
+            const auto uniform = expandMessageXmdBlake2b(
+                message, messageSize, domain, domainSize);
+            u0[lane] = fieldElementFromWideBytes(uniform.data());
+            u1[lane] = fieldElementFromWideBytes(
+                uniform.data() + fieldElementWideSize);
+        }
+
+        Point4 q0, q1, result;
+        ge4x_map_to_curve_elligator2(&q0.mValue, u0.data());
+        ge4x_map_to_curve_elligator2(&q1.mValue, u1.data());
+        ge4x_add(&result.mValue, &q0.mValue, &q1.mValue);
+        ge4x_double(&result.mValue, &result.mValue);
+        ge4x_double(&result.mValue, &result.mValue);
+        ge4x_double(&result.mValue, &result.mValue);
+        return result;
     }
 
     Point4 Point4::mulGenerator(const std::array<Scalar, lanes>& scalars) noexcept
