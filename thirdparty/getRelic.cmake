@@ -9,7 +9,7 @@ set(GIT_REPOSITORY      ${RELIC_GIT_REPOSITORY})
 set(GIT_TAG             ${RELIC_GIT_TAG})
 
 set(CLONE_DIR "${OC_THIRDPARTY_CLONE_DIR}/relic")
-set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}")
+set(BUILD_DIR "${CLONE_DIR}/build/${OC_CONFIG}-fp255")
 set(CONFIG    --config Release)
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-relic.txt")
 
@@ -33,6 +33,7 @@ if(NOT EXISTS ${BUILD_DIR} OR NOT RELIC_FOUND)
     set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
     set(CONFIGURE_CMD ${CMAKE_COMMAND} -S ${CLONE_DIR} -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                        -DCMAKE_BUILD_TYPE:STRING=Release
+                       -DFP_PRIME:STRING=255
                        ${MP_ARG} ${PIC_ARG})
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} ${CONFIG})
     set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} ${CONFIG} --prefix ${OC_THIRDPARTY_INSTALL_PREFIX})

@@ -15,6 +15,15 @@ API is `osuCrypto::Edwards25519::{Scalar, Point, Point8}` in
 `Edwards25519.h`. The low-level arithmetic has a C ABI so the assembly kernels
 remain replaceable without C++ name mangling or runtime dispatch.
 
+Applications that want the best configured implementation should include
+`Curve25519Backend.h` and use `osuCrypto::Edwards25519::Backend` or
+`osuCrypto::Ristretto255::Backend`. Each facade exposes `Scalar`, `Point`, and
+the fixed-width `Point8` batch type without runtime dispatch. Edwards25519 is
+selected in the order IFMA, assembly, libsodium, RELIC `ed_*`, portable C;
+Ristretto255 is selected in the order IFMA, assembly, libsodium, portable C.
+The Elligator2 hash-to-curve result and both canonical encodings are identical
+across providers, so builds using different providers remain wire compatible.
+
 The portable backend contains independent radix-2^51 field arithmetic and
 scalar extended-coordinate curve formulas. Its `Point8` representation uses
 two four-lane blocks; the portable implementation therefore runs eight scalar

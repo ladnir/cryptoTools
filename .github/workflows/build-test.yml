@@ -14,6 +14,38 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  curve25519-backends:
+    name: Curve25519 facade (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: portable-c
+            options: -DENABLE_EDWARDS25519_ASM=OFF -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=OFF -DENABLE_RELIC=OFF
+          - backend: assembly
+            options: -DENABLE_EDWARDS25519_ASM=ON -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=ON -DENABLE_RELIC=ON
+          - backend: sodium
+            options: -DENABLE_EDWARDS25519_ASM=OFF -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=ON -DENABLE_RELIC=ON
+          - backend: relic-ed
+            options: -DENABLE_EDWARDS25519_ASM=OFF -DENABLE_EDWARDS25519_IFMA=OFF -DENABLE_SODIUM=OFF -DENABLE_RELIC=ON
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Configure forced backend
+        run: >-
+          cmake -S . -B out/build/curve25519-${{ matrix.backend }}
+          -DCMAKE_BUILD_TYPE=Release
+          -DFETCH_AUTO=ON
+          -DENABLE_COPROTO=OFF
+          -DENABLE_CIRCUITS=OFF
+          ${{ matrix.options }}
+      - name: Build facade test
+        run: cmake --build out/build/curve25519-${{ matrix.backend }} --target frontend_cryptoTools --parallel 4
+      - name: Test selected backend
+        run: ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Curve25519Backend
+
   build-ifma-compile-only:
     name: IFMA compile-only (${{ matrix.os }})
     strategy:
@@ -33,7 +65,7 @@ jobs:
           -DENABLE_CIRCUITS=OFF
           -DFETCH_AUTO=ON
       - name: Compile cryptoTools
-        run: cmake --build out/build/ifma-ci --config Release --target cryptoTools --parallel 4
+        run: cmake --build out/build/ifma-ci --config Release --target frontend_cryptoTools --parallel 4
 
   #This workflow contains a single job called "build"
   build-ubuntu:

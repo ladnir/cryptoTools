@@ -105,6 +105,24 @@ if(ENABLE_EDWARDS25519_IFMA)
     endif()
 endif()
 
+# Select the public curve facades at compile time. The tuned cryptoTools
+# implementations win whenever available; external libraries are fallbacks.
+if(NOT ENABLE_EDWARDS25519_IFMA AND NOT ENABLE_EDWARDS25519_ASM)
+    if(ENABLE_SODIUM)
+        target_compile_definitions(cryptoTools PUBLIC
+            CRYPTOTOOLS_EDWARDS25519_BACKEND_SODIUM=1
+            CRYPTOTOOLS_RISTRETTO255_BACKEND_SODIUM=1)
+    elseif(ENABLE_RELIC)
+        target_sources(cryptoToolsEdwards25519Objects PRIVATE
+            RelicEdwards25519.cpp)
+        target_compile_definitions(cryptoTools PUBLIC
+            CRYPTOTOOLS_EDWARDS25519_BACKEND_RELIC=1)
+        target_compile_definitions(cryptoToolsEdwards25519Objects PRIVATE
+            CRYPTOTOOLS_EDWARDS25519_BACKEND_RELIC=1)
+        target_link_libraries(cryptoToolsEdwards25519Objects PRIVATE relic)
+    endif()
+endif()
+
 set_target_properties(cryptoToolsEdwards25519Objects PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
