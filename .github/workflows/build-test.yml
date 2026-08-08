@@ -62,6 +62,7 @@ jobs:
         run: >-
           cmake -S . -B out/build/win64-assembly -G Ninja
           -DCMAKE_BUILD_TYPE=Release
+          -DFETCH_AUTO=ON
           -DENABLE_EDWARDS25519_ASM=ON
           -DENABLE_EDWARDS25519_IFMA=OFF
           -DENABLE_SODIUM=OFF
