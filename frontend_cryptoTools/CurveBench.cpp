@@ -95,6 +95,7 @@ namespace
             benchmarkSink ^ encoded[0] ^ encoded[encoded.size() - 1]);
     }
 
+#ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
     void consume(const ge4x& point)
     {
         alignas(32) std::array<std::uint8_t,
@@ -103,6 +104,18 @@ namespace
         benchmarkSink = static_cast<std::uint8_t>(
             benchmarkSink ^ encoded[0] ^ encoded[encoded.size() - 1]);
     }
+#endif
+
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+    void consume(const ge8x& point)
+    {
+        alignas(64) std::array<std::uint8_t,
+            ed::lanes * ed::encodedSize> encoded;
+        ge8x_pack(encoded.data(), &point);
+        benchmarkSink = static_cast<std::uint8_t>(
+            benchmarkSink ^ encoded[0] ^ encoded[encoded.size() - 1]);
+    }
+#endif
 
     std::array<ed::Scalar, ed::lanes> randomEdwardsScalars(PRNG& prng)
     {
@@ -120,9 +133,15 @@ namespace
     {
         std::array<fe25519, ed::lanes> u0;
         std::array<fe25519, ed::lanes> u1;
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        alignas(64) ge8x q0;
+        alignas(64) ge8x q1;
+        alignas(64) ge8x result;
+#else
         alignas(32) ge4x q0[2];
         alignas(32) ge4x q1[2];
         alignas(32) ge4x result[2];
+#endif
 
         explicit EdwardsMapState(PRNG& prng)
         {
@@ -140,6 +159,14 @@ namespace
 
         void operator()()
         {
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+            ge8x_map_to_curve_elligator2(&q0, u0.data());
+            ge8x_map_to_curve_elligator2(&q1, u1.data());
+            ge8x_add(&result, &q0, &q1);
+            ge8x_double(&result, &result);
+            ge8x_double(&result, &result);
+            ge8x_double(&result, &result);
+#else
             ge4x_map_to_curve_elligator2(&q0[0], u0.data());
             ge4x_map_to_curve_elligator2(&q0[1], u0.data() + 4);
             ge4x_map_to_curve_elligator2(&q1[0], u1.data());
@@ -152,6 +179,7 @@ namespace
             ge4x_double(&result[1], &result[1]);
             ge4x_double(&result[0], &result[0]);
             ge4x_double(&result[1], &result[1]);
+#endif
         }
     };
 
@@ -182,8 +210,12 @@ namespace
         EdwardsMapState mapState(prng);
         results[1] = measure(
             mapState, ed::lanes, targetMilliseconds, repetitions);
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        consume(mapState.result);
+#else
         consume(mapState.result[0]);
         consume(mapState.result[1]);
+#endif
 
         auto mulGenerator = [&]() {
             point = ed::Point8::mulGenerator(scalars);
@@ -385,8 +417,9 @@ void curveBench(const osuCrypto::CLP& cmd)
     PRNG prng(osuCrypto::block(0x9d47a21, 0x6cb85f3));
     const auto edwards = benchmarkEdwards(
         prng, targetMilliseconds, repetitions);
-    const char* edwardsBackend = ed::hasOptimizedBackend ?
-        "edwards25519-8x-asm" : "edwards25519-8x-c";
+    const char* edwardsBackend = ed::hasIfmaBackend ?
+        "edwards25519-8x-ifma" :
+        (ed::hasOptimizedBackend ? "edwards25519-8x-asm" : "edwards25519-8x-c");
 
     std::cout << "Curve benchmark (median of " << repetitions
               << ", >= " << targetMilliseconds << " ms/sample)\n"

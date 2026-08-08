@@ -14,6 +14,27 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  build-ifma-compile-only:
+    name: IFMA compile-only (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Configure AVX-512IFMA backend
+        run: >-
+          cmake -S . -B out/build/ifma-ci
+          -DCMAKE_BUILD_TYPE=Release
+          -DENABLE_EDWARDS25519_IFMA=ON
+          -DENABLE_COPROTO=OFF
+          -DENABLE_CIRCUITS=OFF
+          -DFETCH_AUTO=ON
+      - name: Compile cryptoTools
+        run: cmake --build out/build/ifma-ci --config Release --target cryptoTools --parallel 4
+
   #This workflow contains a single job called "build"
   build-ubuntu:
    # The type of runner that the job will run on

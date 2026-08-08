@@ -143,6 +143,14 @@ namespace tests_cryptoTools
             throw osuCrypto::UnitTestFail(
                 "Edwards25519 accepted a non-canonical field encoding");
 
+        std::array<osuCrypto::u8, encodedSize> nonCanonicalEquivalent;
+        nonCanonicalEquivalent.fill(0xff);
+        nonCanonicalEquivalent[0] = 0xee;
+        nonCanonicalEquivalent[31] = 0x7f;
+        if (invalidPoint.fromBytes(nonCanonicalEquivalent.data()))
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 accepted a reducible field encoding");
+
         std::array<osuCrypto::u8, encodedSize> nonCanonicalSign{};
         nonCanonicalSign[0] = 1;
         nonCanonicalSign[31] = 0x80;
@@ -157,6 +165,21 @@ namespace tests_cryptoTools
             throw osuCrypto::UnitTestFail(
                 "eight-lane Edwards25519 accepted a non-canonical lane");
 
+        invalidBatch = batchPacked;
+        std::memcpy(invalidBatch.data() + 2 * encodedSize,
+                    nonCanonicalEquivalent.data(), encodedSize);
+        if (unpacked.fromBytes(invalidBatch.data()))
+            throw osuCrypto::UnitTestFail(
+                "eight-lane Edwards25519 accepted a reducible lane");
+
+        invalidBatch = batchPacked;
+        std::memcpy(invalidBatch.data() + 3 * encodedSize,
+                    nonCanonicalSign.data(), encodedSize);
+        if (unpacked.fromBytes(invalidBatch.data()))
+            throw osuCrypto::UnitTestFail(
+                "eight-lane Edwards25519 accepted a zero-x sign bit");
+
+#ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
         constexpr std::size_t backendLanes = 4;
         std::array<sc25519, backendLanes> rawScalars;
         for (std::size_t i = 0; i != backendLanes; ++i)
@@ -174,6 +197,7 @@ namespace tests_cryptoTools
         if (directPacked != tablePacked)
             throw osuCrypto::UnitTestFail(
                 "Edwards25519 precomputed table multiplication mismatch");
+#endif
     }
 
     void Edwards25519_HashToCurve_Test()

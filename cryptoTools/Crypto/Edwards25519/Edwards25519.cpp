@@ -262,15 +262,23 @@ namespace Edwards25519
 
     Point8::Point8() noexcept
     {
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_setneutral(&mValue);
+#else
         ge4x_setneutral(&mValue[0]);
         ge4x_setneutral(&mValue[1]);
+#endif
     }
 
     Point8 Point8::broadcast(const Point& point) noexcept
     {
         Point8 r{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_from_ge25519(&r.mValue, &point.mValue);
+#else
         ge4x_from_ge25519(&r.mValue[0], &point.mValue);
         ge4x_from_ge25519(&r.mValue[1], &point.mValue);
+#endif
         return r;
     }
 
@@ -301,6 +309,14 @@ namespace Edwards25519
         Point8 q0{Uninitialized{}};
         Point8 q1{Uninitialized{}};
         Point8 result{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_map_to_curve_elligator2(&q0.mValue, u0.data());
+        ge8x_map_to_curve_elligator2(&q1.mValue, u1.data());
+        ge8x_add(&result.mValue, &q0.mValue, &q1.mValue);
+        ge8x_double(&result.mValue, &result.mValue);
+        ge8x_double(&result.mValue, &result.mValue);
+        ge8x_double(&result.mValue, &result.mValue);
+#else
         ge4x_map_to_curve_elligator2(&q0.mValue[0], u0.data());
         ge4x_map_to_curve_elligator2(&q0.mValue[1], u0.data() + 4);
         ge4x_map_to_curve_elligator2(&q1.mValue[0], u1.data());
@@ -313,6 +329,7 @@ namespace Edwards25519
         ge4x_double(&result.mValue[1], &result.mValue[1]);
         ge4x_double(&result.mValue[0], &result.mValue[0]);
         ge4x_double(&result.mValue[1], &result.mValue[1]);
+#endif
         return result;
     }
 
@@ -322,55 +339,81 @@ namespace Edwards25519
         sc25519 s[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
             s[i] = scalars[i].mValue;
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_scalarsmults_base(&r.mValue, s);
+#else
         ge4x_scalarsmults_base(&r.mValue[0], s);
         ge4x_scalarsmults_base(&r.mValue[1], s + 4);
+#endif
         return r;
     }
 
     Point8 Point8::mul(const Scalar& scalar) const noexcept
     {
         Point8 r{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_scalarmult(&r.mValue, &mValue, &scalar.mValue);
+#else
         ge4x p0 = mValue[0];
         ge4x p1 = mValue[1];
         ge4x_scalarmults(&r.mValue[0], &p0, &scalar.mValue);
         ge4x_scalarmults(&r.mValue[1], &p1, &scalar.mValue);
+#endif
         return r;
     }
 
     Point8 Point8::mul(const std::array<Scalar, lanes>& scalars) const noexcept
     {
         Point8 r{Uninitialized{}};
+#ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
         ge4x p0 = mValue[0];
         ge4x p1 = mValue[1];
+#endif
         sc25519 s[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
             s[i] = scalars[i].mValue;
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_scalarsmults(&r.mValue, &mValue, s);
+#else
         ge4x_scalarsmults(&r.mValue[0], &p0, s);
         ge4x_scalarsmults(&r.mValue[1], &p1, s + 4);
+#endif
         return r;
     }
 
     Point8 Point8::operator+(const Point8& rhs) const noexcept
     {
         Point8 r{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_add(&r.mValue, &mValue, &rhs.mValue);
+#else
         ge4x_add(&r.mValue[0], &mValue[0], &rhs.mValue[0]);
         ge4x_add(&r.mValue[1], &mValue[1], &rhs.mValue[1]);
+#endif
         return r;
     }
 
     Point8 Point8::operator-(const Point8& rhs) const noexcept
     {
         Point8 r{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_sub(&r.mValue, &mValue, &rhs.mValue);
+#else
         ge4x_sub(&r.mValue[0], &mValue[0], &rhs.mValue[0]);
         ge4x_sub(&r.mValue[1], &mValue[1], &rhs.mValue[1]);
+#endif
         return r;
     }
 
     Point8 Point8::doubled() const noexcept
     {
         Point8 r{Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_double(&r.mValue, &mValue);
+#else
         ge4x_double(&r.mValue[0], &mValue[0]);
         ge4x_double(&r.mValue[1], &mValue[1]);
+#endif
         return r;
     }
 
@@ -378,8 +421,12 @@ namespace Edwards25519
                                  const std::array<std::uint8_t, lanes>& select) noexcept
     {
         auto bits = select;
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_cmovs(&mValue, &source.mValue, bits.data());
+#else
         ge4x_cmovs(&mValue[0], &source.mValue[0], bits.data());
         ge4x_cmovs(&mValue[1], &source.mValue[1], bits.data() + 4);
+#endif
     }
 
     bool Point8::fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept
@@ -391,14 +438,22 @@ namespace Edwards25519
         std::array<std::uint8_t, lanes * encodedSize> copy;
         for (std::size_t i = 0; i != copy.size(); ++i)
             copy[i] = bytes[i];
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        return ge8x_unpack_vartime(&mValue, copy.data()) == 0;
+#else
         return ge4x_unpack_vartime(&mValue[0], copy.data()) == 0 &&
             ge4x_unpack_vartime(&mValue[1], copy.data() + 4 * encodedSize) == 0;
+#endif
     }
 
     void Point8::toBytes(std::uint8_t bytes[lanes * encodedSize]) const noexcept
     {
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x_pack(bytes, &mValue);
+#else
         ge4x_pack(bytes, &mValue[0]);
         ge4x_pack(bytes + 4 * encodedSize, &mValue[1]);
+#endif
     }
 }
 }

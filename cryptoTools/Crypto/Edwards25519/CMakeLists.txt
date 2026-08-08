@@ -92,6 +92,17 @@ add_library(cryptoToolsEdwards25519Objects OBJECT
     ${EDWARDS25519_COMMON_SOURCES}
     ${EDWARDS25519_BACKEND_SOURCES})
 
+if(ENABLE_EDWARDS25519_IFMA)
+    target_sources(cryptoToolsEdwards25519Objects PRIVATE ge8x_ifma.cpp)
+    if(MSVC)
+        set_source_files_properties(ge8x_ifma.cpp PROPERTIES
+            COMPILE_OPTIONS "/arch:AVX512")
+    else()
+        set_source_files_properties(ge8x_ifma.cpp PROPERTIES
+            COMPILE_OPTIONS "-mavx512f;-mavx512ifma")
+    endif()
+endif()
+
 set_target_properties(cryptoToolsEdwards25519Objects PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
@@ -123,6 +134,13 @@ if(ENABLE_EDWARDS25519_ASM)
         target_compile_options(cryptoToolsEdwards25519Objects PRIVATE
             $<$<COMPILE_LANGUAGE:ASM>:-Wa,--noexecstack>)
     endif()
+endif()
+
+if(ENABLE_EDWARDS25519_IFMA)
+    target_compile_definitions(cryptoToolsEdwards25519Objects PRIVATE
+        CRYPTOTOOLS_EDWARDS25519_IFMA=1)
+    target_compile_definitions(cryptoTools PUBLIC
+        CRYPTOTOOLS_EDWARDS25519_IFMA=1)
 endif()
 
 target_sources(cryptoTools PRIVATE

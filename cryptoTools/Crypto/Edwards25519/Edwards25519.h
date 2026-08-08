@@ -9,8 +9,14 @@
 
 extern "C" {
 #include <cryptoTools/Crypto/Edwards25519/ge25519.h>
+#ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
 #include <cryptoTools/Crypto/Edwards25519/ge4x.h>
+#endif
 }
+
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+#include <cryptoTools/Crypto/Edwards25519/ge8x_ifma.h>
+#endif
 
 namespace osuCrypto
 {
@@ -19,10 +25,16 @@ namespace Edwards25519
     constexpr std::size_t encodedSize = 32;
     constexpr std::size_t lanes = 8;
 
-#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+#if defined(CRYPTOTOOLS_EDWARDS25519_IFMA) || defined(CRYPTOTOOLS_EDWARDS25519_ASM)
     constexpr bool hasOptimizedBackend = true;
 #else
     constexpr bool hasOptimizedBackend = false;
+#endif
+
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+    constexpr bool hasIfmaBackend = true;
+#else
+    constexpr bool hasIfmaBackend = false;
 #endif
 
     // A clamped scalar reduced modulo the order, matching Simplest OT's
@@ -69,9 +81,8 @@ namespace Edwards25519
         friend class Point8;
     };
 
-    // A fixed eight-point batch. The current backend is two independent
-    // four-lane blocks; AVX-512 IFMA can replace this private representation
-    // without changing consumers.
+    // A fixed eight-point batch. AVX-512 IFMA operates on all eight lanes;
+    // other backends use two independent four-lane blocks.
     class Point8
     {
     public:
@@ -97,7 +108,11 @@ namespace Edwards25519
     private:
         struct Uninitialized {};
         explicit Point8(Uninitialized) noexcept {}
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x mValue;
+#else
         ge4x mValue[2];
+#endif
     };
 }
 

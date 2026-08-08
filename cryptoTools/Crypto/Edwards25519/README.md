@@ -10,8 +10,8 @@ API is `osuCrypto::Edwards25519::{Scalar, Point, Point8}` in
 remain replaceable without C++ name mangling or runtime dispatch.
 
 The portable backend contains independent radix-2^51 field arithmetic and
-scalar extended-coordinate curve formulas. `Point8` currently contains two
-four-lane blocks; the portable implementation therefore runs eight scalar
+scalar extended-coordinate curve formulas. Its `Point8` representation uses
+two four-lane blocks; the portable implementation therefore runs eight scalar
 points and is the correctness reference and fallback for unsupported
 platforms.
 
@@ -20,6 +20,20 @@ Linux/System-V or Windows/MSVC. Each half of `Point8` retains the original
 fixed-width four-lane AVX layout and qhasm-generated kernels. Backend selection
 is at compile time, so the optimized hot path has no indirect calls or runtime
 feature checks.
+
+Set `ENABLE_EDWARDS25519_IFMA=ON` to select the native eight-lane backend on
+x86-64 processors with AVX-512F and AVX-512IFMA. It uses a five-limb
+radix-2^52 field representation and keeps all eight points in AVX-512 vectors
+through Elligator2, point arithmetic, encoding, decoding, and scalar
+multiplication. The IFMA source file receives its ISA flags independently, so
+enabling it does not compile the rest of cryptoTools for AVX-512. If both IFMA
+and the assembly backend are enabled, scalar `Point` operations use assembly
+and batched `Point8` operations use IFMA.
+
+Backend selection is compile-time only. A binary built with the IFMA backend
+must only run on a CPU that supports AVX-512F and AVX-512IFMA; cryptoTools does
+not add runtime dispatch. Leave `ENABLE_EDWARDS25519_IFMA=OFF` to retain the
+assembly or portable fallback.
 
 All Edwards25519 objects are compiled as position-independent code. The
 assembly constants use RIP-relative addressing, allowing the resulting
@@ -30,3 +44,7 @@ from those same qhasm/GAS instruction streams. Its generated prologues adapt
 the Microsoft x64 argument registers, preserve nonvolatile integer and vector
 registers, and emit unwind metadata. Regenerate the `.asm` file after changing
 one of the source `.s` files.
+
+`ge8x_ifma.cpp` is licensed under Apache-2.0 because its radix-2^52
+multiplication and reduction schedule is derived from Intel Cryptography
+Primitives. The file retains the Intel attribution and license notice.

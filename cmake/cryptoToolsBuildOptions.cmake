@@ -75,6 +75,7 @@ option(ENABLE_OPENSSL   "compile with OpenSSL networking integration" OFF)
 option(ENABLE_ASAN      "build with asan" OFF)
 option(ENABLE_PIC       "compile with -fPIC " OFF)
 option(ENABLE_EDWARDS25519_ASM "use the x86-64 Edwards25519 assembly backend" OFF)
+option(ENABLE_EDWARDS25519_IFMA "use the eight-lane AVX-512 IFMA Edwards25519 backend" OFF)
 
 option(VERBOSE_FETCH    "" ON)
 
@@ -91,6 +92,12 @@ if(ENABLE_EDWARDS25519_ASM AND
     NOT ((UNIX AND NOT APPLE AND NOT MSVC) OR (WIN32 AND MSVC))))
 	message(WARNING "The Edwards25519 assembly backend supports x86-64 Linux/System-V and Windows/MSVC; using the portable C backend")
 	set(ENABLE_EDWARDS25519_ASM OFF CACHE BOOL "use the x86-64 Edwards25519 assembly backend" FORCE)
+endif()
+
+if(ENABLE_EDWARDS25519_IFMA AND
+   NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+	message(WARNING "The Edwards25519 IFMA backend requires x86-64; disabling it")
+	set(ENABLE_EDWARDS25519_IFMA OFF CACHE BOOL "use the eight-lane AVX-512 IFMA Edwards25519 backend" FORCE)
 endif()
 
 if(ENABLE_BOOST AND (CRYPTO_TOOLS_STD_VER EQUAL 14 OR CRYPTO_TOOLS_STD_VER EQUAL 17))
@@ -188,5 +195,6 @@ message(STATUS "Option: ENABLE_AVX512       = ${ENABLE_AVX512}")
 message(STATUS "Option: ENABLE_BMI2         = ${ENABLE_BMI2}")
 message(STATUS "Option: ENABLE_PIC          = ${ENABLE_PIC}")
 message(STATUS "Option: ENABLE_EDWARDS25519_ASM = ${ENABLE_EDWARDS25519_ASM}")
+message(STATUS "Option: ENABLE_EDWARDS25519_IFMA = ${ENABLE_EDWARDS25519_IFMA}")
 message(STATUS "Option: ENABLE_ASAN         = ${ENABLE_ASAN}\n\n")
 
