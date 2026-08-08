@@ -44,6 +44,35 @@ jobs:
       - name: Test selected backend
         run: ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Curve25519Backend
 
+  build-win64-assembly:
+    name: Win64 Edwards25519 assembly
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: seanmiddleditch/gha-setup-ninja@v3
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Verify generated MASM is current
+        shell: pwsh
+        run: |
+          python cryptoTools/Crypto/Edwards25519/asm/win64/generate_win64_asm.py
+          git diff --exit-code -- cryptoTools/Crypto/Edwards25519/asm/win64/edwards25519_win64.asm
+      - name: Configure Win64 assembly backend
+        run: >-
+          cmake -S . -B out/build/win64-assembly -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DENABLE_EDWARDS25519_ASM=ON
+          -DENABLE_EDWARDS25519_IFMA=OFF
+          -DENABLE_SODIUM=OFF
+          -DENABLE_RELIC=OFF
+          -DENABLE_COPROTO=OFF
+          -DENABLE_CIRCUITS=OFF
+      - name: Build facade test
+        run: cmake --build out/build/win64-assembly --target frontend_cryptoTools --parallel 4
+      - name: Test Win64 assembly backend
+        run: ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Curve25519Backend
+
   build-ifma-compile-only:
     name: IFMA compile-only (${{ matrix.os }})
     strategy:
@@ -51,7 +80,7 @@ jobs:
         os: [ubuntu-latest, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Configure AVX-512IFMA backend
