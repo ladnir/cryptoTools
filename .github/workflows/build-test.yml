@@ -42,7 +42,11 @@ jobs:
       - name: Build facade test
         run: cmake --build out/build/curve25519-${{ matrix.backend }} --target frontend_cryptoTools --parallel 4
       - name: Test selected backend
-        run: ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Curve25519Backend
+        run: >-
+          ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Edwards25519_8xBase &&
+          ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Edwards25519_HashToCurve &&
+          ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Ristretto255 &&
+          ./out/build/curve25519-${{ matrix.backend }}/frontend_cryptoTools/frontend_cryptoTools -u Curve25519Backend
 
   build-win64-assembly:
     name: Win64 Edwards25519 assembly
@@ -72,7 +76,11 @@ jobs:
       - name: Build facade test
         run: cmake --build out/build/win64-assembly --target frontend_cryptoTools --parallel 4
       - name: Test Win64 assembly backend
-        run: ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Curve25519Backend
+        run: >-
+          ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Edwards25519_8xBase &&
+          ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Edwards25519_HashToCurve &&
+          ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Ristretto255 &&
+          ./out/build/win64-assembly/frontend_cryptoTools/frontend_cryptoTools.exe -u Curve25519Backend
 
   build-ifma-compile-only:
     name: IFMA compile-only (${{ matrix.os }})

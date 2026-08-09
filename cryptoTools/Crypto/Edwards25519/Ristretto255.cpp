@@ -80,7 +80,11 @@ namespace Ristretto255
 
     bool Point::fromBytes(const std::uint8_t bytes[encodedSize]) noexcept
     {
-        return osuCrypto_ristretto255_frombytes(&mValue, bytes) == 0;
+        ge25519 decoded;
+        if (osuCrypto_ristretto255_frombytes(&decoded, bytes) != 0)
+            return false;
+        mValue = decoded;
+        return true;
     }
 
     void Point::toBytes(std::uint8_t bytes[encodedSize]) const noexcept
@@ -232,7 +236,11 @@ namespace Ristretto255
     bool Point8::fromBytes(const std::uint8_t bytes[lanes * encodedSize]) noexcept
     {
 #ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
-        return ge8x_ristretto_frombytes(&mValue, bytes) == 0;
+        ge8x decoded;
+        if (ge8x_ristretto_frombytes(&decoded, bytes) != 0)
+            return false;
+        mValue = decoded;
+        return true;
 #else
         ge25519 points[lanes];
         for (std::size_t i = 0; i != lanes; ++i)

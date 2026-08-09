@@ -136,6 +136,16 @@ namespace tests_cryptoTools
             throw osuCrypto::UnitTestFail(
                 "eight-lane Edwards25519 pack/unpack mismatch");
 
+        const auto clearedBatch = batch.clearCofactor();
+        auto expectedClearedBatch = batch.doubled();
+        expectedClearedBatch = expectedClearedBatch.doubled();
+        expectedClearedBatch = expectedClearedBatch.doubled();
+        clearedBatch.toBytes(repacked.data());
+        expectedClearedBatch.toBytes(selectedPacked.data());
+        if (repacked != selectedPacked)
+            throw osuCrypto::UnitTestFail(
+                "eight-lane Edwards25519 cofactor clearing mismatch");
+
         Point invalidPoint;
         std::array<osuCrypto::u8, encodedSize> nonCanonicalField;
         nonCanonicalField.fill(0xff);
@@ -178,6 +188,85 @@ namespace tests_cryptoTools
         if (unpacked.fromBytes(invalidBatch.data()))
             throw osuCrypto::UnitTestFail(
                 "eight-lane Edwards25519 accepted a zero-x sign bit");
+
+        // A failed decode must not leave a partially updated batch. Put a
+        // canonical, off-curve encoding in the second four-lane block so the
+        // first block has already decoded before the failure is observed.
+        std::array<osuCrypto::u8, encodedSize> offCurve{};
+        Point probe;
+        for (osuCrypto::u64 candidate = 2;; ++candidate)
+        {
+            offCurve.fill(0);
+            for (std::size_t i = 0; i != sizeof(candidate); ++i)
+                offCurve[i] = static_cast<osuCrypto::u8>(candidate >> (8 * i));
+            if (!probe.fromBytes(offCurve.data()))
+                break;
+        }
+        invalidBatch = batchPacked;
+        std::memcpy(invalidBatch.data() + 6 * encodedSize,
+                    offCurve.data(), encodedSize);
+        if (unpacked.fromBytes(invalidBatch.data()))
+            throw osuCrypto::UnitTestFail(
+                "eight-lane Edwards25519 accepted an off-curve lane");
+        unpacked.toBytes(repacked.data());
+        if (repacked != batchPacked)
+            throw osuCrypto::UnitTestFail(
+                "failed Edwards25519 batch decode changed the destination");
+
+        Point preserved = Point::mulGenerator(scalars[0]);
+        std::array<osuCrypto::u8, encodedSize> preservedBefore, preservedAfter;
+        preserved.toBytes(preservedBefore.data());
+        if (preserved.fromBytes(offCurve.data()))
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 accepted an off-curve point");
+        preserved.toBytes(preservedAfter.data());
+        if (preservedBefore != preservedAfter)
+            throw osuCrypto::UnitTestFail(
+                "failed Edwards25519 decode changed the destination");
+
+        std::array<osuCrypto::u8, encodedSize> orderTwo;
+        orderTwo.fill(0xff);
+        orderTwo[0] = 0xec;
+        orderTwo[31] = 0x7f;
+        Point torsion;
+        if (!torsion.fromBytes(orderTwo.data()) ||
+            !torsion.clearCofactor().isNeutral())
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 cofactor clearing did not remove torsion");
+
+        // Deterministic randomized differential coverage for the fixed-width
+        // backend. This is intentionally modest enough for every CI backend.
+        osuCrypto::u64 state = 0x6a09e667f3bcc909ULL;
+        for (std::size_t iteration = 0; iteration != 32; ++iteration)
+        {
+            std::array<Scalar, lanes> randomScalars;
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                std::array<osuCrypto::u8, encodedSize> bytes;
+                for (auto& byte : bytes)
+                {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    byte = static_cast<osuCrypto::u8>(state);
+                }
+                randomScalars[lane].fromBytes(bytes.data());
+            }
+
+            const auto randomBatch = Point8::mulGenerator(randomScalars);
+            randomBatch.toBytes(repacked.data());
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                Point::mulGenerator(randomScalars[lane])
+                    .toBytes(preservedAfter.data());
+                if (std::memcmp(
+                        preservedAfter.data(),
+                        repacked.data() + lane * encodedSize,
+                        encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "randomized Edwards25519 batch differential mismatch");
+            }
+        }
 
 #ifndef CRYPTOTOOLS_EDWARDS25519_IFMA
         constexpr std::size_t backendLanes = 4;

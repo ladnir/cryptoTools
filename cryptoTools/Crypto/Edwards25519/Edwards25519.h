@@ -71,6 +71,8 @@ namespace Edwards25519
         Point operator+(const Point& rhs) const noexcept;
         Point operator-(const Point& rhs) const noexcept;
         Point doubled() const noexcept;
+        // Map a raw Edwards point into the prime-order subgroup.
+        Point clearCofactor() const noexcept;
 
         bool fromBytes(const std::uint8_t bytes[encodedSize]) noexcept;
         void toBytes(std::uint8_t bytes[encodedSize]) const noexcept;
@@ -99,6 +101,8 @@ namespace Edwards25519
         Point8 operator+(const Point8& rhs) const noexcept;
         Point8 operator-(const Point8& rhs) const noexcept;
         Point8 doubled() const noexcept;
+        // Map every lane into the prime-order subgroup.
+        Point8 clearCofactor() const noexcept;
         void conditionalMove(const Point8& source,
                              const std::array<std::uint8_t, lanes>& select) noexcept;
 

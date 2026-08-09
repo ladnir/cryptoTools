@@ -10,6 +10,12 @@ Ristretto encoding, canonical decoding, and the 64-byte uniform map are
 performed only at that API boundary; scalar multiplication and group
 operations reuse the Edwards extended-coordinate kernels without conversion.
 
+Raw Edwards decoding accepts the full cofactor-8 curve. Protocols receiving
+raw Edwards points from an untrusted peer must call `clearCofactor()` before
+using them in group operations, or use the Ristretto255 facade when a
+prime-order abstraction is desired. Failed scalar and batched decodes leave
+the destination object unchanged.
+
 Edwards25519 is always part of the main `cryptoTools` library. The public C++
 API is `osuCrypto::Edwards25519::{Scalar, Point, Point8}` in
 `Edwards25519.h`. The low-level arithmetic has a C ABI so the assembly kernels

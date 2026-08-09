@@ -243,11 +243,22 @@ namespace Edwards25519
         return r;
     }
 
+    Point Point::clearCofactor() const noexcept
+    {
+        Point r = doubled();
+        r = r.doubled();
+        return r.doubled();
+    }
+
     bool Point::fromBytes(const std::uint8_t bytes[encodedSize]) noexcept
     {
         if (!isCanonicalPointEncoding(bytes))
             return false;
-        return ge25519_unpack_vartime(&mValue, bytes) == 0;
+        ge25519 decoded;
+        if (ge25519_unpack_vartime(&decoded, bytes) != 0)
+            return false;
+        mValue = decoded;
+        return true;
     }
 
     void Point::toBytes(std::uint8_t bytes[encodedSize]) const noexcept
@@ -417,6 +428,13 @@ namespace Edwards25519
         return r;
     }
 
+    Point8 Point8::clearCofactor() const noexcept
+    {
+        Point8 r = doubled();
+        r = r.doubled();
+        return r.doubled();
+    }
+
     void Point8::conditionalMove(const Point8& source,
                                  const std::array<std::uint8_t, lanes>& select) noexcept
     {
@@ -439,11 +457,20 @@ namespace Edwards25519
         for (std::size_t i = 0; i != copy.size(); ++i)
             copy[i] = bytes[i];
 #ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
-        return ge8x_unpack_vartime(&mValue, copy.data()) == 0;
+        ge8x decoded;
+        if (ge8x_unpack_vartime(&decoded, copy.data()) != 0)
+            return false;
+        mValue = decoded;
 #else
-        return ge4x_unpack_vartime(&mValue[0], copy.data()) == 0 &&
-            ge4x_unpack_vartime(&mValue[1], copy.data() + 4 * encodedSize) == 0;
+        ge4x decoded[2];
+        if (ge4x_unpack_vartime(&decoded[0], copy.data()) != 0 ||
+            ge4x_unpack_vartime(
+                &decoded[1], copy.data() + 4 * encodedSize) != 0)
+            return false;
+        mValue[0] = decoded[0];
+        mValue[1] = decoded[1];
 #endif
+        return true;
     }
 
     void Point8::toBytes(std::uint8_t bytes[lanes * encodedSize]) const noexcept

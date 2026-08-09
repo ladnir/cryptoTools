@@ -59,8 +59,13 @@ namespace tests_cryptoTools
             "26948d35ca62e643e26a83177332e6b6afeb9d08e4268b650f1f5bbd8d81d371",
             "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"};
         for (const auto* value : invalid)
+        {
             if (decoded.fromBytes(fromHex(value).data()))
                 throw osuCrypto::UnitTestFail("Ristretto255 accepted an invalid encoding");
+            if (decoded != base)
+                throw osuCrypto::UnitTestFail(
+                    "failed Ristretto255 decode changed the destination");
+        }
 
         std::array<unsigned char, lanes * uniformSize> uniform;
         for (std::size_t i = 0; i != uniform.size(); ++i)
@@ -104,6 +109,39 @@ namespace tests_cryptoTools
         batchEncoded[3 * encodedSize] |= 1;
         if (decodedBatch.fromBytes(batchEncoded.data()))
             throw osuCrypto::UnitTestFail("Ristretto255 accepted an invalid batch lane");
+        decodedBatch.toBytes(roundtrip.data());
+        batch.toBytes(batchEncoded.data());
+        if (roundtrip != batchEncoded)
+            throw osuCrypto::UnitTestFail(
+                "failed Ristretto255 batch decode changed the destination");
+
+        std::uint64_t state = 0xbb67ae8584caa73bULL;
+        for (std::size_t iteration = 0; iteration != 32; ++iteration)
+        {
+            std::array<Scalar, lanes> randomScalars;
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                std::array<unsigned char, encodedSize> bytes;
+                for (auto& byte : bytes)
+                {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    byte = static_cast<unsigned char>(state);
+                }
+                randomScalars[lane].fromBytes(bytes.data());
+            }
+            Point8::mulGenerator(randomScalars).toBytes(roundtrip.data());
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                Point::mulGenerator(randomScalars[lane]).toBytes(encoded);
+                if (std::memcmp(
+                        encoded, roundtrip.data() + lane * encodedSize,
+                        encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "randomized Ristretto255 batch differential mismatch");
+            }
+        }
 
         const unsigned char order[32] = {
             0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,
