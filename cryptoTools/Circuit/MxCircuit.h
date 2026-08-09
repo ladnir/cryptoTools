@@ -2,6 +2,7 @@
 #include "cryptoTools/Common/Defines.h"
 #ifdef ENABLE_CIRCUITS
 
+#include <algorithm>
 #include "MxBit.h"
 #include <unordered_map>
 #include <optional>
