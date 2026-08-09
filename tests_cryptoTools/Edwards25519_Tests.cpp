@@ -325,5 +325,40 @@ namespace tests_cryptoTools
                         "eight-lane varied-input Elligator2 mismatch");
             }
         }
+
+        // This input used to produce an invalid lane in the four-wide
+        // floating-radix backend because field negation left negative limbs
+        // outside the bounds required by later multiplications.
+        static const std::array<osuCrypto::u8, encodedSize> regressionMessage = {
+            0x04, 0x03, 0xf9, 0x3d, 0xfd, 0xd5, 0xf6, 0xfe,
+            0xf8, 0x69, 0x66, 0xd8, 0x33, 0x92, 0x84, 0x9c,
+            0x52, 0x0a, 0xe0, 0x2e, 0x91, 0xa5, 0xaa, 0xed,
+            0xd2, 0x01, 0x0c, 0x7d, 0xbc, 0x6c, 0x45, 0xe8};
+        static const osuCrypto::u8 regressionDomain[] =
+            "libOTe-MasnyRindal-v1";
+        std::array<osuCrypto::u8, lanes * encodedSize> regressionMessages;
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+            std::memcpy(
+                regressionMessages.data() + lane * encodedSize,
+                regressionMessage.data(), regressionMessage.size());
+
+        Point8::hashToCurveElligator2(
+            regressionMessages.data(), encodedSize,
+            regressionDomain, sizeof(regressionDomain) - 1)
+            .toBytes(batchHashPacked.data());
+        Point::hashToCurveElligator2(
+            regressionMessage.data(), regressionMessage.size(),
+            regressionDomain, sizeof(regressionDomain) - 1)
+            .toBytes(emptyScalarPacked.data());
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+        {
+            Point decodedRegression;
+            const auto* encoded =
+                batchHashPacked.data() + lane * encodedSize;
+            if (!decodedRegression.fromBytes(encoded) ||
+                std::memcmp(encoded, emptyScalarPacked.data(), encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "eight-lane Elligator2 negation regression");
+        }
     }
 }

@@ -256,10 +256,21 @@ void gfe4x_pack(unsigned char r[128], const gfe4x *x)
 
 void gfe4x_neg_single(gfe4x *r, const gfe4x *x, int pos)
 {
-	int i;
-
-	for (i = 0; i < 12; i++)
-		r->v[i].v[pos] = -(x->v[i].v[pos]);
+	/* The floating radix represents canonical zero as -p. Subtracting x
+	 * from that representation computes the field negation while retaining
+	 * the limb bounds expected by the assembly multiplication kernels. */
+	r->v[0].v[pos] = 19. - _2_22 - x->v[0].v[pos];
+	r->v[1].v[pos] = _2_22 - _2_43 - x->v[1].v[pos];
+	r->v[2].v[pos] = _2_43 - _2_64 - x->v[2].v[pos];
+	r->v[3].v[pos] = _2_64 - _2_85 - x->v[3].v[pos];
+	r->v[4].v[pos] = _2_85 - _2_107 - x->v[4].v[pos];
+	r->v[5].v[pos] = _2_107 - _2_128 - x->v[5].v[pos];
+	r->v[6].v[pos] = _2_128 - _2_149 - x->v[6].v[pos];
+	r->v[7].v[pos] = _2_149 - _2_170 - x->v[7].v[pos];
+	r->v[8].v[pos] = _2_170 - _2_192 - x->v[8].v[pos];
+	r->v[9].v[pos] = _2_192 - _2_213 - x->v[9].v[pos];
+	r->v[10].v[pos] = _2_213 - _2_234 - x->v[10].v[pos];
+	r->v[11].v[pos] = _2_234 - _2_255 - x->v[11].v[pos];
 }
 
 void gfe4x_neg(gfe4x *r, const gfe4x *x)
