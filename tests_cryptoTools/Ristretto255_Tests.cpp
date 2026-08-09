@@ -88,6 +88,37 @@ namespace tests_cryptoTools
         if (roundtrip != batchEncoded)
             throw osuCrypto::UnitTestFail("Ristretto255 eight-lane round trip mismatch");
 
+        std::uint64_t state = 0xbb67ae8584caa73bULL;
+        for (std::size_t iteration = 0; iteration != 64; ++iteration)
+        {
+            for (auto& byte : uniform)
+            {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                byte = static_cast<unsigned char>(state);
+            }
+            batch = Point8::fromUniformBytes(uniform.data());
+            batch.toBytes(batchEncoded.data());
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                Point::fromUniformBytes(uniform.data() + lane * uniformSize)
+                    .toBytes(encoded);
+                if (std::memcmp(encoded,
+                        batchEncoded.data() + lane * encodedSize,
+                        encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "randomized Ristretto255 uniform map mismatch");
+            }
+            if (!decodedBatch.fromBytes(batchEncoded.data()))
+                throw osuCrypto::UnitTestFail(
+                    "randomized Ristretto255 batch decode failed");
+            decodedBatch.toBytes(roundtrip.data());
+            if (roundtrip != batchEncoded)
+                throw osuCrypto::UnitTestFail(
+                    "randomized Ristretto255 batch codec mismatch");
+        }
+
         // Regression: scalar radix-51 representatives produced by Ristretto
         // decoding are not necessarily carry-normalized. Broadcasting must
         // canonicalize before the IFMA radix-52 conversion.
@@ -106,16 +137,41 @@ namespace tests_cryptoTools
         if (std::memcmp(encoded, roundtrip.data(), encodedSize) != 0)
             throw osuCrypto::UnitTestFail("Ristretto255 batched broadcast multiplication mismatch");
 
-        batchEncoded[3 * encodedSize] |= 1;
-        if (decodedBatch.fromBytes(batchEncoded.data()))
-            throw osuCrypto::UnitTestFail("Ristretto255 accepted an invalid batch lane");
-        decodedBatch.toBytes(roundtrip.data());
         batch.toBytes(batchEncoded.data());
-        if (roundtrip != batchEncoded)
-            throw osuCrypto::UnitTestFail(
-                "failed Ristretto255 batch decode changed the destination");
+        decodedBatch = batch;
+        for (const auto lane : {std::size_t{3}, std::size_t{6}})
+        {
+            auto invalidBatch = batchEncoded;
+            invalidBatch[lane * encodedSize] |= 1;
+            if (decodedBatch.fromBytes(invalidBatch.data()))
+                throw osuCrypto::UnitTestFail(
+                    "Ristretto255 accepted an invalid batch lane");
+            decodedBatch.toBytes(roundtrip.data());
+            if (roundtrip != batchEncoded)
+                throw osuCrypto::UnitTestFail(
+                    "failed Ristretto255 batch decode changed the destination");
+        }
 
-        std::uint64_t state = 0xbb67ae8584caa73bULL;
+        for (const auto* value : invalid)
+        {
+            const auto invalidEncoding = fromHex(value);
+            for (const auto lane : {
+                    std::size_t{0}, std::size_t{3},
+                    std::size_t{4}, std::size_t{7}})
+            {
+                auto invalidBatch = batchEncoded;
+                std::memcpy(invalidBatch.data() + lane * encodedSize,
+                    invalidEncoding.data(), encodedSize);
+                if (decodedBatch.fromBytes(invalidBatch.data()))
+                    throw osuCrypto::UnitTestFail(
+                        "Ristretto255 accepted a known-invalid batch encoding");
+                decodedBatch.toBytes(roundtrip.data());
+                if (roundtrip != batchEncoded)
+                    throw osuCrypto::UnitTestFail(
+                        "known-invalid batch decode changed the destination");
+            }
+        }
+
         for (std::size_t iteration = 0; iteration != 32; ++iteration)
         {
             std::array<Scalar, lanes> randomScalars;

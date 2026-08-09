@@ -98,6 +98,16 @@ void ge4x_pack(unsigned char r[128], const ge4x *p);
  * The four output lanes are not cofactor-cleared. */
 void ge4x_map_to_curve_elligator2(ge4x *r, const fe25519 u[4]);
 
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+/* Four-lane Ristretto255 map and codec. Inputs and outputs are lane-major. */
+void ge4x_ristretto_from_uniform(
+    ge4x *r, const unsigned char uniform[4 * 64]);
+int ge4x_ristretto_frombytes(
+    ge4x *r, const unsigned char encoded[4 * 32]);
+void ge4x_ristretto_tobytes(
+    unsigned char encoded[4 * 32], const ge4x *p);
+#endif
+
 /* Replicate one scalar point into all four lanes without packing it. */
 void ge4x_from_ge25519(ge4x *r, const ge25519 *p);
 void ge4x_from_ge25519s(ge4x *r, const ge25519 p[4]);

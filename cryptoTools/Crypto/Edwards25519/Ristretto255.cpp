@@ -132,6 +132,12 @@ namespace Ristretto255
         Point8 r{Uninitialized{}};
         ge8x_ristretto_from_uniform(&r.mValue, uniform);
         return r;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        Point8 r{Uninitialized{}};
+        ge4x_ristretto_from_uniform(&r.mValue[0], uniform);
+        ge4x_ristretto_from_uniform(
+            &r.mValue[1], uniform + 4 * uniformSize);
+        return r;
 #else
         ge25519 points[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
@@ -241,6 +247,15 @@ namespace Ristretto255
             return false;
         mValue = decoded;
         return true;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        ge4x decoded[2];
+        if (ge4x_ristretto_frombytes(&decoded[0], bytes) != 0 ||
+            ge4x_ristretto_frombytes(
+                &decoded[1], bytes + 4 * encodedSize) != 0)
+            return false;
+        mValue[0] = decoded[0];
+        mValue[1] = decoded[1];
+        return true;
 #else
         ge25519 points[lanes];
         for (std::size_t i = 0; i != lanes; ++i)
@@ -256,6 +271,9 @@ namespace Ristretto255
     {
 #ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
         ge8x_ristretto_tobytes(bytes, &mValue);
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        ge4x_ristretto_tobytes(bytes, &mValue[0]);
+        ge4x_ristretto_tobytes(bytes + 4 * encodedSize, &mValue[1]);
 #else
         ge25519 points[lanes];
         ge4x_to_ge25519s(points, &mValue[0]);

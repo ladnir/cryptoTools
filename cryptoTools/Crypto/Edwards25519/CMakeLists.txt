@@ -61,6 +61,7 @@ set(EDWARDS25519_ASM_SUPPORT_SOURCES
     batch/ge4x.c
     batch/ge4x_elligator2.cpp
     batch/ge4x_pack.c
+    batch/ge4x_ristretto.cpp
     batch/ge4x_unpack_vartime.c
     batch/gfe4x.c
     batch/gfe4x_getparity.c
