@@ -1,5 +1,10 @@
 #include "Ristretto255.h"
 
+#if defined(CRYPTOTOOLS_EDWARDS25519_ASM) && \
+    !defined(CRYPTOTOOLS_EDWARDS25519_IFMA)
+#include "batch/ge4x_fixed_point_table.h"
+#endif
+
 #include <cstring>
 
 namespace osuCrypto
@@ -281,6 +286,53 @@ namespace Ristretto255
         for (std::size_t i = 0; i != lanes; ++i)
             osuCrypto_ristretto255_tobytes(bytes + i * encodedSize, &points[i]);
 #endif
+    }
+
+    struct FixedPointTable::Impl
+    {
+#if defined(CRYPTOTOOLS_EDWARDS25519_ASM) && \
+    !defined(CRYPTOTOOLS_EDWARDS25519_IFMA)
+        details::Ge4xFixedPointTable table;
+        explicit Impl(const ge25519& point) : table(point) {}
+#else
+        ge25519 point;
+        explicit Impl(const ge25519& value) : point(value) {}
+#endif
+    };
+
+    FixedPointTable::FixedPointTable(const Point& point)
+        : mImpl(new Impl(point.mValue))
+    {}
+
+    FixedPointTable::~FixedPointTable() = default;
+    FixedPointTable::FixedPointTable(FixedPointTable&&) noexcept = default;
+    FixedPointTable& FixedPointTable::operator=(FixedPointTable&&) noexcept = default;
+
+    Point8 FixedPointTable::mul(
+        const std::array<Scalar, lanes>& scalars) const noexcept
+    {
+        sc25519 s[lanes];
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+            s[lane] = scalars[lane].mValue;
+        Point8 result{Point8::Uninitialized{}};
+#ifdef CRYPTOTOOLS_EDWARDS25519_IFMA
+        ge8x point;
+        ge8x_from_ge25519(&point, &mImpl->point);
+        ge8x_scalarsmults(&result.mValue, &point, s);
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        mImpl->table.mul(result.mValue[0], s);
+        mImpl->table.mul(result.mValue[1], s + 4);
+#else
+        ge25519 points[lanes];
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+        {
+            auto point = mImpl->point;
+            ge25519_scalarmult(&points[lane], &point, &s[lane]);
+        }
+        ge4x_from_ge25519s(&result.mValue[0], points);
+        ge4x_from_ge25519s(&result.mValue[1], points + 4);
+#endif
+        return result;
     }
 }
 }

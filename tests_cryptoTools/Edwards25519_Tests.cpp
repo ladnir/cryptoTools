@@ -125,6 +125,13 @@ namespace tests_cryptoTools
                             expected.data(), expected.size()))
                 throw osuCrypto::UnitTestFail("Edwards25519 broadcast mismatch");
 
+        const FixedPointTable fixedTable(Point::mulGenerator(vectorScalar));
+        fixedTable.mul(scalars).toBytes(selectedPacked.data());
+        broadcast.mul(scalars).toBytes(productsPacked.data());
+        if (selectedPacked != productsPacked)
+            throw osuCrypto::UnitTestFail(
+                "Edwards25519 fixed-point table multiplication mismatch");
+
         Point8 unpacked;
         if (!unpacked.fromBytes(batchPacked.data()))
             throw osuCrypto::UnitTestFail(

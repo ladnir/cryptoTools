@@ -89,10 +89,15 @@ void ge4x_scalarmults(ge4x * a, ge4x * b, const sc25519 * s);
 
 void ge4x_scalarsmults_base(ge4x * a, const sc25519 * s);
 void ge4x_scalarsmults(ge4x * a, ge4x * b, const sc25519 * s);
-void ge4x_scalarsmults_table(ge4x * a, ge4x (*table)[8], const sc25519 * s, int dist);
+void ge4x_scalarsmults_table(
+    ge4x *a, const ge4x (*table)[8], const sc25519 *s, int dist);
 
 int ge4x_unpack_vartime(ge4x * r, unsigned char p[128]);
 void ge4x_pack(unsigned char r[128], const ge4x *p);
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+/* Encode two four-lane blocks with one batched field inversion. */
+void ge4x_pack2(unsigned char r[256], const ge4x p[2]);
+#endif
 
 /* Map four field elements to Edwards25519 with RFC 9380 Elligator 2.
  * The four output lanes are not cofactor-cleared. */

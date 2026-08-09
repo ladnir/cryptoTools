@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 
 #include <cryptoTools/Crypto/Hashable.h>
@@ -29,6 +30,8 @@ namespace Ristretto255
     constexpr std::size_t uniformSize = 64;
     constexpr std::size_t lanes = 8;
 
+    class FixedPointTable;
+
     class Scalar
     {
     public:
@@ -46,6 +49,7 @@ namespace Ristretto255
         sc25519 mValue{};
         friend class Point;
         friend class Point8;
+        friend class FixedPointTable;
     };
 
     class Point
@@ -90,6 +94,7 @@ namespace Ristretto255
         explicit Point(Uninitialized) noexcept {}
         ge25519 mValue;
         friend class Point8;
+        friend class FixedPointTable;
     };
 
     inline Point operator*(const Scalar& scalar, const Point& point) noexcept
@@ -123,6 +128,25 @@ namespace Ristretto255
 #else
         ge4x mValue[2];
 #endif
+        friend class FixedPointTable;
+    };
+
+    // Precompute one point for repeated eight-lane scalar multiplication.
+    class FixedPointTable
+    {
+    public:
+        explicit FixedPointTable(const Point& point);
+        ~FixedPointTable();
+        FixedPointTable(FixedPointTable&&) noexcept;
+        FixedPointTable& operator=(FixedPointTable&&) noexcept;
+        FixedPointTable(const FixedPointTable&) = delete;
+        FixedPointTable& operator=(const FixedPointTable&) = delete;
+
+        Point8 mul(const std::array<Scalar, lanes>& scalars) const noexcept;
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> mImpl;
     };
 }
 }

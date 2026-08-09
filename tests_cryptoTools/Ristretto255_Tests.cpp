@@ -132,7 +132,19 @@ namespace tests_cryptoTools
         const Scalar broadcastScalar(broadcastScalarBytes.data());
         std::array<Scalar, lanes> broadcastScalars{};
         broadcastScalars[0] = broadcastScalar;
+        for (std::size_t lane = 1; lane != lanes; ++lane)
+        {
+            auto laneScalar = broadcastScalarBytes;
+            laneScalar[0] ^= static_cast<unsigned char>(17 * lane);
+            laneScalar[11] ^= static_cast<unsigned char>(29 * lane);
+            broadcastScalars[lane] = Scalar(laneScalar.data());
+        }
         Point8::broadcast(broadcastPoint).mul(broadcastScalars).toBytes(roundtrip.data());
+        FixedPointTable(broadcastPoint).mul(broadcastScalars)
+            .toBytes(batchEncoded.data());
+        if (batchEncoded != roundtrip)
+            throw osuCrypto::UnitTestFail(
+                "Ristretto255 fixed-point table multiplication mismatch");
         (broadcastPoint * broadcastScalar).toBytes(encoded);
         if (std::memcmp(encoded, roundtrip.data(), encodedSize) != 0)
             throw osuCrypto::UnitTestFail("Ristretto255 batched broadcast multiplication mismatch");

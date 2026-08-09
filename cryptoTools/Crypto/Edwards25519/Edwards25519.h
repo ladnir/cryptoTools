@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 
 #include <cryptoTools/Crypto/Hashable.h>
@@ -24,6 +25,8 @@ namespace Edwards25519
 {
     constexpr std::size_t encodedSize = 32;
     constexpr std::size_t lanes = 8;
+
+    class FixedPointTable;
 
 #if defined(CRYPTOTOOLS_EDWARDS25519_IFMA) || defined(CRYPTOTOOLS_EDWARDS25519_ASM)
     constexpr bool hasOptimizedBackend = true;
@@ -52,6 +55,7 @@ namespace Edwards25519
         sc25519 mValue{};
         friend class Point;
         friend class Point8;
+        friend class FixedPointTable;
     };
 
     class Point
@@ -81,6 +85,7 @@ namespace Edwards25519
     private:
         ge25519 mValue;
         friend class Point8;
+        friend class FixedPointTable;
     };
 
     // A fixed eight-point batch. AVX-512 IFMA operates on all eight lanes;
@@ -117,6 +122,27 @@ namespace Edwards25519
 #else
         ge4x mValue[2];
 #endif
+        friend class FixedPointTable;
+    };
+
+    // Precompute one point for repeated eight-lane scalar multiplication.
+    // The assembly backend uses an interleaved window table; other backends
+    // retain the point and preserve the same API.
+    class FixedPointTable
+    {
+    public:
+        explicit FixedPointTable(const Point& point);
+        ~FixedPointTable();
+        FixedPointTable(FixedPointTable&&) noexcept;
+        FixedPointTable& operator=(FixedPointTable&&) noexcept;
+        FixedPointTable(const FixedPointTable&) = delete;
+        FixedPointTable& operator=(const FixedPointTable&) = delete;
+
+        Point8 mul(const std::array<Scalar, lanes>& scalars) const noexcept;
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> mImpl;
     };
 }
 

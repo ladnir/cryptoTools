@@ -119,6 +119,24 @@ namespace curve25519
         std::array<Point, lanes> mPoints;
     };
 
+    template<typename Point, typename Scalar>
+    class RistrettoFixedPointTable
+    {
+    public:
+        explicit RistrettoFixedPointTable(const Point& point)
+            : mPoint(point)
+        {}
+
+        RistrettoPoint8<Point, Scalar> mul(
+            const std::array<Scalar, 8>& scalars) const
+        {
+            return RistrettoPoint8<Point, Scalar>::broadcast(mPoint).mul(scalars);
+        }
+
+    private:
+        Point mPoint;
+    };
+
 #ifdef CRYPTOTOOLS_RISTRETTO255_BACKEND_SODIUM
     class SodiumRistrettoPoint
     {
@@ -264,16 +282,19 @@ namespace Backend
     using Scalar = Edwards25519::Scalar;
     using Point = Edwards25519::Point;
     using Point8 = Edwards25519::Point8;
+    using FixedPointTable = Edwards25519::FixedPointTable;
 #elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
     constexpr auto implementation = details::curve25519::Implementation::Assembly;
     using Scalar = Edwards25519::Scalar;
     using Point = Edwards25519::Point;
     using Point8 = Edwards25519::Point8;
+    using FixedPointTable = Edwards25519::FixedPointTable;
 #else
     constexpr auto implementation = details::curve25519::Implementation::Portable;
     using Scalar = Edwards25519::Scalar;
     using Point = Edwards25519::Point;
     using Point8 = Edwards25519::Point8;
+    using FixedPointTable = Edwards25519::FixedPointTable;
 #endif
 
     inline void init() noexcept {}
@@ -293,21 +314,26 @@ namespace Backend
     using Scalar = Ristretto255::Scalar;
     using Point = Ristretto255::Point;
     using Point8 = Ristretto255::Point8;
+    using FixedPointTable = Ristretto255::FixedPointTable;
 #elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
     constexpr auto implementation = details::curve25519::Implementation::Assembly;
     using Scalar = Ristretto255::Scalar;
     using Point = Ristretto255::Point;
     using Point8 = Ristretto255::Point8;
+    using FixedPointTable = Ristretto255::FixedPointTable;
 #elif defined(CRYPTOTOOLS_RISTRETTO255_BACKEND_SODIUM)
     constexpr auto implementation = details::curve25519::Implementation::Sodium;
     using Scalar = Ristretto255::Scalar;
     using Point = details::curve25519::SodiumRistrettoPoint;
     using Point8 = details::curve25519::RistrettoPoint8<Point, Scalar>;
+    using FixedPointTable =
+        details::curve25519::RistrettoFixedPointTable<Point, Scalar>;
 #else
     constexpr auto implementation = details::curve25519::Implementation::Portable;
     using Scalar = Ristretto255::Scalar;
     using Point = Ristretto255::Point;
     using Point8 = Ristretto255::Point8;
+    using FixedPointTable = Ristretto255::FixedPointTable;
 #endif
 
     inline void init() noexcept

@@ -142,7 +142,7 @@ void ge4x_scalarmults(ge4x *r, ge4x *p, const sc25519 *s)
   ge4x_scalarsmults(r, p, ss);
 }
 
-void ge4x_scalarsmults_table(ge4x *r, ge4x (*table)[8],
+void ge4x_scalarsmults_table(ge4x *r, const ge4x (*table)[8],
                              const sc25519 *s, int dist)
 {
   int lane;

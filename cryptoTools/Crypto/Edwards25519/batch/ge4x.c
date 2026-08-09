@@ -324,7 +324,8 @@ void ge4x_scalarsmults(ge4x * a, ge4x * b, const sc25519 * s)
 	ge4x_scalarsmults_table(a, table, s, 64);
 }
 
-void ge4x_scalarsmults_table(ge4x * a, ge4x (*table)[8], const sc25519 * s, int dist)
+void ge4x_scalarsmults_table(
+	ge4x *a, const ge4x (*table)[8], const sc25519 *s, int dist)
 {
 	int i, j, pos;
 	ge4x t;
