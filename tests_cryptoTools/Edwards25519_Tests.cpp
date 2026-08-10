@@ -84,6 +84,21 @@ namespace tests_cryptoTools
                     "eight-lane Edwards25519 scalar multiplication mismatch");
         }
 
+        const auto sharedScalarProducts = batch.mul(scalars[3]);
+        sharedScalarProducts.toBytes(productsPacked.data());
+        for (std::size_t i = 0; i != lanes; ++i)
+        {
+            std::array<osuCrypto::u8, encodedSize> expectedProduct;
+            Point::mulGenerator(scalars[i]).mul(scalars[3])
+                .toBytes(expectedProduct.data());
+            if (std::memcmp(
+                    expectedProduct.data(),
+                    productsPacked.data() + i * encodedSize,
+                    encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "eight-lane Edwards25519 shared-scalar multiplication mismatch");
+        }
+
         Point8 selected;
         const std::array<osuCrypto::u8, lanes> select = {
             0, 1, 0, 1, 1, 0, 1, 0};

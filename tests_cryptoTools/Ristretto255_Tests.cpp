@@ -130,6 +130,17 @@ namespace tests_cryptoTools
         if (!broadcastPoint.fromBytes(broadcastPointBytes.data()))
             throw osuCrypto::UnitTestFail("Ristretto255 broadcast regression input failed");
         const Scalar broadcastScalar(broadcastScalarBytes.data());
+        batch.mul(broadcastScalar).toBytes(roundtrip.data());
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+        {
+            Point::fromUniformBytes(uniform.data() + lane * uniformSize)
+                .mul(broadcastScalar).toBytes(encoded);
+            if (std::memcmp(encoded,
+                    roundtrip.data() + lane * encodedSize,
+                    encodedSize) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "Ristretto255 shared-scalar batch multiplication mismatch");
+        }
         std::array<Scalar, lanes> broadcastScalars{};
         broadcastScalars[0] = broadcastScalar;
         for (std::size_t lane = 1; lane != lanes; ++lane)
