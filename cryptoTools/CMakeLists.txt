@@ -5,10 +5,23 @@ include(FindPkgConfig)
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 # add the source files
-file(GLOB_RECURSE SRCS *.cpp *.c)
+file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS *.cpp *.c)
 list(FILTER SRCS EXCLUDE REGEX ".*/Crypto/Edwards25519/.*")
 
 add_library(cryptoTools STATIC ${SRCS})
+
+if(ENABLE_EDWARDS25519_ASM)
+    if(MSVC)
+        set(montgomery25519_asm_flags "/arch:AVX")
+    else()
+        set(montgomery25519_asm_flags "-mavx")
+    endif()
+
+    set_source_files_properties(
+        Crypto/Montgomery25519/asm/montgomery25519_asm.c
+        PROPERTIES COMPILE_OPTIONS "${montgomery25519_asm_flags}")
+endif()
+
 add_subdirectory(Crypto/Edwards25519)
 
 # make projects that include cryptoTools use this as an include folder

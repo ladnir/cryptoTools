@@ -103,6 +103,9 @@ namespace Backend
 #if defined(CRYPTOTOOLS_EDWARDS25519_IFMA)
     constexpr auto implementation =
         details::curve25519::Implementation::Avx512Ifma;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+    constexpr auto implementation =
+        details::curve25519::Implementation::Assembly;
 #elif defined(SODIUM_MONTGOMERY)
     constexpr auto implementation = details::curve25519::Implementation::Sodium;
 #else

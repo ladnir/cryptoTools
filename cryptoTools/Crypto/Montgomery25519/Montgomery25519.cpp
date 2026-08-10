@@ -15,6 +15,10 @@ extern "C" {
 }
 #endif
 
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+#include "asm/montgomery25519_asm.h"
+#endif
+
 namespace osuCrypto
 {
 namespace Montgomery25519
@@ -36,6 +40,17 @@ namespace Montgomery25519
                 results, points, scalar);
             std::memcpy(output, results, encodedSize);
             return valid == 0xff;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+            if (osuCrypto_montgomery25519_has_small_order_ref(point))
+                return false;
+            alignas(32) std::uint8_t points[4 * encodedSize];
+            alignas(32) std::uint8_t results[4 * encodedSize];
+            for (std::size_t lane = 0; lane != 4; ++lane)
+                std::memcpy(points + lane * encodedSize, point, encodedSize);
+            const auto valid = montgomery25519_asm4_scalarmult(
+                results, points, scalar);
+            std::memcpy(output, results, encodedSize);
+            return valid == 0x0f;
 #elif defined(SODIUM_MONTGOMERY)
             return crypto_scalarmult_noclamp(output, scalar, point) == 0;
 #else
@@ -59,6 +74,17 @@ namespace Montgomery25519
                 scalars[lane].toBytes(scalarBytes + lane * encodedSize);
             }
             return montgomery25519_ifma_scalarsmults(
+                output, points, scalarBytes) == 0xff;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+            alignas(32) std::uint8_t scalarBytes[lanes * encodedSize];
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+            {
+                if (osuCrypto_montgomery25519_has_small_order_ref(
+                        points + lane * encodedSize))
+                    return false;
+                scalars[lane].toBytes(scalarBytes + lane * encodedSize);
+            }
+            return montgomery25519_asm8_scalarsmults(
                 output, points, scalarBytes) == 0xff;
 #else
             for (std::size_t lane = 0; lane != lanes; ++lane)
@@ -209,6 +235,15 @@ namespace Montgomery25519
                 return false;
         return montgomery25519_ifma_scalarmult(
             result.mBytes.data(), mBytes.data(), scalarBytes) == 0xff;
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        std::uint8_t scalarBytes[encodedSize];
+        scalar.toBytes(scalarBytes);
+        for (std::size_t lane = 0; lane != lanes; ++lane)
+            if (osuCrypto_montgomery25519_has_small_order_ref(
+                    mBytes.data() + lane * encodedSize))
+                return false;
+        return montgomery25519_asm8_scalarmult(
+            result.mBytes.data(), mBytes.data(), scalarBytes) == 0xff;
 #else
         std::array<Scalar, lanes> scalars;
         scalars.fill(scalar);
@@ -242,7 +277,9 @@ namespace Montgomery25519
 
     void Backend::init() noexcept
     {
-#ifdef SODIUM_MONTGOMERY
+#if defined(SODIUM_MONTGOMERY) && \
+    !defined(CRYPTOTOOLS_EDWARDS25519_IFMA) && \
+    !defined(CRYPTOTOOLS_EDWARDS25519_ASM)
         const int initialized = sodium_init();
         (void)initialized;
 #endif

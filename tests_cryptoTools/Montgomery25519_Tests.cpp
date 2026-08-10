@@ -4,6 +4,10 @@
 #include <cryptoTools/Crypto/Montgomery25519/Montgomery25519.h>
 #include <cryptoTools/Crypto/Montgomery25519/portable/montgomery25519_ref.h>
 
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+#include <cryptoTools/Crypto/Montgomery25519/asm/montgomery25519_asm.h>
+#endif
+
 #ifdef SODIUM_MONTGOMERY
 #include <sodium.h>
 #endif
@@ -16,6 +20,68 @@ namespace tests_cryptoTools
     void Montgomery25519_Test()
     {
         namespace Monty = osuCrypto::Montgomery25519;
+        using Implementation = osuCrypto::details::curve25519::Implementation;
+
+#if defined(CRYPTOTOOLS_EDWARDS25519_IFMA)
+        static_assert(Monty::Backend::implementation ==
+            Implementation::Avx512Ifma);
+#elif defined(CRYPTOTOOLS_EDWARDS25519_ASM)
+        static_assert(Monty::Backend::implementation ==
+            Implementation::Assembly);
+#elif defined(SODIUM_MONTGOMERY)
+        static_assert(Monty::Backend::implementation ==
+            Implementation::Sodium);
+#else
+        static_assert(Monty::Backend::implementation ==
+            Implementation::Portable);
+#endif
+
+        // The MRR twist construction needs raw 255-bit exponents. Ordinary
+        // X25519 clamping would force both advertised points into their prime
+        // subgroups and destroy the near-uniform whole-group encoding.
+        {
+            osuCrypto::PRNG scalarPrng(osuCrypto::block(0x4e4f434c, 1));
+            osuCrypto::PRNG expectedPrng(osuCrypto::block(0x4e4f434c, 1));
+            Monty::Scalar rawScalar(scalarPrng);
+            std::uint8_t actual[Monty::encodedSize];
+            std::uint8_t expected[Monty::encodedSize];
+            rawScalar.toBytes(actual);
+            expectedPrng.get(expected, sizeof(expected));
+            expected[Monty::encodedSize - 1] &= 0x7f;
+            if (std::memcmp(actual, expected, sizeof(expected)) != 0)
+                throw osuCrypto::UnitTestFail(
+                    "Montgomery25519 scalar generation unexpectedly clamps");
+        }
+
+        // u=6 and u=3 generate the full groups, not merely their large prime
+        // subgroups. Multiplication by the corresponding prime order must
+        // leave a non-zero torsion point; the prime-subgroup generators must
+        // instead map to zero and be rejected.
+        {
+            static const std::uint8_t curvePrimeOrder[32] = {
+                0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,
+                0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 };
+            static const std::uint8_t twistPrimeOrder[32] = {
+                0x1d, 0x58, 0x14, 0x46, 0xcb, 0x39, 0xdb, 0x4f,
+                0x53, 0xc6, 0x10, 0xba, 0x42, 0x0c, 0x42, 0xd6,
+                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f };
+            Monty::Point torsion;
+            if (!Monty::Point::wholeGroupGenerator.tryMul(
+                    Monty::Scalar(curvePrimeOrder), torsion) ||
+                Monty::Point::primeSubgroupGenerator.tryMul(
+                    Monty::Scalar(curvePrimeOrder), torsion))
+                throw osuCrypto::UnitTestFail(
+                    "Montgomery25519 curve generator cofactor mismatch");
+            if (!Monty::Point::wholeTwistGroupGenerator.tryMul(
+                    Monty::Scalar(twistPrimeOrder), torsion) ||
+                Monty::Point::primeTwistSubgroupGenerator.tryMul(
+                    Monty::Scalar(twistPrimeOrder), torsion))
+                throw osuCrypto::UnitTestFail(
+                    "Montgomery25519 twist generator cofactor mismatch");
+        }
 
         static const std::uint8_t scalar[32] = {
             0x35, 0x4a, 0x67, 0x27, 0x0b, 0x01, 0xff, 0x9e,
@@ -58,6 +124,24 @@ namespace tests_cryptoTools
             std::array<std::uint8_t,
                 Monty::lanes * Monty::encodedSize> encoded;
             batch.toBytes(encoded.data());
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+            alignas(32) std::array<std::uint8_t,
+                Monty::lanes * Monty::encodedSize> asmPoints, asmScalars;
+            alignas(32) std::array<std::uint8_t,
+                Monty::lanes * Monty::encodedSize> asmResults;
+            for (std::size_t lane = 0; lane != Monty::lanes; ++lane)
+            {
+                points[lane].toBytes(
+                    asmPoints.data() + lane * Monty::encodedSize);
+                scalars[lane].toBytes(
+                    asmScalars.data() + lane * Monty::encodedSize);
+            }
+            const auto asmValid = montgomery25519_asm8_scalarsmults(
+                asmResults.data(), asmPoints.data(), asmScalars.data());
+            if (asmValid != 0xff)
+                throw osuCrypto::UnitTestFail(
+                    "Montgomery25519 assembly rejected a test input");
+#endif
             for (std::size_t lane = 0; lane != Monty::lanes; ++lane)
             {
                 std::uint8_t scalarBytes[32], pointBytes[32], reference[32];
@@ -85,6 +169,13 @@ namespace tests_cryptoTools
                         Monty::encodedSize) != 0)
                     throw osuCrypto::UnitTestFail(
                         "Montgomery25519 batch differential mismatch");
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+                if (std::memcmp(portableReference,
+                        asmResults.data() + lane * Monty::encodedSize,
+                        Monty::encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "Montgomery25519 assembly differential mismatch");
+#endif
             }
 
             const auto shared =
@@ -92,6 +183,13 @@ namespace tests_cryptoTools
             shared.toBytes(encoded.data());
             std::uint8_t sharedScalar[32];
             scalars[0].toBytes(sharedScalar);
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+            const auto sharedAsmValid = montgomery25519_asm8_scalarmult(
+                asmResults.data(), asmPoints.data(), sharedScalar);
+            if (sharedAsmValid != 0xff)
+                throw osuCrypto::UnitTestFail(
+                    "Montgomery25519 shared-scalar assembly rejected an input");
+#endif
             for (std::size_t lane = 0; lane != Monty::lanes; ++lane)
             {
                 std::uint8_t pointBytes[32], reference[32];
@@ -116,6 +214,13 @@ namespace tests_cryptoTools
                         Monty::encodedSize) != 0)
                     throw osuCrypto::UnitTestFail(
                         "Montgomery25519 shared-scalar batch mismatch");
+#ifdef CRYPTOTOOLS_EDWARDS25519_ASM
+                if (std::memcmp(portableReference,
+                        asmResults.data() + lane * Monty::encodedSize,
+                        Monty::encodedSize) != 0)
+                    throw osuCrypto::UnitTestFail(
+                        "Montgomery25519 shared-scalar assembly mismatch");
+#endif
             }
         }
 

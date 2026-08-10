@@ -9,12 +9,14 @@ The behavior follows `crypto_scalarmult_noclamp()` from the modified
 osu-crypto/libsodium fork. Backend selection is compile-time:
 
 1. eight-lane AVX-512 IFMA;
-2. modified libsodium when `SODIUM_MONTGOMERY` is enabled;
-3. portable radix-2^51 C.
+2. two four-lane Montgomery ladders using the x86-64 assembly field backend,
+   with their final inversion batched;
+3. modified libsodium when `SODIUM_MONTGOMERY` is enabled;
+4. portable radix-2^51 C.
 
-The portable and IFMA implementations are differentially tested against the
-modified libsodium behavior, including its known vectors and small-order
-input rejection.
+The portable, assembly, and IFMA implementations are differentially tested
+against the modified libsodium behavior, including its known vectors and
+small-order input rejection.
 
 The Montgomery ladder and small-order blocklist are derived from libsodium
 under the ISC license in `LICENSE`. The reused cryptoTools field arithmetic
