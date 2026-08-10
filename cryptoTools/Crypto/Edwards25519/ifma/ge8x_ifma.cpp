@@ -616,6 +616,107 @@ namespace
         return table;
     }
 
+    inline void feSwap(Fe& a, Fe& b, Mask select)
+    {
+        for (unsigned limb = 0; limb != 5; ++limb)
+        {
+            const Vec difference = _mm512_maskz_mov_epi64(
+                select, _mm512_xor_si512(a.limb[limb], b.limb[limb]));
+            a.limb[limb] = _mm512_xor_si512(a.limb[limb], difference);
+            b.limb[limb] = _mm512_xor_si512(b.limb[limb], difference);
+        }
+    }
+
+    inline void feMul121666(Fe& out, const Fe& a)
+    {
+        const Vec z = zero(), c = set1(121666), c19 = set1(19);
+        const Vec c608 = set1(608), m47 = set1(mask47);
+        Vec lo[5], hi[5];
+        for (unsigned limb = 0; limb != 5; ++limb)
+        {
+            lo[limb] = maddLo(z, a.limb[limb], c);
+            hi[limb] = maddHi(z, a.limb[limb], c);
+        }
+        Vec r0 = lo[0];
+        Vec r1 = _mm512_add_epi64(lo[1], hi[0]);
+        Vec r2 = _mm512_add_epi64(lo[2], hi[1]);
+        Vec r3 = _mm512_add_epi64(lo[3], hi[2]);
+        Vec r4 = _mm512_add_epi64(lo[4], hi[3]);
+        r0 = maddLo(r0, hi[4], c608);
+        normalizeLogical(r0, r1, r2, r3, r4);
+        Vec high = _mm512_srli_epi64(r4, 47);
+        r4 = _mm512_and_si512(r4, m47);
+        r0 = maddLo(r0, high, c19);
+        normalizeLogical(r0, r1, r2, r3, r4);
+        high = _mm512_srli_epi64(r4, 47);
+        r4 = _mm512_and_si512(r4, m47);
+        r0 = maddLo(r0, high, c19);
+        normalizeLogical(r0, r1, r2, r3, r4);
+        out = {{r0, r1, r2, r3, r4}};
+    }
+
+    Mask scalarBitMask(const unsigned char* scalars, std::size_t stride,
+                       unsigned bitPosition)
+    {
+        Mask result = 0;
+        for (unsigned lane = 0; lane != 8; ++lane)
+        {
+            const auto byte = scalars[lane * stride + (bitPosition >> 3)];
+            result = static_cast<Mask>(
+                result | (((byte >> (bitPosition & 7)) & 1) << lane));
+        }
+        return result;
+    }
+
+    unsigned char montgomeryScalarMultiply(
+        unsigned char output[8 * 32], const unsigned char points[8 * 32],
+        const unsigned char* scalars, std::size_t scalarStride)
+    {
+        Mask bits[255];
+        for (unsigned bit = 0; bit != 255; ++bit)
+            bits[bit] = scalarBitMask(scalars, scalarStride, bit);
+
+        Fe x1;
+        const Fe decoded = feFromBytes(points);
+        feReduce(x1, decoded);
+        Fe x2 = feOne(), z2 = feZero(), x3 = x1, z3 = feOne();
+        Mask swap = 0;
+        for (int bit = 254; bit >= 0; --bit)
+        {
+            swap = static_cast<Mask>(swap ^ bits[bit]);
+            feSwap(x2, x3, swap);
+            feSwap(z2, z3, swap);
+            swap = bits[bit];
+
+            Fe a, b, aa, bb, e, da, cb;
+            feAdd(a, x2, z2);
+            feSub(b, x2, z2);
+            feSquare(aa, a);
+            feSquare(bb, b);
+            feMul(x2, aa, bb);
+            feSub(e, aa, bb);
+            feSub(da, x3, z3);
+            feMul(da, da, a);
+            feAdd(cb, x3, z3);
+            feMul(cb, cb, b);
+            feAdd(x3, da, cb);
+            feSquare(x3, x3);
+            feSub(z3, da, cb);
+            feSquare(z3, z3);
+            feMul(z3, z3, x1);
+            feMul121666(z2, e);
+            feAdd(z2, z2, bb);
+            feMul(z2, z2, e);
+        }
+        feSwap(x2, x3, swap);
+        feSwap(z2, z3, swap);
+        feInvert(z2, z2);
+        feMul(x2, x2, z2);
+        feToBytes(output, x2);
+        return static_cast<unsigned char>(
+            static_cast<Mask>(~feEqual(x2, feZero())));
+    }
+
 #undef IFMA_NOINLINE
 }
 
@@ -903,4 +1004,18 @@ extern "C" void ge8x_scalarsmults_base(ge8x* r, const sc25519 scalars[8])
     geDoubleImpl(odd, odd); geDoubleImpl(odd, odd);
     geDoubleImpl(odd, odd); geDoubleImpl(odd, odd);
     geAddImpl(*r, odd, even);
+}
+
+extern "C" unsigned char montgomery25519_ifma_scalarsmults(
+    unsigned char output[8 * 32], const unsigned char points[8 * 32],
+    const unsigned char scalars[8 * 32])
+{
+    return montgomeryScalarMultiply(output, points, scalars, 32);
+}
+
+extern "C" unsigned char montgomery25519_ifma_scalarmult(
+    unsigned char output[8 * 32], const unsigned char points[8 * 32],
+    const unsigned char scalar[32])
+{
+    return montgomeryScalarMultiply(output, points, scalar, 0);
 }

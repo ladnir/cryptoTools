@@ -15,6 +15,7 @@
 #include "tests_cryptoTools/Edwards25519_Tests.h"
 #include "tests_cryptoTools/Ristretto255_Tests.h"
 #include "tests_cryptoTools/Curve25519Backend_Tests.h"
+#include "tests_cryptoTools/Montgomery25519_Tests.h"
 
 #include <cryptoTools/Common/config.h>
 using namespace osuCrypto;
@@ -76,6 +77,7 @@ namespace tests_cryptoTools
         th.add("Edwards25519_HashToCurve_Test          ", Edwards25519_HashToCurve_Test);
         th.add("Ristretto255_Test                      ", Ristretto255_Test);
         th.add("Curve25519Backend_Test                 ", Curve25519Backend_Test);
+        th.add("Montgomery25519_Test                  ", Montgomery25519_Test);
 
 
         th.add("BetaCircuit_SequentialOp_Test           ", BetaCircuit_SequentialOp_Test);

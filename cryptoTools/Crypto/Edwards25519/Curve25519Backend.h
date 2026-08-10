@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include <cryptoTools/Crypto/Curve25519Implementation.h>
 #include <cryptoTools/Crypto/Edwards25519/Edwards25519.h>
 #include <cryptoTools/Crypto/Edwards25519/Ristretto255.h>
 #include <cryptoTools/Crypto/PRNG.h>
@@ -20,14 +21,6 @@ namespace details
 {
 namespace curve25519
 {
-    enum class Implementation
-    {
-        Avx512Ifma,
-        Assembly,
-        Sodium,
-        Portable
-    };
-
     template<typename Point, typename Scalar>
     class RistrettoPoint8
     {

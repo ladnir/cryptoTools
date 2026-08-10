@@ -50,6 +50,17 @@ void ge8x_scalarmult(ge8x* r, const ge8x* p, const sc25519* scalar);
 void ge8x_scalarsmults(ge8x* r, const ge8x* p, const sc25519 scalars[8]);
 void ge8x_scalarsmults_base(ge8x* r, const sc25519 scalars[8]);
 
+/* Eight independent unclamped Montgomery25519 scalar multiplications.
+ * Inputs and outputs are lane-major. The returned bit mask identifies lanes
+ * whose affine output is nonzero. Small-order input filtering is performed by
+ * the public Montgomery25519 facade. */
+unsigned char montgomery25519_ifma_scalarsmults(
+    unsigned char output[8 * 32], const unsigned char points[8 * 32],
+    const unsigned char scalars[8 * 32]);
+unsigned char montgomery25519_ifma_scalarmult(
+    unsigned char output[8 * 32], const unsigned char points[8 * 32],
+    const unsigned char scalar[32]);
+
 #ifdef __cplusplus
 }
 #endif
