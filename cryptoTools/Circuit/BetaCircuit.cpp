@@ -9,6 +9,7 @@
 #include <cryptoTools/Crypto/RandomOracle.h>
 #include <string>
 #include <algorithm>
+#include <limits>
 #include <list>
 
 #ifdef USE_JSON
@@ -18,6 +19,117 @@ using json = nlohmann::json;
 
 namespace osuCrypto
 {
+	namespace
+	{
+		constexpr u64 maxSerializedCircuitItems = 1ull << 24;
+		constexpr u64 maxSerializedStringBytes = 1ull << 20;
+
+		void requireSerializedCount(u64 count, const char* what)
+		{
+			if (count > maxSerializedCircuitItems)
+				throw std::length_error(std::string("BetaCircuit ") + what + " count is too large");
+		}
+
+		void validateSerializedCircuit(const BetaCircuit& cir)
+		{
+			if (cir.mWireCount == 0 || cir.mWireFlags.size() != cir.mWireCount)
+				throw std::runtime_error("BetaCircuit wire metadata is inconsistent");
+
+			std::vector<u8> available(cir.mWireCount, 0);
+			u64 nextInput = 0;
+			for (const auto& bundle : cir.mInputs)
+				for (auto wire : bundle.mWires)
+				{
+					if (wire >= cir.mWireCount || wire != nextInput++)
+						throw std::runtime_error("BetaCircuit input wire is invalid");
+					available[wire] = 1;
+				}
+
+			for (u64 wire = 0; wire < cir.mWireCount; ++wire)
+			{
+				const auto flag = cir.mWireFlags[wire];
+				if (static_cast<u8>(flag) > static_cast<u8>(BetaWireFlag::Uninitialized))
+					throw std::runtime_error("BetaCircuit wire flag is invalid");
+				if (flag == BetaWireFlag::Zero || flag == BetaWireFlag::One)
+					available[wire] = 1;
+			}
+
+			u64 nonlinearCount = 0;
+			for (const auto& gate : cir.mGates)
+			{
+				if (static_cast<u8>(gate.mType) > static_cast<u8>(GateType::One))
+					throw std::runtime_error("BetaCircuit gate is invalid");
+
+				if (gate.mType == GateType::a)
+				{
+					const u64 length = gate.mInput[1];
+					if (length == 0 || length > cir.mWireCount ||
+						gate.mInput[0] > cir.mWireCount - length ||
+						gate.mOutput > cir.mWireCount - length)
+						throw std::runtime_error("BetaCircuit copy gate is invalid");
+					for (u64 i = 0; i < length; ++i)
+						if (!available[gate.mInput[0] + i])
+							throw std::runtime_error("BetaCircuit copy source is unavailable");
+					for (u64 i = 0; i < length; ++i)
+						available[gate.mOutput + i] = 1;
+					continue;
+				}
+
+				if (gate.mType == GateType::b || gate.mType == GateType::na ||
+					gate.mType == GateType::nb || gate.mType == GateType::Zero ||
+					gate.mType == GateType::One ||
+					gate.mInput[0] >= cir.mWireCount ||
+					gate.mInput[1] >= cir.mWireCount ||
+					gate.mOutput >= cir.mWireCount ||
+					!available[gate.mInput[0]] || !available[gate.mInput[1]])
+					throw std::runtime_error("BetaCircuit gate is invalid");
+				if (gate.mInput[0] == gate.mInput[1])
+					throw std::runtime_error("BetaCircuit gate repeats an input");
+				available[gate.mOutput] = 1;
+				nonlinearCount += !isLinear(gate.mType);
+			}
+
+			if (nonlinearCount != cir.mNonlinearGateCount)
+				throw std::runtime_error("BetaCircuit nonlinear gate count is inconsistent");
+
+			for (const auto& bundle : cir.mOutputs)
+				for (auto wire : bundle.mWires)
+					if (wire >= cir.mWireCount || !available[wire])
+						throw std::runtime_error("BetaCircuit output wire is invalid");
+
+			if (cir.mLevelCounts.size() != cir.mLevelAndCounts.size())
+				throw std::runtime_error("BetaCircuit level metadata is inconsistent");
+			if (!cir.mLevelCounts.empty())
+			{
+				u64 gateOffset = 0;
+				for (u64 level = 0; level < cir.mLevelCounts.size(); ++level)
+				{
+					const auto count = cir.mLevelCounts[level];
+					if (count > cir.mGates.size() - gateOffset)
+						throw std::runtime_error("BetaCircuit level exceeds the gate count");
+					u64 andCount = 0;
+					for (u64 i = 0; i < count; ++i)
+						andCount += !isLinear(cir.mGates[gateOffset + i].mType);
+					if (andCount != cir.mLevelAndCounts[level])
+						throw std::runtime_error("BetaCircuit level gate count is inconsistent");
+					gateOffset += count;
+				}
+				if (gateOffset != cir.mGates.size())
+					throw std::runtime_error("BetaCircuit levels do not cover all gates");
+			}
+
+			for (const auto& print : cir.mPrints)
+			{
+				if (print.mGateIdx > cir.mGates.size() ||
+					(print.mWire != std::numeric_limits<BetaWire>::max() &&
+						print.mWire >= cir.mWireCount))
+					throw std::runtime_error("BetaCircuit print metadata is invalid");
+				for (auto wire : print.mWires)
+					if (wire >= cir.mWireCount)
+						throw std::runtime_error("BetaCircuit print wire is invalid");
+			}
+		}
+	}
 
     BetaCircuit::BetaCircuit()
         :mNonlinearGateCount(0),
@@ -950,6 +1062,18 @@ namespace osuCrypto
     {
         json j;
         in >> j;
+		if (!in)
+			throw std::runtime_error("BetaCircuit JSON input is truncated");
+
+		BetaCircuit parsed;
+		auto& mName = parsed.mName;
+		auto& mNonlinearGateCount = parsed.mNonlinearGateCount;
+		auto& mWireCount = parsed.mWireCount;
+		auto& mGates = parsed.mGates;
+		auto& mPrints = parsed.mPrints;
+		auto& mWireFlags = parsed.mWireFlags;
+		auto& mLevelCounts = parsed.mLevelCounts;
+		auto& mLevelAndCounts = parsed.mLevelAndCounts;
 
         //std::cout << j.dump(4) << std::endl;
 
@@ -965,10 +1089,16 @@ namespace osuCrypto
             throw std::runtime_error("wrong format version");
 
         auto& inputs = j["inputs"];
+		requireSerializedCount(inputs.size(), "input bundle");
+		u64 wireReferenceCount = 0;
         for (u64 i = 0; i < inputs.size(); ++i)
         {
+			requireSerializedCount(inputs[i].size(), "input wire");
+			if (inputs[i].size() > maxSerializedCircuitItems - wireReferenceCount)
+				throw std::length_error("BetaCircuit has too many input wires");
+			wireReferenceCount += inputs[i].size();
             BetaBundle input(inputs[i].size());
-            addInputBundle(input);
+            parsed.addInputBundle(input);
 
             for (u64 j = 0; j < input.size(); ++j)
             {
@@ -981,10 +1111,15 @@ namespace osuCrypto
         }
 
         auto& outputs = j["outputs"];
+		requireSerializedCount(outputs.size(), "output bundle");
         for (u64 i = 0; i < outputs.size(); ++i)
         {
+			requireSerializedCount(outputs[i].size(), "output wire");
+			if (outputs[i].size() > maxSerializedCircuitItems - wireReferenceCount)
+				throw std::length_error("BetaCircuit has too many wire references");
+			wireReferenceCount += outputs[i].size();
             BetaBundle output(outputs[i].size());
-            addOutputBundle(output);
+            parsed.addOutputBundle(output);
 
             for (u64 j = 0; j < output.size(); ++j)
             {
@@ -999,14 +1134,16 @@ namespace osuCrypto
         }
 
         i32 wireCount = j["wire-count"];
-        if (wireCount < mWireCount)
+		if (wireCount <= 0 || static_cast<u64>(wireCount) > maxSerializedCircuitItems ||
+			wireCount < mWireCount)
             throw std::runtime_error("bad wire count");
 
         BetaBundle temp(wireCount - mWireCount);
-        addTempWireBundle(temp);
+        parsed.addTempWireBundle(temp);
         mNonlinearGateCount = 0;
 
         auto& gates = j["gates"];
+		requireSerializedCount(gates.size(), "gate");
         for (u64 i = 0; i < gates.size(); ++i)
         {
             std::array<u32, 4> vals = gates[i];
@@ -1024,7 +1161,8 @@ namespace osuCrypto
             if (vals[1] == vals[2])
                 throw std::runtime_error(LOCATION);
 
-            if (vals[3] >= mWireCount)
+			if (vals[1] >= mWireCount || vals[2] >= mWireCount ||
+				vals[3] >= mWireCount)
                 throw std::runtime_error(LOCATION);
 
             mGates.emplace_back(vals[1], vals[2], gt, vals[3]);
@@ -1040,11 +1178,19 @@ namespace osuCrypto
         }
         mWireFlags.resize(mWireCount);
 
-        for (u64 i = 0; i < mWireCount; ++i)
-            mWireFlags[i] = flags[i];
+		for (u64 i = 0; i < mWireCount; ++i)
+		{
+			const auto flag = flags[i].get<u64>();
+			if (flag > static_cast<u64>(BetaWireFlag::Uninitialized))
+				throw std::runtime_error("bad wire flag");
+			mWireFlags[i] = static_cast<BetaWireFlag>(flag);
+		}
 
 
         auto& levels = j["levels"];
+		requireSerializedCount(levels.size(), "level");
+		if (levels.size() > mGates.size() + 1)
+			throw std::runtime_error("too many circuit levels");
         mLevelCounts.resize(levels.size());
         mLevelAndCounts.resize(levels.size());
         u32 gateIdx = 0;
@@ -1053,7 +1199,9 @@ namespace osuCrypto
             mLevelCounts[i] = levels[i];
             mLevelAndCounts[i] = 0;
 
-            auto end = gateIdx + mLevelCounts[i];
+			if (mLevelCounts[i] > mGates.size() - gateIdx)
+				throw std::runtime_error("circuit level exceeds gate count");
+			auto end = gateIdx + mLevelCounts[i];
             while (gateIdx != end)
             {
                 if (isLinear(mGates[gateIdx].mType) == false)
@@ -1062,8 +1210,11 @@ namespace osuCrypto
                 ++gateIdx;
             }
         }
+		if (gateIdx != mGates.size())
+			throw std::runtime_error("circuit levels do not cover all gates");
 
         auto& prints = j["prints"];
+		requireSerializedCount(prints.size(), "print");
         mPrints.resize(prints.size());
         for (u64 i = 0; i < mPrints.size(); ++i)
         {
@@ -1074,7 +1225,8 @@ namespace osuCrypto
         u64 h0 = j["hash"][0];
         u64 h1 = j["hash"][1];
         auto fileHashVal = toBlock(h1, h0);
-        auto hashVal = hash();
+		validateSerializedCircuit(parsed);
+		auto hashVal = parsed.hash();
 
         if (neq(hashVal, fileHashVal))
         {
@@ -1083,6 +1235,7 @@ namespace osuCrypto
             throw std::runtime_error("hash values do not match");
         }
 
+		*this = std::move(parsed);
     }
 #endif
 
@@ -1157,24 +1310,47 @@ namespace osuCrypto
 
     void read(u64& v, std::istream& in)
     {
+		v = 0;
         in.read((char*)&v, sizeof(u64));
+		if (!in)
+			throw std::runtime_error("BetaCircuit binary input is truncated");
     }
     void read(std::string& str, std::istream& in)
     {
-        u64 size;
+		u64 size = 0;
         read(size, in);
+		if (size > maxSerializedStringBytes)
+			throw std::length_error("BetaCircuit string is too large");
         str.resize(size);
         in.read((char*)str.data(), size);
+		if (!in)
+			throw std::runtime_error("BetaCircuit binary input is truncated");
     }
 
     template<typename T>
     void read(T* dest, u64 size, std::istream& in)
     {
         static_assert(std::is_trivial<T>::value, "must be pod");
+		if (size > static_cast<u64>(std::numeric_limits<std::streamsize>::max()) /
+			sizeof(T))
+			throw std::length_error("BetaCircuit binary field is too large");
         in.read((char*)dest, size * sizeof(T));
+		if (!in)
+			throw std::runtime_error("BetaCircuit binary input is truncated");
     }
     void BetaCircuit::readBin(std::istream& in)
     {
+		BetaCircuit parsed;
+		auto& mName = parsed.mName;
+		auto& mNonlinearGateCount = parsed.mNonlinearGateCount;
+		auto& mWireCount = parsed.mWireCount;
+		auto& mGates = parsed.mGates;
+		auto& mPrints = parsed.mPrints;
+		auto& mWireFlags = parsed.mWireFlags;
+		auto& mInputs = parsed.mInputs;
+		auto& mOutputs = parsed.mOutputs;
+		auto& mLevelCounts = parsed.mLevelCounts;
+		auto& mLevelAndCounts = parsed.mLevelAndCounts;
 
         // name
         read(mName, in);
@@ -1189,29 +1365,44 @@ namespace osuCrypto
         if (version != 1)
             throw std::runtime_error(LOCATION);
 
-        u64 count;
+		u64 count = 0;
         read(count, in);
+		requireSerializedCount(count, "input bundle");
         mInputs.resize(count);
+		u64 wireReferenceCount = 0;
         for (u64 i = 0; i < mInputs.size(); ++i)
         {
             read(count, in);
+			requireSerializedCount(count, "input wire");
+			if (count > maxSerializedCircuitItems - wireReferenceCount)
+				throw std::length_error("BetaCircuit has too many input wires");
+			wireReferenceCount += count;
             mInputs[i].mWires.resize(count);
             read(mInputs[i].mWires.data(), mInputs[i].mWires.size(), in);
         }
 
         read(count, in);
+		requireSerializedCount(count, "output bundle");
         mOutputs.resize(count);
         for (u64 i = 0; i < mOutputs.size(); ++i)
         {
             read(count, in);
+			requireSerializedCount(count, "output wire");
+			if (count > maxSerializedCircuitItems - wireReferenceCount)
+				throw std::length_error("BetaCircuit has too many wire references");
+			wireReferenceCount += count;
             mOutputs[i].mWires.resize(count);
             read(mOutputs[i].mWires.data(), mOutputs[i].mWires.size(), in);
         }
 
         read(count, in);
+		if (count == 0 || count > maxSerializedCircuitItems ||
+			count > std::numeric_limits<BetaWire>::max())
+			throw std::length_error("BetaCircuit wire count is invalid");
         mWireCount = static_cast<u32>(count);
 
         read(count, in);
+		requireSerializedCount(count, "gate");
         mGates.resize(count);
         read(mGates.data(), mGates.size(), in);
 
@@ -1221,38 +1412,52 @@ namespace osuCrypto
 
 
         read(count, in);
+		requireSerializedCount(count, "level");
+		if (count > mGates.size() + 1)
+			throw std::runtime_error("BetaCircuit has too many levels");
         mLevelCounts.resize(count);
         mLevelAndCounts.resize(count);
         read(mLevelCounts.data(), mLevelCounts.size(), in);
         read(mLevelAndCounts.data(), mLevelAndCounts.size(), in);
 
-        mNonlinearGateCount = std::accumulate(mLevelAndCounts.begin(), mLevelAndCounts.end(), 0ull);
+		mNonlinearGateCount = std::accumulate(
+			mGates.begin(), mGates.end(), 0ull,
+			[](u64 count, const BetaGate& gate) {
+				return count + !isLinear(gate.mType);
+			});
 
         std::string msg;
         read(count, in);
+		requireSerializedCount(count, "print");
         mPrints.resize(count);
         for (u64 i = 0; i < mPrints.size(); ++i)
         {
             //std::tuple<u64, BetaWire, std::string, bool>
-            u64 gateIdx, wireIdx, flag;
-            read(gateIdx, in);
-            read(wireIdx, in);
-            read(msg, in);
-            read(flag, in);
+			u64 gateIdx, wireIdx, flag;
+			read(gateIdx, in);
+			read(wireIdx, in);
+			read(msg, in);
+			read(flag, in);
+			if (gateIdx > mGates.size() ||
+				wireIdx > std::numeric_limits<BetaWire>::max() || flag > 1)
+				throw std::runtime_error("BetaCircuit print metadata is invalid");
 
-            (mPrints[i].mGateIdx) = gateIdx;
+			(mPrints[i].mGateIdx) = gateIdx;
             (mPrints[i].mWire) = static_cast<u32>(wireIdx);
             (mPrints[i].mMsg) = msg;
             (mPrints[i].mInvert) = flag;
         }
 
-        block fileHashValue;
+		block fileHashValue = ZeroBlock;
         read(&fileHashValue, 1, in);
-        auto hashVal = hash();
+		validateSerializedCircuit(parsed);
+		auto hashVal = parsed.hash();
         if (neq(fileHashValue, hashVal))
         {
             throw std::runtime_error(LOCATION);
         }
+
+		*this = std::move(parsed);
     }
 
     //BetaCircuit BetaCircuit::toBristol() const
@@ -1426,29 +1631,32 @@ namespace osuCrypto
 
     void BetaCircuit::readBristol(std::istream& in)
     {
-        // call the destructor and constructor to make sure this object is empty;
-        //BetaCircuit::~BetaCircuit();
-        //new (this)BetaCircuit();
-
         if (in.good() == false)
             throw RTE_LOC;
 
-
-        u64 numGates, wireCount, numInput0, numInput1, numOutputs;
+		u64 numGates = 0, wireCount = 0, numInput0 = 0, numInput1 = 0, numOutputs = 0;
 
         in >> numGates >> wireCount >> numInput0 >> numInput1 >> numOutputs;
 
-        if (!numGates || !wireCount || !numInput0 || !numInput1 || !numOutputs)
+		if (!in || !numGates || !wireCount || !numInput0 || !numInput1 || !numOutputs)
             throw RTE_LOC;
+		requireSerializedCount(numGates, "gate");
+		if (wireCount > maxSerializedCircuitItems ||
+			wireCount > std::numeric_limits<BetaWire>::max() ||
+			numInput0 > wireCount || numInput1 > wireCount - numInput0 ||
+			numOutputs > wireCount - numInput0 - numInput1)
+			throw std::length_error("BetaCircuit Bristol dimensions are invalid");
+
+		BetaCircuit parsed;
 
         BetaBundle input0(numInput0);
         BetaBundle input1(numInput1);
         BetaBundle output(numOutputs);
         BetaBundle internal(wireCount - numInput0 - numInput1 - numOutputs);
-        addInputBundle(input0);
-        addInputBundle(input1);
-        addOutputBundle(output);
-        addTempWireBundle(internal);
+		parsed.addInputBundle(input0);
+		parsed.addInputBundle(input1);
+		parsed.addOutputBundle(output);
+		parsed.addTempWireBundle(internal);
 
 
 
@@ -1470,19 +1678,21 @@ namespace osuCrypto
             return idx + numOutputs;
             };
 
-        std::string gate;
-        u64 fanIn, fanOut, inIdx0, inIdx1, outIdx;
-        GateType gt;
-        for (u64 i = 0; i < numGates; ++i)
-        {
-            in >> fanIn >> fanOut;
+		std::string gate;
+		for (u64 i = 0; i < numGates; ++i)
+		{
+			u64 fanIn = 0, fanOut = 0, inIdx0 = 0, inIdx1 = 0, outIdx = 0;
+			GateType gt = GateType::Zero;
+			in >> fanIn >> fanOut;
 
-            if (fanIn - 1 > 1 || fanOut != 1)
-                throw RTE_LOC;
+			if (!in || fanIn < 1 || fanIn > 2 || fanOut != 1)
+				throw RTE_LOC;
 
             if (fanIn == 1)
             {
-                in >> inIdx0 >> outIdx >> gate;
+				in >> inIdx0 >> outIdx >> gate;
+				if (!in || inIdx0 >= wireCount || outIdx >= wireCount)
+					throw RTE_LOC;
 
                 inIdx0 = translate(inIdx0);
                 outIdx = translate(outIdx);
@@ -1491,13 +1701,15 @@ namespace osuCrypto
                     throw RTE_LOC;
 
                 if (inIdx0 == outIdx)
-                    addInvert(static_cast<u32>(inIdx0));
-                else
-                    addInvert(static_cast<u32>(inIdx0), static_cast<u32>(outIdx));
+					parsed.addInvert(static_cast<u32>(inIdx0));
+				else
+					parsed.addInvert(static_cast<u32>(inIdx0), static_cast<u32>(outIdx));
             }
             else
             {
-                in >> inIdx0 >> inIdx1 >> outIdx >> gate;
+				in >> inIdx0 >> inIdx1 >> outIdx >> gate;
+				if (!in || inIdx0 >= wireCount || inIdx1 >= wireCount || outIdx >= wireCount)
+					throw RTE_LOC;
 
                 inIdx0 = translate(inIdx0);
                 inIdx1 = translate(inIdx1);
@@ -1510,10 +1722,13 @@ namespace osuCrypto
                 else
                     throw RTE_LOC;
 
-                addGate(static_cast<u32>(inIdx0), static_cast<u32>(inIdx1),
-                    gt, static_cast<u32>(outIdx));
-            }
-        }
+				parsed.addGate(static_cast<u32>(inIdx0), static_cast<u32>(inIdx1),
+					gt, static_cast<u32>(outIdx));
+			}
+		}
+
+		validateSerializedCircuit(parsed);
+		*this = std::move(parsed);
     }
 
     block BetaCircuit::hash()const
