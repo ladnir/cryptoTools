@@ -100,6 +100,10 @@ namespace osuCrypto
 	{
 	public:
 		BetaCircuit();
+		BetaCircuit(const BetaCircuit&) = default;
+		BetaCircuit& operator=(const BetaCircuit&) = default;
+		BetaCircuit(BetaCircuit&&) noexcept = default;
+		BetaCircuit& operator=(BetaCircuit&&) noexcept = default;
 		~BetaCircuit();
 
 
