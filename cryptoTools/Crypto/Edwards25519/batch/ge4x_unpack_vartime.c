@@ -103,6 +103,12 @@ int ge4x_unpack_vartime(ge4x * r, unsigned char p[128])
       gfe4x_neg_single(&r->x, &r->x, i);
   }
 
+  /* Sign selection can leave x outside the limb bounds required by the
+   * doubling kernels. Multiplication by one carries the coordinate back
+   * into range without changing the point. Packing alone does not expose
+   * this issue: it normalizes a copy and leaves the internal limbs intact. */
+  gfe4x_setone(&t);
+  gfe4x_mul(&r->x, &r->x, &t);
   gfe4x_mul(&r->t, &r->x, &r->y);
 
   return 0;
