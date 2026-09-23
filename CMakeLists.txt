@@ -50,6 +50,11 @@ add_subdirectory(cryptoTools)
 add_subdirectory(tests_cryptoTools)
 add_subdirectory(frontend_cryptoTools)
 
+# Opt-in profiling executable; never run performance measurements from CTest.
+add_executable(cryptotools_aes_bench EXCLUDE_FROM_ALL benchmarks/AesThroughput.cpp)
+target_link_libraries(cryptotools_aes_bench PRIVATE tests_cryptoTools)
+set_target_properties(cryptotools_aes_bench PROPERTIES CXX_STANDARD ${CRYPTO_TOOLS_STD_VER} CXX_STANDARD_REQUIRED ON)
+
 configure_file(cryptoTools/Common/config.h.in "cryptoTools/Common/config.h" )
 
 

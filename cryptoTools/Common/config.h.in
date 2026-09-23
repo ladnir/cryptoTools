@@ -44,6 +44,15 @@
 // enable the use of intel AVX2 instructions.
 #cmakedefine ENABLE_AVX2 @ENABLE_AVX2@
 
+// Opt-in static VAES dispatch. All consumers must run on a VAES-capable CPU.
+#cmakedefine ENABLE_VAES @ENABLE_VAES@
+#ifdef ENABLE_VAES
+#if !defined(_MSC_VER) && (!defined(__VAES__) || !defined(__AVX2__))
+#error "VAES-enabled cryptoTools requires -mvaes -mavx2 for every consumer"
+#endif
+#define OC_ENABLE_VAES
+#endif
+
 // enable the use of intel AVX512 instructions.
 #cmakedefine ENABLE_AVX512 @ENABLE_AVX512@
 
