@@ -2,6 +2,7 @@
 #include "../tests_cryptoTools/UnitTests.h"
 #include "Tutorials/Network.h"
 #include "CurveBench.h"
+#include "AesBench.h"
 #include "cryptoTools/Network/Channel.h"
 #include "cryptoTools/Network/IOService.h"
 #include <cryptoTools/Common/Matrix.h>
@@ -151,6 +152,10 @@ int main(int argc, char** argv)
     {
         curveBench(cmd);
     }
+    else if (cmd.isSet("aesBench"))
+    {
+        aesBench(cmd);
+    }
     else if(cmd.isSet("u"))
     {
         tests_cryptoTools::Tests.runIf(cmd);
@@ -163,6 +168,9 @@ int main(int argc, char** argv)
             << Color::Green << cmd.mProgramName << " -tut\n\n" << Color::Default
             << "Benchmark Edwards25519 curve operations with:\n\n\t"
             << Color::Green << cmd.mProgramName << " -curveBench"
+            << Color::Default << "\n\nBenchmark AES kernels with:\n\n\t"
+            << Color::Green << cmd.mProgramName << " -aesBench"
+            << Color::Default << "\nUse -aesBench -check for correctness checks without timing."
             << Color::Default
             << std::endl;
     }

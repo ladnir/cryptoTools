@@ -1,14 +1,16 @@
 // This file is placed in the public domain, like cryptoTools/Crypto/AES.h.
 #include <cryptoTools/Crypto/AES.h>
+#include <cryptoTools/Common/CLP.h>
+#include "AesBench.h"
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <string>
 #include <vector>
 
 namespace tests_cryptoTools { void AES_EncDec_Test(); }
 using namespace osuCrypto;
+namespace {
 using Clock = std::chrono::steady_clock;
 static volatile u64 checksum;
 #ifdef _MSC_VER
@@ -21,7 +23,7 @@ template<u64 batch, bool hash>
 AES_BENCH_NOINLINE void fixed(const AES& aes, block* data, u64 n)
 {
     for (u64 i = 0; i < n; i += batch)
-        if constexpr(hash) aes.hashBlocks<batch>(data + i, data + i);
+        if (hash) aes.hashBlocks<batch>(data + i, data + i);
         else aes.ecbEncBlocks<batch>(data + i, data + i);
 }
 
@@ -73,11 +75,13 @@ AES_BENCH_NOINLINE void memoryPass(block* data, u64 n)
     for (u64 i = 0; i < n; ++i) data[i] ^= block(123);
 }
 
-int main(int argc, char** argv)
+} // namespace
+
+void aesBench(CLP& cmd)
 {
     tests_cryptoTools::AES_EncDec_Test();
     std::cout << "AES correctness: passed\n";
-    if (argc > 1 && std::string(argv[1]) == "--check") return 0;
+    if (cmd.isSet("check")) return;
 #ifdef OC_ENABLE_VAES
     std::cout << "backend=VAES256\n";
 #else

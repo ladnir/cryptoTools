@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-off=${1:?AES-NI benchmark executable}
-on=${2:?VAES benchmark executable}
+off=${1:?AES-NI frontend_cryptoTools executable}
+on=${2:?VAES frontend_cryptoTools executable}
 out=${3:?results directory}
 cpu=${4:-15}
 mkdir -p "$out"
@@ -12,6 +12,6 @@ flock -n 8
 flock -n 9
 flock -n 7
 for repeat in 1 2 3; do
-    taskset -c "$cpu" "$off" > "$out/aes-off-$repeat.csv"
-    taskset -c "$cpu" "$on" > "$out/aes-on-$repeat.csv"
+    taskset -c "$cpu" "$off" -aesBench > "$out/aes-off-$repeat.csv"
+    taskset -c "$cpu" "$on" -aesBench > "$out/aes-on-$repeat.csv"
 done

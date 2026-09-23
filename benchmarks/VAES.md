@@ -58,18 +58,18 @@ The isolated AES speedup does not imply a twofold whole-protocol speedup.
 ## Reproduce
 
 Configure separate OFF and ON build directories with otherwise identical flags.
-Build the opt-in target `cryptotools_aes_bench` in each directory. The executable
-is not part of normal builds or timed CTest runs.
+Build the existing `frontend_cryptoTools` target in each directory. AES profiling
+is an opt-in frontend command, not a separate executable or a timed CTest run.
 
 ```sh
-cmake --build BUILD --target cryptotools_aes_bench
-BUILD/cryptotools_aes_bench --check
+cmake --build BUILD --target frontend_cryptoTools
+BUILD/frontend_cryptoTools/frontend_cryptoTools -aesBench -check
 bash benchmarks/run_aes_bench.sh OFF_EXE ON_EXE RESULTS_DIR 15
 ```
 
 For a cryptoTools subdirectory build, the executable is usually under
-`BUILD/cryptoTools/`. On Windows, use the selected configuration subdirectory.
-`--check` runs correctness tests without timing. Tests cover the NIST AES vector,
+`BUILD/cryptoTools/frontend_cryptoTools/`. On Windows, use the selected configuration subdirectory.
+`-aesBench -check` runs correctness tests without timing. Tests cover the NIST AES vector,
 fixed batch sizes 1–32, runtime sizes 0–257, in-place operation, 16-byte-offset
 buffers, output guards, counter mode, and tweakable hashing.
 The VAES tests passed with GCC 13.4 and MSVC 19.50. A separate GCC build passed
