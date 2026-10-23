@@ -4,7 +4,7 @@
 #include <cryptoTools/Crypto/PRNG.h>
 #include <cryptoTools/Common/Log.h>
 #include <random>
-#include <fstream>
+#include <sstream>
 #include <cryptoTools/Common/TestCollection.h>
 using namespace oc;
 #ifdef ENABLE_CIRCUITS
@@ -1481,26 +1481,19 @@ void BetaCircuit_json_Tests()
 {
 #ifdef USE_JSON
 
-	std::string filename = "./test_add_cir.json";
 	BetaLibrary lib;
 
 	BetaCircuit cir = *lib.int_int_mult(64, 64, 64);
 	cir.levelByAndDepth();
 
-	std::ofstream out;
-	out.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
-
-	cir.writeJson(out);
-	out.close();
+	std::stringstream encoded;
+	cir.writeJson(encoded);
+	if (!encoded)
+		throw RTE_LOC;
+	encoded.seekg(0);
 
 	BetaCircuit cir2;
-	std::ifstream in;
-	in.open(filename, std::ios::in | std::ios::binary);
-
-	if (in.is_open() == false)
-		throw std::runtime_error(LOCATION);
-
-	cir2.readJson(in);
+	cir2.readJson(encoded);
 
 	if (cir != cir2)
 	{
@@ -1514,26 +1507,19 @@ void BetaCircuit_json_Tests()
 
 void BetaCircuit_bin_Tests()
 {
-	std::string filename = "./test_mul_cir.bin";
 	BetaLibrary lib;
 
 	BetaCircuit cir = *lib.int_int_mult(64, 64, 64);
 	cir.levelByAndDepth();
 
-	std::ofstream out;
-	out.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
-
-	cir.writeBin(out);
-	out.close();
+	std::stringstream encoded(std::ios::in | std::ios::out | std::ios::binary);
+	cir.writeBin(encoded);
+	if (!encoded)
+		throw RTE_LOC;
+	encoded.seekg(0);
 
 	BetaCircuit cir2;
-	std::ifstream in;
-	in.open(filename, std::ios::in | std::ios::binary);
-
-	if (in.is_open() == false)
-		throw std::runtime_error(LOCATION);
-
-	cir2.readBin(in);
+	cir2.readBin(encoded);
 
 	if (cir != cir2)
 	{
