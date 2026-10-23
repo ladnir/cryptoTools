@@ -19,6 +19,57 @@ using namespace osuCrypto;
 #include <iomanip>
 namespace tests_cryptoTools
 {
+	template<u64 n, class Cipher>
+	void checkFixedBatch(const Cipher& aes, const block* input)
+	{
+		alignas(32) block storage[n + 2];
+		// Deliberately only 16-byte aligned, with guards on both sides.
+		auto out = storage + 1;
+		storage[0] = storage[n + 1] = block(123);
+		aes.template ecbEncBlocks<n>(input, out);
+		for (u64 i = 0; i < n; ++i)
+			if (out[i] != aes.ecbEncBlock(input[i])) throw UnitTestFail();
+		std::copy(input, input + n, out);
+		aes.template ecbEncBlocks<n>(out, out);
+		for (u64 i = 0; i < n; ++i)
+			if (out[i] != aes.ecbEncBlock(input[i])) throw UnitTestFail();
+		aes.template hashBlocks<n>(input, out);
+		for (u64 i = 0; i < n; ++i)
+			if (out[i] != (aes.ecbEncBlock(input[i]) ^ input[i])) throw UnitTestFail();
+		std::copy(input, input + n, out);
+		aes.template hashBlocks<n>(out, out);
+		for (u64 i = 0; i < n; ++i)
+			if (out[i] != (aes.ecbEncBlock(input[i]) ^ input[i])) throw UnitTestFail();
+		if (storage[0] != block(123) || storage[n + 1] != block(123)) throw UnitTestFail();
+		if constexpr (n > 1) checkFixedBatch<n - 1>(aes, input);
+	}
+
+	template<class Cipher>
+	void checkBatches(const Cipher& aes)
+	{
+		alignas(32) block inputStorage[259], outputStorage[259];
+		auto input = inputStorage + 1;
+		auto out = outputStorage + 1;
+		for (u64 i = 0; i < 257; ++i) input[i] = block(12345 * i, 67890 + i);
+		checkFixedBatch<32>(aes, input);
+		for (u64 n = 0; n <= 257; ++n)
+		{
+			outputStorage[0] = out[n] = block(123);
+			for (bool hash : {false, true})
+				for (bool inplace : {false, true})
+				{
+					std::copy(input, input + n, out);
+					const block* src = inplace ? out : input;
+					if (hash) aes.hashBlocks(src, n, out);
+					else aes.ecbEncBlocks(src, n, out);
+					for (u64 i = 0; i < n; ++i)
+						if (out[i] != (aes.ecbEncBlock(input[i]) ^ (hash ? input[i] : ZeroBlock)))
+							throw UnitTestFail();
+					if (outputStorage[0] != block(123) || out[n] != block(123)) throw UnitTestFail();
+				}
+		}
+	}
+
 	block byteReverse(block b)
 	{
 		block r;
@@ -44,6 +95,7 @@ namespace tests_cryptoTools
 			0xd8cdb78070b4c55a));
 
 		details::AES<type> encKey(userKey);
+		checkBatches(encKey);
 		//details::AES<details::Portable> encKey2(userKey);
 
 		auto ctxt = encKey.ecbEncBlock(ptxt);
@@ -56,7 +108,7 @@ namespace tests_cryptoTools
 		if (neq(ptxt2, ptxt))
 			throw UnitTestFail();
 
-		for (u64 tt = 0; tt < 0; ++tt)
+		for (u64 tt = 0; tt < 40; ++tt)
 		{
 			u64 length = (1ull << 6) + tt;
 

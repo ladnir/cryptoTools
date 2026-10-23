@@ -31,6 +31,14 @@ python build.py -D ENABLE_SSE=OFF
 ```
 will build without SSE instrisics. Argument after the `--` are forwarded to cmake.
 
+**Optional VAES:** configure with `-DENABLE_VAES=ON -DENABLE_AVX2=ON` to use
+256-bit VAES for batched AES encryption and hashing. The default is OFF.
+This is static dispatch: every machine running this build must support VAES
+and AVX2. There is no runtime CPU fallback. The AES API, key layout, and outputs
+are unchanged; single-block operations and decryption retain their existing paths.
+Use the exported CMake target so consumers inherit the required compiler flags.
+See [VAES profiling](benchmarks/VAES.md) for measurements and reproduction.
+
 The main executable with examples is `frontend` and is located in the build directory, eg `out/build/linux/frontend/frontend_cryptoTools, out/build/x64-Release/frontend/Release/frontend_cryptoTools.exe` depending on the OS. 
 
 **Enabling/Disabling dependancies:**

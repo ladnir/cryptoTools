@@ -5,6 +5,9 @@
 #include <type_traits>
 #include <cassert>
 #include <utility>
+#ifdef OC_ENABLE_VAES
+#include <cryptoTools/Crypto/AESVaes.h>
+#endif
 
 #ifdef ARM
 #undef ARM
@@ -434,6 +437,13 @@ namespace osuCrypto {
 			assert((u64)plaintext % 16 == 0 && "plaintext must be aligned.");
 			assert((u64)ciphertext % 16 == 0 && "ciphertext must be aligned.");
 
+#ifdef OC_ENABLE_VAES
+			if constexpr (type == NI && blocks >= 2)
+			{
+				aesVaesBlocks<false, blocks>(*this, plaintext, ciphertext);
+				return;
+			}
+#endif
 			if constexpr (blocks <= 8)
 			{
 				aesEcbEncBlocksSmall(*this, plaintext, ciphertext, std::integral_constant<u64, blocks>{});
@@ -488,7 +498,11 @@ namespace osuCrypto {
 				plaintext == ciphertext || 
 				isOverlapping(plaintext, blockLength, ciphertext, blockLength) == false);
 
+#ifdef OC_ENABLE_VAES
+			const u64 step = type == NI ? 16 : 8;
+#else
 			const u64 step = 8;
+#endif
 			u64 idx = 0;
 
 			if constexpr (type == AESTypes::NI)
@@ -547,6 +561,8 @@ namespace osuCrypto {
 				SWITCH_CASE(5);
 				SWITCH_CASE(6);
 				SWITCH_CASE(7);
+				SWITCH_CASE(8); SWITCH_CASE(9); SWITCH_CASE(10); SWITCH_CASE(11);
+				SWITCH_CASE(12); SWITCH_CASE(13); SWITCH_CASE(14); SWITCH_CASE(15);
 #undef SWITCH_CASE
 			}
 		}
@@ -719,6 +735,13 @@ namespace osuCrypto {
 		template<u64 blocks>
 		OC_FORCEINLINE void AES<type>::hashBlocks(const block* plaintext, block* ciphertext) const
 		{
+#ifdef OC_ENABLE_VAES
+			if constexpr (type == NI && blocks >= 2)
+			{
+				aesVaesBlocks<true, blocks>(*this, plaintext, ciphertext);
+				return;
+			}
+#endif
 			if constexpr (blocks <= 8)
 			{
 				aesHashBlocksSmall(*this, plaintext, ciphertext, std::integral_constant<u64, blocks>{});
@@ -763,7 +786,11 @@ namespace osuCrypto {
 		template<AESTypes type>
 		inline void AES<type>::hashBlocks(const block* plaintext, u64 blockLength, block* ciphertext) const
 		{
+#ifdef OC_ENABLE_VAES
+			const u64 step = type == NI ? 16 : 8;
+#else
 			const u64 step = 8;
+#endif
 			u64 idx = 0;
 
 			if constexpr (type == AESTypes::NI)
@@ -822,6 +849,8 @@ namespace osuCrypto {
 				SWITCH_CASE(5);
 				SWITCH_CASE(6);
 				SWITCH_CASE(7);
+				SWITCH_CASE(8); SWITCH_CASE(9); SWITCH_CASE(10); SWITCH_CASE(11);
+				SWITCH_CASE(12); SWITCH_CASE(13); SWITCH_CASE(14); SWITCH_CASE(15);
 #undef SWITCH_CASE
 			}
 		}

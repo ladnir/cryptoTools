@@ -168,6 +168,38 @@ namespace tests_cryptoTools
             throw osuCrypto::UnitTestFail(
                 "eight-lane Edwards25519 cofactor clearing mismatch");
 
+        // This point round-tripped through the assembly decoder but its
+        // negated x coordinate exceeded the bounds required by doubling.
+        // Check arithmetic after decoding, including both signs in every lane.
+        const std::array<osuCrypto::u8, encodedSize> decodingRegression = {
+            0xc9, 0x9a, 0xfa, 0x1c, 0x72, 0x41, 0x33, 0x89,
+            0x09, 0x65, 0x22, 0xc8, 0x43, 0xd0, 0xc4, 0x4d,
+            0x44, 0x8e, 0x1d, 0xb8, 0x40, 0x84, 0xec, 0x2e,
+            0x9d, 0x21, 0x21, 0xa4, 0x6e, 0xaa, 0xf6, 0x8f};
+        for (unsigned sign = 0; sign != 2; ++sign)
+        {
+            auto input = decodingRegression;
+            input.back() = (input.back() & 0x7f) | (sign << 7);
+            Point scalarPoint;
+            if (!scalarPoint.fromBytes(input.data()))
+                throw osuCrypto::UnitTestFail("scalar decoding regression failed");
+            std::array<osuCrypto::u8, encodedSize> expectedCleared;
+            scalarPoint.clearCofactor().toBytes(expectedCleared.data());
+            std::array<osuCrypto::u8, lanes * encodedSize> inputs, actual;
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+                std::memcpy(inputs.data() + lane * encodedSize,
+                            input.data(), encodedSize);
+            Point8 decoded;
+            if (!decoded.fromBytes(inputs.data()))
+                throw osuCrypto::UnitTestFail("batch decoding regression failed");
+            decoded.clearCofactor().toBytes(actual.data());
+            for (std::size_t lane = 0; lane != lanes; ++lane)
+                if (std::memcmp(actual.data() + lane * encodedSize,
+                                expectedCleared.data(), encodedSize))
+                    throw osuCrypto::UnitTestFail(
+                        "Edwards25519 arithmetic after decoding mismatch");
+        }
+
         Point invalidPoint;
         std::array<osuCrypto::u8, encodedSize> nonCanonicalField;
         nonCanonicalField.fill(0xff);
