@@ -163,7 +163,7 @@ namespace osuCrypto
             for (int i = 0; i < N; ++i) ciphertext[i] = AES::roundFn(ciphertext[i], mAESs[i].mRoundKey[6]);
             for (int i = 0; i < N; ++i) ciphertext[i] = AES::roundFn(ciphertext[i], mAESs[i].mRoundKey[7]);
             for (int i = 0; i < N; ++i) ciphertext[i] = AES::roundFn(ciphertext[i], mAESs[i].mRoundKey[8]);
-            for (int i = 0; i < N; ++i) ciphertext[i] = AES::roundFn(ciphertext[i], mAESs[i].mRoundKey[9]);
+            for (int i = 0; i < N; ++i) ciphertext[i] = AES::penultimateFn(ciphertext[i], mAESs[i].mRoundKey[9]);
             for (int i = 0; i < N; ++i) ciphertext[i] = AES::finalFn(ciphertext[i], mAESs[i].mRoundKey[10]);
         }
 

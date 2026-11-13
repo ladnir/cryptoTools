@@ -90,6 +90,45 @@ std::string bits(T x, u64 width)
 
 void tests_cryptoTools::block_operation_test()
 {
+    // Independent bit-level polynomial product, including every basis pair.
+    // Exercise this outside the SSE guard so ARM and portable CI check it too.
+    PRNG fieldRandom(block(741, 852));
+    for (u64 trial = 0; trial < 128 * 128 + 256; ++trial)
+    {
+        auto a = fieldRandom.get<block>(), b = fieldRandom.get<block>();
+        if (trial < 128 * 128)
+        {
+            std::array<u64, 2> aw{}, bw{};
+            aw[(trial / 128) / 64] = u64(1) << ((trial / 128) % 64);
+            bw[(trial % 128) / 64] = u64(1) << (trial % 64);
+            a = aw; b = bw;
+        }
+        const auto aw = a.get<u64>(), bw = b.get<u64>();
+        std::array<u64, 4> product{};
+        for (u64 i = 0; i < 128; ++i)
+            for (u64 j = 0; j < 128; ++j)
+                if (((aw[i / 64] >> (i % 64)) & 1) && ((bw[j / 64] >> (j % 64)) & 1))
+                    product[(i + j) / 64] ^= u64(1) << ((i + j) % 64);
+        block lo, hi;
+        a.cc_gf128Mul(b, lo, hi);
+        if (lo != block(product[1], product[0]) || hi != block(product[3], product[2]))
+            throw UnitTestFail("portable unreduced field product");
+        for (int i = 255; i >= 128; --i)
+            if ((product[i / 64] >> (i % 64)) & 1)
+                for (int shift : {0, 1, 2, 7, 128})
+                {
+                    const int bit = i - 128 + shift;
+                    product[bit / 64] ^= u64(1) << (bit % 64);
+                }
+        const block expected(product[1], product[0]);
+        if (lo.cc_gf128Reduce(hi) != expected || a.gf128Mul(b) != expected)
+            throw UnitTestFail("field product/reduction");
+        if (a.clmulepi64_si128<0x00>(b) != a.cc_clmulepi64_si128<0x00>(b) ||
+            a.clmulepi64_si128<0x01>(b) != a.cc_clmulepi64_si128<0x01>(b) ||
+            a.clmulepi64_si128<0x10>(b) != a.cc_clmulepi64_si128<0x10>(b) ||
+            a.clmulepi64_si128<0x11>(b) != a.cc_clmulepi64_si128<0x11>(b))
+            throw UnitTestFail("carryless multiply dispatch");
+    }
 
 #ifdef OC_ENABLE_SSE2
 

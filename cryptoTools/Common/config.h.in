@@ -56,6 +56,15 @@
 // enable the use of intel AVX512 instructions.
 #cmakedefine ENABLE_AVX512 @ENABLE_AVX512@
 
+// Static selection, like ENABLE_AVX2. Disable for deployment to older CPUs.
+#cmakedefine ENABLE_VPCLMUL @ENABLE_VPCLMUL@
+#ifdef ENABLE_VPCLMUL
+#if !defined(_MSC_VER) && (!defined(__VPCLMULQDQ__) || !defined(__AVX2__))
+#error "VPCLMUL-enabled cryptoTools requires -mvpclmulqdq -mavx2 for every consumer"
+#endif
+#define OC_ENABLE_VPCLMUL
+#endif
+
 #cmakedefine ENABLE_EDWARDS25519_ASM @ENABLE_EDWARDS25519_ASM@
 #cmakedefine ENABLE_EDWARDS25519_IFMA @ENABLE_EDWARDS25519_IFMA@
 
@@ -93,6 +102,7 @@
 
 
 #ifdef __CUDACC__
+    #undef OC_ENABLE_VPCLMUL
     #define OC_CUDA_CALLABLE __host__ __device__
     #define OC_CUDA_DEVICE __device__
     #define OC_CUDA_HOST __host__ 

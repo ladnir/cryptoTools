@@ -821,39 +821,39 @@ namespace osuCrypto
 		}
 #endif
 
-		OC_CUDA_CALLABLE OC_FORCEINLINE  void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
-		{
-			static const constexpr std::uint64_t mod = 0b10000111;
-			auto shifted = get<uint64_t>();
-			auto ya = y.get<uint64_t>();
-			std::array<uint64_t, 2> result0, result1;
-
-			result0[0] = 0;
-			result0[1] = 0;
-			result1[0] = 0;
-			result1[1] = 0;
-
-			for (int64_t i = 0; i < 2; ++i) {
-				for (int64_t j = 0; j < 64; ++j) {
-					if (ya[i] & (1ull << j)) {
-						result0[0] ^= shifted[0];
-						result0[1] ^= shifted[1];
-					}
-
-					if (shifted[1] & (1ull << 63)) {
-						shifted[1] = (shifted[1] << 1) | (shifted[0] >> 63);
-						shifted[0] = (shifted[0] << 1) ^ mod;
-					}
-					else {
-						shifted[1] = (shifted[1] << 1) | (shifted[0] >> 63);
-						shifted[0] = shifted[0] << 1;
-					}
-				}
-			}
-
-			xy1 = result0;
-			xy2 = result1;
-		}
+        // Carryless 32x32 -> 64 using integer multiplication with three-bit
+        // gaps between coefficients. At most eight terms contribute to a gap,
+        // so ordinary carries cannot reach the next retained coefficient.
+        // Fixed operations and no lookup indexed by the field operands.
+        static OC_CUDA_CALLABLE OC_FORCEINLINE uint64_t cc_clmul32(uint32_t x, uint32_t y)
+        {
+            const uint64_t x0=x&0x11111111u, x1=x&0x22222222u;
+            const uint64_t x2=x&0x44444444u, x3=x&0x88888888u;
+            const uint64_t y0=y&0x11111111u, y1=y&0x22222222u;
+            const uint64_t y2=y&0x44444444u, y3=y&0x88888888u;
+            const uint64_t z0=(x0*y0)^(x1*y3)^(x2*y2)^(x3*y1);
+            const uint64_t z1=(x0*y1)^(x1*y0)^(x2*y3)^(x3*y2);
+            const uint64_t z2=(x0*y2)^(x1*y1)^(x2*y0)^(x3*y3);
+            const uint64_t z3=(x0*y3)^(x1*y2)^(x2*y1)^(x3*y0);
+            return (z0&0x1111111111111111ull)|(z1&0x2222222222222222ull)
+                 | (z2&0x4444444444444444ull)|(z3&0x8888888888888888ull);
+        }
+        static OC_CUDA_CALLABLE OC_FORCEINLINE block cc_clmul64(uint64_t x, uint64_t y)
+        {
+            const auto lo=cc_clmul32(uint32_t(x),uint32_t(y));
+            const auto hi=cc_clmul32(uint32_t(x>>32),uint32_t(y>>32));
+            const auto cross=cc_clmul32(uint32_t(x)^uint32_t(x>>32),uint32_t(y)^uint32_t(y>>32))^lo^hi;
+            return block(hi^(cross>>32),lo^(cross<<32));
+        }
+        OC_CUDA_CALLABLE OC_FORCEINLINE void cc_gf128Mul(const block& y, block& xy1, block& xy2) const
+        {
+            const auto xw=get<uint64_t>(), yw=y.get<uint64_t>();
+            const auto lo=cc_clmul64(xw[0],yw[0]).get<uint64_t>();
+            const auto hi=cc_clmul64(xw[1],yw[1]).get<uint64_t>();
+            const auto c=cc_clmul64(xw[0]^xw[1],yw[0]^yw[1]).get<uint64_t>();
+            xy1=block(lo[1]^c[0]^lo[0]^hi[0],lo[0]);
+            xy2=block(hi[1],hi[0]^c[1]^lo[1]^hi[1]);
+        }
 
 
 		OC_CUDA_CALLABLE block gf128Reduce(const block& x1) const
@@ -940,28 +940,10 @@ namespace osuCrypto
 		}
 #endif
 		template<int imm8>
-		OC_CUDA_CALLABLE OC_FORCEINLINE  block cc_clmulepi64_si128(const block b) const
-		{
-
-			std::array<uint64_t, 2> shifted, result0;
-
-			auto x = get<uint64_t>()[imm8 & 1];
-			auto y = b.get<uint64_t>()[(imm8 >> 4) & 1];
-			result0[0] = x * (y & 1);
-			result0[1] = 0;
-
-			for (int64_t j = 1; j < 64; ++j) {
-				auto bit = (y >> j) & 1ull;
-
-				shifted[0] = x << j;
-				shifted[1] = x >> (64 - j);
-
-				result0[0] ^= shifted[0] * bit;
-				result0[1] ^= shifted[1] * bit;
-			}
-
-			return result0;
-		}
+        OC_CUDA_CALLABLE OC_FORCEINLINE block cc_clmulepi64_si128(const block b) const
+        {
+            return cc_clmul64(get<uint64_t>()[imm8 & 1], b.get<uint64_t>()[(imm8 >> 4) & 1]);
+        }
 
 
 
@@ -970,6 +952,8 @@ namespace osuCrypto
 		{
 #ifdef OC_ENABLE_SSE2
 			return mm_clmulepi64_si128<imm8>(b);
+#elif defined(ENABLE_ARM_AES)
+			return arm_clmulepi64_si128<imm8>(b);
 #else
 			return cc_clmulepi64_si128<imm8>(b);
 #endif

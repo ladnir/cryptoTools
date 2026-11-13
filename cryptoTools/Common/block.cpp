@@ -65,29 +65,14 @@ namespace osuCrypto
 
     block block::cc_gf128Reduce(const block& x1) const
     {
-        std::array<block, 2> x{ *this, x1 };
-
-        BitIterator iter((u8*)x.data(), 255);
-
-        for (int i = 127; i >= 0; --i)
-        {
-            if (*iter)
-            {
-                //std::cout << " 1 " << std::endl;
-                //auto xx = x;
-
-                auto mod = shiftMod(i);
-                x[0] = x[0] ^ mod[0];
-                x[1] = x[1] ^ mod[1];
-
-                //std::cout << "   " << bits(xx, 128) << std::endl;
-                //std::cout << "  m" << bits(mod, 128) << std::endl;
-                //std::cout << "  =" << bits(x, 128) << std::endl;
-            }
-
-            --iter;
-        }
-        return x[0];
+        const auto l=get<uint64_t>(), h=x1.get<uint64_t>();
+        // Fold x^128 = x^7+x^2+x+1, then fold the at-most-seven overflow bits.
+        const auto overflow=(h[1]>>63)^(h[1]>>62)^(h[1]>>57);
+        const auto low=l[0]^h[0]^(h[0]<<1)^(h[0]<<2)^(h[0]<<7)
+            ^overflow^(overflow<<1)^(overflow<<2)^(overflow<<7);
+        const auto high=l[1]^h[1]^(h[1]<<1)^(h[1]<<2)^(h[1]<<7)
+            ^(h[0]>>63)^(h[0]>>62)^(h[0]>>57);
+        return block(high,low);
     }
 
 }

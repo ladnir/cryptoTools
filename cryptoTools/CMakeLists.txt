@@ -41,6 +41,9 @@ if(MSVC)
 
     target_compile_options(cryptoTools PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/std:c++${CRYPTO_TOOLS_STD_VER}>)
     
+    if(ENABLE_VPCLMUL)
+        target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mvpclmulqdq>)
+    endif()
     if(ENABLE_AVX512)
         target_compile_options(cryptoTools PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:AVX512>)
     elseif(ENABLE_AVX2)

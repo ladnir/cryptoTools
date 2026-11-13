@@ -96,6 +96,17 @@ set(TEST_AVX512 [[
     return d[0]==0;
   }]])
 
+set(TEST_VPCLMUL [[
+  #include <immintrin.h>
+  int main(){
+    volatile unsigned long long input = 3;
+    __m256i a = _mm256_set1_epi64x(input);
+    __m256i b = _mm256_clmulepi64_epi128(a,a,0);
+    alignas(32) unsigned long long out[4];
+    _mm256_storeu_si256((__m256i*)out,b);
+    return out[0] != 5;
+  }]])
+
   set(TEST_BMI2 [[
       #include <immintrin.h> 
       #include <cstdlib>
@@ -111,6 +122,7 @@ if (MSVC)
   set(FLAG_AVX    "/arch:AVX")
   set(FLAG_AVX2   "/arch:AVX2")
   set(FLAG_AVX512 "/arch:AVX512")
+  set(FLAG_VPCLMUL "/arch:AVX2")
   set(FLAG_BMI2    "/arch:AVX2") # no /arch flag for BMI2
 else()
   # clang/gcc (helps when using clang-cl or mingw)
@@ -118,6 +130,7 @@ else()
   set(FLAG_AVX    "-mavx")
   set(FLAG_AVX2   "-mavx2")
   set(FLAG_AVX512 "-mavx512f")
+  set(FLAG_VPCLMUL "-mavx2 -mvpclmulqdq")
   set(FLAG_BMI2   "-mbmi2")
 endif()
 
@@ -125,6 +138,7 @@ check_isa_runs("SSE2"   "${FLAG_SSE2}"   "${TEST_SSE2}"   SSE2_RUNS)
 check_isa_runs("AVX"    "${FLAG_AVX}"    "${TEST_AVX}"    AVX_RUNS)
 check_isa_runs("AVX2"   "${FLAG_AVX2}"   "${TEST_AVX2}"   AVX2_RUNS)
 check_isa_runs("AVX512" "${FLAG_AVX512}" "${TEST_AVX512}" AVX512_RUNS)
+check_isa_runs("VPCLMUL" "${FLAG_VPCLMUL}" "${TEST_VPCLMUL}" VPCLMUL_RUNS)
 check_isa_runs("BMI2"   "${FLAG_BMI2}"   "${TEST_BMI2}"   BMI2_RUNS)
 
 
